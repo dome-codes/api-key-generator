@@ -5,7 +5,7 @@ import type {
   UsageFilter,
   UserUsageSummary,
 } from '@/api/types/types'
-import { usageService } from '@/services/apiService'
+import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
 export function useUsage() {
@@ -61,20 +61,20 @@ export function useUsage() {
       if (hasAdminPermission) {
         // Lade alle Daten nur wenn Admin-Berechtigung vorhanden
         const [detailedData, aggregation, userSummary, modelSummary] = await Promise.all([
-          usageService.getDetailedUsageData(
+          usageAnalyticsService.getDetailedUsageData(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
             currentFilter.value.modelType,
           ),
-          usageService.getUsageAggregation(
+          usageAnalyticsService.getUsageAggregation(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
           ),
-          usageService.getUserUsageSummary(
+          usageAnalyticsService.getUserUsageSummary(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
           ),
-          usageService.getModelUsageSummary(
+          usageAnalyticsService.getModelUsageSummary(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
           ),
@@ -103,25 +103,9 @@ export function useUsage() {
         modelUsageSummary.value = []
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungsdaten'
-      console.error('Fehler beim Laden der Nutzungsdaten:', err)
-
-      // Fallback bei Fehlern - setze nicht auf null
-      detailedUsageData.value = []
-      usageAggregation.value = {
-        totalRequests: 0,
-        totalTokensIn: 0,
-        totalTokensOut: 0,
-        totalTokens: 0,
-        totalCost: 0,
-        uniqueUsers: 0,
-        uniqueModels: 0,
-        averageRequestsPerUser: 0,
-        averageTokensPerRequest: 0,
-        averageCostPerRequest: 0,
-      }
-      userUsageSummary.value = []
-      modelUsageSummary.value = []
+      error.value =
+        err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Usage-Daten'
+      console.error('Fehler beim Laden der Usage-Daten:', err)
     } finally {
       isLoading.value = false
     }
