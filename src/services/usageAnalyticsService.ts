@@ -6,7 +6,11 @@ import type {
   UsageAggregation,
   UserUsageSummary,
 } from '@/api/types/types'
-import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/types'
+import {
+  CompletionModelUsageType as CompletionModelUsageTypeEnum,
+  EmbeddingModelUsageType as EmbeddingModelUsageTypeEnum,
+  ImageModelUsageType as ImageModelUsageTypeEnum,
+} from '@/api/types/types'
 import { calculateCost } from '@/config/pricing'
 import { usageService } from './apiService'
 
@@ -14,7 +18,14 @@ import { usageService } from './apiService'
 // Diese Funktionen implementieren die Filterungslogik im Frontend
 export const usageAnalyticsService = {
   // Hilfsfunktion um Token-Informationen basierend auf ModelUsageType zu bestimmen
-  getTokenInfo(item: any): { requestTokens: number; responseTokens: number } {
+  getTokenInfo(item: {
+    type?: ModelUsageType
+    requests?: number
+    model?: string
+    tag: string
+    requestTokens?: number
+    responseTokens?: number
+  }): { requestTokens: number; responseTokens: number } {
     // Da SummaryUsage keine Token-Properties hat, müssen wir sie basierend auf dem Typ schätzen
     // oder auf 0 setzen, wenn nicht verfügbar
     let requestTokens = 0
@@ -30,25 +41,27 @@ export const usageAnalyticsService = {
 
     // Falls keine Token-Informationen verfügbar sind, versuche basierend auf dem Typ zu schätzen
     if (requestTokens === 0 && responseTokens === 0) {
+      const requests = item.requests || 0
+
       switch (item.type) {
-        case ModelUsageTypeEnum.CompletionModelUsage:
+        case CompletionModelUsageTypeEnum.CompletionModelUsage:
           // Für Completion Models können wir keine genauen Token-Zahlen schätzen
           // aber wir können basierend auf requests eine grobe Schätzung machen
-          if (item.requests && item.requests > 0) {
+          if (requests && requests > 0) {
             // Grobe Schätzung: durchschnittlich 1000 tokens pro request
-            requestTokens = item.requests * 1000
-            responseTokens = item.requests * 500
+            requestTokens = requests * 1000
+            responseTokens = requests * 500
           }
           break
-        case ModelUsageTypeEnum.EmbeddingModelUsage:
+        case EmbeddingModelUsageTypeEnum.EmbeddingModelUsage:
           // Für Embedding Models haben wir nur requestTokens
-          if (item.requests && item.requests > 0) {
+          if (requests && requests > 0) {
             // Grobe Schätzung: durchschnittlich 1000 tokens pro request
-            requestTokens = item.requests * 1000
+            requestTokens = requests * 1000
             responseTokens = 0
           }
           break
-        case ModelUsageTypeEnum.ImageModelUsage:
+        case ImageModelUsageTypeEnum.ImageModelUsage:
           // Image Models haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
@@ -105,7 +118,7 @@ export const usageAnalyticsService = {
           technicalUserId: item.technicalUserId || `user-${index}`,
           technicalUserName: item.technicalUserId || `Benutzer ${index + 1}`,
           modelName: item.model || 'Unbekanntes Modell',
-          modelType: item.type || ModelUsageTypeEnum.CompletionModelUsage,
+          modelType: item.type || CompletionModelUsageTypeEnum.CompletionModelUsage,
           requests: item.requests || 0,
           tokensIn: requestTokens,
           tokensOut: responseTokens,
