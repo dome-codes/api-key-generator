@@ -1,5 +1,6 @@
 import type {
   EnhancedUsageRecord,
+  ImageModelUsage,
   ModelUsageSummary,
   ModelUsageType,
   UsageAggregation,
@@ -89,10 +90,15 @@ export const usageAnalyticsService = {
       return filteredUsage.map((item, index) => {
         const { requestTokens, responseTokens } = this.getTokenInfo(item)
 
+        // Berechne Kosten basierend auf dem ModelUsageType
         const costCalculation = calculateCost(
           requestTokens,
           responseTokens,
           item.model || 'unknown',
+          false, // useCachedInput
+          item.type, // modelType
+          (item as ImageModelUsage).quality, // imageQuality (für Image-Modelle) - optional
+          item.requests, // imageCount (für Image-Modelle)
         )
 
         return {
@@ -159,6 +165,10 @@ export const usageAnalyticsService = {
           requestTokens,
           responseTokens,
           item.model || 'unknown',
+          false, // useCachedInput
+          item.type, // modelType
+          (item as any).quality, // imageQuality (für Image-Modelle) - optional
+          item.requests, // imageCount (für Image-Modelle)
         )
         return sum + costCalculation.finalCost
       }, 0)
