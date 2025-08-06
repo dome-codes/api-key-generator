@@ -125,13 +125,13 @@
 </template>
 
 <script setup lang="ts">
-import type { ModelUsageType } from '@/api/types/types'
+import type { ModelUsageType, UsageFilter } from '@/api/types/types'
 import { useUsage } from '@/composables/useUsage'
 import { computed, onMounted, ref } from 'vue'
 
 // Props
 interface Props {
-  onFilterChange?: (filter: any) => void
+  onFilterChange?: (filter: UsageFilter) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {

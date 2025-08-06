@@ -1,16 +1,66 @@
 import type {
   EnhancedUsageRecord,
   ModelUsageSummary,
+  ModelUsageType,
   UsageAggregation,
   UserUsageSummary,
 } from '@/api/types/types'
-import { ModelUsageType } from '@/api/types/types'
+import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/types'
 import { calculateCost } from '@/config/pricing'
 import { usageService } from './apiService'
 
 // Frontend-Service für erweiterte Usage-Analytics-Funktionen
 // Diese Funktionen implementieren die Filterungslogik im Frontend
 export const usageAnalyticsService = {
+  // Hilfsfunktion um Token-Informationen basierend auf ModelUsageType zu bestimmen
+  getTokenInfo(item: any): { requestTokens: number; responseTokens: number } {
+    // Da SummaryUsage keine Token-Properties hat, müssen wir sie basierend auf dem Typ schätzen
+    // oder auf 0 setzen, wenn nicht verfügbar
+    let requestTokens = 0
+    let responseTokens = 0
+
+    // Versuche Token-Informationen aus dem item zu extrahieren, falls vorhanden
+    if (item.requestTokens !== undefined) {
+      requestTokens = item.requestTokens
+    }
+    if (item.responseTokens !== undefined) {
+      responseTokens = item.responseTokens
+    }
+
+    // Falls keine Token-Informationen verfügbar sind, versuche basierend auf dem Typ zu schätzen
+    if (requestTokens === 0 && responseTokens === 0) {
+      switch (item.type) {
+        case ModelUsageTypeEnum.CompletionModelUsage:
+          // Für Completion Models können wir keine genauen Token-Zahlen schätzen
+          // aber wir können basierend auf requests eine grobe Schätzung machen
+          if (item.requests && item.requests > 0) {
+            // Grobe Schätzung: durchschnittlich 1000 tokens pro request
+            requestTokens = item.requests * 1000
+            responseTokens = item.requests * 500
+          }
+          break
+        case ModelUsageTypeEnum.EmbeddingModelUsage:
+          // Für Embedding Models haben wir nur requestTokens
+          if (item.requests && item.requests > 0) {
+            // Grobe Schätzung: durchschnittlich 1000 tokens pro request
+            requestTokens = item.requests * 1000
+            responseTokens = 0
+          }
+          break
+        case ModelUsageTypeEnum.ImageModelUsage:
+          // Image Models haben keine Token-Informationen
+          requestTokens = 0
+          responseTokens = 0
+          break
+        default:
+          requestTokens = 0
+          responseTokens = 0
+      }
+    }
+
+    return { requestTokens, responseTokens }
+  },
+
   // Erweiterte Funktionen für detaillierte Nutzungsübersicht
   async getDetailedUsageData(
     fromDate?: string,
@@ -33,25 +83,27 @@ export const usageAnalyticsService = {
 
       // Filter nach Benutzer
       if (technicalUserId) {
-        filteredUsage = filteredUsage.filter((item) => item.technicalUSerid === technicalUserId)
+        filteredUsage = filteredUsage.filter((item) => item.technicalUserId === technicalUserId)
       }
 
       return filteredUsage.map((item, index) => {
+        const { requestTokens, responseTokens } = this.getTokenInfo(item)
+
         const costCalculation = calculateCost(
-          item.tokensIn || 0,
-          item.tokensOut || 0,
+          requestTokens,
+          responseTokens,
           item.model || 'unknown',
         )
 
         return {
-          technicalUserId: item.technicalUSerid || `user-${index}`,
-          technicalUserName: item.technicalUSerid || `Benutzer ${index + 1}`,
+          technicalUserId: item.technicalUserId || `user-${index}`,
+          technicalUserName: item.technicalUserId || `Benutzer ${index + 1}`,
           modelName: item.model || 'Unbekanntes Modell',
-          modelType: item.type || ModelUsageType.CompletionModelUsage,
+          modelType: item.type || ModelUsageTypeEnum.CompletionModelUsage,
           requests: item.requests || 0,
-          tokensIn: item.tokensIn || 0,
-          tokensOut: item.tokensOut || 0,
-          totalTokens: item.totalTokens || 0,
+          tokensIn: requestTokens,
+          tokensOut: responseTokens,
+          totalTokens: requestTokens + responseTokens,
           cost: costCalculation.finalCost,
           tag: item.tag,
           day: item.day,
@@ -84,18 +136,28 @@ export const usageAnalyticsService = {
         }
       }
 
-      const uniqueUsers = new Set(summary.usage.map((item) => item.technicalUSerid)).size
+      const uniqueUsers = new Set(summary.usage.map((item) => item.technicalUserId)).size
       const uniqueModels = new Set(summary.usage.map((item) => item.model)).size
       const totalRequests = summary.usage.reduce((sum, item) => sum + (item.requests || 0), 0)
-      const totalTokensIn = summary.usage.reduce((sum, item) => sum + (item.tokensIn || 0), 0)
-      const totalTokensOut = summary.usage.reduce((sum, item) => sum + (item.tokensOut || 0), 0)
-      const totalTokens = summary.usage.reduce((sum, item) => sum + (item.totalTokens || 0), 0)
+
+      // Berechne Token-Informationen basierend auf den einzelnen Items
+      let totalTokensIn = 0
+      let totalTokensOut = 0
+      let totalTokens = 0
+
+      summary.usage.forEach((item) => {
+        const { requestTokens, responseTokens } = this.getTokenInfo(item)
+        totalTokensIn += requestTokens
+        totalTokensOut += responseTokens
+        totalTokens += requestTokens + responseTokens
+      })
 
       // Berechne Gesamtkosten
       const totalCost = summary.usage.reduce((sum, item) => {
+        const { requestTokens, responseTokens } = this.getTokenInfo(item)
         const costCalculation = calculateCost(
-          item.tokensIn || 0,
-          item.tokensOut || 0,
+          requestTokens,
+          responseTokens,
           item.model || 'unknown',
         )
         return sum + costCalculation.finalCost
@@ -240,7 +302,7 @@ export const usageAnalyticsService = {
 
   filterUsageByUser(usageData: any[], userId?: string) {
     if (!userId) return usageData
-    return usageData.filter((item) => item.technicalUSerid === userId)
+    return usageData.filter((item) => item.technicalUserId === userId)
   },
 
   filterUsageByDateRange(usageData: any[], fromDate?: string, toDate?: string) {
@@ -262,7 +324,7 @@ export const usageAnalyticsService = {
     const userMap = new Map()
 
     usageData.forEach((item) => {
-      const userId = item.technicalUSerid || 'unknown'
+      const userId = item.technicalUserId || 'unknown'
       if (!userMap.has(userId)) {
         userMap.set(userId, [])
       }

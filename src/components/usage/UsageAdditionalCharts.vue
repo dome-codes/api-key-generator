@@ -103,6 +103,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TooltipItem } from 'chart.js'
 import { onMounted, ref, watch } from 'vue'
 
 const pieChartCanvas = ref<HTMLCanvasElement>()
@@ -211,7 +212,7 @@ const createPieChart = async () => {
           },
           tooltip: {
             callbacks: {
-              label: function (context: any) {
+              label: function (context: TooltipItem<'pie'>) {
                 const label = context.label || ''
                 const value = context.parsed
                 const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)

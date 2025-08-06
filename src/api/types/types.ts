@@ -23,9 +23,6 @@ export interface ModelUsage {
   tag?: string
   model?: string
   createDate?: string
-  tokensIn?: number
-  tokensOut?: number
-  totalTokens?: number
 }
 
 export interface UsageResponse {
@@ -34,7 +31,46 @@ export interface UsageResponse {
   technicalUserId?: number
   usage?: ModelUsage[]
 }
+export const CompletionModelUsageType = {
+  CompletionModelUsage: 'CompletionModelUsage',
+}
+export const EmbeddingModelUsageType = {
+  EmbeddingModelUsage: 'EmbeddingModelUsage',
+}
+export const ImageModelUsageType = {
+  ImageModelUsage: 'ImageModelUsage',
+}
+export type EmbeddingModelUsageType =
+  (typeof EmbeddingModelUsageType)[keyof typeof EmbeddingModelUsageType]
+
+export type CompletionModelUsageType =
+  (typeof CompletionModelUsageType)[keyof typeof CompletionModelUsageType]
+
+export type ImageModelUsageType = (typeof ImageModelUsageType)[keyof typeof ImageModelUsageType]
+export const ImageModelUsageQuality = { standard: 'standard', hd: 'hd' }
+
+export type ImageModelUsageQuality =
+  (typeof ImageModelUsageQuality)[keyof typeof ImageModelUsageQuality]
+
 export type ModelUsageType = (typeof ModelUsageType)[keyof typeof ModelUsageType]
+
+export type CompletionModelUsage = Omit<ModelUsage, 'type'> & {
+  requestTokens?: number
+  responseTokens?: number
+  type: CompletionModelUsageType
+}
+export type EmbeddingModelUsage = Omit<ModelUsage, 'type'> & {
+  requestTokens?: number
+  type: EmbeddingModelUsageType
+}
+
+export type ImageModelUsage = Omit<ModelUsage, 'type'> & {
+  sizeWidth?: number
+  sizeHeight?: number
+  quality?: ImageModelUsageQuality
+  type: ImageModelUsageType
+}
+
 export const ModelUsageType = {
   CompletionModelUsage: 'CompletionModelUsage',
   EmbeddingModelUsage: 'EmbeddingModelUsage',
@@ -43,15 +79,12 @@ export const ModelUsageType = {
 export interface SummaryUsage {
   type?: ModelUsageType
   requests?: number
-  technicalUSerid?: string
+  technicalUserId?: string
   model?: string
   tag: string
   day?: number
   month?: number
   year?: number
-  tokensIn?: number
-  tokensOut?: number
-  totalTokens?: number
 }
 export interface SummaryUsageResponse {
   from_date?: string
