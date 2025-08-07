@@ -146,7 +146,12 @@
             <div class="text-2xl font-bold text-blue-800">
               {{ filteredOwnUsage.tokensIn.toLocaleString() }}
             </div>
-            <div class="text-xs text-blue-600 mt-1">+12% vs. letzter Monat</div>
+            <div
+              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
+              class="text-xs text-blue-600 mt-1"
+            >
+              +12% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-green-50 rounded-lg p-4">
@@ -154,7 +159,12 @@
             <div class="text-2xl font-bold text-green-800">
               {{ filteredOwnUsage.tokensOut.toLocaleString() }}
             </div>
-            <div class="text-xs text-green-600 mt-1">+8% vs. letzter Monat</div>
+            <div
+              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
+              class="text-xs text-green-600 mt-1"
+            >
+              +8% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-purple-50 rounded-lg p-4">
@@ -162,7 +172,12 @@
             <div class="text-2xl font-bold text-purple-800">
               {{ filteredOwnUsage.requests.toLocaleString() }}
             </div>
-            <div class="text-xs text-purple-600 mt-1">+15% vs. letzter Monat</div>
+            <div
+              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
+              class="text-xs text-purple-600 mt-1"
+            >
+              +15% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-orange-50 rounded-lg p-4">
@@ -170,7 +185,13 @@
             <div class="text-2xl font-bold text-orange-800">
               {{ formatCost(filteredOwnUsage.cost) }}
             </div>
-            <div class="text-xs text-orange-600 mt-1">Basierend auf GPT-4o-mini</div>
+            <div
+              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
+              class="text-xs text-orange-600 mt-1"
+            >
+              +10% vs. letzter Monat
+            </div>
+            <div v-else class="text-xs text-orange-600 mt-1">Basierend auf aktuellen Preisen</div>
           </div>
         </div>
       </div>
@@ -285,8 +306,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div class="bg-blue-50 rounded-lg p-4">
             <div class="text-sm text-blue-600 font-medium">Aktive Benutzer</div>
-            <div class="text-2xl font-bold text-blue-800">{{ filteredAdminUsage.activeUsers }}</div>
-            <div class="text-xs text-blue-600 mt-1">+3 neue diesen Monat</div>
+            <div class="text-2xl font-bold text-blue-800">
+              {{ filteredAdminUsage.uniqueUsers || 0 }}
+            </div>
+            <div
+              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
+              class="text-xs text-blue-600 mt-1"
+            >
+              +3 neue diesen Monat
+            </div>
           </div>
 
           <div class="bg-green-50 rounded-lg p-4">
@@ -294,7 +322,12 @@
             <div class="text-2xl font-bold text-green-800">
               {{ filteredAdminUsage.tokensIn.toLocaleString() }}
             </div>
-            <div class="text-xs text-green-600 mt-1">+18% vs. letzter Monat</div>
+            <div
+              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
+              class="text-xs text-green-600 mt-1"
+            >
+              +18% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-purple-50 rounded-lg p-4">
@@ -302,23 +335,38 @@
             <div class="text-2xl font-bold text-purple-800">
               {{ filteredAdminUsage.tokensOut.toLocaleString() }}
             </div>
-            <div class="text-xs text-purple-600 mt-1">+15% vs. letzter Monat</div>
+            <div
+              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
+              class="text-xs text-purple-600 mt-1"
+            >
+              +15% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-orange-50 rounded-lg p-4">
-            <div class="text-sm text-orange-600 font-medium">Anfragen</div>
+            <div class="text-sm text-orange-600 font-medium">Gesamtkosten</div>
             <div class="text-2xl font-bold text-orange-800">
-              {{ filteredAdminUsage.requests.toLocaleString() }}
+              {{ formatCost(filteredAdminUsage.cost) }}
             </div>
-            <div class="text-xs text-orange-600 mt-1">+22% vs. letzter Monat</div>
+            <div
+              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
+              class="text-xs text-orange-600 mt-1"
+            >
+              +22% vs. letzter Monat
+            </div>
           </div>
 
           <div class="bg-red-50 rounded-lg p-4">
-            <div class="text-sm text-red-600 font-medium">Gesamtkosten</div>
+            <div class="text-sm text-red-600 font-medium">Anfragen</div>
             <div class="text-2xl font-bold text-red-800">
-              {{ formatCost(filteredAdminUsage.cost) }}
+              {{ filteredAdminUsage.requests.toLocaleString() }}
             </div>
-            <div class="text-xs text-red-600 mt-1">+20% vs. letzter Monat</div>
+            <div
+              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
+              class="text-xs text-red-600 mt-1"
+            >
+              +20% vs. letzter Monat
+            </div>
           </div>
         </div>
       </div>
@@ -544,194 +592,65 @@ onMounted(async () => {
 
 // Computed properties für gefilterte Daten
 const filteredOwnUsage = computed(() => {
-  let baseData = displayOwnUsage.value
-
-  // Filtere nach Zeitraum
-  if (ownTimeRange.value === '7d') {
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.25),
-      tokensOut: Math.round(baseData.tokensOut * 0.25),
-      requests: Math.round(baseData.requests * 0.25),
-      cost: baseData.cost * 0.25,
-    }
-  } else if (ownTimeRange.value === '90d') {
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 3),
-      tokensOut: Math.round(baseData.tokensOut * 3),
-      requests: Math.round(baseData.requests * 3),
-      cost: baseData.cost * 3,
-    }
-  } else if (ownTimeRange.value === 'thisMonth') {
-    const today = new Date()
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.7),
-      tokensOut: Math.round(baseData.tokensOut * 0.7),
-      requests: Math.round(baseData.requests * 0.7),
-      cost: baseData.cost * 0.7,
-    }
-  } else if (ownTimeRange.value === 'lastMonth') {
-    const today = new Date()
-    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.7),
-      tokensOut: Math.round(baseData.tokensOut * 0.7),
-      requests: Math.round(baseData.requests * 0.7),
-      cost: baseData.cost * 0.7,
-    }
-  } else if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
-    // Benutzerdefinierter Zeitraum basierend auf Datumsfeldern
-    const fromDate = new Date(ownFromDate.value)
-    const toDate = new Date(ownToDate.value)
-    const today = new Date()
-
-    // Berechne Tage zwischen den Daten
-    const daysDiff = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
-    const daysFromToday = Math.ceil((today.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
-
-    // Skaliere Daten basierend auf der Anzahl der Tage
-    const scaleFactor = daysDiff / 30 // 30 Tage als Basis
-    const recentFactor = Math.max(0.1, Math.min(1, daysFromToday / 30)) // Je näher an heute, desto mehr Daten
-
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * scaleFactor * recentFactor),
-      tokensOut: Math.round(baseData.tokensOut * scaleFactor * recentFactor),
-      requests: Math.round(baseData.requests * scaleFactor * recentFactor),
-      cost: baseData.cost * scaleFactor * recentFactor,
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    return {
+      tokensIn: 0,
+      tokensOut: 0,
+      requests: 0,
+      cost: 0,
     }
   }
 
-  // Filtere nach Modelltyp mit korrekter Preisberechnung
-  if (ownModelType.value === 'CompletionModelUsage') {
-    // Chat Completions: Höhere Kosten pro Token
-    const completionCost = baseData.tokensIn * 0.000001 + baseData.tokensOut * 0.000004 // GPT-4o-mini Preise
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.7),
-      tokensOut: Math.round(baseData.tokensOut * 0.7),
-      requests: Math.round(baseData.requests * 0.7),
-      cost: completionCost * 0.7,
-    }
-  } else if (ownModelType.value === 'EmbeddingModelUsage') {
-    // Embeddings: Niedrigere Kosten pro Token
-    const embeddingCost = baseData.tokensIn * 0.0000001 // Embedding Preise
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.2),
-      tokensOut: Math.round(baseData.tokensOut * 0.2),
-      requests: Math.round(baseData.requests * 0.2),
-      cost: embeddingCost * 0.2,
-    }
-  } else if (ownModelType.value === 'ImageModelUsage') {
-    // Bilder: Höchste Kosten pro Request
-    const imageCost = baseData.requests * 0.02 // DALL-E Preise
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.1),
-      tokensOut: Math.round(baseData.tokensOut * 0.1),
-      requests: Math.round(baseData.requests * 0.1),
-      cost: imageCost * 0.1,
-    }
+  // Filtere nach Modelltyp falls ausgewählt
+  let filteredData = detailedUsageData.value
+  if (ownModelType.value) {
+    filteredData = detailedUsageData.value.filter((item) => item.modelType === ownModelType.value)
   }
 
-  return baseData
+  // Berechne aggregierte Werte
+  const aggregatedData = filteredData.reduce(
+    (acc, item) => {
+      acc.tokensIn += item.tokensIn || 0
+      acc.tokensOut += item.tokensOut || 0
+      acc.requests += item.requests || 0
+      acc.cost += item.cost || 0
+      return acc
+    },
+    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
+  )
+
+  return aggregatedData
 })
 
 const filteredAdminUsage = computed(() => {
-  let baseData = displayAdminUsage.value
-
-  // Filtere nach Zeitraum
-  if (adminTimeRange.value === '7d') {
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.25),
-      tokensOut: Math.round(baseData.tokensOut * 0.25),
-      requests: Math.round(baseData.requests * 0.25),
-      cost: baseData.cost * 0.25,
-    }
-  } else if (adminTimeRange.value === '90d') {
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 3),
-      tokensOut: Math.round(baseData.tokensOut * 3),
-      requests: Math.round(baseData.requests * 3),
-      cost: baseData.cost * 3,
-    }
-  } else if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
-    // Benutzerdefinierter Zeitraum basierend auf Datumsfeldern
-    const fromDate = new Date(adminFromDate.value)
-    const toDate = new Date(adminToDate.value)
-    const today = new Date()
-
-    // Berechne Tage zwischen den Daten
-    const daysDiff = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
-    const daysFromToday = Math.ceil((today.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
-
-    // Skaliere Daten basierend auf der Anzahl der Tage
-    const scaleFactor = daysDiff / 30 // 30 Tage als Basis
-    const recentFactor = Math.max(0.1, Math.min(1, daysFromToday / 30)) // Je näher an heute, desto mehr Daten
-
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * scaleFactor * recentFactor),
-      tokensOut: Math.round(baseData.tokensOut * scaleFactor * recentFactor),
-      requests: Math.round(baseData.requests * scaleFactor * recentFactor),
-      cost: baseData.cost * scaleFactor * recentFactor,
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    return {
+      tokensIn: 0,
+      tokensOut: 0,
+      requests: 0,
+      cost: 0,
     }
   }
 
-  // Filtere nach Modelltyp mit korrekter Preisberechnung
-  if (adminModelType.value === 'CompletionModelUsage') {
-    const completionCost = baseData.tokensIn * 0.000001 + baseData.tokensOut * 0.000004
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.7),
-      tokensOut: Math.round(baseData.tokensOut * 0.7),
-      requests: Math.round(baseData.requests * 0.7),
-      cost: completionCost * 0.7,
-    }
-  } else if (adminModelType.value === 'EmbeddingModelUsage') {
-    const embeddingCost = baseData.tokensIn * 0.0000001
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.2),
-      tokensOut: Math.round(baseData.tokensOut * 0.2),
-      requests: Math.round(baseData.requests * 0.2),
-      cost: embeddingCost * 0.2,
-    }
-  } else if (adminModelType.value === 'ImageModelUsage') {
-    const imageCost = baseData.requests * 0.02
-    baseData = {
-      ...baseData,
-      tokensIn: Math.round(baseData.tokensIn * 0.1),
-      tokensOut: Math.round(baseData.tokensOut * 0.1),
-      requests: Math.round(baseData.requests * 0.1),
-      cost: imageCost * 0.1,
-    }
+  // Filtere nach Modelltyp falls ausgewählt
+  let filteredData = detailedUsageData.value
+  if (adminModelType.value) {
+    filteredData = detailedUsageData.value.filter((item) => item.modelType === adminModelType.value)
   }
 
-  // Filtere nach Benutzer (nur für Admin)
-  if (adminUser.value && adminUser.value !== '') {
-    baseData = {
-      ...baseData,
-      activeUsers: 1,
-      tokensIn: Math.round(baseData.tokensIn * 0.3),
-      tokensOut: Math.round(baseData.tokensOut * 0.3),
-      requests: Math.round(baseData.requests * 0.3),
-      cost: baseData.cost * 0.3,
-    }
-  }
+  // Berechne aggregierte Werte
+  const aggregatedData = filteredData.reduce(
+    (acc, item) => {
+      acc.tokensIn += item.tokensIn || 0
+      acc.tokensOut += item.tokensOut || 0
+      acc.requests += item.requests || 0
+      acc.cost += item.cost || 0
+      return acc
+    },
+    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
+  )
 
-  return baseData
+  return aggregatedData
 })
 
 // Computed properties für die Anzeige basierend auf Ansicht

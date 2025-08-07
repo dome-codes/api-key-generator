@@ -131,6 +131,8 @@ export const usageAnalyticsService = {
           item.type, // modelType
           (item as ImageModelUsage).quality, // imageQuality
           item.requests || 1, // imageCount
+          (item as ImageModelUsage).sizeWidth, // sizeWidth
+          (item as ImageModelUsage).sizeHeight, // sizeHeight
         ).finalCost
 
         // Extrahiere createDate falls verfügbar
@@ -268,6 +270,8 @@ export const usageAnalyticsService = {
           item.type, // modelType
           (item as ImageModelUsage).quality, // imageQuality (für Image-Modelle) - optional
           item.requests, // imageCount (für Image-Modelle)
+          (item as ImageModelUsage).sizeWidth, // sizeWidth (für Image-Modelle)
+          (item as ImageModelUsage).sizeHeight, // sizeHeight (für Image-Modelle)
         )
         return sum + costCalculation.finalCost
       }, 0)
