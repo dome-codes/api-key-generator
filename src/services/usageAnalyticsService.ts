@@ -26,15 +26,14 @@ export const usageAnalyticsService = {
     requestTokens?: number
     responseTokens?: number
   }): { requestTokens: number; responseTokens: number } {
-    // Da SummaryUsage keine Token-Properties hat, müssen wir sie basierend auf dem Typ schätzen
-    // oder auf 0 setzen, wenn nicht verfügbar
     let requestTokens = 0
     let responseTokens = 0
 
-    // Versuche Token-Informationen aus dem item zu extrahieren, falls vorhanden
+    // Versuche Token-Informationen aus den bestehenden Properties zu extrahieren
     if (item.requestTokens !== undefined) {
       requestTokens = item.requestTokens
     }
+
     if (item.responseTokens !== undefined) {
       responseTokens = item.responseTokens
     }
@@ -81,66 +80,151 @@ export const usageAnalyticsService = {
     toDate?: string,
     modelType?: ModelUsageType,
     technicalUserId?: string,
+    useAdminApi: boolean = false,
   ): Promise<EnhancedUsageRecord[]> {
     try {
-      // Verwende Admin-Summary für detaillierte Daten
-      const summary = await usageService.getAdminUsageSummary(fromDate, toDate)
+      let usageData
 
-      if (!summary.usage) return []
-
-      let filteredUsage = summary.usage
-
-      // Filter nach Modell-Typ
-      if (modelType) {
-        filteredUsage = filteredUsage.filter((item) => item.type === modelType)
+      if (useAdminApi) {
+        // Verwende Admin API nur wenn explizit gewünscht
+        try {
+          const summary = await usageService.getAdminUsageSummary(fromDate, toDate)
+          console.log('Admin summary loaded:', summary)
+          usageData = summary.usage || []
+        } catch (adminError) {
+          console.log('Admin summary failed, trying regular summary:', adminError)
+          // Fallback: Verwende normale Usage-Summary
+          const summary = await usageService.getUsageSummary(fromDate, toDate)
+          console.log('Regular summary loaded:', summary)
+          usageData = summary.usage || []
+        }
+      } else {
+        // Verwende detaillierte API für normale Benutzer (v1/usage/ai)
+        try {
+          const detailedResponse = await usageService.getOwnUsage(fromDate, toDate)
+          console.log('Detailed usage data loaded:', detailedResponse)
+          usageData = detailedResponse.usage || []
+        } catch (detailedError) {
+          console.log('Detailed usage failed, trying summary:', detailedError)
+          // Fallback: Verwende normale Usage-Summary
+          const summary = await usageService.getUsageSummary(fromDate, toDate)
+          console.log('Regular summary loaded:', summary)
+          usageData = summary.usage || []
+        }
       }
 
-      // Filter nach Benutzer
-      if (technicalUserId) {
-        filteredUsage = filteredUsage.filter((item) => item.technicalUserId === technicalUserId)
+      if (!usageData || usageData.length === 0) {
+        console.log('No usage data found')
+        return []
       }
 
-      return filteredUsage.map((item, index) => {
-        const { requestTokens, responseTokens } = this.getTokenInfo(item)
+      console.log('Filtered usage data:', usageData)
 
-        // Berechne Kosten basierend auf dem ModelUsageType
-        const costCalculation = calculateCost(
-          requestTokens,
-          responseTokens,
+      // Konvertiere zu EnhancedUsageRecord[]
+      const enhancedRecords: EnhancedUsageRecord[] = usageData.map((item) => {
+        const tokenInfo = this.getTokenInfo(item)
+        const cost = calculateCost(
+          tokenInfo.requestTokens,
+          tokenInfo.responseTokens,
           item.model || 'unknown',
           false, // useCachedInput
           item.type, // modelType
-          (item as ImageModelUsage).quality, // imageQuality (für Image-Modelle) - optional
-          item.requests, // imageCount (für Image-Modelle)
-        )
+          (item as ImageModelUsage).quality, // imageQuality
+          item.requests || 1, // imageCount
+        ).finalCost
+
+        // Extrahiere createDate falls verfügbar
+        let createDate: string | undefined
+        if ('createDate' in item && item.createDate) {
+          createDate = item.createDate
+        }
+
+        // Extrahiere technische User ID
+        let technicalUserId = ''
+        if ('technicalUserId' in item && item.technicalUserId) {
+          technicalUserId =
+            typeof item.technicalUserId === 'string'
+              ? item.technicalUserId
+              : String(item.technicalUserId)
+        } else if ('technicalUSerid' in item && (item as any).technicalUSerid) {
+          technicalUserId = (item as any).technicalUSerid
+        }
 
         return {
-          technicalUserId: item.technicalUserId || `user-${index}`,
-          technicalUserName: item.technicalUserId || `Benutzer ${index + 1}`,
-          modelName: item.model || 'Unbekanntes Modell',
-          modelType: item.type || CompletionModelUsageTypeEnum.CompletionModelUsage,
+          technicalUserId,
+          technicalUserName: technicalUserId || 'Unknown',
+          modelName: item.model || 'Unknown',
+          modelType: item.type || ('CompletionModelUsage' as ModelUsageType),
           requests: item.requests || 0,
-          tokensIn: requestTokens,
-          tokensOut: responseTokens,
-          totalTokens: requestTokens + responseTokens,
-          cost: costCalculation.finalCost,
-          tag: item.tag,
-          day: item.day,
-          month: item.month,
-          year: item.year,
+          tokensIn: tokenInfo.requestTokens,
+          tokensOut: tokenInfo.responseTokens,
+          totalTokens: tokenInfo.requestTokens + tokenInfo.responseTokens,
+          cost,
+          tag: item.tag || 'production',
+          createDate,
         }
       })
+
+      return enhancedRecords
     } catch (error) {
-      console.warn('Keine Admin-Berechtigung für detaillierte Nutzungsdaten:', error)
+      console.error('Error in getDetailedUsageData:', error)
       return []
     }
   },
 
-  async getUsageAggregation(fromDate?: string, toDate?: string): Promise<UsageAggregation> {
+  async getUsageAggregation(
+    fromDate?: string,
+    toDate?: string,
+    useAdminApi: boolean = false,
+  ): Promise<UsageAggregation> {
     try {
-      const summary = await usageService.getAdminUsageSummary(fromDate, toDate)
+      let summary
 
-      if (!summary.usage) {
+      if (useAdminApi) {
+        // Verwende Admin API nur wenn explizit gewünscht
+        try {
+          summary = await usageService.getAdminUsageSummary(fromDate, toDate)
+          console.log('Admin summary for aggregation loaded:', summary)
+        } catch (adminError) {
+          console.log('Admin summary for aggregation failed, trying regular summary:', adminError)
+          // Fallback: Verwende normale Usage-Summary
+          summary = await usageService.getUsageSummary(fromDate, toDate)
+          console.log('Regular summary for aggregation loaded:', summary)
+        }
+      } else {
+        // Verwende normale API für normale Benutzer
+        try {
+          summary = await usageService.getUsageSummary(fromDate, toDate)
+          console.log('Regular summary for aggregation loaded:', summary)
+        } catch (regularError) {
+          console.log(
+            'Regular summary for aggregation failed, trying admin summary as fallback:',
+            regularError,
+          )
+          // Fallback: Versuche Admin API
+          try {
+            summary = await usageService.getAdminUsageSummary(fromDate, toDate)
+            console.log('Admin summary for aggregation loaded as fallback:', summary)
+          } catch (adminError) {
+            console.log('Both APIs failed for aggregation:', adminError)
+            return {
+              totalRequests: 0,
+              totalTokensIn: 0,
+              totalTokensOut: 0,
+              totalTokens: 0,
+              totalCost: 0,
+              uniqueUsers: 0,
+              uniqueModels: 0,
+              averageRequestsPerUser: 0,
+              averageTokensPerRequest: 0,
+              averageCostPerRequest: 0,
+            }
+          }
+        }
+      }
+
+      if (!summary.usage || summary.usage.length === 0) {
+        console.log('No usage data found for aggregation')
         return {
           totalRequests: 0,
           totalTokensIn: 0,
@@ -155,7 +239,9 @@ export const usageAnalyticsService = {
         }
       }
 
-      const uniqueUsers = new Set(summary.usage.map((item) => item.technicalUserId)).size
+      const uniqueUsers = new Set(
+        summary.usage.map((item) => item.technicalUserId || (item as any).technicalUSerid),
+      ).size
       const uniqueModels = new Set(summary.usage.map((item) => item.model)).size
       const totalRequests = summary.usage.reduce((sum, item) => sum + (item.requests || 0), 0)
 
@@ -180,13 +266,13 @@ export const usageAnalyticsService = {
           item.model || 'unknown',
           false, // useCachedInput
           item.type, // modelType
-          (item as any).quality, // imageQuality (für Image-Modelle) - optional
+          (item as ImageModelUsage).quality, // imageQuality (für Image-Modelle) - optional
           item.requests, // imageCount (für Image-Modelle)
         )
         return sum + costCalculation.finalCost
       }, 0)
 
-      return {
+      const aggregation = {
         totalRequests,
         totalTokensIn,
         totalTokensOut,
@@ -198,8 +284,11 @@ export const usageAnalyticsService = {
         averageTokensPerRequest: totalRequests > 0 ? totalTokens / totalRequests : 0,
         averageCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
       }
+
+      console.log('Usage aggregation calculated:', aggregation)
+      return aggregation
     } catch (error) {
-      console.warn('Keine Admin-Berechtigung für Nutzungsaggregation:', error)
+      console.warn('Fehler beim Laden der Nutzungsaggregation:', error)
       return {
         totalRequests: 0,
         totalTokensIn: 0,
@@ -225,7 +314,9 @@ export const usageAnalyticsService = {
         if (!userMap.has(item.technicalUserId)) {
           userMap.set(item.technicalUserId, {
             technicalUserId: item.technicalUserId,
-            technicalUserName: item.technicalUserName,
+            technicalUserName:
+              item.technicalUserId ||
+              `Benutzer ${detailedData.findIndex((i) => i.technicalUserId === item.technicalUserId) + 1}`,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,

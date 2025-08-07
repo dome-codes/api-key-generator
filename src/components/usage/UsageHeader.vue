@@ -44,8 +44,31 @@
             <option value="7d">Letzte 7 Tage</option>
             <option value="30d">Letzte 30 Tage</option>
             <option value="90d">Letzte 90 Tage</option>
+            <option value="thisMonth">Diesen Monat</option>
+            <option value="lastMonth">Vormonat</option>
             <option value="custom">Benutzerdefiniert</option>
           </select>
+          <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
+          <div v-if="selectedTimeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-600 mb-1">Von</label>
+              <input
+                v-model="customFromDate"
+                type="date"
+                class="w-full border rounded px-2 py-1 text-xs"
+                @change="onCustomDateChange"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-600 mb-1">Bis</label>
+              <input
+                v-model="customToDate"
+                type="date"
+                class="w-full border rounded px-2 py-1 text-xs"
+                @change="onCustomDateChange"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Modelltyp Filter -->
@@ -242,6 +265,17 @@ const getFromDate = (): string => {
     case '90d':
       fromDate.setDate(today.getDate() - 90)
       break
+    case 'thisMonth':
+      // Erster Tag des aktuellen Monats
+      fromDate.setDate(1)
+      fromDate.setHours(0, 0, 0, 0)
+      break
+    case 'lastMonth':
+      // Erster Tag des Vormonats
+      fromDate.setMonth(today.getMonth() - 1)
+      fromDate.setDate(1)
+      fromDate.setHours(0, 0, 0, 0)
+      break
   }
 
   return fromDate.toISOString().split('T')[0]
@@ -252,7 +286,20 @@ const getToDate = (): string => {
     return customToDate.value
   }
 
-  return new Date().toISOString().split('T')[0]
+  const today = new Date()
+
+  switch (selectedTimeRange.value) {
+    case 'thisMonth':
+      // Letzter Tag des aktuellen Monats
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      return lastDayOfMonth.toISOString().split('T')[0]
+    case 'lastMonth':
+      // Letzter Tag des Vormonats
+      const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+      return lastDayOfLastMonth.toISOString().split('T')[0]
+    default:
+      return today.toISOString().split('T')[0]
+  }
 }
 
 const exportData = async () => {

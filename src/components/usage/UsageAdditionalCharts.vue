@@ -4,21 +4,6 @@
     <div class="bg-white rounded-xl shadow p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Modell-Verteilung</h3>
-        <div class="flex items-center gap-2">
-          <button
-            v-for="period in periods"
-            :key="period.value"
-            @click="selectedPeriod = period.value"
-            :class="[
-              'px-3 py-1 text-sm rounded-lg transition-colors',
-              selectedPeriod === period.value
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-            ]"
-          >
-            {{ period.label }}
-          </button>
-        </div>
       </div>
 
       <div class="h-64">
@@ -57,21 +42,6 @@
     <div class="bg-white rounded-xl shadow p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Tag-Verwendung</h3>
-        <div class="flex items-center gap-2">
-          <button
-            v-for="period in periods"
-            :key="period.value"
-            @click="selectedPeriod = period.value"
-            :class="[
-              'px-3 py-1 text-sm rounded-lg transition-colors',
-              selectedPeriod === period.value
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-            ]"
-          >
-            {{ period.label }}
-          </button>
-        </div>
       </div>
 
       <div class="h-64">
@@ -104,54 +74,64 @@
 
 <script setup lang="ts">
 import type { TooltipItem } from 'chart.js'
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+interface Props {
+  usageData?: any[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  usageData: () => [],
+})
 
 const pieChartCanvas = ref<HTMLCanvasElement>()
 const barChartCanvas = ref<HTMLCanvasElement>()
 const pieChartLoaded = ref(false)
 const barChartLoaded = ref(false)
-const selectedPeriod = ref('daily')
 
 let pieChartInstance: any = null
 let barChartInstance: any = null
 
-const periods = [
-  { value: 'daily', label: 'Täglich' },
-  { value: 'weekly', label: 'Wöchentlich' },
-  { value: 'monthly', label: 'Monatlich' },
-]
+// Computed properties für echte Daten
+const modelDistributionData = computed(() => {
+  if (!props.usageData || props.usageData.length === 0) {
+    return { labels: [], data: [] }
+  }
 
-// Mock-Daten für Modell-Verteilung (Pie-Chart)
-const modelData = {
-  daily: {
-    labels: ['GPT-4', 'GPT-3.5', 'GPT-4o-mini', 'Document Intelligence'],
-    data: [35, 25, 30, 10],
-  },
-  weekly: {
-    labels: ['GPT-4', 'GPT-3.5', 'GPT-4o-mini', 'Document Intelligence'],
-    data: [40, 20, 25, 15],
-  },
-  monthly: {
-    labels: ['GPT-4', 'GPT-3.5', 'GPT-4o-mini', 'Document Intelligence'],
-    data: [45, 15, 30, 10],
-  },
-}
+  // Gruppiere nach Modelltyp
+  const modelGroups = new Map<string, number>()
 
-// Mock-Daten für Tags (Bar-Chart)
-const tagData = {
-  daily: {
-    labels: ['API-Key', 'Production', 'Development', 'Testing', 'Demo'],
-    data: [85, 60, 45, 30, 15],
-  },
-  weekly: {
-    labels: ['API-Key', 'Production', 'Development', 'Testing', 'Demo', 'Backup'],
-    data: [320, 240, 180, 120, 80, 40],
-  },
-  monthly: {
-    labels: ['API-Key', 'Production', 'Development', 'Testing', 'Demo', 'Backup', 'Archive'],
-    data: [1200, 900, 650, 450, 300, 200, 100],
-  },
-}
+  props.usageData.forEach((item) => {
+    const modelName = item.modelName || item.model || 'Unknown'
+    const currentCount = modelGroups.get(modelName) || 0
+    modelGroups.set(modelName, currentCount + (item.requests || 1))
+  })
+
+  const labels = Array.from(modelGroups.keys())
+  const data = Array.from(modelGroups.values())
+
+  return { labels, data }
+})
+
+const tagUsageData = computed(() => {
+  if (!props.usageData || props.usageData.length === 0) {
+    return { labels: [], data: [] }
+  }
+
+  // Gruppiere nach Tags
+  const tagGroups = new Map<string, number>()
+
+  props.usageData.forEach((item) => {
+    const tag = item.tag || 'Unknown'
+    const currentCount = tagGroups.get(tag) || 0
+    tagGroups.set(tag, currentCount + (item.requests || 1))
+  })
+
+  const labels = Array.from(tagGroups.keys())
+  const data = Array.from(tagGroups.values())
+
+  return { labels, data }
+})
 
 const createPieChart = async () => {
   if (!pieChartCanvas.value) {
@@ -177,8 +157,14 @@ const createPieChart = async () => {
       return
     }
 
-    const data = modelData[selectedPeriod.value as keyof typeof modelData] || modelData.daily
+    const data = modelDistributionData.value
     console.log('Pie chart data:', data)
+
+    if (data.labels.length === 0) {
+      console.log('No data available for pie chart')
+      pieChartLoaded.value = false
+      return
+    }
 
     pieChartInstance = new Chart(ctx, {
       type: 'pie',
@@ -192,12 +178,18 @@ const createPieChart = async () => {
               'rgba(34, 197, 94, 0.8)',
               'rgba(168, 85, 247, 0.8)',
               'rgba(251, 146, 60, 0.8)',
+              'rgba(239, 68, 68, 0.8)',
+              'rgba(16, 185, 129, 0.8)',
+              'rgba(139, 92, 246, 0.8)',
             ],
             borderColor: [
               'rgba(59, 130, 246, 1)',
               'rgba(34, 197, 94, 1)',
               'rgba(168, 85, 247, 1)',
               'rgba(251, 146, 60, 1)',
+              'rgba(239, 68, 68, 1)',
+              'rgba(16, 185, 129, 1)',
+              'rgba(139, 92, 246, 1)',
             ],
             borderWidth: 2,
           },
@@ -257,8 +249,14 @@ const createBarChart = async () => {
       return
     }
 
-    const data = tagData[selectedPeriod.value as keyof typeof tagData] || tagData.daily
+    const data = tagUsageData.value
     console.log('Bar chart data:', data)
+
+    if (data.labels.length === 0) {
+      console.log('No data available for bar chart')
+      barChartLoaded.value = false
+      return
+    }
 
     barChartInstance = new Chart(ctx, {
       type: 'bar',
@@ -298,19 +296,20 @@ const createBarChart = async () => {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Anzahl',
-            },
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Tags',
+              text: 'Anzahl Anfragen',
             },
           },
         },
         plugins: {
           legend: {
             display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context: TooltipItem<'bar'>) {
+                return `${context.label}: ${context.parsed.y} Anfragen`
+              },
+            },
           },
         },
       },
@@ -333,24 +332,49 @@ onMounted(() => {
   }, 100)
 })
 
-// Charts aktualisieren wenn sich die Periode ändert
-watch(selectedPeriod, () => {
-  console.log('Period changed to:', selectedPeriod.value)
-  setTimeout(() => {
-    createPieChart()
-    createBarChart()
-  }, 100)
-})
+// Charts aktualisieren wenn sich die Daten ändern
+watch(
+  props.usageData,
+  () => {
+    console.log('Usage data changed, recreating charts...')
+    setTimeout(() => {
+      createPieChart()
+      createBarChart()
+    }, 100)
+  },
+  { deep: true },
+)
+
+// Charts aktualisieren wenn sich die computed properties ändern
+watch(
+  modelDistributionData,
+  () => {
+    console.log('Model distribution data changed, recreating pie chart...')
+    setTimeout(() => {
+      createPieChart()
+    }, 100)
+  },
+  { deep: true },
+)
+
+watch(
+  tagUsageData,
+  () => {
+    console.log('Tag usage data changed, recreating bar chart...')
+    setTimeout(() => {
+      createBarChart()
+    }, 100)
+  },
+  { deep: true },
+)
 
 // Cleanup beim Unmount
-onMounted(() => {
-  return () => {
-    if (pieChartInstance) {
-      pieChartInstance.destroy()
-    }
-    if (barChartInstance) {
-      barChartInstance.destroy()
-    }
+onUnmounted(() => {
+  if (pieChartInstance) {
+    pieChartInstance.destroy()
+  }
+  if (barChartInstance) {
+    barChartInstance.destroy()
   }
 })
 </script>

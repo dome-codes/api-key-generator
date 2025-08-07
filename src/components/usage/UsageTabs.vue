@@ -85,6 +85,8 @@
               <option value="7d">Letzte 7 Tage</option>
               <option value="30d">Letzte 30 Tage</option>
               <option value="90d">Letzte 90 Tage</option>
+              <option value="thisMonth">Diesen Monat</option>
+              <option value="lastMonth">Vormonat</option>
               <option value="custom">Benutzerdefiniert</option>
             </select>
             <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
@@ -178,12 +180,13 @@
         v-if="showOwnChart"
         title="Nutzungsverlauf"
         :selected-period="ownChartPeriod"
+        :chart-data="ownChartData"
         chart-placeholder="Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="ownChartPeriod = $event"
+        @update:selected-period="handleChartPeriodChange"
       />
 
       <!-- Zusätzliche Charts -->
-      <UsageAdditionalCharts v-if="showOwnChart" />
+      <UsageAdditionalCharts v-if="showOwnChart" :usage-data="detailedUsageData || []" />
 
       <UsageDetailedTable
         v-if="showOwnDetails"
@@ -210,6 +213,8 @@
               <option value="7d">Letzte 7 Tage</option>
               <option value="30d">Letzte 30 Tage</option>
               <option value="90d">Letzte 90 Tage</option>
+              <option value="thisMonth">Diesen Monat</option>
+              <option value="lastMonth">Vormonat</option>
               <option value="custom">Benutzerdefiniert</option>
             </select>
             <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
@@ -297,131 +302,24 @@
             <div class="text-2xl font-bold text-purple-800">
               {{ filteredAdminUsage.tokensOut.toLocaleString() }}
             </div>
-            <div class="text-xs text-purple-600 mt-1">+22% vs. letzter Monat</div>
+            <div class="text-xs text-purple-600 mt-1">+15% vs. letzter Monat</div>
           </div>
 
           <div class="bg-orange-50 rounded-lg p-4">
-            <div class="text-sm text-orange-600 font-medium">Gesamte Anfragen</div>
+            <div class="text-sm text-orange-600 font-medium">Anfragen</div>
             <div class="text-2xl font-bold text-orange-800">
               {{ filteredAdminUsage.requests.toLocaleString() }}
             </div>
-            <div class="text-xs text-orange-600 mt-1">+25% vs. letzter Monat</div>
+            <div class="text-xs text-orange-600 mt-1">+22% vs. letzter Monat</div>
           </div>
 
           <div class="bg-red-50 rounded-lg p-4">
-            <div class="text-sm text-red-600 font-medium">Geschätzte Kosten</div>
+            <div class="text-sm text-red-600 font-medium">Gesamtkosten</div>
             <div class="text-2xl font-bold text-red-800">
               {{ formatCost(filteredAdminUsage.cost) }}
             </div>
-            <div class="text-xs text-red-600 mt-1">Basierend auf GPT-4o-mini</div>
+            <div class="text-xs text-red-600 mt-1">+20% vs. letzter Monat</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Top Users Table -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Top-Benutzer nach Nutzung</h3>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Benutzer
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Tokens In
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Tokens Out
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Anfragen
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Rolle
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span class="text-sm font-medium text-blue-800">DS</span>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">Domenic Schumacher</div>
-                      <div class="text-sm text-gray-500">domenic@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">198,456</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">99,863</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1,247</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full"
-                    >API-Admin</span
-                  >
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <span class="text-sm font-medium text-green-800">JS</span>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">John Smith</div>
-                      <div class="text-sm text-gray-500">john@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">98,567</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">57,667</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">892</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
-                    >API-Default</span
-                  >
-                </td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div
-                      class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center"
-                    >
-                      <span class="text-sm font-medium text-orange-800">MJ</span>
-                    </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">Maria Johnson</div>
-                      <div class="text-sm text-gray-500">maria@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">65,234</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">33,333</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">456</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full"
-                    >API-Stream</span
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
@@ -430,12 +328,13 @@
         v-if="showAdminChart"
         title="Admin-Nutzungsverlauf"
         :selected-period="adminChartPeriod"
+        :chart-data="adminChartData"
         chart-placeholder="Admin-Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="adminChartPeriod = $event"
+        @update:selected-period="handleAdminChartPeriodChange"
       />
 
       <!-- Zusätzliche Charts -->
-      <UsageAdditionalCharts v-if="showAdminChart" />
+      <UsageAdditionalCharts v-if="showAdminChart" :usage-data="detailedUsageData || []" />
 
       <UsageDetailedTable
         v-if="showAdminDetails"
@@ -627,10 +526,20 @@ const setDefaultDates = () => {
 }
 
 // Initialisiere Standard-Daten beim Mounten
-onMounted(() => {
+onMounted(async () => {
   setDefaultDates()
-  // Lade Daten für alle Tabs, nicht nur für API-Admin
-  loadDetailedUsageData()
+
+  // Berechne Standard-Zeitraum (30 Tage)
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const fromDate = thirtyDaysAgo.toISOString().split('T')[0]
+  const toDate = today.toISOString().split('T')[0]
+
+  // Lade Daten mit den korrekten Parametern
+  await loadDetailedUsageData({
+    fromDate,
+    toDate,
+  })
 })
 
 // Computed properties für gefilterte Daten
@@ -653,6 +562,30 @@ const filteredOwnUsage = computed(() => {
       tokensOut: Math.round(baseData.tokensOut * 3),
       requests: Math.round(baseData.requests * 3),
       cost: baseData.cost * 3,
+    }
+  } else if (ownTimeRange.value === 'thisMonth') {
+    const today = new Date()
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+    baseData = {
+      ...baseData,
+      tokensIn: Math.round(baseData.tokensIn * 0.7),
+      tokensOut: Math.round(baseData.tokensOut * 0.7),
+      requests: Math.round(baseData.requests * 0.7),
+      cost: baseData.cost * 0.7,
+    }
+  } else if (ownTimeRange.value === 'lastMonth') {
+    const today = new Date()
+    const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+
+    baseData = {
+      ...baseData,
+      tokensIn: Math.round(baseData.tokensIn * 0.7),
+      tokensOut: Math.round(baseData.tokensOut * 0.7),
+      requests: Math.round(baseData.requests * 0.7),
+      cost: baseData.cost * 0.7,
     }
   } else if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
     // Benutzerdefinierter Zeitraum basierend auf Datumsfeldern
@@ -818,11 +751,13 @@ const showAdminDetails = computed(() => {
   return adminView.value === 'detailed'
 })
 
-// Computed properties für Chart-Perioden basierend auf Filter
+// Computed property für Chart-Perioden basierend auf Filter
 const ownChartPeriodFromFilter = computed(() => {
   if (ownTimeRange.value === '7d') return 'daily'
   if (ownTimeRange.value === '30d') return 'weekly'
   if (ownTimeRange.value === '90d') return 'monthly'
+  if (ownTimeRange.value === 'thisMonth') return 'daily'
+  if (ownTimeRange.value === 'lastMonth') return 'daily'
   if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
     // Berechne Tage für benutzerdefinierte Zeiträume
     const fromDate = new Date(ownFromDate.value)
@@ -840,6 +775,8 @@ const adminChartPeriodFromFilter = computed(() => {
   if (adminTimeRange.value === '7d') return 'daily'
   if (adminTimeRange.value === '30d') return 'weekly'
   if (adminTimeRange.value === '90d') return 'monthly'
+  if (adminTimeRange.value === 'thisMonth') return 'daily'
+  if (adminTimeRange.value === 'lastMonth') return 'daily'
   if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
     // Berechne Tage für benutzerdefinierte Zeiträume
     const fromDate = new Date(adminFromDate.value)
@@ -853,33 +790,160 @@ const adminChartPeriodFromFilter = computed(() => {
   return 'daily'
 })
 
-// Watcher für Filter-Änderungen
-watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], () => {
-  // Aktualisiere Chart-Periode basierend auf Zeitraum
-  ownChartPeriod.value = ownChartPeriodFromFilter.value
+// Watch für Änderungen der Chart-Periode
+watch(ownChartPeriodFromFilter, (newPeriod) => {
+  ownChartPeriod.value = newPeriod
+})
+
+// Watch für Änderungen der Admin Chart-Periode
+watch(adminChartPeriodFromFilter, (newPeriod) => {
+  adminChartPeriod.value = newPeriod
+})
+
+// Watch für manuelle Änderungen der Chart-Periode
+watch(ownChartPeriod, (newPeriod) => {
+  console.log('Own chart period manually changed to:', newPeriod)
+})
+
+// Watch für manuelle Änderungen der Admin Chart-Periode
+watch(adminChartPeriod, (newPeriod) => {
+  console.log('Admin chart period manually changed to:', newPeriod)
+})
+
+// Watch für Filter-Änderungen
+watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () => {
+  // Berechne from_date und to_date basierend auf dem ausgewählten Zeitraum
+  let fromDate: string | undefined
+  let toDate: string | undefined
+
+  if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
+    fromDate = ownFromDate.value
+    toDate = ownToDate.value
+  } else if (ownTimeRange.value !== 'custom') {
+    const today = new Date()
+    const fromDateObj = new Date()
+
+    switch (ownTimeRange.value) {
+      case '7d':
+        fromDateObj.setDate(today.getDate() - 7)
+        break
+      case '30d':
+        fromDateObj.setDate(today.getDate() - 30)
+        break
+      case '90d':
+        fromDateObj.setDate(today.getDate() - 90)
+        break
+      case 'thisMonth':
+        fromDateObj.setDate(1)
+        fromDateObj.setHours(0, 0, 0, 0)
+        break
+      case 'lastMonth':
+        fromDateObj.setMonth(today.getMonth() - 1)
+        fromDateObj.setDate(1)
+        fromDateObj.setHours(0, 0, 0, 0)
+        break
+    }
+
+    fromDate = fromDateObj.toISOString().split('T')[0]
+
+    if (ownTimeRange.value === 'thisMonth') {
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      toDate = lastDayOfMonth.toISOString().split('T')[0]
+    } else if (ownTimeRange.value === 'lastMonth') {
+      const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+      toDate = lastDayOfLastMonth.toISOString().split('T')[0]
+    } else {
+      toDate = today.toISOString().split('T')[0]
+    }
+  }
+
+  // Lade Daten mit den korrekten Parametern
+  if (fromDate && toDate) {
+    await loadDetailedUsageData({
+      fromDate,
+      toDate,
+      modelType: ownModelType.value || undefined,
+    })
+  }
+
   console.log('Filter geändert - Neue Chart-Periode:', ownChartPeriod.value)
   console.log('Aktuelle Filter:', {
     timeRange: ownTimeRange.value,
     modelType: ownModelType.value,
     view: ownView.value,
-    fromDate: ownFromDate.value,
-    toDate: ownToDate.value,
+    fromDate,
+    toDate,
   })
 })
 
-watch([adminTimeRange, adminModelType, adminUser, adminView, adminFromDate, adminToDate], () => {
-  // Aktualisiere Chart-Periode basierend auf Zeitraum
-  adminChartPeriod.value = adminChartPeriodFromFilter.value
-  console.log('Admin-Filter geändert - Neue Chart-Periode:', adminChartPeriod.value)
-  console.log('Aktuelle Admin-Filter:', {
-    timeRange: adminTimeRange.value,
-    modelType: adminModelType.value,
-    user: adminUser.value,
-    view: adminView.value,
-    fromDate: adminFromDate.value,
-    toDate: adminToDate.value,
-  })
-})
+watch(
+  [adminTimeRange, adminModelType, adminUser, adminView, adminFromDate, adminToDate],
+  async () => {
+    // Berechne from_date und to_date basierend auf dem ausgewählten Zeitraum
+    let fromDate: string | undefined
+    let toDate: string | undefined
+
+    if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
+      fromDate = adminFromDate.value
+      toDate = adminToDate.value
+    } else if (adminTimeRange.value !== 'custom') {
+      const today = new Date()
+      const fromDateObj = new Date()
+
+      switch (adminTimeRange.value) {
+        case '7d':
+          fromDateObj.setDate(today.getDate() - 7)
+          break
+        case '30d':
+          fromDateObj.setDate(today.getDate() - 30)
+          break
+        case '90d':
+          fromDateObj.setDate(today.getDate() - 90)
+          break
+        case 'thisMonth':
+          fromDateObj.setDate(1)
+          fromDateObj.setHours(0, 0, 0, 0)
+          break
+        case 'lastMonth':
+          fromDateObj.setMonth(today.getMonth() - 1)
+          fromDateObj.setDate(1)
+          fromDateObj.setHours(0, 0, 0, 0)
+          break
+      }
+
+      fromDate = fromDateObj.toISOString().split('T')[0]
+
+      if (adminTimeRange.value === 'thisMonth') {
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        toDate = lastDayOfMonth.toISOString().split('T')[0]
+      } else if (adminTimeRange.value === 'lastMonth') {
+        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+        toDate = lastDayOfLastMonth.toISOString().split('T')[0]
+      } else {
+        toDate = today.toISOString().split('T')[0]
+      }
+    }
+
+    // Lade Daten mit den korrekten Parametern
+    if (fromDate && toDate) {
+      await loadDetailedUsageData({
+        fromDate,
+        toDate,
+        modelType: adminModelType.value || undefined,
+      })
+    }
+
+    console.log('Admin-Filter geändert - Neue Chart-Periode:', adminChartPeriod.value)
+    console.log('Aktuelle Admin-Filter:', {
+      timeRange: adminTimeRange.value,
+      modelType: adminModelType.value,
+      user: adminUser.value,
+      view: adminView.value,
+      fromDate,
+      toDate,
+    })
+  },
+)
 
 // Setze Standard-Tab basierend auf Rolle
 if (!isApiAdmin.value) {
@@ -937,4 +1001,313 @@ const displayAdminUsage = computed(() => {
   // Sonst verwende statische Daten
   return staticAdminUsage.value
 })
+
+// Computed properties für Chart-Daten
+const ownChartData = computed(() => {
+  // Reaktive Dependencies explizit referenzieren
+  const modelType = ownModelType.value
+  const chartPeriod = ownChartPeriod.value
+
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    // Generiere Mock-Daten basierend auf der ausgewählten Periode
+    const mockData = {
+      daily: {
+        labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+        tokensIn: [15000, 22000, 18000, 25000, 30000, 12000, 8000],
+        tokensOut: [8000, 12000, 10000, 15000, 18000, 6000, 4000],
+        requests: [45, 67, 52, 78, 92, 35, 24],
+      },
+      hourly: {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+        tokensIn: [5000, 8000, 15000, 25000, 20000, 12000, 6000],
+        tokensOut: [2500, 4000, 7500, 12500, 10000, 6000, 3000],
+        requests: [15, 25, 45, 75, 60, 35, 18],
+      },
+      weekly: {
+        labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'],
+        tokensIn: [120000, 180000, 150000, 200000],
+        tokensOut: [65000, 95000, 80000, 110000],
+        requests: [350, 520, 430, 580],
+      },
+      monthly: {
+        labels: [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mai',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Dez',
+        ],
+        tokensIn: [
+          450000, 520000, 480000, 600000, 550000, 680000, 720000, 650000, 580000, 620000, 590000,
+          640000,
+        ],
+        tokensOut: [
+          240000, 280000, 260000, 320000, 290000, 360000, 380000, 340000, 310000, 330000, 315000,
+          340000,
+        ],
+        requests: [1200, 1400, 1300, 1600, 1500, 1800, 1900, 1700, 1550, 1650, 1600, 1700],
+      },
+    }
+
+    const period = chartPeriod as keyof typeof mockData
+    return mockData[period] || mockData.daily
+  }
+
+  // Gruppiere Daten basierend auf der ausgewählten Periode
+  const sortedData = detailedUsageData.value
+    .filter((item) => item.createDate || (item.day && item.month && item.year))
+    // Filtere nach Modelltyp falls ausgewählt
+    .filter((item) => {
+      if (!modelType) return true // Alle Modelltypen anzeigen
+      return item.modelType === modelType
+    })
+    .sort((a, b) => {
+      // Verwende createDate falls verfügbar, sonst day/month/year
+      if (a.createDate && b.createDate) {
+        return new Date(a.createDate).getTime() - new Date(b.createDate).getTime()
+      }
+      if (a.day && a.month && a.year && b.day && b.month && b.year) {
+        const dateA = new Date(a.year, a.month - 1, a.day)
+        const dateB = new Date(b.year, b.month - 1, b.day)
+        return dateA.getTime() - dateB.getTime()
+      }
+      return 0
+    })
+
+  const period = chartPeriod
+
+  if (period === 'daily') {
+    // Gruppiere nach Wochentagen (Montag-Sonntag)
+    const dailyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; dayNumber: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      // Berechne Wochentag (0=Sonntag, 1=Montag, ..., 6=Samstag)
+      const dayOfWeek = date.getDay()
+      const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+      const dayLabel = dayNames[dayOfWeek]
+
+      if (!dailyGroups.has(dayLabel)) {
+        dailyGroups.set(dayLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+          dayNumber: dayOfWeek,
+        })
+      }
+
+      const group = dailyGroups.get(dayLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += item.requests || 0
+      group.count++
+    })
+
+    // Sortiere nach Wochentagen (Montag-Sonntag)
+    const sortedEntries = Array.from(dailyGroups.entries()).sort((a, b) => {
+      // Montag = 1, Sonntag = 0, also sortiere entsprechend
+      const dayA = a[1].dayNumber === 0 ? 7 : a[1].dayNumber // Sonntag ans Ende
+      const dayB = b[1].dayNumber === 0 ? 7 : b[1].dayNumber
+      return dayA - dayB
+    })
+
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  } else if (period === 'hourly') {
+    // Gruppiere nach Stunden (0:00-24:00)
+    const hourlyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; hour: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      const hour = date.getHours()
+      const hourLabel = `${String(hour).padStart(2, '0')}:00`
+
+      if (!hourlyGroups.has(hourLabel)) {
+        hourlyGroups.set(hourLabel, { tokensIn: 0, tokensOut: 0, requests: 0, count: 0, hour })
+      }
+
+      const group = hourlyGroups.get(hourLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += item.requests || 0
+      group.count++
+    })
+
+    const sortedEntries = Array.from(hourlyGroups.entries()).sort((a, b) => a[1].hour - b[1].hour)
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  } else if (period === 'weekly') {
+    // Gruppiere nach Wochen (Woche 1, Woche 2, etc.)
+    const weeklyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; weekNumber: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      // Berechne Woche des Jahres
+      const startOfYear = new Date(date.getFullYear(), 0, 1)
+      const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
+      const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7)
+      const weekLabel = `Woche ${weekNumber}`
+
+      if (!weeklyGroups.has(weekLabel)) {
+        weeklyGroups.set(weekLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+          weekNumber,
+        })
+      }
+
+      const group = weeklyGroups.get(weekLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += item.requests || 0
+      group.count++
+    })
+
+    const sortedEntries = Array.from(weeklyGroups.entries()).sort(
+      (a, b) => a[1].weekNumber - b[1].weekNumber,
+    )
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  } else if (period === 'monthly') {
+    // Gruppiere nach Monaten (Jan bis zum aktuellen/letzten Monat im Zeitraum)
+    const monthlyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; monthNumber: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      const monthNumber = date.getMonth()
+      const monthLabel = date.toLocaleDateString('de-DE', { month: 'short' })
+
+      if (!monthlyGroups.has(monthLabel)) {
+        monthlyGroups.set(monthLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+          monthNumber,
+        })
+      }
+
+      const group = monthlyGroups.get(monthLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += item.requests || 0
+      group.count++
+    })
+
+    const sortedEntries = Array.from(monthlyGroups.entries()).sort(
+      (a, b) => a[1].monthNumber - b[1].monthNumber,
+    )
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  }
+
+  // Fallback: Zeige individuelle Datenpunkte
+  const labels = sortedData.map((item) => {
+    if (item.createDate) {
+      const date = new Date(item.createDate)
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } else if (item.day && item.month && item.year) {
+      const date = new Date(item.year, item.month - 1, item.day)
+      return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+    }
+    return 'Unknown'
+  })
+
+  const tokensIn = sortedData.map((item) => item.tokensIn || 0)
+  const tokensOut = sortedData.map((item) => item.tokensOut || 0)
+  const requests = sortedData.map((item) => item.requests || 0)
+
+  return { labels, tokensIn, tokensOut, requests }
+})
+
+const adminChartData = computed(() => {
+  // Verwende die gleichen Daten wie ownChartData für Admin
+  return ownChartData.value
+})
+
+// Handle Chart Period Change
+const handleChartPeriodChange = (period: string) => {
+  ownChartPeriod.value = period
+  console.log('Chart Period changed to:', period)
+}
+
+const handleAdminChartPeriodChange = (period: string) => {
+  adminChartPeriod.value = period
+  console.log('Admin Chart Period changed to:', period)
+}
 </script>

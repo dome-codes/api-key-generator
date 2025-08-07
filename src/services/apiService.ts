@@ -94,47 +94,65 @@ export const apiKeyService = {
 export const usageService = {
   // Eigene Usage-Daten abrufen
   async getOwnUsage(fromDate?: string, toDate?: string): Promise<UsageResponse> {
-    // Prüfe Berechtigung
-    if (!hasPermission('canViewOwnUsage')) {
-      throw new Error('Keine Berechtigung zum Anzeigen von Usage-Daten')
+    try {
+      // Prüfe Berechtigung
+      if (!hasPermission('canViewOwnUsage')) {
+        console.warn('Keine Berechtigung zum Anzeigen von Usage-Daten')
+        return { to_date: 0, usage: [] }
+      }
+
+      const params: UsageAIGetV1Params = {}
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+
+      const response = await usageAIGetV1(params)
+      return response.data
+    } catch (error) {
+      console.warn('Fehler beim Laden der eigenen Usage-Daten:', error)
+      return { to_date: 0, usage: [] }
     }
-
-    const params: UsageAIGetV1Params = {}
-    if (fromDate) params.from_date = fromDate
-    if (toDate) params.to_date = toDate
-
-    const response = await usageAIGetV1(params)
-    return response.data
   },
 
   // Usage-Summary abrufen
   async getUsageSummary(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
-    // Prüfe Berechtigung
-    if (!hasPermission('canViewOwnUsage')) {
-      throw new Error('Keine Berechtigung zum Anzeigen von Usage-Daten')
+    try {
+      // Prüfe Berechtigung
+      if (!hasPermission('canViewOwnUsage')) {
+        console.warn('Keine Berechtigung zum Anzeigen von Usage-Daten')
+        return { usage: [] }
+      }
+
+      const params: UsageAISummaryGetV1Params = {}
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+
+      const response = await usageAISummaryGetV1(params)
+      return response.data
+    } catch (error) {
+      console.warn('Fehler beim Laden der Usage-Summary:', error)
+      return { usage: [] }
     }
-
-    const params: UsageAISummaryGetV1Params = {}
-    if (fromDate) params.from_date = fromDate
-    if (toDate) params.to_date = toDate
-
-    const response = await usageAISummaryGetV1(params)
-    return response.data
   },
 
   // Admin: Usage-Summary für alle Benutzer
   async getAdminUsageSummary(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
-    // Prüfe Admin-Berechtigung
-    if (!hasPermission('canViewAdminUsage')) {
-      throw new Error('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
+    try {
+      // Prüfe Admin-Berechtigung
+      if (!hasPermission('canViewAdminUsage')) {
+        console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
+        return { usage: [] }
+      }
+
+      const params: AdminUsageAISummaryGetV1Params = {}
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+
+      const response = await adminUsageAISummaryGetV1(params)
+      return response.data
+    } catch (error) {
+      console.warn('Fehler beim Laden der Admin-Usage-Summary:', error)
+      return { usage: [] }
     }
-
-    const params: AdminUsageAISummaryGetV1Params = {}
-    if (fromDate) params.from_date = fromDate
-    if (toDate) params.to_date = toDate
-
-    const response = await adminUsageAISummaryGetV1(params)
-    return response.data
   },
 }
 

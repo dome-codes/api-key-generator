@@ -53,6 +53,12 @@ interface Props {
   title: string
   selectedPeriod: string
   chartPlaceholder?: string
+  chartData?: {
+    labels: string[]
+    tokensIn: number[]
+    tokensOut: number[]
+    requests: number[]
+  }
 }
 
 interface Emits {
@@ -61,6 +67,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   chartPlaceholder: 'Chart wird hier angezeigt',
+  chartData: undefined,
 })
 
 defineEmits<Emits>()
@@ -71,6 +78,7 @@ let chartInstance: any = null
 
 const periods = [
   { value: 'daily', label: 'Täglich' },
+  { value: 'hourly', label: 'Tagesansicht' },
   { value: 'weekly', label: 'Wöchentlich' },
   { value: 'monthly', label: 'Monatlich' },
 ]
@@ -83,6 +91,12 @@ const mockData = {
     tokensOut: [8000, 12000, 10000, 15000, 18000, 6000, 4000],
     requests: [45, 67, 52, 78, 92, 35, 24],
   },
+  hourly: {
+    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+    tokensIn: [5000, 8000, 15000, 25000, 20000, 12000, 6000],
+    tokensOut: [2500, 4000, 7500, 12500, 10000, 6000, 3000],
+    requests: [15, 25, 45, 75, 60, 35, 18],
+  },
   weekly: {
     labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'],
     tokensIn: [120000, 180000, 150000, 200000],
@@ -90,12 +104,39 @@ const mockData = {
     requests: [350, 520, 430, 580],
   },
   monthly: {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun'],
-    tokensIn: [450000, 520000, 480000, 600000, 550000, 680000],
-    tokensOut: [240000, 280000, 260000, 320000, 290000, 360000],
-    requests: [1200, 1400, 1300, 1600, 1500, 1800],
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+    tokensIn: [
+      450000, 520000, 480000, 600000, 550000, 680000, 720000, 650000, 580000, 620000, 590000,
+      640000,
+    ],
+    tokensOut: [
+      240000, 280000, 260000, 320000, 290000, 360000, 380000, 340000, 310000, 330000, 315000,
+      340000,
+    ],
+    requests: [1200, 1400, 1300, 1600, 1500, 1800, 1900, 1700, 1550, 1650, 1600, 1700],
   },
 }
+
+// Watch für Änderungen der selectedPeriod
+watch(
+  () => props.selectedPeriod,
+  () => {
+    if (chartInstance) {
+      createChart()
+    }
+  },
+)
+
+// Watch für Änderungen der chartData
+watch(
+  () => props.chartData,
+  () => {
+    if (chartInstance) {
+      createChart()
+    }
+  },
+  { deep: true },
+)
 
 const createChart = async () => {
   if (!chartCanvas.value) return
@@ -109,7 +150,9 @@ const createChart = async () => {
       chartInstance.destroy()
     }
 
-    const data = mockData[props.selectedPeriod as keyof typeof mockData] || mockData.daily
+    // Verwende echte Daten falls verfügbar, sonst Mock-Daten
+    const data =
+      props.chartData || mockData[props.selectedPeriod as keyof typeof mockData] || mockData.daily
 
     const ctx = chartCanvas.value.getContext('2d')
     if (!ctx) return
@@ -123,28 +166,43 @@ const createChart = async () => {
             label: 'Tokens In',
             data: data.tokensIn,
             borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
             tension: 0.4,
             fill: true,
             yAxisID: 'y',
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            spanGaps: true,
+            stepped: false,
           },
           {
             label: 'Tokens Out',
             data: data.tokensOut,
             borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
             tension: 0.4,
             fill: true,
             yAxisID: 'y',
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            spanGaps: true,
+            stepped: false,
           },
           {
             label: 'Anfragen',
             data: data.requests,
             borderColor: 'rgb(168, 85, 247)',
-            backgroundColor: 'rgba(168, 85, 247, 0.1)',
+            backgroundColor: 'rgba(168, 85, 247, 0.2)',
             tension: 0.4,
-            fill: false,
+            fill: true,
             yAxisID: 'y1',
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            spanGaps: true,
+            stepped: false,
           },
         ],
       },
@@ -162,6 +220,36 @@ const createChart = async () => {
               display: true,
               text: 'Zeitraum',
             },
+            grid: {
+              display: true,
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: data.labels.length > 15 ? 15 : data.labels.length,
+              callback: function (value, index) {
+                const label = data.labels[index]
+                // Für tägliche Ansicht: Zeige Wochentage
+                if (props.selectedPeriod === 'daily') {
+                  return label
+                }
+                // Für Tagesansicht: Zeige Stunden-Labels
+                if (props.selectedPeriod === 'hourly') {
+                  return label
+                }
+                // Für wöchentliche Ansicht: Zeige alle Wochen-Labels
+                if (props.selectedPeriod === 'weekly') {
+                  return label
+                }
+                // Für monatliche Ansicht: Kürze Labels wenn zu viele
+                if (props.selectedPeriod === 'monthly' && data.labels.length > 12) {
+                  return label.length > 3 ? label.substring(0, 3) : label
+                }
+                // Standard: Vollständige Labels
+                return label
+              },
+            },
           },
           y: {
             type: 'linear',
@@ -171,6 +259,10 @@ const createChart = async () => {
               display: true,
               text: 'Tokens',
             },
+            grid: {
+              display: true,
+            },
+            beginAtZero: true,
           },
           y1: {
             type: 'linear',
@@ -183,6 +275,7 @@ const createChart = async () => {
             grid: {
               drawOnChartArea: false,
             },
+            beginAtZero: true,
           },
         },
         plugins: {
@@ -192,32 +285,34 @@ const createChart = async () => {
           title: {
             display: false,
           },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          },
+        },
+        elements: {
+          line: {
+            tension: 0.4,
+          },
+          point: {
+            radius: 4,
+            hoverRadius: 6,
+          },
         },
       },
     })
 
     chartLoaded.value = true
-    console.log('Chart created successfully')
+    console.log('Chart created successfully with data:', data)
   } catch (error) {
     console.error('Fehler beim Erstellen des Charts:', error)
     chartLoaded.value = false
   }
 }
 
-// Chart erstellen wenn Komponente gemountet ist
 onMounted(() => {
-  console.log('UsageChart mounted - creating chart...')
   createChart()
 })
-
-// Chart aktualisieren wenn sich die Periode ändert
-watch(
-  () => props.selectedPeriod,
-  () => {
-    console.log('Chart period changed to:', props.selectedPeriod)
-    createChart()
-  },
-)
 
 // Cleanup beim Unmount
 onMounted(() => {

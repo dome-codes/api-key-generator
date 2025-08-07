@@ -2,6 +2,182 @@ import cors from 'cors'
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
 
+// Mock usage data functions
+const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days = 30) => {
+  const mockData = []
+  const currentDate = new Date(startDate)
+
+  // Available models for different types
+  const completionModels = [
+    'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4-turbo',
+    'gpt-3.5-turbo',
+    'claude-3-sonnet',
+    'claude-3-haiku',
+  ]
+
+  const embeddingModels = [
+    'text-embedding-3-small',
+    'text-embedding-3-large',
+    'text-embedding-ada-002',
+  ]
+
+  const imageModels = ['dall-e-3', 'dall-e-2', 'midjourney-v6']
+
+  // Available tags with different weights for more realistic distribution
+  const tags = [
+    { name: 'production', weight: 0.4 }, // 40% production
+    { name: 'development', weight: 0.25 }, // 25% development
+    { name: 'testing', weight: 0.15 }, // 15% testing
+    { name: 'staging', weight: 0.1 }, // 10% staging
+    { name: 'demo', weight: 0.05 }, // 5% demo
+    { name: 'backup', weight: 0.02 }, // 2% backup
+    { name: 'archive', weight: 0.015 }, // 1.5% archive
+    { name: 'experimental', weight: 0.01 }, // 1% experimental
+    { name: 'research', weight: 0.01 }, // 1% research
+    { name: 'internal', weight: 0.005 }, // 0.5% internal
+  ]
+
+  // Helper function to select tag based on weights
+  const selectRandomTag = () => {
+    const random = Math.random()
+    let cumulativeWeight = 0
+    for (const tag of tags) {
+      cumulativeWeight += tag.weight
+      if (random <= cumulativeWeight) {
+        return tag.name
+      }
+    }
+    return tags[0].name // fallback to production
+  }
+
+  for (let i = 0; i < days; i++) {
+    const day = currentDate.getDate()
+    const month = currentDate.getMonth() + 1
+    const year = currentDate.getFullYear()
+
+    // Generate realistic daily usage patterns
+    const dayOfWeek = currentDate.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    const isWeekday = !isWeekend
+
+    // Base multipliers for different days
+    const weekdayMultiplier = isWeekday ? 1.2 : 0.6
+    const weekendMultiplier = isWeekend ? 0.8 : 1.0
+
+    // CompletionModelUsage - Daily variations with different models and tags
+    const completionRequests = Math.floor((Math.random() * 200 + 100) * weekdayMultiplier)
+    const completionTokensIn = completionRequests * (Math.random() * 200 + 150)
+    const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
+
+    // Generate createDate for detailed usage
+    const createDate = new Date(
+      year,
+      month - 1,
+      day,
+      Math.floor(Math.random() * 24),
+      Math.floor(Math.random() * 60),
+    )
+
+    // Random model and tag for completion
+    const completionModel = completionModels[Math.floor(Math.random() * completionModels.length)]
+    const completionTag = selectRandomTag()
+
+    mockData.push({
+      type: 'CompletionModelUsage',
+      requests: completionRequests,
+      technicalUSerid: userId,
+      model: completionModel,
+      tag: completionTag,
+      day,
+      month,
+      year,
+      requestTokens: Math.floor(completionTokensIn),
+      responseTokens: Math.floor(completionTokensOut),
+      createDate: createDate.toISOString(),
+    })
+
+    // EmbeddingModelUsage - Less frequent but larger batches
+    if (Math.random() > 0.3) {
+      // 70% chance per day
+      const embeddingRequests = Math.floor((Math.random() * 50 + 20) * weekdayMultiplier)
+      const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
+
+      const embeddingCreateDate = new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      )
+
+      // Random model and tag for embedding
+      const embeddingModel = embeddingModels[Math.floor(Math.random() * embeddingModels.length)]
+      const embeddingTag = selectRandomTag()
+
+      mockData.push({
+        type: 'EmbeddingModelUsage',
+        requests: embeddingRequests,
+        technicalUSerid: userId,
+        model: embeddingModel,
+        tag: embeddingTag,
+        day,
+        month,
+        year,
+        requestTokens: Math.floor(embeddingTokens),
+        createDate: embeddingCreateDate.toISOString(),
+      })
+    }
+
+    // ImageModelUsage - Occasional usage
+    if (Math.random() > 0.7) {
+      // 30% chance per day
+      const imageRequests = Math.floor((Math.random() * 10 + 5) * weekendMultiplier)
+      const quality = Math.random() > 0.5 ? 'hd' : 'standard'
+      const sizeWidth = quality === 'hd' ? 1792 : 1024
+      const sizeHeight = 1024
+
+      const imageCreateDate = new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      )
+
+      // Random model and tag for image
+      const imageModel = imageModels[Math.floor(Math.random() * imageModels.length)]
+      const imageTag = selectRandomTag()
+
+      mockData.push({
+        type: 'ImageModelUsage',
+        requests: imageRequests,
+        technicalUSerid: userId,
+        model: imageModel,
+        tag: imageTag,
+        day,
+        month,
+        year,
+        sizeWidth,
+        sizeHeight,
+        quality,
+        createDate: imageCreateDate.toISOString(),
+      })
+    }
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  return mockData
+}
+
+const mockUsageData30Days = (userId) => {
+  const startDate = new Date('2025-07-01')
+  return generateMockUsageData(userId, startDate, 30)
+}
+
 const app = express()
 const port = 3001 // Port auf 3001 geändert, um Konflikt mit Keycloak zu vermeiden
 
@@ -476,27 +652,27 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
   console.log(`[${timestamp}] Getting AI usage data for user: ${userId}`)
   console.log(`[${timestamp}] Date filter - from: ${from_date || 'none'}, to: ${to_date || 'none'}`)
 
-  // Mock usage data für den Benutzer
-  const mockUsage = [
-    {
-      model: 'gpt-4',
-      tokens_used: 1500,
-      cost: 0.045,
-      timestamp: new Date().toISOString(),
-    },
-    {
-      model: 'gpt-3.5-turbo',
-      tokens_used: 2300,
-      cost: 0.00345,
-      timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 Tag zurück
-    },
-  ]
+  // Generate detailed mock usage data with createDate
+  let mockUsage = []
+
+  if (from_date && to_date) {
+    // Custom date range
+    const startDate = new Date(from_date)
+    const endDate = new Date(to_date)
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+    mockUsage = generateMockUsageData(userId, startDate, daysDiff)
+  } else {
+    // Default to 30 days
+    mockUsage = mockUsageData30Days(userId)
+  }
 
   // Filter by date range if provided
   let filteredUsage = mockUsage
   if (from_date || to_date) {
     filteredUsage = mockUsage.filter((usage) => {
-      const usageDate = new Date(usage.timestamp)
+      const usageDate = usage.createDate
+        ? new Date(usage.createDate)
+        : new Date(usage.year, usage.month - 1, usage.day)
       const from = from_date ? new Date(from_date) : new Date(0)
       const to = to_date ? new Date(to_date) : new Date()
       return usageDate >= from && usageDate <= to
@@ -524,29 +700,24 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     `[${timestamp}] Summary parameters - from: ${from_date || 'none'}, to: ${to_date || 'none'}, by: ${by || 'none'}`,
   )
 
-  // Mock summary data für den Benutzer
-  const mockSummary = {
-    total_tokens: 3800,
-    total_cost: 0.04845,
-    by_model: {
-      'gpt-4': { tokens: 1500, cost: 0.045 },
-      'gpt-3.5-turbo': { tokens: 2300, cost: 0.00345 },
-    },
-    by_user: {
-      [userId]: { tokens: 3800, cost: 0.04845 },
-    },
-    by_period: {
-      '2024-01': { tokens: 3800, cost: 0.04845 },
-    },
+  // Generate mock data based on the requested time period
+  let mockUsage = []
+
+  if (from_date && to_date) {
+    // Custom date range
+    const startDate = new Date(from_date)
+    const endDate = new Date(to_date)
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+    mockUsage = generateMockUsageData(userId, startDate, daysDiff)
+  } else {
+    // Default to 30 days
+    mockUsage = mockUsageData30Days(userId)
   }
 
-  console.log(
-    `[${timestamp}] Summary data - Total tokens: ${mockSummary.total_tokens}, Total cost: $${mockSummary.total_cost}`,
-  )
-  console.log(`[${timestamp}] Models in summary: ${Object.keys(mockSummary.by_model).join(', ')}`)
+  console.log(`[${timestamp}] Generated ${mockUsage.length} usage records for user ${userId}`)
 
   res.status(200).json({
-    summary: mockSummary,
+    usage: mockUsage,
   })
 })
 
@@ -607,61 +778,39 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     `[${timestamp}] Admin summary parameters - from: ${from_date || 'none'}, to: ${to_date || 'none'}, by: ${by || 'none'}, model: ${model || 'none'}, technicalUserId: ${technicalUserId || 'none'}`,
   )
 
-  // Mock usage data im erwarteten Format
-  const mockUsage = [
-    {
-      type: 'CompletionModelUsage',
-      requests: 1247,
-      technicalUSerid: 'user-123',
-      model: 'gpt-4o-mini',
-      tag: 'production',
-      day: 31,
-      month: 7,
-      year: 2025,
-      tokensIn: 198456,
-      tokensOut: 99863,
-      totalTokens: 298319,
-    },
-    {
-      type: 'CompletionModelUsage',
-      requests: 892,
-      technicalUSerid: 'user-456',
-      model: 'gpt-4o-mini',
-      tag: 'production',
-      day: 31,
-      month: 7,
-      year: 2025,
-      tokensIn: 98567,
-      tokensOut: 57667,
-      totalTokens: 156234,
-    },
-    {
-      type: 'CompletionModelUsage',
-      requests: 456,
-      technicalUSerid: 'user-789',
-      model: 'gpt-4o-mini',
-      tag: 'production',
-      day: 31,
-      month: 7,
-      year: 2025,
-      tokensIn: 65234,
-      tokensOut: 33333,
-      totalTokens: 98567,
-    },
-    {
-      type: 'EmbeddingModelUsage',
-      requests: 234,
-      technicalUSerid: 'user-123',
-      model: 'text-embedding-3-small',
-      tag: 'production',
-      day: 31,
-      month: 7,
-      year: 2025,
-      tokensIn: 50000,
-      tokensOut: 0,
-      totalTokens: 50000,
-    },
-  ]
+  // Generate mock data for all users
+  let mockUsage = []
+
+  if (from_date && to_date) {
+    // Custom date range
+    const startDate = new Date(from_date)
+    const endDate = new Date(to_date)
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+
+    // Generate data for multiple users
+    const users = ['user-123', 'user-456', 'user-789', 'user-101', 'user-202']
+    users.forEach((userId) => {
+      const userData = generateMockUsageData(userId, startDate, daysDiff)
+      mockUsage.push(...userData)
+    })
+  } else {
+    // Default to 30 days for all users
+    const users = ['user-123', 'user-456', 'user-789', 'user-101', 'user-202']
+    users.forEach((userId) => {
+      const userData = mockUsageData30Days(userId)
+      mockUsage.push(...userData)
+    })
+  }
+
+  // Filter by technicalUserId if specified
+  if (technicalUserId) {
+    mockUsage = mockUsage.filter((item) => item.technicalUSerid === technicalUserId)
+  }
+
+  // Filter by model if specified
+  if (model) {
+    mockUsage = mockUsage.filter((item) => item.model === model)
+  }
 
   console.log(`[${timestamp}] Admin summary data - Total records: ${mockUsage.length}`)
 

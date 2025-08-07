@@ -53,22 +53,30 @@ export function useUsage() {
         currentFilter.value = { ...filter }
       }
 
+      console.log('Loading usage data with filter:', currentFilter.value)
+
       // Prüfe ob Admin-Berechtigung vorhanden ist
       const hasAdminPermission = await import('@/auth/keycloak').then((m) =>
         m.hasPermission('canViewAdminUsage'),
       )
 
+      console.log('Has admin permission:', hasAdminPermission)
+
       if (hasAdminPermission) {
         // Lade alle Daten nur wenn Admin-Berechtigung vorhanden
+        console.log('Loading admin data...')
         const [detailedData, aggregation, userSummary, modelSummary] = await Promise.all([
           usageAnalyticsService.getDetailedUsageData(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
             currentFilter.value.modelType,
+            undefined,
+            true, // useAdminApi
           ),
           usageAnalyticsService.getUsageAggregation(
             currentFilter.value.fromDate,
             currentFilter.value.toDate,
+            true, // useAdminApi
           ),
           usageAnalyticsService.getUserUsageSummary(
             currentFilter.value.fromDate,
@@ -80,32 +88,78 @@ export function useUsage() {
           ),
         ])
 
+        console.log('Admin data loaded:', { detailedData, aggregation, userSummary, modelSummary })
+
         detailedUsageData.value = detailedData
         usageAggregation.value = aggregation
         userUsageSummary.value = userSummary
         modelUsageSummary.value = modelSummary
       } else {
-        // Fallback: Leere Arrays für nicht-Admin Benutzer, aber nicht null
-        detailedUsageData.value = []
-        usageAggregation.value = {
-          totalRequests: 0,
-          totalTokensIn: 0,
-          totalTokensOut: 0,
-          totalTokens: 0,
-          totalCost: 0,
-          uniqueUsers: 0,
-          uniqueModels: 0,
-          averageRequestsPerUser: 0,
-          averageTokensPerRequest: 0,
-          averageCostPerRequest: 0,
+        // Lade eigene Daten für normale Benutzer
+        console.log('Loading own data...')
+        try {
+          const [detailedData, aggregation] = await Promise.all([
+            usageAnalyticsService.getDetailedUsageData(
+              currentFilter.value.fromDate,
+              currentFilter.value.toDate,
+              currentFilter.value.modelType,
+              undefined,
+              false, // useAdminApi = false für normale Benutzer
+            ),
+            usageAnalyticsService.getUsageAggregation(
+              currentFilter.value.fromDate,
+              currentFilter.value.toDate,
+              false, // useAdminApi = false für normale Benutzer
+            ),
+          ])
+
+          console.log('Own data loaded:', { detailedData, aggregation })
+
+          detailedUsageData.value = detailedData
+          usageAggregation.value = aggregation
+          userUsageSummary.value = []
+          modelUsageSummary.value = []
+        } catch (ownDataError) {
+          console.warn('Could not load own data, using fallback:', ownDataError)
+          // Fallback: Leere Arrays für nicht-Admin Benutzer, aber nicht null
+          detailedUsageData.value = []
+          usageAggregation.value = {
+            totalRequests: 0,
+            totalTokensIn: 0,
+            totalTokensOut: 0,
+            totalTokens: 0,
+            totalCost: 0,
+            uniqueUsers: 0,
+            uniqueModels: 0,
+            averageRequestsPerUser: 0,
+            averageTokensPerRequest: 0,
+            averageCostPerRequest: 0,
+          }
+          userUsageSummary.value = []
+          modelUsageSummary.value = []
         }
-        userUsageSummary.value = []
-        modelUsageSummary.value = []
       }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Usage-Daten'
       console.error('Fehler beim Laden der Usage-Daten:', err)
+
+      // Setze Fallback-Daten bei Fehlern
+      detailedUsageData.value = []
+      usageAggregation.value = {
+        totalRequests: 0,
+        totalTokensIn: 0,
+        totalTokensOut: 0,
+        totalTokens: 0,
+        totalCost: 0,
+        uniqueUsers: 0,
+        uniqueModels: 0,
+        averageRequestsPerUser: 0,
+        averageTokensPerRequest: 0,
+        averageCostPerRequest: 0,
+      }
+      userUsageSummary.value = []
+      modelUsageSummary.value = []
     } finally {
       isLoading.value = false
     }
