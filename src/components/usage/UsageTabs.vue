@@ -80,7 +80,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="ownTimeRange"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
               <option value="30d">Letzte 30 Tage</option>
@@ -96,7 +96,7 @@
                 <input
                   v-model="ownFromDate"
                   type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
                 />
               </div>
               <div>
@@ -104,7 +104,7 @@
                 <input
                   v-model="ownToDate"
                   type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -113,7 +113,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="ownModelType"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
               <option value="CompletionModelUsage">Chat Completions</option>
@@ -125,7 +125,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Ansicht</label>
             <select
               v-model="ownView"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="overview">Übersicht</option>
               <option value="chart">Chart-Ansicht</option>
@@ -229,7 +229,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="adminTimeRange"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
               <option value="30d">Letzte 30 Tage</option>
@@ -245,7 +245,7 @@
                 <input
                   v-model="adminFromDate"
                   type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
                 />
               </div>
               <div>
@@ -253,7 +253,7 @@
                 <input
                   v-model="adminToDate"
                   type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -262,7 +262,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="adminModelType"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
               <option value="CompletionModelUsage">Chat Completions</option>
@@ -274,7 +274,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
             <select
               v-model="adminUser"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Benutzer</option>
               <option value="user-123">user-123 (Domenic)</option>
@@ -288,7 +288,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Ansicht</label>
             <select
               v-model="adminView"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="overview">Übersicht</option>
               <option value="chart">Chart-Ansicht</option>

@@ -8,6 +8,17 @@ import type {
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
+// Debug-Log-Funktion (nur im Debug-Modus)
+const debugLog = (...args: any[]) => {
+  const isDevelopment = import.meta.env.DEV
+  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
+  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
+  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
+  if (showDebugMode) {
+    console.log(...args)
+  }
+}
+
 export function useUsage() {
   // State
   const isLoading = ref(false)
@@ -53,18 +64,18 @@ export function useUsage() {
         currentFilter.value = { ...filter }
       }
 
-      console.log('Loading usage data with filter:', currentFilter.value)
+      debugLog('Loading usage data with filter:', currentFilter.value)
 
       // Prüfe ob Admin-Berechtigung vorhanden ist
       const hasAdminPermission = await import('@/auth/keycloak').then((m) =>
         m.hasPermission('canViewAdminUsage'),
       )
 
-      console.log('Has admin permission:', hasAdminPermission)
+      debugLog('Has admin permission:', hasAdminPermission)
 
       if (hasAdminPermission) {
         // Lade alle Daten nur wenn Admin-Berechtigung vorhanden
-        console.log('Loading admin data...')
+        debugLog('Loading admin data...')
         const [detailedData, aggregation, userSummary, modelSummary] = await Promise.all([
           usageAnalyticsService.getDetailedUsageData(
             currentFilter.value.fromDate,
@@ -88,7 +99,7 @@ export function useUsage() {
           ),
         ])
 
-        console.log('Admin data loaded:', { detailedData, aggregation, userSummary, modelSummary })
+        debugLog('Admin data loaded:', { detailedData, aggregation, userSummary, modelSummary })
 
         detailedUsageData.value = detailedData
         usageAggregation.value = aggregation
@@ -96,7 +107,7 @@ export function useUsage() {
         modelUsageSummary.value = modelSummary
       } else {
         // Lade eigene Daten für normale Benutzer
-        console.log('Loading own data...')
+        debugLog('Loading own data...')
         try {
           const [detailedData, aggregation] = await Promise.all([
             usageAnalyticsService.getDetailedUsageData(
@@ -113,7 +124,7 @@ export function useUsage() {
             ),
           ])
 
-          console.log('Own data loaded:', { detailedData, aggregation })
+          debugLog('Own data loaded:', { detailedData, aggregation })
 
           detailedUsageData.value = detailedData
           usageAggregation.value = aggregation

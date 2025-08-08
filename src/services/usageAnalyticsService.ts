@@ -14,6 +14,17 @@ import {
 import { calculateCost } from '@/config/pricing'
 import { usageService } from './apiService'
 
+// Debug-Log-Funktion (nur im Debug-Modus)
+const debugLog = (...args: any[]) => {
+  const isDevelopment = import.meta.env.DEV
+  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
+  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
+  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
+  if (showDebugMode) {
+    console.log(...args)
+  }
+}
+
 // Frontend-Service für erweiterte Usage-Analytics-Funktionen
 // Diese Funktionen implementieren die Filterungslogik im Frontend
 export const usageAnalyticsService = {
@@ -89,36 +100,36 @@ export const usageAnalyticsService = {
         // Verwende Admin API nur wenn explizit gewünscht
         try {
           const summary = await usageService.getAdminUsageSummary(fromDate, toDate)
-          console.log('Admin summary loaded:', summary)
+          debugLog('Admin summary loaded:', summary)
           usageData = summary.usage || []
         } catch (adminError) {
-          console.log('Admin summary failed, trying regular summary:', adminError)
+          debugLog('Admin summary failed, trying regular summary:', adminError)
           // Fallback: Verwende normale Usage-Summary
           const summary = await usageService.getUsageSummary(fromDate, toDate)
-          console.log('Regular summary loaded:', summary)
+          debugLog('Regular summary loaded:', summary)
           usageData = summary.usage || []
         }
       } else {
         // Verwende detaillierte API für normale Benutzer (v1/usage/ai)
         try {
           const detailedResponse = await usageService.getOwnUsage(fromDate, toDate)
-          console.log('Detailed usage data loaded:', detailedResponse)
+          debugLog('Detailed usage data loaded:', detailedResponse)
           usageData = detailedResponse.usage || []
         } catch (detailedError) {
-          console.log('Detailed usage failed, trying summary:', detailedError)
+          debugLog('Detailed usage failed, trying summary:', detailedError)
           // Fallback: Verwende normale Usage-Summary
           const summary = await usageService.getUsageSummary(fromDate, toDate)
-          console.log('Regular summary loaded:', summary)
+          debugLog('Regular summary loaded:', summary)
           usageData = summary.usage || []
         }
       }
 
       if (!usageData || usageData.length === 0) {
-        console.log('No usage data found')
+        debugLog('No usage data found')
         return []
       }
 
-      console.log('Filtered usage data:', usageData)
+      debugLog('Filtered usage data:', usageData)
 
       // Konvertiere zu EnhancedUsageRecord[]
       const enhancedRecords: EnhancedUsageRecord[] = usageData.map((item) => {
@@ -186,29 +197,29 @@ export const usageAnalyticsService = {
         // Verwende Admin API nur wenn explizit gewünscht
         try {
           summary = await usageService.getAdminUsageSummary(fromDate, toDate)
-          console.log('Admin summary for aggregation loaded:', summary)
+          debugLog('Admin summary for aggregation loaded:', summary)
         } catch (adminError) {
-          console.log('Admin summary for aggregation failed, trying regular summary:', adminError)
+          debugLog('Admin summary for aggregation failed, trying regular summary:', adminError)
           // Fallback: Verwende normale Usage-Summary
           summary = await usageService.getUsageSummary(fromDate, toDate)
-          console.log('Regular summary for aggregation loaded:', summary)
+          debugLog('Regular summary for aggregation loaded:', summary)
         }
       } else {
         // Verwende normale API für normale Benutzer
         try {
           summary = await usageService.getUsageSummary(fromDate, toDate)
-          console.log('Regular summary for aggregation loaded:', summary)
+          debugLog('Regular summary for aggregation loaded:', summary)
         } catch (regularError) {
-          console.log(
+          debugLog(
             'Regular summary for aggregation failed, trying admin summary as fallback:',
             regularError,
           )
           // Fallback: Versuche Admin API
           try {
             summary = await usageService.getAdminUsageSummary(fromDate, toDate)
-            console.log('Admin summary for aggregation loaded as fallback:', summary)
+            debugLog('Admin summary for aggregation loaded as fallback:', summary)
           } catch (adminError) {
-            console.log('Both APIs failed for aggregation:', adminError)
+            debugLog('Both APIs failed for aggregation:', adminError)
             return {
               totalRequests: 0,
               totalTokensIn: 0,
@@ -226,7 +237,7 @@ export const usageAnalyticsService = {
       }
 
       if (!summary.usage || summary.usage.length === 0) {
-        console.log('No usage data found for aggregation')
+        debugLog('No usage data found for aggregation')
         return {
           totalRequests: 0,
           totalTokensIn: 0,
@@ -289,7 +300,7 @@ export const usageAnalyticsService = {
         averageCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
       }
 
-      console.log('Usage aggregation calculated:', aggregation)
+      debugLog('Usage aggregation calculated:', aggregation)
       return aggregation
     } catch (error) {
       console.warn('Fehler beim Laden der Nutzungsaggregation:', error)
