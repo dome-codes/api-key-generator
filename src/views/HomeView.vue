@@ -38,8 +38,7 @@ const {
   canViewUsage,
   handleLogout,
 } = useAuth()
-const { showDebugInfo, tokenInfo, isDevelopment, showDebugMode, toggleDebugInfo, debugTokenInfo } =
-  useDebug()
+const { isDevelopment, showDebugMode, showDebugInfo, debugTokenInfo } = useDebug()
 const {
   keys,
   isLoading,
@@ -175,25 +174,17 @@ onMounted(() => {
         :is-development="isDevelopment"
         :show-debug-mode="showDebugMode"
         @logout="handleLogout"
-        @toggle-debug-info="toggleDebugInfo"
         @debug-token-info="debugTokenInfo"
       />
 
-      <DebugPanel
-        :show-debug-info="showDebugInfo"
-        :show-debug-mode="showDebugMode"
-        :token-info="tokenInfo"
-        :user-roles="userRoles"
-        :highest-role="highestRole"
-        :is-api-admin="isApiAdmin"
-      />
+      <DebugPanel :show-debug-mode="showDebugMode" :show-debug-info="showDebugInfo" />
       <main class="flex-1 bg-gray-50 p-10">
         <!-- API Keys Section -->
         <div v-if="activeSidebar === 'api'">
           <div class="flex justify-between items-center mb-6">
             <div>
-              <h1 class="text-2xl font-bold text-gray-800 mb-1">API-Schlüssel</h1>
-              <p class="text-gray-600 text-sm max-w-2xl">
+              <h1 class="text-2xl font-bold text-gray-900 mb-1">API-Schlüssel</h1>
+              <p class="text-gray-700 text-sm max-w-2xl">
                 Als Besitzer dieses Projekts können Sie alle API-Schlüssel in diesem Projekt
                 anzeigen und verwalten.<br />Teilen Sie Ihren API-Schlüssel nicht mit anderen oder
                 geben Sie ihn im Browser oder anderen Client-seitigen Code preis. Zum Schutz der
@@ -204,7 +195,7 @@ onMounted(() => {
             <button
               v-if="canCreateKeys"
               @click="openModal"
-              class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 text-sm"
+              class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors"
             >
               <svg
                 class="w-5 h-5"
@@ -255,40 +246,42 @@ onMounted(() => {
           <!-- Key Display Modal -->
           <div
             v-if="showKeyDisplayModal"
-            class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           >
-            <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-md relative">
-              <h3 class="text-xl font-bold mb-2">
+            <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md relative">
+              <h3 class="text-xl font-bold mb-2 text-gray-900">
                 {{ editModalKey ? 'Neuer rotierter Key' : 'Speichern Sie Ihren Key' }}
               </h3>
-              <p class="mb-4 text-gray-600 text-sm">
+              <p class="mb-4 text-gray-700 text-sm">
                 Bitte speichern Sie Ihren Secret Key an einem sicheren Ort, da
                 <b>Sie ihn nicht mehr anzeigen können</b>.
               </p>
-              <div class="mb-4 flex items-center border rounded px-3 py-2 bg-gray-50">
+              <div
+                class="mb-4 flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
+              >
                 <input
                   :value="createdSecret"
                   readonly
-                  class="flex-1 bg-transparent font-mono text-xs select-all outline-none"
+                  class="flex-1 bg-transparent font-mono text-xs select-all outline-none text-gray-900"
                 />
                 <button
                   @click="copyApiKeyWithSuccess(createdSecret)"
-                  class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs"
+                  class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors"
                 >
                   Kopieren
                 </button>
               </div>
               <div class="mb-4">
-                <label class="block text-xs text-gray-500">Name</label>
-                <div class="font-medium">{{ createdKeyName || '—' }}</div>
+                <label class="block text-xs text-gray-600">Name</label>
+                <div class="font-medium text-gray-900">{{ createdKeyName || '—' }}</div>
               </div>
               <div class="mb-4">
-                <label class="block text-xs text-gray-500">Berechtigungen</label>
-                <div class="font-medium">{{ createdKeyPermissions.join(', ') }}</div>
+                <label class="block text-xs text-gray-600">Berechtigungen</label>
+                <div class="font-medium text-gray-900">{{ createdKeyPermissions.join(', ') }}</div>
               </div>
               <div class="mb-4">
-                <label class="block text-xs text-gray-500">Gültig bis</label>
-                <div class="font-medium">
+                <label class="block text-xs text-gray-600">Gültig bis</label>
+                <div class="font-medium text-gray-900">
                   {{
                     createdKeyValidUntil && createdKeyValidUntil !== 'Never'
                       ? new Date(createdKeyValidUntil).toLocaleDateString()
@@ -296,16 +289,18 @@ onMounted(() => {
                   }}
                 </div>
               </div>
-              <div class="mb-6">
-                <label class="block text-xs text-gray-500">Erstellt von</label>
-                <div class="font-medium">{{ createdKeyCreatedBy }}</div>
+              <div class="mb-4">
+                <label class="block text-xs text-gray-600">Erstellt von</label>
+                <div class="font-medium text-gray-900">{{ createdKeyCreatedBy || '—' }}</div>
               </div>
-              <button
-                @click="closeKeyDisplayModal"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg"
-              >
-                Fertig
-              </button>
+              <div class="flex justify-end gap-2">
+                <button
+                  @click="closeKeyDisplayModal"
+                  class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                >
+                  Fertig
+                </button>
+              </div>
             </div>
           </div>
         </div>

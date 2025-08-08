@@ -1,7 +1,9 @@
 <template>
-  <table v-if="keys.length" class="w-full text-left border-collapse bg-white rounded-xl shadow">
+  <table v-if="keys.length" class="w-full text-left border-collapse bg-white rounded-xl shadow-lg">
     <thead>
-      <tr class="text-gray-700 border-b text-xs uppercase tracking-wider">
+      <tr
+        class="text-gray-800 border-b border-gray-200 text-xs uppercase tracking-wider bg-gray-50"
+      >
         <th class="py-3 px-4 font-semibold">Name</th>
         <th class="py-3 px-4 font-semibold">Geheimer Schlüssel</th>
         <th class="py-3 px-4 font-semibold">Erstellt</th>
@@ -25,7 +27,7 @@
       />
     </tbody>
   </table>
-  <div v-else class="text-center text-gray-500 py-8">Keine API-Schlüssel verfügbar.</div>
+  <div v-else class="text-center text-gray-600 py-8">Keine API-Schlüssel verfügbar.</div>
 </template>
 
 <script setup lang="ts">

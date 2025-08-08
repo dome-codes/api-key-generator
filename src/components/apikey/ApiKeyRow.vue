@@ -1,15 +1,19 @@
 <template>
-  <tr class="border-b last:border-0 hover:bg-gray-50 group">
-    <td class="py-3 px-4 text-sm">
+  <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 group">
+    <td class="py-3 px-4 text-sm text-gray-900">
       <div>{{ keyData.name }}</div>
     </td>
     <td class="py-3 px-4 font-mono text-xs break-all">
-      <span v-if="keyData.status === 'active'">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
-      <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
+      <span v-if="keyData.status === 'active'" class="text-gray-900"
+        >sk-•••{{ keyData.apiKey.slice(-4) }}</span
+      >
+      <span v-else class="text-gray-500">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
-    <td class="py-3 px-4 text-xs">{{ new Date(keyData.createdAt).toLocaleDateString() }}</td>
-    <td class="py-3 px-4 text-xs">{{ keyData.lastUsed }}</td>
-    <td class="py-3 px-4 text-xs">
+    <td class="py-3 px-4 text-xs text-gray-700">
+      {{ new Date(keyData.createdAt).toLocaleDateString() }}
+    </td>
+    <td class="py-3 px-4 text-xs text-gray-700">{{ keyData.lastUsed }}</td>
+    <td class="py-3 px-4 text-xs text-gray-700">
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
     <td class="py-3 px-4 text-xs text-right">
@@ -17,7 +21,7 @@
         <button
           v-if="keyData.status === 'active' && shouldShowRotateButton"
           @click="$emit('rotate', keyData)"
-          class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-orange-600"
+          class="p-1 rounded hover:bg-gray-200 text-gray-600 hover:text-orange-600 transition-colors"
           title="Schlüssel rotieren"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +36,7 @@
         <button
           v-if="keyData.status === 'active'"
           @click="$emit('revoke', keyData.id)"
-          class="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-red-600"
+          class="p-1 rounded hover:bg-gray-200 text-gray-600 hover:text-red-600 transition-colors"
           title="Deaktivieren"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
