@@ -11,7 +11,6 @@ interface Props {
 
 interface Emits {
   (e: 'logout'): void
-  (e: 'toggleDebugInfo'): void
   (e: 'debugTokenInfo'): void
 }
 
@@ -35,24 +34,14 @@ const getRoleColor = (role: string) => {
 <template>
   <header class="flex items-center justify-end bg-white border-b px-8 py-4">
     <div class="flex items-center gap-3">
-      <!-- Debug-Button (nur in Entwicklung) -->
-      <button
-        v-if="showDebugMode"
-        @click="$emit('toggleDebugInfo')"
-        class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
-        title="Debug Info"
-      >
-        🔧 Debug
-      </button>
-
-      <!-- Token-Debug-Button (nur in Entwicklung) -->
+      <!-- Debug-Button (nur im Debug-Modus) -->
       <button
         v-if="showDebugMode"
         @click="$emit('debugTokenInfo')"
-        class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-600 rounded transition-colors"
-        title="Token Debug"
+        class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+        title="Debug Info Toggle (Frontend + Console)"
       >
-        🔍 Token
+        🔧 Debug
       </button>
 
       <!-- Rollen-Anzeige -->
