@@ -140,11 +140,15 @@ const createPieChart = async () => {
   }
 
   try {
-    console.log('Creating pie chart...')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Creating pie chart...')
+    }
 
     // Dynamisch Chart.js importieren
     const { Chart } = await import('chart.js/auto')
-    console.log('Chart.js imported successfully')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Chart.js imported successfully')
+    }
 
     // Bestehenden Chart zerstören
     if (pieChartInstance) {
@@ -153,15 +157,21 @@ const createPieChart = async () => {
 
     const ctx = pieChartCanvas.value.getContext('2d')
     if (!ctx) {
-      console.log('Could not get 2D context')
+      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+        console.log('Could not get 2D context')
+      }
       return
     }
 
     const data = modelDistributionData.value
-    console.log('Pie chart data:', data)
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Pie chart data:', data)
+    }
 
     if (data.labels.length === 0) {
-      console.log('No data available for pie chart')
+      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+        console.log('No data available for pie chart')
+      }
       pieChartLoaded.value = false
       return
     }
@@ -218,7 +228,9 @@ const createPieChart = async () => {
     })
 
     pieChartLoaded.value = true
-    console.log('Pie chart created successfully')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Pie chart created successfully')
+    }
   } catch (error) {
     console.error('Fehler beim Erstellen des Pie-Charts:', error)
     pieChartLoaded.value = false
@@ -227,16 +239,22 @@ const createPieChart = async () => {
 
 const createBarChart = async () => {
   if (!barChartCanvas.value) {
-    console.log('Bar chart canvas not found')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Bar chart canvas not found')
+    }
     return
   }
 
   try {
-    console.log('Creating bar chart...')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Creating bar chart...')
+    }
 
     // Dynamisch Chart.js importieren
     const { Chart } = await import('chart.js/auto')
-    console.log('Chart.js imported successfully for bar chart')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Chart.js imported successfully for bar chart')
+    }
 
     // Bestehenden Chart zerstören
     if (barChartInstance) {
@@ -245,15 +263,21 @@ const createBarChart = async () => {
 
     const ctx = barChartCanvas.value.getContext('2d')
     if (!ctx) {
-      console.log('Could not get 2D context for bar chart')
+      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+        console.log('Could not get 2D context for bar chart')
+      }
       return
     }
 
     const data = tagUsageData.value
-    console.log('Bar chart data:', data)
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Bar chart data:', data)
+    }
 
     if (data.labels.length === 0) {
-      console.log('No data available for bar chart')
+      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+        console.log('No data available for bar chart')
+      }
       barChartLoaded.value = false
       return
     }
@@ -316,7 +340,9 @@ const createBarChart = async () => {
     })
 
     barChartLoaded.value = true
-    console.log('Bar chart created successfully')
+    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+      console.log('Bar chart created successfully')
+    }
   } catch (error) {
     console.error('Fehler beim Erstellen des Bar-Charts:', error)
     barChartLoaded.value = false
@@ -325,7 +351,9 @@ const createBarChart = async () => {
 
 // Charts erstellen wenn Komponente gemountet ist
 onMounted(() => {
-  console.log('UsageAdditionalCharts mounted - creating charts...')
+  if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
+    console.log('UsageAdditionalCharts mounted - creating charts...')
+  }
   setTimeout(() => {
     createPieChart()
     createBarChart()
