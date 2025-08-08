@@ -32,8 +32,22 @@
 
 <script setup lang="ts">
 import { initKeycloak } from '@/auth/keycloak'
+import { useAuth } from '@/composables/useAuth'
 import { onMounted, ref } from 'vue'
 
+// Debug-Log-Funktion (nur im Debug-Modus)
+const debugLog = (...args: any[]) => {
+  const isDevelopment = import.meta.env.DEV
+  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
+  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
+  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
+  if (showDebugMode) {
+    console.log(...args)
+  }
+}
+
+const { userProfile, userRoles, highestRole, isApiAdmin } = useAuth()
+const isAuthenticated = ref(false)
 const isLoading = ref(true)
 const error = ref('')
 
@@ -46,13 +60,15 @@ const retryAuth = async () => {
 const initializeAuth = async () => {
   try {
     const authenticated = await initKeycloak()
+    isAuthenticated.value = authenticated
     if (authenticated) {
-      console.log('Benutzer erfolgreich authentifiziert')
+      debugLog('Benutzer erfolgreich authentifiziert')
     } else {
       error.value = 'Authentifizierung fehlgeschlagen'
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unbekannter Authentifizierungsfehler'
+    debugLog('Fehler bei der Authentifizierung:', err)
   } finally {
     isLoading.value = false
   }

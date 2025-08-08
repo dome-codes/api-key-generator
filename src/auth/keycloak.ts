@@ -1,79 +1,22 @@
+import appConfig from '@root/app.config.js'
 import Keycloak from 'keycloak-js'
 
-// Development Mode: Mock Keycloak für lokale Entwicklung
-const isDevelopment = import.meta.env.DEV
-const useMockAuth = isDevelopment && import.meta.env.VITE_USE_MOCK_AUTH === 'true'
+// Debug-Log-Funktion (nur im Debug-Modus)
+const debugLog = (...args: any[]) => {
+  const isDevelopment = import.meta.env.DEV
+  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
+  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
+  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
+  if (showDebugMode) {
+    console.log(...args)
+  }
+}
 
 // Keycloak-Konfiguration
 const keycloakConfig = {
-  url: 'http://localhost:8080',
-  realm: 'api-key-generator',
-  clientId: 'api-key-generator-frontend',
-}
-
-// Mock Keycloak für Entwicklung
-class MockKeycloak {
-  private _authenticated = false
-  private _token: string | null = null
-  private _tokenParsed: any = null
-
-  constructor() {
-    // Mock-Token für Entwicklung
-    this._tokenParsed = {
-      sub: 'mock-user-123',
-      email: 'dev@example.com',
-      name: 'Development User',
-      family_name: 'User',
-      given_name: 'Development',
-      preferred_username: 'devuser',
-      groups: ['api-default'],
-    }
-  }
-
-  async init(options: any): Promise<boolean> {
-    console.log('Mock Keycloak: Initialisierung...')
-
-    // Simuliere Login-Formular für verschiedene Rollen
-    if (options.onLoad === 'login-required') {
-      const role = localStorage.getItem('mock-role') || 'api-default'
-      this.setMockRole(role)
-    }
-
-    this._authenticated = true
-    console.log('Mock Keycloak: Authentifiziert als', this._tokenParsed.groups[0])
-    return true
-  }
-
-  setMockRole(role: string) {
-    const groups = [role]
-    this._tokenParsed = {
-      ...this._tokenParsed,
-      groups,
-    }
-    localStorage.setItem('mock-role', role)
-  }
-
-  async updateToken(minValidity: number): Promise<boolean> {
-    return true
-  }
-
-  logout(options?: any) {
-    this._authenticated = false
-    this._token = null
-    console.log('Mock Keycloak: Logout')
-  }
-
-  get authenticated(): boolean {
-    return this._authenticated
-  }
-
-  get token(): string | null {
-    return this._token
-  }
-
-  get tokenParsed(): any {
-    return this._tokenParsed
-  }
+  url: appConfig.keycloakUrl,
+  realm: appConfig.keycloakRealm,
+  clientId: appConfig.keycloakClientId,
 }
 
 // Rollen-Definitionen
@@ -114,131 +57,35 @@ export const ROLE_PERMISSIONS = {
   },
 }
 
-// Keycloak-Instanz erstellen (Mock oder echt)
-const keycloak = useMockAuth ? new MockKeycloak() : new Keycloak(keycloakConfig)
+// Keycloak-Instanz erstellen
+const keycloak = new Keycloak(keycloakConfig)
 
 // Keycloak initialisieren
 export const initKeycloak = async (): Promise<boolean> => {
   try {
-    if (useMockAuth) {
-      console.log('🔧 Mock Keycloak wird verwendet (Entwicklungsmodus)')
-      console.log(
-        '💡 Tipp: Setze localStorage.setItem("mock-role", "api-stream") für API-Stream-Rolle',
-      )
-      console.log(
-        '💡 Tipp: Setze localStorage.setItem("mock-role", "api-admin") für API-Admin-Rolle',
-      )
-    }
-
     const authenticated = await keycloak.init({
-      onLoad: 'login-required', // Erzwingt Login beim Laden
-      silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-      checkLoginIframe: false, // Deaktiviert iframe-basierte Token-Überprüfung
-      enableLogging: true, // Für Debugging
+      onLoad: 'login-required',
+      checkLoginIframe: false,
+      enableLogging: true,
+      pkceMethod: 'S256',
     })
 
-    console.log('Keycloak initialisiert:', authenticated)
+    debugLog('Keycloak initialisiert:', authenticated)
     return authenticated
   } catch (error) {
     console.error('Fehler bei Keycloak-Initialisierung:', error)
-
-    // Fallback zu Mock-Auth wenn Keycloak nicht verfügbar
-    if (isDevelopment && !useMockAuth) {
-      console.log('🔄 Fallback zu Mock-Auth (Keycloak nicht verfügbar)')
-      const mockKeycloak = new MockKeycloak()
-      const authenticated = await mockKeycloak.init({ onLoad: 'login-required' })
-      Object.assign(keycloak, mockKeycloak)
-      return authenticated
-    }
-
     return false
-  }
-}
-
-// JWT Token Utilities
-function parseJwtToken(token: string): any {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    )
-    return JSON.parse(jsonPayload)
-  } catch (error) {
-    console.error('Fehler beim Parsen des JWT-Tokens:', error)
-    return null
   }
 }
 
 // Token für API-Requests abrufen
 export const getToken = async (): Promise<string | null> => {
   try {
-    if (useMockAuth || keycloak instanceof MockKeycloak) {
-      // Mock-Token mit echten JWT-Struktur
-      const mockPayload = {
-        sub: keycloak.tokenParsed?.sub || 'mock-user-123',
-        email: keycloak.tokenParsed?.email || 'dev@example.com',
-        name: keycloak.tokenParsed?.name || 'Development User',
-        family_name: keycloak.tokenParsed?.family_name || 'User',
-        given_name: keycloak.tokenParsed?.given_name || 'Development',
-        preferred_username: keycloak.tokenParsed?.preferred_username || 'devuser',
-        groups: keycloak.tokenParsed?.groups || ['api-default'],
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + 3600, // 1 Stunde gültig
-      }
-
-      // Erstelle Mock-JWT (Header.Payload.Signature)
-      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-      const payload = btoa(JSON.stringify(mockPayload))
-      const signature = 'mock-signature'
-
-      return `${header}.${payload}.${signature}`
-    }
-
-    await keycloak.updateToken(30) // Token erneuern wenn es in 30 Sekunden abläuft
+    await keycloak.updateToken(30)
     return keycloak.token || null
   } catch (error) {
     console.error('Fehler beim Token-Update:', error)
     return null
-  }
-}
-
-// JWT-Token validieren und parsen
-export const validateAndParseToken = (token: string): any => {
-  if (!token) return null
-
-  const parsed = parseJwtToken(token)
-  if (!parsed) return null
-
-  // Prüfe Token-Ablauf
-  const now = Math.floor(Date.now() / 1000)
-  if (parsed.exp && parsed.exp < now) {
-    console.warn('JWT-Token ist abgelaufen')
-    return null
-  }
-
-  return parsed
-}
-
-// Token-Informationen für Debugging
-export const getTokenInfo = (token: string): any => {
-  const parsed = validateAndParseToken(token)
-  if (!parsed) return null
-
-  return {
-    userId: parsed.sub,
-    email: parsed.email,
-    name: parsed.name,
-    familyName: parsed.family_name,
-    givenName: parsed.given_name,
-    preferredUsername: parsed.preferred_username,
-    groups: parsed.groups || [],
-    issuedAt: parsed.iat ? new Date(parsed.iat * 1000) : null,
-    expiresAt: parsed.exp ? new Date(parsed.exp * 1000) : null,
-    isExpired: parsed.exp ? parsed.exp < Math.floor(Date.now() / 1000) : false,
   }
 }
 
@@ -254,7 +101,6 @@ export const getUserRoles = (): UserRole[] => {
   const groups = keycloak.tokenParsed.groups || []
   const roles: UserRole[] = []
 
-  // Rollen aus groups extrahieren (mit und ohne Slash)
   if (groups.includes('api-admin') || groups.includes('/api-admin')) {
     roles.push(UserRole.API_ADMIN)
   } else if (groups.includes('api-stream') || groups.includes('/api-stream')) {
@@ -263,14 +109,10 @@ export const getUserRoles = (): UserRole[] => {
     roles.push(UserRole.API_DEFAULT)
   }
 
-  // Fallback: Wenn keine Rollen gefunden, Standard-API-Default-Rolle
   if (roles.length === 0) {
-    console.warn('Keine gültigen Rollen in groups gefunden, verwende Standard-API-Default-Rolle')
-    console.log('Verfügbare Groups:', groups)
     roles.push(UserRole.API_DEFAULT)
   }
 
-  console.log('Gefilterte Rollen aus groups:', roles)
   return roles
 }
 
@@ -320,50 +162,42 @@ export const getUserEmail = (): string | null => {
 // Debug-Funktion für Token-Analyse
 export const debugToken = () => {
   if (!keycloak.tokenParsed) {
-    console.log('❌ Kein Token verfügbar')
+    debugLog('❌ Kein Token verfügbar')
     return
   }
 
-  console.log('🔍 Token Debug Information:')
-  console.log('Raw tokenParsed:', keycloak.tokenParsed)
-  console.log('Available keys:', Object.keys(keycloak.tokenParsed))
+  debugLog('🔍 Token Debug Information:')
+  debugLog('Raw tokenParsed:', keycloak.tokenParsed)
+  debugLog('Available keys:', Object.keys(keycloak.tokenParsed))
 
   // Spezifische Felder prüfen
-  console.log('sub:', keycloak.tokenParsed.sub)
-  console.log('email:', keycloak.tokenParsed.email)
-  console.log('name:', keycloak.tokenParsed.name)
-  console.log('family_name:', keycloak.tokenParsed.family_name)
-  console.log('given_name:', keycloak.tokenParsed.given_name)
-  console.log('preferred_username:', keycloak.tokenParsed.preferred_username)
-  console.log('groups:', keycloak.tokenParsed.groups)
-  console.log('realm_access:', keycloak.tokenParsed.realm_access)
-  console.log('resource_access:', keycloak.tokenParsed.resource_access)
+  debugLog('sub:', keycloak.tokenParsed.sub)
+  debugLog('email:', keycloak.tokenParsed.email)
+  debugLog('name:', keycloak.tokenParsed.name)
+  debugLog('family_name:', keycloak.tokenParsed.family_name)
+  debugLog('given_name:', keycloak.tokenParsed.given_name)
+  debugLog('preferred_username:', keycloak.tokenParsed.preferred_username)
+  debugLog('groups:', keycloak.tokenParsed.groups)
+  debugLog('realm_access:', keycloak.tokenParsed.realm_access)
+  debugLog('resource_access:', keycloak.tokenParsed.resource_access)
 
   // Rollen-Analyse
   const roles = getUserRoles()
-  console.log('Erkannte Rollen:', roles)
-  console.log('Höchste Rolle:', getHighestRole())
+  debugLog('Erkannte Rollen:', roles)
+  debugLog('Höchste Rolle:', getHighestRole())
 
   // Gruppen-Detection-Debug
   const groups = keycloak.tokenParsed.groups || []
-  console.log('🔍 Gruppen-Detection:')
-  console.log('  Raw groups:', groups)
-  console.log('  Contains /api-admin:', groups.includes('/api-admin'))
-  console.log('  Contains api-admin:', groups.includes('api-admin'))
-  console.log('  Contains /api-stream:', groups.includes('/api-stream'))
-  console.log('  Contains api-stream:', groups.includes('api-stream'))
-  console.log('  Contains /api-default:', groups.includes('/api-default'))
-  console.log('  Contains api-default:', groups.includes('api-default'))
+  debugLog('🔍 Gruppen-Detection:')
+  debugLog('  Raw groups:', groups)
+  debugLog('  Contains /api-admin:', groups.includes('/api-admin'))
+  debugLog('  Contains api-admin:', groups.includes('api-admin'))
+  debugLog('  Contains /api-stream:', groups.includes('/api-stream'))
+  debugLog('  Contains api-stream:', groups.includes('api-stream'))
+  debugLog('  Contains /api-default:', groups.includes('/api-default'))
+  debugLog('  Contains api-default:', groups.includes('api-default'))
 }
 
-// Mock-Rolle für Entwicklung setzen
-export const setMockRole = (role: string) => {
-  if (keycloak instanceof MockKeycloak) {
-    keycloak.setMockRole(role)
-  }
-}
-
-// Keycloak-Instanz exportieren (für erweiterte Funktionen)
+// Keycloak-Instanz exportieren
 export { keycloak }
-
 export default keycloak

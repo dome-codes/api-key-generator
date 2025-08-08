@@ -26,9 +26,7 @@ export function useAuth() {
 
   // Logout-Funktion
   const handleLogout = () => {
-    keycloak.logout({
-      redirectUri: window.location.origin,
-    })
+    keycloak.logout({})
   }
 
   return {
