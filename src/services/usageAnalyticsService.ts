@@ -1,8 +1,10 @@
 import type {
-  EnhancedUsageRecord,
   ImageModelUsage,
+  ModelUsage,
   ModelUsageSummary,
   ModelUsageType,
+  SummaryUsage,
+  SummaryUsageResponse,
   UsageAggregation,
   UserUsageSummary,
 } from '@/api/types/types'
@@ -15,7 +17,7 @@ import { calculateCost } from '@/config/pricing'
 import { usageService } from './apiService'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   const isDevelopment = import.meta.env.DEV
   const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
   const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
@@ -89,12 +91,20 @@ export const usageAnalyticsService = {
   async getDetailedUsageData(
     fromDate?: string,
     toDate?: string,
-    modelType?: ModelUsageType,
-    technicalUserId?: string,
     useAdminApi: boolean = false,
-  ): Promise<EnhancedUsageRecord[]> {
+  ): Promise<
+    Array<
+      (SummaryUsage | ModelUsage) & {
+        requests: number
+        tokensIn: number
+        tokensOut: number
+        totalTokens: number
+        cost: number
+      }
+    >
+  > {
     try {
-      let usageData
+      let usageData: (SummaryUsage | ModelUsage)[] = []
 
       if (useAdminApi) {
         // Verwende Admin API nur wenn explizit gewünscht
@@ -131,54 +141,48 @@ export const usageAnalyticsService = {
 
       debugLog('Filtered usage data:', usageData)
 
-      // Konvertiere zu EnhancedUsageRecord[]
-      const enhancedRecords: EnhancedUsageRecord[] = usageData.map((item) => {
-        const tokenInfo = this.getTokenInfo(item)
-        const cost = calculateCost(
-          tokenInfo.requestTokens,
-          tokenInfo.responseTokens,
+      // Berechne Token-Informationen und Requests für die Charts
+      const enhancedData = usageData.map((item) => {
+        // Extrahiere Token-Informationen je nach Modelltyp
+        let requestTokens = 0
+        let responseTokens = 0
+
+        if (item.type === 'CompletionModelUsage') {
+          requestTokens = (item as any).requestTokens || 0
+          responseTokens = (item as any).responseTokens || 0
+        } else if (item.type === 'EmbeddingModelUsage') {
+          requestTokens = (item as any).requestTokens || 0
+          responseTokens = 0
+        } else if (item.type === 'ImageModelUsage') {
+          // Image Models haben keine Token, aber size/quality
+          requestTokens = 0
+          responseTokens = 0
+        }
+
+        // Berechne Kosten für dieses Item
+        const costCalculation = calculateCost(
+          requestTokens,
+          responseTokens,
           item.model || 'unknown',
           false, // useCachedInput
           item.type, // modelType
-          (item as ImageModelUsage).quality, // imageQuality
-          item.requests || 1, // imageCount
-          (item as ImageModelUsage).sizeWidth, // sizeWidth
-          (item as ImageModelUsage).sizeHeight, // sizeHeight
-        ).finalCost
-
-        // Extrahiere createDate falls verfügbar
-        let createDate: string | undefined
-        if ('createDate' in item && item.createDate) {
-          createDate = item.createDate
-        }
-
-        // Extrahiere technische User ID
-        let technicalUserId = ''
-        if ('technicalUserId' in item && item.technicalUserId) {
-          technicalUserId =
-            typeof item.technicalUserId === 'string'
-              ? item.technicalUserId
-              : String(item.technicalUserId)
-        } else if ('technicalUSerid' in item && (item as any).technicalUSerid) {
-          technicalUserId = (item as any).technicalUSerid
-        }
+          (item as any).quality, // imageQuality (für Image-Modelle)
+          (item as any).requests, // imageCount (für Image-Modelle)
+          (item as any).sizeWidth, // sizeWidth (für Image-Modelle)
+          (item as any).sizeHeight, // sizeHeight (für Image-Modelle)
+        )
 
         return {
-          technicalUserId,
-          technicalUserName: technicalUserId || 'Unknown',
-          modelName: item.model || 'Unknown',
-          modelType: item.type || ('CompletionModelUsage' as ModelUsageType),
-          requests: item.requests || 0,
-          tokensIn: tokenInfo.requestTokens,
-          tokensOut: tokenInfo.responseTokens,
-          totalTokens: tokenInfo.requestTokens + tokenInfo.responseTokens,
-          cost,
-          tag: item.tag || 'production',
-          createDate,
+          ...item,
+          requests: 'requests' in item ? (item as SummaryUsage).requests || 0 : 0,
+          tokensIn: requestTokens,
+          tokensOut: responseTokens,
+          totalTokens: requestTokens + responseTokens,
+          cost: costCalculation.finalCost,
         }
       })
 
-      return enhancedRecords
+      return enhancedData
     } catch (error) {
       console.error('Error in getDetailedUsageData:', error)
       return []
@@ -191,7 +195,7 @@ export const usageAnalyticsService = {
     useAdminApi: boolean = false,
   ): Promise<UsageAggregation> {
     try {
-      let summary
+      let summary: SummaryUsageResponse
 
       if (useAdminApi) {
         // Verwende Admin API nur wenn explizit gewünscht
@@ -253,10 +257,17 @@ export const usageAnalyticsService = {
       }
 
       const uniqueUsers = new Set(
-        summary.usage.map((item) => item.technicalUserId || (item as any).technicalUSerid),
+        summary.usage.map(
+          (item) =>
+            (item as SummaryUsage).technicalUserId ||
+            (item as { technicalUSerid?: string }).technicalUSerid,
+        ),
       ).size
       const uniqueModels = new Set(summary.usage.map((item) => item.model)).size
-      const totalRequests = summary.usage.reduce((sum, item) => sum + (item.requests || 0), 0)
+      const totalRequests = summary.usage.reduce(
+        (sum, item) => sum + ((item as SummaryUsage).requests || 0),
+        0,
+      )
 
       // Berechne Token-Informationen basierend auf den einzelnen Items
       let totalTokensIn = 0
@@ -280,7 +291,7 @@ export const usageAnalyticsService = {
           false, // useCachedInput
           item.type, // modelType
           (item as ImageModelUsage).quality, // imageQuality (für Image-Modelle) - optional
-          item.requests, // imageCount (für Image-Modelle)
+          (item as SummaryUsage).requests, // imageCount (für Image-Modelle)
           (item as ImageModelUsage).sizeWidth, // sizeWidth (für Image-Modelle)
           (item as ImageModelUsage).sizeHeight, // sizeHeight (für Image-Modelle)
         )
@@ -326,12 +337,20 @@ export const usageAnalyticsService = {
       const userMap = new Map<string, UserUsageSummary>()
 
       detailedData.forEach((item) => {
-        if (!userMap.has(item.technicalUserId)) {
-          userMap.set(item.technicalUserId, {
-            technicalUserId: item.technicalUserId,
+        const technicalUserId =
+          (item as SummaryUsage).technicalUserId ||
+          (item as { technicalUSerid?: string }).technicalUSerid ||
+          'unknown'
+        const requests = (item as any).requests || 0
+        const modelName = item.model || 'Unknown'
+        const tag = item.tag || ''
+
+        if (!userMap.has(technicalUserId)) {
+          userMap.set(technicalUserId, {
+            technicalUserId,
             technicalUserName:
-              item.technicalUserId ||
-              `Benutzer ${detailedData.findIndex((i) => i.technicalUserId === item.technicalUserId) + 1}`,
+              technicalUserId ||
+              `Benutzer ${detailedData.findIndex((i) => (i as SummaryUsage).technicalUserId === technicalUserId) + 1}`,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,
@@ -341,28 +360,20 @@ export const usageAnalyticsService = {
           })
         }
 
-        const user = userMap.get(item.technicalUserId)!
-        user.totalRequests += item.requests
-        user.totalTokensIn += item.tokensIn
-        user.totalTokensOut += item.tokensOut
-        user.totalTokens += item.totalTokens
-        user.totalCost += item.cost
+        const user = userMap.get(technicalUserId)!
+        user.totalRequests += requests
 
-        if (!user.modelBreakdown[item.modelName]) {
-          user.modelBreakdown[item.modelName] = {
+        if (!user.modelBreakdown[modelName]) {
+          user.modelBreakdown[modelName] = {
             requests: 0,
             tokensIn: 0,
             tokensOut: 0,
             totalTokens: 0,
             cost: 0,
-            tag: item.tag,
+            tag,
           }
         }
-        user.modelBreakdown[item.modelName].requests += item.requests
-        user.modelBreakdown[item.modelName].tokensIn += item.tokensIn
-        user.modelBreakdown[item.modelName].tokensOut += item.tokensOut
-        user.modelBreakdown[item.modelName].totalTokens += item.totalTokens
-        user.modelBreakdown[item.modelName].cost += item.cost
+        user.modelBreakdown[modelName].requests += requests
       })
 
       return Array.from(userMap.values())
@@ -379,10 +390,19 @@ export const usageAnalyticsService = {
       const modelMap = new Map<string, ModelUsageSummary>()
 
       detailedData.forEach((item) => {
-        if (!modelMap.has(item.modelName)) {
-          modelMap.set(item.modelName, {
-            modelName: item.modelName,
-            modelType: item.modelType,
+        const modelName = item.model || 'Unknown'
+        const modelType = item.type || 'CompletionModelUsage'
+        const requests = (item as any).requests || 0
+        const technicalUserId =
+          (item as SummaryUsage).technicalUserId ||
+          (item as { technicalUSerid?: string }).technicalUSerid ||
+          'unknown'
+        const tag = item.tag || ''
+
+        if (!modelMap.has(modelName)) {
+          modelMap.set(modelName, {
+            modelName,
+            modelType: modelType as ModelUsageType,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,
@@ -392,28 +412,20 @@ export const usageAnalyticsService = {
           })
         }
 
-        const model = modelMap.get(item.modelName)!
-        model.totalRequests += item.requests
-        model.totalTokensIn += item.tokensIn
-        model.totalTokensOut += item.tokensOut
-        model.totalTokens += item.totalTokens
-        model.totalCost += item.cost
+        const model = modelMap.get(modelName)!
+        model.totalRequests += requests
 
-        if (!model.userBreakdown[item.technicalUserId]) {
-          model.userBreakdown[item.technicalUserId] = {
+        if (!model.userBreakdown[technicalUserId]) {
+          model.userBreakdown[technicalUserId] = {
             requests: 0,
             tokensIn: 0,
             tokensOut: 0,
             totalTokens: 0,
             cost: 0,
-            tag: item.tag,
+            tag,
           }
         }
-        model.userBreakdown[item.technicalUserId].requests += item.requests
-        model.userBreakdown[item.technicalUserId].tokensIn += item.tokensIn
-        model.userBreakdown[item.technicalUserId].tokensOut += item.tokensOut
-        model.userBreakdown[item.technicalUserId].totalTokens += item.totalTokens
-        model.userBreakdown[item.technicalUserId].cost += item.cost
+        model.userBreakdown[technicalUserId].requests += requests
       })
 
       return Array.from(modelMap.values())
@@ -424,21 +436,32 @@ export const usageAnalyticsService = {
   },
 
   // Hilfsfunktionen für Frontend-Filterung
-  filterUsageByModel(usageData: any[], modelName?: string) {
+  filterUsageByModel(usageData: (SummaryUsage | ModelUsage)[], modelName?: string) {
     if (!modelName) return usageData
     return usageData.filter((item) => item.model === modelName)
   },
 
-  filterUsageByUser(usageData: any[], userId?: string) {
+  filterUsageByUser(usageData: (SummaryUsage | ModelUsage)[], userId?: string) {
     if (!userId) return usageData
-    return usageData.filter((item) => item.technicalUserId === userId)
+    return usageData.filter((item) => {
+      const itemUserId =
+        (item as SummaryUsage).technicalUserId ||
+        (item as { technicalUSerid?: string }).technicalUSerid
+      return itemUserId === userId
+    })
   },
 
-  filterUsageByDateRange(usageData: any[], fromDate?: string, toDate?: string) {
+  filterUsageByDateRange(
+    usageData: (SummaryUsage | ModelUsage)[],
+    fromDate?: string,
+    toDate?: string,
+  ) {
     if (!fromDate && !toDate) return usageData
 
     return usageData.filter((item) => {
-      const itemDate = new Date(item.timestamp || item.day || Date.now())
+      const itemDate = new Date(
+        (item as { timestamp?: number }).timestamp || (item as { day?: number }).day || Date.now(),
+      )
       const from = fromDate ? new Date(fromDate) : null
       const to = toDate ? new Date(toDate) : null
 
@@ -449,44 +472,52 @@ export const usageAnalyticsService = {
   },
 
   // Gruppierung nach verschiedenen Kriterien
-  groupUsageByUser(usageData: any[]) {
-    const userMap = new Map()
+  groupUsageByUser(usageData: (SummaryUsage | ModelUsage)[]) {
+    const userMap = new Map<string, (SummaryUsage | ModelUsage)[]>()
 
     usageData.forEach((item) => {
-      const userId = item.technicalUserId || 'unknown'
+      const userId =
+        (item as SummaryUsage).technicalUserId ||
+        (item as { technicalUSerid?: string }).technicalUSerid ||
+        'unknown'
       if (!userMap.has(userId)) {
         userMap.set(userId, [])
       }
-      userMap.get(userId).push(item)
+      userMap.get(userId)!.push(item)
     })
 
     return userMap
   },
 
-  groupUsageByModel(usageData: any[]) {
-    const modelMap = new Map()
+  groupUsageByModel(usageData: (SummaryUsage | ModelUsage)[]) {
+    const modelMap = new Map<string, (SummaryUsage | ModelUsage)[]>()
 
     usageData.forEach((item) => {
       const modelName = item.model || 'unknown'
       if (!modelMap.has(modelName)) {
         modelMap.set(modelName, [])
       }
-      modelMap.get(modelName).push(item)
+      modelMap.get(modelName)!.push(item)
     })
 
     return modelMap
   },
 
-  groupUsageByDate(usageData: any[], groupBy: 'day' | 'month' | 'year' = 'day') {
-    const dateMap = new Map()
+  groupUsageByDate(
+    usageData: (SummaryUsage | ModelUsage)[],
+    groupBy: 'day' | 'month' | 'year' = 'day',
+  ) {
+    const dateMap = new Map<string, (SummaryUsage | ModelUsage)[]>()
 
     usageData.forEach((item) => {
-      const date = new Date(item.timestamp || item.day || Date.now())
+      const date = new Date(
+        (item as { timestamp?: number }).timestamp || (item as { day?: number }).day || Date.now(),
+      )
       let key: string
 
       switch (groupBy) {
         case 'day':
-          key = date.toISOString().split('T')[0]
+          key = date.toISOString()
           break
         case 'month':
           key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -495,13 +526,13 @@ export const usageAnalyticsService = {
           key = date.getFullYear().toString()
           break
         default:
-          key = date.toISOString().split('T')[0]
+          key = date.toISOString()
       }
 
       if (!dateMap.has(key)) {
         dateMap.set(key, [])
       }
-      dateMap.get(key).push(item)
+      dateMap.get(key)!.push(item)
     })
 
     return dateMap

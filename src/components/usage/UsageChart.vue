@@ -74,7 +74,7 @@ defineEmits<Emits>()
 
 const chartCanvas = ref<HTMLCanvasElement>()
 const chartLoaded = ref(false)
-let chartInstance: any = null
+let chartInstance: unknown = null
 
 const periods = [
   { value: 'daily', label: 'Täglich' },
@@ -83,38 +83,12 @@ const periods = [
   { value: 'monthly', label: 'Monatlich' },
 ]
 
-// Mock-Daten für verschiedene Perioden
-const mockData = {
-  daily: {
-    labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
-    tokensIn: [15000, 22000, 18000, 25000, 30000, 12000, 8000],
-    tokensOut: [8000, 12000, 10000, 15000, 18000, 6000, 4000],
-    requests: [45, 67, 52, 78, 92, 35, 24],
-  },
-  hourly: {
-    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
-    tokensIn: [5000, 8000, 15000, 25000, 20000, 12000, 6000],
-    tokensOut: [2500, 4000, 7500, 12500, 10000, 6000, 3000],
-    requests: [15, 25, 45, 75, 60, 35, 18],
-  },
-  weekly: {
-    labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'],
-    tokensIn: [120000, 180000, 150000, 200000],
-    tokensOut: [65000, 95000, 80000, 110000],
-    requests: [350, 520, 430, 580],
-  },
-  monthly: {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-    tokensIn: [
-      450000, 520000, 480000, 600000, 550000, 680000, 720000, 650000, 580000, 620000, 590000,
-      640000,
-    ],
-    tokensOut: [
-      240000, 280000, 260000, 320000, 290000, 360000, 380000, 340000, 310000, 330000, 315000,
-      340000,
-    ],
-    requests: [1200, 1400, 1300, 1600, 1500, 1800, 1900, 1700, 1550, 1650, 1600, 1700],
-  },
+// Leere Daten für verschiedene Perioden (werden durch echte Daten ersetzt)
+const emptyData = {
+  daily: { labels: [], tokensIn: [], tokensOut: [], requests: [] },
+  hourly: { labels: [], tokensIn: [], tokensOut: [], requests: [] },
+  weekly: { labels: [], tokensIn: [], tokensOut: [], requests: [] },
+  monthly: { labels: [], tokensIn: [], tokensOut: [], requests: [] },
 }
 
 // Watch für Änderungen der selectedPeriod
@@ -150,9 +124,9 @@ const createChart = async () => {
       chartInstance.destroy()
     }
 
-    // Verwende echte Daten falls verfügbar, sonst Mock-Daten
+    // Verwende echte Daten falls verfügbar, sonst leere Daten
     const data =
-      props.chartData || mockData[props.selectedPeriod as keyof typeof mockData] || mockData.daily
+      props.chartData || emptyData[props.selectedPeriod as keyof typeof emptyData] || emptyData.daily
 
     const ctx = chartCanvas.value.getContext('2d')
     if (!ctx) return

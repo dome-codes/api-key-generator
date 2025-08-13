@@ -9,13 +9,32 @@ import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   const isDevelopment = import.meta.env.DEV
   const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
   const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
   const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
   if (showDebugMode) {
     console.log(...args)
+  }
+}
+
+// Hilfsfunktion um Datumswerte in ISO-Strings zu konvertieren
+const convertToIsoString = (dateString?: string): string | undefined => {
+  if (!dateString) return undefined
+
+  try {
+    // Wenn es bereits ein ISO-String ist, gib ihn zurück
+    if (dateString.includes('T')) {
+      return dateString
+    }
+
+    // Konvertiere YYYY-MM-DD zu ISO-String mit Mitternacht
+    const date = new Date(dateString + 'T00:00:00.000Z')
+    return date.toISOString()
+  } catch (error) {
+    console.warn('Fehler beim Konvertieren des Datums:', dateString, error)
+    return dateString
   }
 }
 
@@ -78,24 +97,24 @@ export function useUsage() {
         debugLog('Loading admin data...')
         const [detailedData, aggregation, userSummary, modelSummary] = await Promise.all([
           usageAnalyticsService.getDetailedUsageData(
-            currentFilter.value.fromDate,
-            currentFilter.value.toDate,
+            convertToIsoString(currentFilter.value.fromDate),
+            convertToIsoString(currentFilter.value.toDate),
             currentFilter.value.modelType,
             undefined,
             true, // useAdminApi
           ),
           usageAnalyticsService.getUsageAggregation(
-            currentFilter.value.fromDate,
-            currentFilter.value.toDate,
+            convertToIsoString(currentFilter.value.fromDate),
+            convertToIsoString(currentFilter.value.toDate),
             true, // useAdminApi
           ),
           usageAnalyticsService.getUserUsageSummary(
-            currentFilter.value.fromDate,
-            currentFilter.value.toDate,
+            convertToIsoString(currentFilter.value.fromDate),
+            convertToIsoString(currentFilter.value.toDate),
           ),
           usageAnalyticsService.getModelUsageSummary(
-            currentFilter.value.fromDate,
-            currentFilter.value.toDate,
+            convertToIsoString(currentFilter.value.fromDate),
+            convertToIsoString(currentFilter.value.toDate),
           ),
         ])
 
@@ -111,15 +130,15 @@ export function useUsage() {
         try {
           const [detailedData, aggregation] = await Promise.all([
             usageAnalyticsService.getDetailedUsageData(
-              currentFilter.value.fromDate,
-              currentFilter.value.toDate,
+              convertToIsoString(currentFilter.value.fromDate),
+              convertToIsoString(currentFilter.value.toDate),
               currentFilter.value.modelType,
               undefined,
               false, // useAdminApi = false für normale Benutzer
             ),
             usageAnalyticsService.getUsageAggregation(
-              currentFilter.value.fromDate,
-              currentFilter.value.toDate,
+              convertToIsoString(currentFilter.value.fromDate),
+              convertToIsoString(currentFilter.value.toDate),
               false, // useAdminApi = false für normale Benutzer
             ),
           ])

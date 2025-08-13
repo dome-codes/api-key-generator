@@ -22,7 +22,7 @@ export function useDebug() {
   const showDebugInfo = ref(false)
 
   // Debug-Log-Funktion (nur im Debug-Modus)
-  const debugLog = (...args: any[]) => {
+  const debugLog = (...args: unknown[]) => {
     if (showDebugMode.value) {
       console.log(...args)
     }

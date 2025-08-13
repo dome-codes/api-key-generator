@@ -76,8 +76,15 @@
 import type { TooltipItem } from 'chart.js'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
+interface UsageDataItem {
+  modelName?: string
+  model?: string
+  requests?: number
+  tag?: string
+}
+
 interface Props {
-  usageData?: any[]
+  usageData?: UsageDataItem[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -89,8 +96,8 @@ const barChartCanvas = ref<HTMLCanvasElement>()
 const pieChartLoaded = ref(false)
 const barChartLoaded = ref(false)
 
-let pieChartInstance: any = null
-let barChartInstance: any = null
+let pieChartInstance: unknown = null
+let barChartInstance: unknown = null
 
 // Computed properties für echte Daten
 const modelDistributionData = computed(() => {

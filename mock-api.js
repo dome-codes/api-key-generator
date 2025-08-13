@@ -87,12 +87,8 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
     mockData.push({
       type: 'CompletionModelUsage',
       requests: completionRequests,
-      technicalUSerid: userId,
       model: completionModel,
       tag: completionTag,
-      day,
-      month,
-      year,
       requestTokens: Math.floor(completionTokensIn),
       responseTokens: Math.floor(completionTokensOut),
       createDate: createDate.toISOString(),
@@ -119,12 +115,8 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       mockData.push({
         type: 'EmbeddingModelUsage',
         requests: embeddingRequests,
-        technicalUSerid: userId,
         model: embeddingModel,
         tag: embeddingTag,
-        day,
-        month,
-        year,
         requestTokens: Math.floor(embeddingTokens),
         createDate: embeddingCreateDate.toISOString(),
       })
@@ -153,12 +145,8 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       mockData.push({
         type: 'ImageModelUsage',
         requests: imageRequests,
-        technicalUSerid: userId,
         model: imageModel,
         tag: imageTag,
-        day,
-        month,
-        year,
         sizeWidth,
         sizeHeight,
         quality,

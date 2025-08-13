@@ -36,7 +36,7 @@ import { useAuth } from '@/composables/useAuth'
 import { onMounted, ref } from 'vue'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   const isDevelopment = import.meta.env.DEV
   const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
   const debugFromLocalStorage = localStorage.getItem('debug') === 'true'

@@ -2,7 +2,7 @@ import appConfig from '@root/app.config.js'
 import Keycloak from 'keycloak-js'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: any[]) => {
+const debugLog = (...args: unknown[]) => {
   const isDevelopment = import.meta.env.DEV
   const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
   const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
@@ -60,6 +60,16 @@ export const ROLE_PERMISSIONS = {
 // Keycloak-Instanz erstellen
 const keycloak = new Keycloak(keycloakConfig)
 
+// URL-Parameter nach der Authentifizierung bereinigen
+const cleanupUrl = () => {
+  if (window.location.hash.includes('state=') || window.location.search.includes('code=')) {
+    // Entferne alle OAuth2-Parameter aus der URL
+    const cleanUrl = window.location.pathname
+    window.history.replaceState({}, document.title, cleanUrl)
+    debugLog('URL bereinigt:', cleanUrl)
+  }
+}
+
 // Keycloak initialisieren
 export const initKeycloak = async (): Promise<boolean> => {
   try {
@@ -71,6 +81,12 @@ export const initKeycloak = async (): Promise<boolean> => {
     })
 
     debugLog('Keycloak initialisiert:', authenticated)
+
+    // URL nach erfolgreicher Authentifizierung bereinigen
+    if (authenticated) {
+      cleanupUrl()
+    }
+
     return authenticated
   } catch (error) {
     console.error('Fehler bei Keycloak-Initialisierung:', error)

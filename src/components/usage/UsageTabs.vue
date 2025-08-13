@@ -566,11 +566,11 @@ const setDefaultDates = () => {
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-  ownFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  ownToDate.value = today.toISOString().split('T')[0]
+  ownFromDate.value = thirtyDaysAgo.toISOString()
+  ownToDate.value = today.toISOString()
 
-  adminFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  adminToDate.value = today.toISOString().split('T')[0]
+  adminFromDate.value = thirtyDaysAgo.toISOString()
+  adminToDate.value = today.toISOString()
 }
 
 // Initialisiere Standard-Daten beim Mounten
@@ -580,8 +580,8 @@ onMounted(async () => {
   // Berechne Standard-Zeitraum (30 Tage)
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  const fromDate = thirtyDaysAgo.toISOString().split('T')[0]
-  const toDate = today.toISOString().split('T')[0]
+  const fromDate = thirtyDaysAgo.toISOString()
+  const toDate = today.toISOString()
 
   // Lade Daten mit den korrekten Parametern
   await loadDetailedUsageData({
@@ -629,6 +629,7 @@ const filteredAdminUsage = computed(() => {
       tokensOut: 0,
       requests: 0,
       cost: 0,
+      uniqueUsers: 0,
     }
   }
 
@@ -647,8 +648,12 @@ const filteredAdminUsage = computed(() => {
       acc.cost += item.cost || 0
       return acc
     },
-    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
+    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 },
   )
+
+  // Berechne eindeutige Benutzer
+  const uniqueUsers = new Set(filteredData.map((item) => item.technicalUserId)).size
+  aggregatedData.uniqueUsers = uniqueUsers
 
   return aggregatedData
 })
@@ -763,16 +768,16 @@ watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () =>
         break
     }
 
-    fromDate = fromDateObj.toISOString().split('T')[0]
+    fromDate = fromDateObj.toISOString()
 
     if (ownTimeRange.value === 'thisMonth') {
       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-      toDate = lastDayOfMonth.toISOString().split('T')[0]
+      toDate = lastDayOfMonth.toISOString()
     } else if (ownTimeRange.value === 'lastMonth') {
       const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-      toDate = lastDayOfLastMonth.toISOString().split('T')[0]
+      toDate = lastDayOfLastMonth.toISOString()
     } else {
-      toDate = today.toISOString().split('T')[0]
+      toDate = today.toISOString()
     }
   }
 
@@ -830,16 +835,16 @@ watch(
           break
       }
 
-      fromDate = fromDateObj.toISOString().split('T')[0]
+      fromDate = fromDateObj.toISOString()
 
       if (adminTimeRange.value === 'thisMonth') {
         const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-        toDate = lastDayOfMonth.toISOString().split('T')[0]
+        toDate = lastDayOfMonth.toISOString()
       } else if (adminTimeRange.value === 'lastMonth') {
         const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-        toDate = lastDayOfLastMonth.toISOString().split('T')[0]
+        toDate = lastDayOfLastMonth.toISOString()
       } else {
-        toDate = today.toISOString().split('T')[0]
+        toDate = today.toISOString()
       }
     }
 
@@ -928,55 +933,13 @@ const ownChartData = computed(() => {
   const chartPeriod = ownChartPeriod.value
 
   if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
-    // Generiere Mock-Daten basierend auf der ausgewählten Periode
-    const mockData = {
-      daily: {
-        labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
-        tokensIn: [15000, 22000, 18000, 25000, 30000, 12000, 8000],
-        tokensOut: [8000, 12000, 10000, 15000, 18000, 6000, 4000],
-        requests: [45, 67, 52, 78, 92, 35, 24],
-      },
-      hourly: {
-        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
-        tokensIn: [5000, 8000, 15000, 25000, 20000, 12000, 6000],
-        tokensOut: [2500, 4000, 7500, 12500, 10000, 6000, 3000],
-        requests: [15, 25, 45, 75, 60, 35, 18],
-      },
-      weekly: {
-        labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'],
-        tokensIn: [120000, 180000, 150000, 200000],
-        tokensOut: [65000, 95000, 80000, 110000],
-        requests: [350, 520, 430, 580],
-      },
-      monthly: {
-        labels: [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'Mai',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Okt',
-          'Nov',
-          'Dez',
-        ],
-        tokensIn: [
-          450000, 520000, 480000, 600000, 550000, 680000, 720000, 650000, 580000, 620000, 590000,
-          640000,
-        ],
-        tokensOut: [
-          240000, 280000, 260000, 320000, 290000, 360000, 380000, 340000, 310000, 330000, 315000,
-          340000,
-        ],
-        requests: [1200, 1400, 1300, 1600, 1500, 1800, 1900, 1700, 1550, 1650, 1600, 1700],
-      },
+    // Keine Daten verfügbar - leere Chart-Daten zurückgeben
+    return {
+      labels: [],
+      tokensIn: [],
+      tokensOut: [],
+      requests: [],
     }
-
-    const period = chartPeriod as keyof typeof mockData
-    return mockData[period] || mockData.daily
   }
 
   // Gruppiere Daten basierend auf der ausgewählten Periode

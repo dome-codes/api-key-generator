@@ -278,7 +278,7 @@ const getFromDate = (): string => {
       break
   }
 
-  return fromDate.toISOString().split('T')[0]
+  return fromDate.toISOString()
 }
 
 const getToDate = (): string => {
@@ -292,13 +292,13 @@ const getToDate = (): string => {
     case 'thisMonth':
       // Letzter Tag des aktuellen Monats
       const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-      return lastDayOfMonth.toISOString().split('T')[0]
+      return lastDayOfMonth.toISOString()
     case 'lastMonth':
       // Letzter Tag des Vormonats
       const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
-      return lastDayOfLastMonth.toISOString().split('T')[0]
+      return lastDayOfLastMonth.toISOString()
     default:
-      return today.toISOString().split('T')[0]
+      return today.toISOString()
   }
 }
 

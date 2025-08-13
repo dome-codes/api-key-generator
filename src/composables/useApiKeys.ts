@@ -14,7 +14,13 @@ interface LegacyApiKey {
   status: string
 }
 
-export function useApiKeys(userProfile: any) {
+interface UserProfile {
+  value?: {
+    name?: string
+  }
+}
+
+export function useApiKeys(userProfile: UserProfile) {
   const keys = ref<MobaRagApiKey[]>([])
   const isLoading = ref(false)
   const error = ref('')
