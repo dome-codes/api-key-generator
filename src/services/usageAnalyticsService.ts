@@ -1,4 +1,5 @@
 import type {
+  EnhancedUsageRecord,
   ImageModelUsage,
   ModelUsage,
   ModelUsageSummary,
@@ -92,17 +93,7 @@ export const usageAnalyticsService = {
     fromDate?: string,
     toDate?: string,
     useAdminApi: boolean = false,
-  ): Promise<
-    Array<
-      (SummaryUsage | ModelUsage) & {
-        requests: number
-        tokensIn: number
-        tokensOut: number
-        totalTokens: number
-        cost: number
-      }
-    >
-  > {
+  ): Promise<EnhancedUsageRecord[]> {
     try {
       let usageData: (SummaryUsage | ModelUsage)[] = []
 
@@ -148,10 +139,15 @@ export const usageAnalyticsService = {
         let responseTokens = 0
 
         if (item.type === 'CompletionModelUsage') {
-          requestTokens = (item as any).requestTokens || 0
-          responseTokens = (item as any).responseTokens || 0
+          const completionItem = item as ModelUsage & {
+            requestTokens?: number
+            responseTokens?: number
+          }
+          requestTokens = completionItem.requestTokens || 0
+          responseTokens = completionItem.responseTokens || 0
         } else if (item.type === 'EmbeddingModelUsage') {
-          requestTokens = (item as any).requestTokens || 0
+          const embeddingItem = item as ModelUsage & { requestTokens?: number }
+          requestTokens = embeddingItem.requestTokens || 0
           responseTokens = 0
         } else if (item.type === 'ImageModelUsage') {
           // Image Models haben keine Token, aber size/quality
@@ -166,19 +162,37 @@ export const usageAnalyticsService = {
           item.model || 'unknown',
           false, // useCachedInput
           item.type, // modelType
-          (item as any).quality, // imageQuality (für Image-Modelle)
-          (item as any).requests, // imageCount (für Image-Modelle)
-          (item as any).sizeWidth, // sizeWidth (für Image-Modelle)
-          (item as any).sizeHeight, // sizeHeight (für Image-Modelle)
+          (item as ModelUsage & { quality?: string }).quality, // imageQuality (für Image-Modelle)
+          (item as ModelUsage & { requests?: number }).requests, // imageCount (für Image-Modelle)
+          (item as ModelUsage & { sizeWidth?: number }).sizeWidth, // sizeWidth (für Image-Modelle)
+          (item as ModelUsage & { sizeHeight?: number }).sizeHeight, // sizeHeight (für Image-Modelle)
         )
 
         return {
           ...item,
+          // Mappe die Daten korrekt zu EnhancedUsageRecord
+          technicalUserId:
+            (item as ModelUsage & { technicalUserId?: string }).technicalUserId ||
+            (item as ModelUsage & { technicalUSerid?: string }).technicalUSerid ||
+            'unknown',
+          technicalUserName:
+            (item as ModelUsage & { technicalUserName?: string }).technicalUserName ||
+            'Unknown User',
+          modelName: item.model || 'unknown',
+          modelType: item.type || 'CompletionModelUsage', // Verwende den type als modelType
           requests: 'requests' in item ? (item as SummaryUsage).requests || 0 : 0,
           tokensIn: requestTokens,
           tokensOut: responseTokens,
           totalTokens: requestTokens + responseTokens,
           cost: costCalculation.finalCost,
+          tag: item.tag || 'production',
+          day: (item as ModelUsage & { day?: number }).day,
+          month: (item as ModelUsage & { month?: number }).month,
+          year: (item as ModelUsage & { year?: number }).year,
+          createDate:
+            'createDate' in item
+              ? (item as ModelUsage & { createDate?: string }).createDate
+              : undefined,
         }
       })
 
@@ -341,8 +355,8 @@ export const usageAnalyticsService = {
           (item as SummaryUsage).technicalUserId ||
           (item as { technicalUSerid?: string }).technicalUSerid ||
           'unknown'
-        const requests = (item as any).requests || 0
-        const modelName = item.model || 'Unknown'
+        const requests = (item as EnhancedUsageRecord).requests || 0
+        const modelName = item.modelName || 'Unknown'
         const tag = item.tag || ''
 
         if (!userMap.has(technicalUserId)) {
@@ -390,9 +404,9 @@ export const usageAnalyticsService = {
       const modelMap = new Map<string, ModelUsageSummary>()
 
       detailedData.forEach((item) => {
-        const modelName = item.model || 'Unknown'
-        const modelType = item.type || 'CompletionModelUsage'
-        const requests = (item as any).requests || 0
+        const modelName = item.modelName || 'Unknown'
+        const modelType = item.modelType || 'CompletionModelUsage'
+        const requests = (item as EnhancedUsageRecord).requests || 0
         const technicalUserId =
           (item as SummaryUsage).technicalUserId ||
           (item as { technicalUSerid?: string }).technicalUSerid ||

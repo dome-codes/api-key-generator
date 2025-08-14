@@ -1000,7 +1000,7 @@ const ownChartData = computed(() => {
       const group = dailyGroups.get(dayLabel)!
       group.tokensIn += item.tokensIn || 0
       group.tokensOut += item.tokensOut || 0
-      group.requests += item.requests || 0
+      group.requests += 1 // Jedes Objekt repräsentiert einen Request
       group.count++
     })
 
@@ -1045,7 +1045,7 @@ const ownChartData = computed(() => {
       const group = hourlyGroups.get(hourLabel)!
       group.tokensIn += item.tokensIn || 0
       group.tokensOut += item.tokensOut || 0
-      group.requests += item.requests || 0
+      group.requests += 1 // Jedes Objekt repräsentiert einen Request
       group.count++
     })
 
@@ -1092,7 +1092,7 @@ const ownChartData = computed(() => {
       const group = weeklyGroups.get(weekLabel)!
       group.tokensIn += item.tokensIn || 0
       group.tokensOut += item.tokensOut || 0
-      group.requests += item.requests || 0
+      group.requests += 1 // Jedes Objekt repräsentiert einen Request
       group.count++
     })
 
@@ -1138,7 +1138,7 @@ const ownChartData = computed(() => {
       const group = monthlyGroups.get(monthLabel)!
       group.tokensIn += item.tokensIn || 0
       group.tokensOut += item.tokensOut || 0
-      group.requests += item.requests || 0
+      group.requests += 1 // Jedes Objekt repräsentiert einen Request
       group.count++
     })
 
@@ -1172,7 +1172,7 @@ const ownChartData = computed(() => {
 
   const tokensIn = sortedData.map((item) => item.tokensIn || 0)
   const tokensOut = sortedData.map((item) => item.tokensOut || 0)
-  const requests = sortedData.map((item) => item.requests || 0)
+  const requests = sortedData.map((item) => 1) // Jedes Objekt repräsentiert einen Request
 
   return { labels, tokensIn, tokensOut, requests }
 })
