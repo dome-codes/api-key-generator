@@ -75,13 +75,11 @@ export const usageAnalyticsService = {
           }
           break
         case ImageModelUsageTypeEnum.ImageModelUsage:
-          // Image Models haben keine Token-Informationen
+        default:
+          // Image Models und unbekannte Modelltypen haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
           break
-        default:
-          requestTokens = 0
-          responseTokens = 0
       }
     }
 
@@ -149,8 +147,8 @@ export const usageAnalyticsService = {
           const embeddingItem = item as ModelUsage & { requestTokens?: number }
           requestTokens = embeddingItem.requestTokens || 0
           responseTokens = 0
-        } else if (item.type === 'ImageModelUsage') {
-          // Image Models haben keine Token, aber size/quality
+        } else if (item.type === 'ImageModelUsage' || !item.type) {
+          // Image Models und unbekannte Modelltypen haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
         }
@@ -163,7 +161,7 @@ export const usageAnalyticsService = {
           false, // useCachedInput
           item.type, // modelType
           (item as ModelUsage & { quality?: string }).quality, // imageQuality (für Image-Modelle)
-          (item as ModelUsage & { requests?: number }).requests, // imageCount (für Image-Modelle)
+          1, // imageCount: Jedes Objekt repräsentiert einen Request
           (item as ModelUsage & { sizeWidth?: number }).sizeWidth, // sizeWidth (für Image-Modelle)
           (item as ModelUsage & { sizeHeight?: number }).sizeHeight, // sizeHeight (für Image-Modelle)
         )
@@ -289,7 +287,27 @@ export const usageAnalyticsService = {
       let totalTokens = 0
 
       summary.usage.forEach((item) => {
-        const { requestTokens, responseTokens } = this.getTokenInfo(item)
+        // Extrahiere Token-Informationen je nach Modelltyp
+        let requestTokens = 0
+        let responseTokens = 0
+
+        if (item.type === 'CompletionModelUsage') {
+          const completionItem = item as ModelUsage & {
+            requestTokens?: number
+            responseTokens?: number
+          }
+          requestTokens = completionItem.requestTokens || 0
+          responseTokens = completionItem.responseTokens || 0
+        } else if (item.type === 'EmbeddingModelUsage') {
+          const embeddingItem = item as ModelUsage & { requestTokens?: number }
+          requestTokens = embeddingItem.requestTokens || 0
+          responseTokens = 0
+        } else if (item.type === 'ImageModelUsage' || !item.type) {
+          // Image Models und unbekannte Modelltypen haben keine Token-Informationen
+          requestTokens = 0
+          responseTokens = 0
+        }
+
         totalTokensIn += requestTokens
         totalTokensOut += responseTokens
         totalTokens += requestTokens + responseTokens
@@ -297,7 +315,27 @@ export const usageAnalyticsService = {
 
       // Berechne Gesamtkosten
       const totalCost = summary.usage.reduce((sum, item) => {
-        const { requestTokens, responseTokens } = this.getTokenInfo(item)
+        // Extrahiere Token-Informationen je nach Modelltyp
+        let requestTokens = 0
+        let responseTokens = 0
+
+        if (item.type === 'CompletionModelUsage') {
+          const completionItem = item as ModelUsage & {
+            requestTokens?: number
+            responseTokens?: number
+          }
+          requestTokens = completionItem.requestTokens || 0
+          responseTokens = completionItem.responseTokens || 0
+        } else if (item.type === 'EmbeddingModelUsage') {
+          const embeddingItem = item as ModelUsage & { requestTokens?: number }
+          requestTokens = embeddingItem.requestTokens || 0
+          responseTokens = 0
+        } else if (item.type === 'ImageModelUsage' || !item.type) {
+          // Image Models und unbekannte Modelltypen haben keine Token-Informationen
+          requestTokens = 0
+          responseTokens = 0
+        }
+
         const costCalculation = calculateCost(
           requestTokens,
           responseTokens,
@@ -351,11 +389,8 @@ export const usageAnalyticsService = {
       const userMap = new Map<string, UserUsageSummary>()
 
       detailedData.forEach((item) => {
-        const technicalUserId =
-          (item as SummaryUsage).technicalUserId ||
-          (item as { technicalUSerid?: string }).technicalUSerid ||
-          'unknown'
-        const requests = (item as EnhancedUsageRecord).requests || 0
+        const technicalUserId = item.technicalUserId || 'unknown'
+        const requests = 1 // Jedes Objekt repräsentiert einen Request
         const modelName = item.modelName || 'Unknown'
         const tag = item.tag || ''
 
@@ -364,7 +399,7 @@ export const usageAnalyticsService = {
             technicalUserId,
             technicalUserName:
               technicalUserId ||
-              `Benutzer ${detailedData.findIndex((i) => (i as SummaryUsage).technicalUserId === technicalUserId) + 1}`,
+              `Benutzer ${detailedData.findIndex((i) => i.technicalUserId === technicalUserId) + 1}`,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,
@@ -406,11 +441,8 @@ export const usageAnalyticsService = {
       detailedData.forEach((item) => {
         const modelName = item.modelName || 'Unknown'
         const modelType = item.modelType || 'CompletionModelUsage'
-        const requests = (item as EnhancedUsageRecord).requests || 0
-        const technicalUserId =
-          (item as SummaryUsage).technicalUserId ||
-          (item as { technicalUSerid?: string }).technicalUSerid ||
-          'unknown'
+        const requests = 1 // Jedes Objekt repräsentiert einen Request
+        const technicalUserId = item.technicalUserId || 'unknown'
         const tag = item.tag || ''
 
         if (!modelMap.has(modelName)) {
