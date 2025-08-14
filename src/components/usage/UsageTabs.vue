@@ -520,7 +520,7 @@
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateExampleCosts, formatCost } from '@/config/pricing'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
@@ -800,6 +800,24 @@ watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () =>
   })
 })
 
+// Zusätzlicher Watch für modelType-Änderungen - Charts neu rendern
+watch(ownModelType, () => {
+  console.log('ModelType geändert zu:', ownModelType.value)
+  // Force re-computation der Chart-Daten
+  nextTick(() => {
+    console.log('Chart-Daten neu berechnet für ModelType:', ownModelType.value)
+  })
+})
+
+// Zusätzlicher Watch für adminModelType-Änderungen
+watch(adminModelType, () => {
+  console.log('Admin ModelType geändert zu:', adminModelType.value)
+  // Force re-computation der Admin Chart-Daten
+  nextTick(() => {
+    console.log('Admin Chart-Daten neu berechnet für ModelType:', adminModelType.value)
+  })
+})
+
 watch(
   [adminTimeRange, adminModelType, adminUser, adminView, adminFromDate, adminToDate],
   async () => {
@@ -931,6 +949,12 @@ const ownChartData = computed(() => {
   // Reaktive Dependencies explizit referenzieren
   const modelType = ownModelType.value
   const chartPeriod = ownChartPeriod.value
+  const timeRange = ownTimeRange.value
+  const fromDate = ownFromDate.value
+  const toDate = ownToDate.value
+
+  // Debug-Logging
+  console.log('ownChartData computed - ModelType:', modelType, 'ChartPeriod:', chartPeriod)
 
   if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
     // Keine Daten verfügbar - leere Chart-Daten zurückgeben
@@ -943,27 +967,40 @@ const ownChartData = computed(() => {
   }
 
   // Gruppiere Daten basierend auf der ausgewählten Periode
-  const sortedData = detailedUsageData.value
+  let sortedData = detailedUsageData.value
     .filter((item) => item.createDate || (item.day && item.month && item.year))
     // Filtere nach Modelltyp falls ausgewählt
     .filter((item) => {
       if (!modelType) return true // Alle Modelltypen anzeigen
       return item.modelType === modelType
     })
-    .sort((a, b) => {
-      // Verwende createDate falls verfügbar, sonst day/month/year
-      if (a.createDate && b.createDate) {
-        return new Date(a.createDate).getTime() - new Date(b.createDate).getTime()
-      }
-      if (a.day && a.month && a.year && b.day && b.month && b.year) {
-        const dateA = new Date(a.year, a.month - 1, a.day)
-        const dateB = new Date(b.year, b.month - 1, b.day)
-        return dateA.getTime() - dateB.getTime()
-      }
-      return 0
-    })
+
+  // Debug-Logging für gefilterte Daten
+  console.log(
+    'ownChartData - Gefilterte Daten nach ModelType:',
+    modelType,
+    'Anzahl:',
+    sortedData.length,
+  )
+  if (sortedData.length > 0) {
+    console.log('Erste gefilterte Daten:', sortedData[0])
+  }
 
   const period = chartPeriod
+
+  // Sortiere die Daten nach Datum
+  sortedData = sortedData.sort((a, b) => {
+    // Verwende createDate falls verfügbar, sonst day/month/year
+    if (a.createDate && b.createDate) {
+      return new Date(a.createDate).getTime() - new Date(b.createDate).getTime()
+    }
+    if (a.day && a.month && a.year && b.day && b.month && b.year) {
+      const dateA = new Date(a.year, a.month - 1, a.day)
+      const dateB = new Date(b.year, b.month - 1, b.day)
+      return dateA.getTime() - dateB.getTime()
+    }
+    return 0
+  })
 
   if (period === 'daily') {
     // Gruppiere nach Wochentagen (Montag-Sonntag)
