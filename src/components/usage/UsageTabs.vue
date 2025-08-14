@@ -953,9 +953,6 @@ const ownChartData = computed(() => {
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
 
-  // Debug-Logging
-  console.log('ownChartData computed - ModelType:', modelType, 'ChartPeriod:', chartPeriod)
-
   if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
     // Keine Daten verfügbar - leere Chart-Daten zurückgeben
     return {
@@ -974,17 +971,6 @@ const ownChartData = computed(() => {
       if (!modelType) return true // Alle Modelltypen anzeigen
       return item.modelType === modelType
     })
-
-  // Debug-Logging für gefilterte Daten
-  console.log(
-    'ownChartData - Gefilterte Daten nach ModelType:',
-    modelType,
-    'Anzahl:',
-    sortedData.length,
-  )
-  if (sortedData.length > 0) {
-    console.log('Erste gefilterte Daten:', sortedData[0])
-  }
 
   const period = chartPeriod
 

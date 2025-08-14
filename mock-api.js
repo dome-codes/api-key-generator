@@ -85,12 +85,16 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
     const completionTag = selectRandomTag()
 
     mockData.push({
-      type: 'CompletionModelUsage',
+      modelType: 'CompletionModelUsage',
       requests: completionRequests,
-      model: completionModel,
+      modelName: completionModel,
       tag: completionTag,
-      requestTokens: Math.floor(completionTokensIn),
-      responseTokens: Math.floor(completionTokensOut),
+      tokensIn: Math.floor(completionTokensIn),
+      tokensOut: Math.floor(completionTokensOut),
+      totalTokens: Math.floor(completionTokensIn + completionTokensOut),
+      cost: 0,
+      technicalUserId: userId || 'user-123',
+      technicalUserName: `User ${userId || 'user-123'}`,
       createDate: createDate.toISOString(),
     })
 
@@ -113,11 +117,16 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       const embeddingTag = selectRandomTag()
 
       mockData.push({
-        type: 'EmbeddingModelUsage',
+        modelType: 'EmbeddingModelUsage',
         requests: embeddingRequests,
-        model: embeddingModel,
+        modelName: embeddingModel,
         tag: embeddingTag,
-        requestTokens: Math.floor(embeddingTokens),
+        tokensIn: Math.floor(embeddingTokens),
+        tokensOut: 0,
+        totalTokens: Math.floor(embeddingTokens),
+        cost: 0,
+        technicalUserId: userId || 'user-123',
+        technicalUserName: `User ${userId || 'user-123'}`,
         createDate: embeddingCreateDate.toISOString(),
       })
     }
@@ -143,13 +152,19 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       const imageTag = selectRandomTag()
 
       mockData.push({
-        type: 'ImageModelUsage',
+        modelType: 'ImageModelUsage',
         requests: imageRequests,
-        model: imageModel,
+        modelName: imageModel,
         tag: imageTag,
         sizeWidth,
         sizeHeight,
         quality,
+        tokensIn: 0,
+        tokensOut: 0,
+        totalTokens: 0,
+        cost: 0,
+        technicalUserId: userId || 'user-123',
+        technicalUserName: `User ${userId || 'user-123'}`,
         createDate: imageCreateDate.toISOString(),
       })
     }
