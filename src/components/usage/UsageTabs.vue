@@ -604,7 +604,10 @@ const filteredOwnUsage = computed(() => {
   // Filtere nach Modelltyp falls ausgewählt
   let filteredData = detailedUsageData.value
   if (ownModelType.value) {
-    filteredData = detailedUsageData.value.filter((item) => item.modelType === ownModelType.value)
+    // Backend sendet 'type' zurück, nicht 'modelType'
+    filteredData = detailedUsageData.value.filter(
+      (item) => item.type === ownModelType.value || item.modelType === ownModelType.value,
+    )
   }
 
   // Berechne aggregierte Werte
@@ -612,12 +615,14 @@ const filteredOwnUsage = computed(() => {
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
-      acc.requests += item.requests || 0
       acc.cost += item.cost || 0
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
   )
+
+  // Jedes Objekt repräsentiert einen Request, also nehmen wir die Länge des Arrays
+  aggregatedData.requests = filteredData.length
 
   return aggregatedData
 })
@@ -636,7 +641,10 @@ const filteredAdminUsage = computed(() => {
   // Filtere nach Modelltyp falls ausgewählt
   let filteredData = detailedUsageData.value
   if (adminModelType.value) {
-    filteredData = detailedUsageData.value.filter((item) => item.modelType === adminModelType.value)
+    // Backend sendet 'type' zurück, nicht 'modelType'
+    filteredData = detailedUsageData.value.filter(
+      (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
+    )
   }
 
   // Berechne aggregierte Werte
@@ -644,12 +652,14 @@ const filteredAdminUsage = computed(() => {
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
-      acc.requests += item.requests || 0
       acc.cost += item.cost || 0
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 },
   )
+
+  // Jedes Objekt repräsentiert einen Request, also nehmen wir die Länge des Arrays
+  aggregatedData.requests = filteredData.length
 
   // Berechne eindeutige Benutzer
   const uniqueUsers = new Set(filteredData.map((item) => item.technicalUserId)).size
@@ -969,7 +979,8 @@ const ownChartData = computed(() => {
     // Filtere nach Modelltyp falls ausgewählt
     .filter((item) => {
       if (!modelType) return true // Alle Modelltypen anzeigen
-      return item.modelType === modelType
+      // Backend sendet 'type' zurück, nicht 'modelType'
+      return item.type === modelType || item.modelType === modelType
     })
 
   const period = chartPeriod

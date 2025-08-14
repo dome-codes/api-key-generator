@@ -155,6 +155,8 @@ export interface EnhancedUsageRecord {
   technicalUserName: string
   modelName: string
   modelType: ModelUsageType
+  // Backend sendet 'type' zurück, nicht 'modelType'
+  type?: ModelUsageType
   requests: number
   tokensIn: number
   tokensOut: number

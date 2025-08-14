@@ -115,9 +115,9 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <span
                 class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="getModelTypeBadgeClass(item.modelType)"
+                :class="getModelTypeBadgeClass(item.type || item.modelType)"
               >
-                {{ getModelTypeLabel(item.modelType) }}
+                {{ getModelTypeLabel(item.type || item.modelType) }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -299,7 +299,7 @@ const exportTableData = async () => {
           item.technicalUserId,
           item.technicalUserName,
           item.modelName,
-          item.modelType,
+          item.type || item.modelType,
           item.requests,
           item.tokensIn,
           item.tokensOut,

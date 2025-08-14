@@ -25,7 +25,7 @@ export const generateMockUsageData = (userId, startDate = new Date('2025-07-01')
     const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
 
     mockData.push({
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: completionRequests,
       technicalUserId: userId,
       modelName: 'gpt-4o-mini',
@@ -47,7 +47,7 @@ export const generateMockUsageData = (userId, startDate = new Date('2025-07-01')
       const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
 
       mockData.push({
-        modelType: 'EmbeddingModelUsage',
+        type: 'EmbeddingModelUsage',
         requests: embeddingRequests,
         technicalUserId: userId,
         modelName: 'text-embedding-3-small',
@@ -72,7 +72,7 @@ export const generateMockUsageData = (userId, startDate = new Date('2025-07-01')
       const sizeHeight = 1024
 
       mockData.push({
-        modelType: 'ImageModelUsage',
+        type: 'ImageModelUsage',
         requests: imageRequests,
         technicalUserId: userId,
         modelName: 'dall-e-3',
@@ -130,7 +130,7 @@ export const mockUsageDataLastMonth = (userId) => {
 export const mockUsageExamples = {
   daily: [
     {
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: 156,
       technicalUserId: 'user-123',
       modelName: 'gpt-4o-mini',
@@ -145,7 +145,7 @@ export const mockUsageExamples = {
       technicalUserName: 'User user-123',
     },
     {
-      modelType: 'EmbeddingModelUsage',
+      type: 'EmbeddingModelUsage',
       requests: 45,
       technicalUserId: 'user-123',
       modelName: 'text-embedding-3-small',
@@ -160,7 +160,7 @@ export const mockUsageExamples = {
       technicalUserName: 'User user-123',
     },
     {
-      modelType: 'ImageModelUsage',
+      type: 'ImageModelUsage',
       requests: 8,
       technicalUserId: 'user-123',
       modelName: 'dall-e-3',
@@ -181,7 +181,7 @@ export const mockUsageExamples = {
   weekly: [
     // Week 1
     {
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: 1200,
       technicalUserId: 'user-123',
       modelName: 'gpt-4o-mini',
@@ -196,7 +196,7 @@ export const mockUsageExamples = {
       technicalUserName: 'User user-123',
     },
     {
-      modelType: 'EmbeddingModelUsage',
+      type: 'EmbeddingModelUsage',
       requests: 300,
       technicalUserId: 'user-123',
       modelName: 'text-embedding-3-small',
@@ -212,7 +212,7 @@ export const mockUsageExamples = {
     },
     // Week 2
     {
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: 1400,
       technicalUserId: 'user-123',
       modelName: 'gpt-4o-mini',
@@ -229,7 +229,7 @@ export const mockUsageExamples = {
   ],
   monthly: [
     {
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: 5000,
       technicalUserId: 'user-123',
       modelName: 'gpt-4o-mini',
@@ -244,7 +244,7 @@ export const mockUsageExamples = {
       technicalUserName: 'User user-123',
     },
     {
-      modelType: 'EmbeddingModelUsage',
+      type: 'EmbeddingModelUsage',
       requests: 1200,
       technicalUserId: 'user-123',
       modelName: 'text-embedding-3-small',
@@ -259,7 +259,7 @@ export const mockUsageExamples = {
       technicalUserName: 'User user-123',
     },
     {
-      modelType: 'ImageModelUsage',
+      type: 'ImageModelUsage',
       requests: 250,
       technicalUserId: 'user-123',
       modelName: 'dall-e-3',

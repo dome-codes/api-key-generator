@@ -85,7 +85,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
     const completionTag = selectRandomTag()
 
     mockData.push({
-      modelType: 'CompletionModelUsage',
+      type: 'CompletionModelUsage',
       requests: completionRequests,
       modelName: completionModel,
       tag: completionTag,
@@ -117,7 +117,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       const embeddingTag = selectRandomTag()
 
       mockData.push({
-        modelType: 'EmbeddingModelUsage',
+        type: 'EmbeddingModelUsage',
         requests: embeddingRequests,
         modelName: embeddingModel,
         tag: embeddingTag,
@@ -152,7 +152,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       const imageTag = selectRandomTag()
 
       mockData.push({
-        modelType: 'ImageModelUsage',
+        type: 'ImageModelUsage',
         requests: imageRequests,
         modelName: imageModel,
         tag: imageTag,

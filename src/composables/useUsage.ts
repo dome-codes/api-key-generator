@@ -53,7 +53,12 @@ export function useUsage() {
     let filtered = detailedUsageData.value
 
     if (currentFilter.value.modelType) {
-      filtered = filtered.filter((item) => item.modelType === currentFilter.value.modelType)
+      // Backend sendet 'type' zurück, nicht 'modelType'
+      filtered = filtered.filter(
+        (item) =>
+          item.type === currentFilter.value.modelType ||
+          item.modelType === currentFilter.value.modelType,
+      )
     }
 
     if (currentFilter.value.technicalUserIds && currentFilter.value.technicalUserIds.length > 0) {
