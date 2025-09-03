@@ -8,8 +8,8 @@
     ]"
   >
     <td class="py-3 px-4 text-sm">
-      <div :class="keyData.status === 'revoked' ? 'text-gray-500 line-through' : 'text-gray-900'">
-        {{ keyData.name }}
+      <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
+        <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
         <span v-if="keyData.status === 'revoked'" class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
           Deaktiviert
         </span>
