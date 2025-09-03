@@ -89,18 +89,33 @@ const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 // Usage data for detailed breakdown
 const { usageAggregation, detailedUsageData, loadDetailedUsageData } = useUsage()
 
-// Mock usage data for API keys (in real implementation, this would come from API)
+// Real usage data for API keys from the API
 const apiKeyUsageData = computed(() => {
   const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
 
-  // For demo purposes, create mock data for each API key
+  // Verwende echte API-Daten für jeden API Key
   legacyKeys.value.forEach((key) => {
-    // Simulate different usage patterns for different keys
-    const randomFactor = (key.id.charCodeAt(0) % 100) / 100 // Use key ID to generate consistent "random" data
-    usageMap[key.id] = {
-      cost: randomFactor * 50 + 0.5, // Between 0.5 and 50.5
-      tokensIn: Math.floor(randomFactor * 100000) + 1000,
-      tokensOut: Math.floor(randomFactor * 50000) + 500,
+    // Suche nach Usage-Daten für diesen API Key
+    const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
+
+    if (keyUsage.length > 0) {
+      // Summiere alle Usage-Daten für diesen API Key
+      const totalCost = keyUsage.reduce((sum, item) => sum + (item.cost || 0), 0)
+      const totalTokensIn = keyUsage.reduce((sum, item) => sum + (item.tokensIn || 0), 0)
+      const totalTokensOut = keyUsage.reduce((sum, item) => sum + (item.tokensOut || 0), 0)
+
+      usageMap[key.id] = {
+        cost: totalCost,
+        tokensIn: totalTokensIn,
+        tokensOut: totalTokensOut,
+      }
+    } else {
+      // Fallback: Verwende 0-Werte wenn keine Daten vorhanden
+      usageMap[key.id] = {
+        cost: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+      }
     }
   })
 
@@ -184,6 +199,7 @@ const copyApiKeyWithSuccess = async (apiKey: string) => {
 onMounted(() => {
   loadKeys()
   loadBudgetData()
+  loadDetailedUsageData() // Lade Usage-Daten für API Key Anzeige
 })
 </script>
 

@@ -191,6 +191,7 @@ export const usageAnalyticsService = {
             'createDate' in item
               ? (item as ModelUsage & { createDate?: string }).createDate
               : undefined,
+          apiKeyId: (item as ModelUsage & { apiKeyId?: string }).apiKeyId || undefined,
         }
       })
 

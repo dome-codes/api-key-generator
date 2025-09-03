@@ -167,6 +167,7 @@ export interface EnhancedUsageRecord {
   month?: number
   year?: number
   createDate?: string
+  apiKeyId?: string // Neue apiKeyId
 }
 
 export interface UsageFilter {
