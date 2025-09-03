@@ -229,7 +229,7 @@
       />
 
       <!-- Zusätzliche Charts -->
-      <UsageAdditionalCharts v-if="showOwnChart" :usage-data="detailedUsageData || []" />
+              <UsageAdditionalCharts v-if="showOwnChart" :usage-data="filteredOwnUsageData || []" />
 
       <!-- Detaillierte Tabelle -->
       <UsageDetailedTable
@@ -550,14 +550,63 @@ const filteredOwnUsage = computed(() => {
     }
   }
 
-  // Filtere nach Modelltyp falls ausgewählt
+  // Filtere nach Modelltyp und Zeitraum
   let filteredData = detailedUsageData.value
+  
+  // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
-    // Backend sendet 'type' zurück, nicht 'modelType'
-    filteredData = detailedUsageData.value.filter(
+    filteredData = filteredData.filter(
       (item) => item.type === ownModelType.value || item.modelType === ownModelType.value,
     )
   }
+
+  // Filtere nach Zeitraum
+  let fromDate: Date
+  let toDate: Date
+
+  if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
+    fromDate = new Date(ownFromDate.value)
+    toDate = new Date(ownToDate.value)
+  } else if (ownTimeRange.value !== 'custom') {
+    const today = new Date()
+
+    switch (ownTimeRange.value) {
+      case '7d':
+        fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '30d':
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '90d':
+        fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case 'thisMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        toDate = today
+        break
+      case 'lastMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        toDate = new Date(today.getFullYear(), today.getMonth(), 0)
+        break
+      default:
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+    }
+  } else {
+    // Fallback: Letzte 30 Tage
+    const today = new Date()
+    fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    toDate = today
+  }
+
+  // Filtere nach Datum
+  filteredData = filteredData.filter((item) => {
+    const itemDate = item.createDate ? new Date(item.createDate) : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    return itemDate >= fromDate && itemDate <= toDate
+  })
 
   // Berechne aggregierte Werte
   const aggregatedData = filteredData.reduce(
@@ -574,6 +623,73 @@ const filteredOwnUsage = computed(() => {
   aggregatedData.requests = filteredData.length
 
   return aggregatedData
+})
+
+// Computed property für gefilterte eigene Rohdaten (für Charts)
+const filteredOwnUsageData = computed(() => {
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    return []
+  }
+
+  // Filtere nach eigenen Filtern
+  let filteredData = detailedUsageData.value
+
+  // Filtere nach Modelltyp falls ausgewählt
+  if (ownModelType.value) {
+    filteredData = filteredData.filter(
+      (item) => item.type === ownModelType.value || item.modelType === ownModelType.value,
+    )
+  }
+
+  // Filtere nach Zeitraum
+  let fromDate: Date
+  let toDate: Date
+
+  if (ownTimeRange.value === 'custom' && ownFromDate.value && ownToDate.value) {
+    fromDate = new Date(ownFromDate.value)
+    toDate = new Date(ownToDate.value)
+  } else if (ownTimeRange.value !== 'custom') {
+    const today = new Date()
+
+    switch (ownTimeRange.value) {
+      case '7d':
+        fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '30d':
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '90d':
+        fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case 'thisMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        toDate = today
+        break
+      case 'lastMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        toDate = new Date(today.getFullYear(), today.getMonth(), 0)
+        break
+      default:
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+    }
+  } else {
+    // Fallback: Letzte 30 Tage
+    const today = new Date()
+    fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    toDate = today
+  }
+
+  // Filtere nach Datum
+  filteredData = filteredData.filter((item) => {
+    const itemDate = item.createDate ? new Date(item.createDate) : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    return itemDate >= fromDate && itemDate <= toDate
+  })
+
+  return filteredData
 })
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
