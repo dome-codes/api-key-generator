@@ -10,10 +10,12 @@ import Snackbar from '@/components/ui/Snackbar.vue'
 import UsageTabs from '@/components/usage/UsageTabs.vue'
 import { useApiKeys } from '@/composables/useApiKeys'
 import { useAuth } from '@/composables/useAuth'
+import { useBudget } from '@/composables/useBudget'
 import { useDebug } from '@/composables/useDebug'
 import { useModals } from '@/composables/useModals'
+import { useUsage } from '@/composables/useUsage'
 import { apiKeyService } from '@/services/apiService'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 // Legacy interface for backward compatibility
 interface LegacyApiKey {
@@ -80,6 +82,30 @@ const {
   showEditSuccess,
   showCreateSuccess,
 } = useModals()
+
+// Budget management
+const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
+
+// Usage data for detailed breakdown
+const { usageAggregation, detailedUsageData, loadDetailedUsageData } = useUsage()
+
+// Mock usage data for API keys (in real implementation, this would come from API)
+const apiKeyUsageData = computed(() => {
+  const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
+
+  // For demo purposes, create mock data for each API key
+  legacyKeys.value.forEach((key) => {
+    // Simulate different usage patterns for different keys
+    const randomFactor = (key.id.charCodeAt(0) % 100) / 100 // Use key ID to generate consistent "random" data
+    usageMap[key.id] = {
+      cost: randomFactor * 50 + 0.5, // Between 0.5 and 50.5
+      tokensIn: Math.floor(randomFactor * 100000) + 1000,
+      tokensOut: Math.floor(randomFactor * 50000) + 500,
+    }
+  })
+
+  return usageMap
+})
 
 // Sidebar state
 const activeSidebar = ref<'api' | 'usage'>('api')
@@ -157,6 +183,7 @@ const copyApiKeyWithSuccess = async (apiKey: string) => {
 
 onMounted(() => {
   loadKeys()
+  loadBudgetData()
 })
 </script>
 
@@ -214,6 +241,8 @@ onMounted(() => {
               :keys="legacyKeys"
               :editingKey="editingKey"
               :editingName="editingName"
+              :budget-limit="budgetConfig.monthlyLimit"
+              :usage-data="apiKeyUsageData"
               @edit="(key: LegacyApiKey) => startEditing(key, keys)"
               @save="saveEdit"
               @cancel="cancelEdit"

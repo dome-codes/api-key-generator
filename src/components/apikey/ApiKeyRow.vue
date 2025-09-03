@@ -16,6 +16,15 @@
     <td class="py-3 px-4 text-xs text-gray-700">
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
+    <td class="py-3 px-4 text-xs">
+      <CostProgressBarTable
+        :current-cost="usageData.cost"
+        :budget-limit="budgetLimit"
+        :tokens-in="usageData.tokensIn"
+        :tokens-out="usageData.tokensOut"
+        :show-detailed-info="true"
+      />
+    </td>
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
         <button
@@ -54,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import CostProgressBarTable from '@/components/usage/CostProgressBarTable.vue'
 import { computed } from 'vue'
 
 // Legacy interface for backward compatibility
@@ -69,10 +79,18 @@ interface LegacyApiKey {
   status: string
 }
 
+interface UsageData {
+  cost: number
+  tokensIn: number
+  tokensOut: number
+}
+
 const props = defineProps<{
   keyData: LegacyApiKey
   editing: boolean
   editingName: string
+  usageData: UsageData
+  budgetLimit: number
 }>()
 
 const emits = defineEmits<{

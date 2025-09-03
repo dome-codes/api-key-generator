@@ -9,6 +9,7 @@
         <th class="py-3 px-4 font-semibold">Erstellt</th>
         <th class="py-3 px-4 font-semibold">Zuletzt verwendet</th>
         <th class="py-3 px-4 font-semibold">Gültig bis</th>
+        <th class="py-3 px-4 font-semibold">Kostenverbrauch</th>
         <th class="py-3 px-4 font-semibold text-right">Aktionen</th>
       </tr>
     </thead>
@@ -19,6 +20,8 @@
         :keyData="key"
         :editing="editingKey === key.id"
         :editingName="editingName"
+        :usageData="getUsageDataForKey(key.id)"
+        :budgetLimit="budgetLimit"
         @edit="$emit('edit', $event)"
         @save="$emit('save', $event)"
         @cancel="$emit('cancel')"
@@ -46,10 +49,18 @@ interface LegacyApiKey {
   status: string
 }
 
+interface UsageData {
+  cost: number
+  tokensIn: number
+  tokensOut: number
+}
+
 const props = defineProps<{
   keys: LegacyApiKey[]
   editingKey: string | null
   editingName: string
+  budgetLimit: number
+  usageData?: { [keyId: string]: UsageData }
 }>()
 
 const emits = defineEmits<{
@@ -59,4 +70,16 @@ const emits = defineEmits<{
   revoke: [keyId: string]
   'name-input': [value: string]
 }>()
+
+// Get usage data for a specific key
+const getUsageDataForKey = (keyId: string): UsageData => {
+  if (!props.usageData || !props.usageData[keyId]) {
+    return {
+      cost: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+    }
+  }
+  return props.usageData[keyId]
+}
 </script>

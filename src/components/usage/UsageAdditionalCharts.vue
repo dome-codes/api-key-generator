@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 import type { TooltipItem } from 'chart.js'
+import type { Chart } from 'chart.js/auto'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface UsageDataItem {
@@ -96,8 +97,8 @@ const barChartCanvas = ref<HTMLCanvasElement>()
 const pieChartLoaded = ref(false)
 const barChartLoaded = ref(false)
 
-let pieChartInstance: unknown = null
-let barChartInstance: unknown = null
+let pieChartInstance: Chart | null = null
+let barChartInstance: Chart | null = null
 
 // Computed properties für echte Daten
 const modelDistributionData = computed(() => {
@@ -159,7 +160,9 @@ const createPieChart = async () => {
 
     // Bestehenden Chart zerstören
     if (pieChartInstance) {
-      pieChartInstance.destroy()
+      if (pieChartInstance && typeof pieChartInstance.destroy === 'function') {
+        pieChartInstance.destroy()
+      }
     }
 
     const ctx = pieChartCanvas.value.getContext('2d')
@@ -265,7 +268,9 @@ const createBarChart = async () => {
 
     // Bestehenden Chart zerstören
     if (barChartInstance) {
-      barChartInstance.destroy()
+      if (barChartInstance && typeof barChartInstance.destroy === 'function') {
+        barChartInstance.destroy()
+      }
     }
 
     const ctx = barChartCanvas.value.getContext('2d')
@@ -405,10 +410,10 @@ watch(
 
 // Cleanup beim Unmount
 onUnmounted(() => {
-  if (pieChartInstance) {
+  if (pieChartInstance && typeof pieChartInstance.destroy === 'function') {
     pieChartInstance.destroy()
   }
-  if (barChartInstance) {
+  if (barChartInstance && typeof barChartInstance.destroy === 'function') {
     barChartInstance.destroy()
   }
 })

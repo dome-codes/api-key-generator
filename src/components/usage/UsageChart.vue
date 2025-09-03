@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Chart } from 'chart.js/auto'
 import { onMounted, ref, watch } from 'vue'
 
 interface Props {
@@ -74,7 +75,7 @@ defineEmits<Emits>()
 
 const chartCanvas = ref<HTMLCanvasElement>()
 const chartLoaded = ref(false)
-let chartInstance: unknown = null
+let chartInstance: Chart | null = null
 
 const periods = [
   { value: 'daily', label: 'Täglich' },
@@ -120,13 +121,15 @@ const createChart = async () => {
     const { Chart } = await import('chart.js/auto')
 
     // Bestehenden Chart zerstören
-    if (chartInstance) {
+    if (chartInstance && typeof chartInstance.destroy === 'function') {
       chartInstance.destroy()
     }
 
     // Verwende echte Daten falls verfügbar, sonst leere Daten
     const data =
-      props.chartData || emptyData[props.selectedPeriod as keyof typeof emptyData] || emptyData.daily
+      props.chartData ||
+      emptyData[props.selectedPeriod as keyof typeof emptyData] ||
+      emptyData.daily
 
     const ctx = chartCanvas.value.getContext('2d')
     if (!ctx) return
@@ -291,7 +294,7 @@ onMounted(() => {
 // Cleanup beim Unmount
 onMounted(() => {
   return () => {
-    if (chartInstance) {
+    if (chartInstance && typeof chartInstance.destroy === 'function') {
       chartInstance.destroy()
     }
   }

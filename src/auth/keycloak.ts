@@ -24,6 +24,7 @@ export enum UserRole {
   API_DEFAULT = 'api-default',
   API_STREAM = 'api-stream',
   API_ADMIN = 'api-admin',
+  ENTWICKLUNG = 'api-entwicklung',
 }
 
 // API-Berechtigungen pro Rolle
@@ -53,6 +54,15 @@ export const ROLE_PERMISSIONS = {
     canDeactivateOwnKeys: true,
     canViewOwnUsage: true,
     canViewAdminUsage: true,
+    canManageUsers: false,
+  },
+  [UserRole.ENTWICKLUNG]: {
+    canViewOwnKeys: true,
+    canCreateKeys: true,
+    canEditOwnKeys: true,
+    canDeactivateOwnKeys: true,
+    canViewOwnUsage: true,
+    canViewAdminUsage: false,
     canManageUsers: false,
   },
 }
@@ -121,6 +131,8 @@ export const getUserRoles = (): UserRole[] => {
     roles.push(UserRole.API_ADMIN)
   } else if (groups.includes('api-stream') || groups.includes('/api-stream')) {
     roles.push(UserRole.API_STREAM)
+  } else if (groups.includes('api-entwicklung') || groups.includes('/api-entwicklung')) {
+    roles.push(UserRole.ENTWICKLUNG)
   } else if (groups.includes('api-default') || groups.includes('/api-default')) {
     roles.push(UserRole.API_DEFAULT)
   }
@@ -140,6 +152,8 @@ export const getHighestRole = (): UserRole => {
     return UserRole.API_ADMIN
   } else if (roles.includes(UserRole.API_STREAM)) {
     return UserRole.API_STREAM
+  } else if (roles.includes(UserRole.ENTWICKLUNG)) {
+    return UserRole.ENTWICKLUNG
   } else {
     return UserRole.API_DEFAULT
   }

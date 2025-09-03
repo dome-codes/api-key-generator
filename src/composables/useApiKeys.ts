@@ -76,7 +76,7 @@ export function useApiKeys(userProfile: UserProfile) {
       createdKeyName.value = data.name
       createdKeyPermissions.value = data.permissions
       createdKeyValidUntil.value = data.expires_at || 'Never'
-      createdKeyCreatedBy.value = userProfile.value.name
+      createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
       await loadKeys()
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Erstellen des API-Keys'

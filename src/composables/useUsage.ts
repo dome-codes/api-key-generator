@@ -104,8 +104,6 @@ export function useUsage() {
           usageAnalyticsService.getDetailedUsageData(
             convertToIsoString(currentFilter.value.fromDate),
             convertToIsoString(currentFilter.value.toDate),
-            currentFilter.value.modelType,
-            undefined,
             true, // useAdminApi
           ),
           usageAnalyticsService.getUsageAggregation(
@@ -137,8 +135,6 @@ export function useUsage() {
             usageAnalyticsService.getDetailedUsageData(
               convertToIsoString(currentFilter.value.fromDate),
               convertToIsoString(currentFilter.value.toDate),
-              currentFilter.value.modelType,
-              undefined,
               false, // useAdminApi = false für normale Benutzer
             ),
             usageAnalyticsService.getUsageAggregation(
