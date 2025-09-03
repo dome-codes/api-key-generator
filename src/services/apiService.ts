@@ -95,9 +95,11 @@ export const usageService = {
   // Eigene Usage-Daten abrufen
   async getOwnUsage(fromDate?: string, toDate?: string): Promise<UsageResponse> {
     try {
+      console.log('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
+
       // Prüfe Berechtigung
       if (!hasPermission('canViewOwnUsage')) {
-        console.warn('Keine Berechtigung zum Anzeigen von Usage-Daten')
+        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { to_date: 0, usage: [] }
       }
 
@@ -105,10 +107,13 @@ export const usageService = {
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate
 
+      console.log('🔍 [API-SERVICE] Calling usageAIGetV1 with params:', params)
       const response = await usageAIGetV1(params)
+      console.log('🔍 [API-SERVICE] API response:', response.data)
+
       return response.data
     } catch (error) {
-      console.warn('Fehler beim Laden der eigenen Usage-Daten:', error)
+      console.warn('🔍 [API-SERVICE] Fehler beim Laden der eigenen Usage-Daten:', error)
       return { to_date: 0, usage: [] }
     }
   },
@@ -116,9 +121,11 @@ export const usageService = {
   // Usage-Summary abrufen
   async getUsageSummary(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
     try {
+      console.log('🔍 [API-SERVICE] getUsageSummary called with:', { fromDate, toDate })
+
       // Prüfe Berechtigung
       if (!hasPermission('canViewOwnUsage')) {
-        console.warn('Keine Berechtigung zum Anzeigen von Usage-Daten')
+        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { usage: [] }
       }
 
@@ -126,10 +133,41 @@ export const usageService = {
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate
 
+      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with params:', params)
       const response = await usageAISummaryGetV1(params)
+      console.log('🔍 [API-SERVICE] API response:', response.data)
+
       return response.data
     } catch (error) {
-      console.warn('Fehler beim Laden der Usage-Summary:', error)
+      console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary:', error)
+      return { usage: [] }
+    }
+  },
+
+  // Usage-Summary nach API Key gruppiert abrufen (für Progress Bar)
+  async getUsageSummaryByApiKey(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
+    try {
+      console.log('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
+
+      // Prüfe Berechtigung
+      if (!hasPermission('canViewOwnUsage')) {
+        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
+        return { usage: [] }
+      }
+
+      const params: UsageAISummaryGetV1Params = {
+        by: 'apikey', // Gruppiere nach API Key
+      }
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+
+      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
+      const response = await usageAISummaryGetV1(params)
+      console.log('🔍 [API-SERVICE] API response (grouped by apiKey):', response.data)
+
+      return response.data
+    } catch (error) {
+      console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
       return { usage: [] }
     }
   },

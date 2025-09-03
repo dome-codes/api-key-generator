@@ -1,241 +1,13 @@
 import cors from 'cors'
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
+import * as mockData from './mock-data.js'
 
-// Mock usage data functions
-const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days = 30) => {
-  const mockData = []
-  const currentDate = new Date(startDate)
-
-  // Available models for different types
-  const completionModels = [
-    'gpt-4o-mini',
-    'gpt-4o',
-    'gpt-4-turbo',
-    'gpt-3.5-turbo',
-    'claude-3-sonnet',
-    'claude-3-haiku',
-  ]
-
-  const embeddingModels = [
-    'text-embedding-3-small',
-    'text-embedding-3-large',
-    'text-embedding-ada-002',
-  ]
-
-  const imageModels = ['dall-e-3', 'dall-e-2', 'midjourney-v6']
-
-  // Available tags with different weights for more realistic distribution
-  const tags = [
-    { name: 'production', weight: 0.4 }, // 40% production
-    { name: 'development', weight: 0.25 }, // 25% development
-    { name: 'testing', weight: 0.15 }, // 15% testing
-    { name: 'staging', weight: 0.1 }, // 10% staging
-    { name: 'demo', weight: 0.05 }, // 5% demo
-    { name: 'backup', weight: 0.02 }, // 2% backup
-    { name: 'archive', weight: 0.015 }, // 1.5% archive
-    { name: 'experimental', weight: 0.01 }, // 1% experimental
-    { name: 'research', weight: 0.01 }, // 1% research
-    { name: 'internal', weight: 0.005 }, // 0.5% internal
-  ]
-
-  // Helper function to select tag based on weights
-  const selectRandomTag = () => {
-    const random = Math.random()
-    let cumulativeWeight = 0
-    for (const tag of tags) {
-      cumulativeWeight += tag.weight
-      if (random <= cumulativeWeight) {
-        return tag.name
-      }
-    }
-    return tags[0].name // fallback to production
-  }
-
-  // Helper function to generate usage data for all API keys
-  const generateUsageForAllApiKeys = () => {
-    const existingApiKeys = Object.keys(apiKeys).filter((keyId) => {
-      const key = apiKeys[keyId]
-      return key && key.is_active
-    })
-
-    console.log(`[API-KEY-IDS] Available API Keys:`, existingApiKeys)
-    console.log(`[API-KEY-IDS] Total API Keys in database:`, Object.keys(apiKeys).length)
-    console.log(`[API-KEY-IDS] Active API Keys:`, existingApiKeys.length)
-
-    if (existingApiKeys.length === 0) {
-      console.log(`[API-KEY-IDS] No active API keys found, using fallback`)
-      return ['dk_fallback123']
-    }
-
-    return existingApiKeys
-  }
-
-  // Helper function to get technicalUserId for an API key
-  const getTechnicalUserIdForApiKey = (apiKeyId) => {
-    const key = apiKeys[apiKeyId]
-    if (key && key.user_id) {
-      return key.user_id
-    }
-    return userId || 'user-123' // Fallback
-  }
-
-  // Helper function to select a random API key ID from existing keys
-  const selectRandomApiKey = () => {
-    const availableKeys = generateUsageForAllApiKeys()
-    return availableKeys[0] // Verwende den ersten für konsistente Zuordnung
-  }
-
-  for (let i = 0; i < days; i++) {
-    const day = currentDate.getDate()
-    const month = currentDate.getMonth() + 1
-    const year = currentDate.getFullYear()
-
-    // Generate realistic daily usage patterns
-    const dayOfWeek = currentDate.getDay()
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    const isWeekday = !isWeekend
-
-    // Base multipliers for different days
-    const weekdayMultiplier = isWeekday ? 1.2 : 0.6
-    const weekendMultiplier = isWeekend ? 0.8 : 1.0
-
-    // Get all available API keys for this day
-    const availableApiKeys = generateUsageForAllApiKeys()
-
-    // Generate usage data for each API key
-    availableApiKeys.forEach((apiKeyId, keyIndex) => {
-      // CompletionModelUsage - Daily variations with different models and tags
-      const completionRequests = Math.floor((Math.random() * 200 + 100) * weekdayMultiplier)
-      const completionTokensIn = completionRequests * (Math.random() * 200 + 150)
-      const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
-
-      // Generate createDate for detailed usage
-      const createDate = new Date(
-        year,
-        month - 1,
-        day,
-        Math.floor(Math.random() * 24),
-        Math.floor(Math.random() * 60),
-      )
-
-      // Random model and tag for completion
-      const completionModel = completionModels[Math.floor(Math.random() * completionModels.length)]
-      const completionTag = selectRandomTag()
-      const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
-
-      mockData.push({
-        type: 'CompletionModelUsage',
-        requests: completionRequests,
-        model: completionModel, // Geändert von modelName zu model
-        tag: completionTag,
-        requestTokens: Math.floor(completionTokensIn), // Geändert von tokensIn zu requestTokens
-        responseTokens: Math.floor(completionTokensOut), // Geändert von tokensOut zu responseTokens
-        totalTokens: Math.floor(completionTokensIn + completionTokensOut),
-        cost: 0, // Kosten werden im Frontend berechnet
-        technicalUserId: technicalUserId,
-        technicalUserName: `User ${technicalUserId}`,
-        createDate: createDate.toISOString(),
-        apiKeyId: apiKeyId, // Neue apiKeyId
-      })
-
-      console.log(`[USAGE-DATA] Generated usage for API Key ${apiKeyId}:`, {
-        type: 'CompletionModelUsage',
-        apiKeyId: apiKeyId,
-        requestTokens: Math.floor(completionTokensIn),
-        responseTokens: Math.floor(completionTokensOut),
-      })
-
-      // EmbeddingModelUsage - Less frequent but larger batches
-      if (Math.random() > 0.3) {
-        // 70% chance per day
-        const embeddingRequests = Math.floor((Math.random() * 50 + 20) * weekdayMultiplier)
-        const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
-
-        const embeddingCreateDate = new Date(
-          year,
-          month - 1,
-          day,
-          Math.floor(Math.random() * 24),
-          Math.floor(Math.random() * 60),
-        )
-
-        // Random model and tag for embedding
-        const embeddingModel = embeddingModels[Math.floor(Math.random() * embeddingModels.length)]
-        const embeddingTag = selectRandomTag()
-        const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
-
-        mockData.push({
-          type: 'EmbeddingModelUsage',
-          requests: embeddingRequests,
-          model: embeddingModel, // Geändert von modelName zu model
-          tag: embeddingTag,
-          requestTokens: Math.floor(embeddingTokens), // Geändert von tokensIn zu requestTokens
-          responseTokens: 0, // Geändert von tokensOut zu responseTokens
-          totalTokens: Math.floor(embeddingTokens),
-          cost: 0, // Kosten werden im Frontend berechnet
-          technicalUserId: technicalUserId,
-          technicalUserName: `User ${technicalUserId}`,
-          createDate: embeddingCreateDate.toISOString(),
-          apiKeyId: apiKeyId, // Neue apiKeyId
-        })
-      }
-
-      // ImageModelUsage - Occasional usage
-      if (Math.random() > 0.7) {
-        // 30% chance per day
-        const imageRequests = Math.floor((Math.random() * 10 + 5) * weekendMultiplier)
-        const quality = Math.random() > 0.5 ? 'hd' : 'standard'
-        const sizeWidth = quality === 'hd' ? 1792 : 1024
-        const sizeHeight = 1024
-
-        const imageCreateDate = new Date(
-          year,
-          month - 1,
-          day,
-          Math.floor(Math.random() * 24),
-          Math.floor(Math.random() * 60),
-        )
-
-        // Random model and tag for image
-        const imageModel = imageModels[Math.floor(Math.random() * imageModels.length)]
-        const imageTag = selectRandomTag()
-        const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
-
-        mockData.push({
-          type: 'ImageModelUsage',
-          requests: imageRequests,
-          model: imageModel, // Geändert von modelName zu model
-          tag: imageTag,
-          sizeWidth,
-          sizeHeight,
-          quality,
-          requestTokens: 0, // Geändert von tokensIn zu requestTokens
-          responseTokens: 0, // Geändert von tokensOut zu responseTokens
-          totalTokens: 0,
-          cost: 0, // Kosten werden im Frontend berechnet
-          technicalUserId: technicalUserId,
-          technicalUserName: `User ${technicalUserId}`,
-          createDate: imageCreateDate.toISOString(),
-          apiKeyId: apiKeyId, // Neue apiKeyId
-        })
-      }
-    })
-
-    // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1)
-  }
-
-  return mockData
-}
-
-const mockUsageData30Days = (userId) => {
-  const startDate = new Date('2025-07-01')
-  return generateMockUsageData(userId, startDate, 30)
-}
+// Mock API verwendet nur hardcodierte Daten aus mock-data.js
+// Keine Kostenberechnung hier - das macht das Frontend!
 
 const app = express()
-const port = 3001 // Port auf 3001 geändert, um Konflikt mit Keycloak zu vermeiden
+const port = 3001
 
 app.use(cors())
 app.use(express.json())
@@ -269,18 +41,18 @@ function validateToken(req, res, next) {
       return res.status(401).json({ error: 'Token ist abgelaufen' })
     }
 
-    // Rollen aus groups claim extrahieren (neue Struktur)
+    // Rollen aus groups claim extrahieren
     let userRoles = []
 
     if (payload.groups && Array.isArray(payload.groups)) {
       userRoles = payload.groups
-        .map((group) => group.replace(/^\//, '')) // Entferne führenden Slash
+        .map((group) => group.replace(/^\//, ''))
         .filter(
           (group) => group === 'API-Admin' || group === 'API-Default' || group === 'API-Stream',
         )
     }
 
-    // Mock-Token für verschiedene Rollen (für Testing)
+    // Mock-Token für verschiedene Rollen
     let mockTokenData = {
       sub: payload.sub || 'user-123',
       email: payload.email || 'admin@example.com',
@@ -288,10 +60,10 @@ function validateToken(req, res, next) {
       family_name: payload.family_name || 'User',
       given_name: payload.given_name || 'Admin',
       preferred_username: payload.preferred_username || 'admin',
-      groups: userRoles.length > 0 ? userRoles : ['API-Admin'], // Standard: API-Admin
+      groups: userRoles.length > 0 ? userRoles : ['API-Admin'],
     }
 
-    // Token aus Query-Parameter oder Header für Testing
+    // Token aus Query-Parameter für Testing
     if (req.query.token) {
       const tokenType = req.query.token
       if (tokenType === 'admin') {
@@ -303,17 +75,10 @@ function validateToken(req, res, next) {
       }
     }
 
-    // Token-Info loggen
     console.log(`[${new Date().toISOString()}] ✅ JWT Token validiert:`, {
       userId: mockTokenData.sub,
       email: mockTokenData.email,
-      name: mockTokenData.name,
-      family_name: mockTokenData.family_name,
-      given_name: mockTokenData.given_name,
-      preferred_username: mockTokenData.preferred_username,
       groups: mockTokenData.groups,
-      expiresAt: payload.exp ? new Date(payload.exp * 1000) : 'Kein Ablauf',
-      originalGroups: payload.groups || [],
     })
 
     req.user = mockTokenData
@@ -344,44 +109,24 @@ function requireRole(requiredRoles) {
   }
 }
 
-// Logging Middleware für alle Requests
-app.use((req, res, next) => {
-  const start = Date.now()
-  const timestamp = new Date().toISOString()
+// In-Memory-Datenbank für API Keys
+const apiKeys = {}
 
-  console.log(`[${timestamp}] ${req.method} ${req.path} - Request started`)
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log(`[${timestamp}] Request Body:`, JSON.stringify(req.body, null, 2))
+// Lade hardcodierte API Keys
+mockData.MOCK_API_KEYS.forEach((key) => {
+  apiKeys[key.id] = {
+    ...key,
+    secret:
+      'dk_' +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15),
   }
-  if (req.query && Object.keys(req.query).length > 0) {
-    console.log(`[${timestamp}] Query Params:`, JSON.stringify(req.query, null, 2))
-  }
-  if (req.params && Object.keys(req.params).length > 0) {
-    console.log(`[${timestamp}] Path Params:`, JSON.stringify(req.params, null, 2))
-  }
-
-  // Log response
-  const originalSend = res.send
-  res.send = function (data) {
-    const duration = Date.now() - start
-    console.log(
-      `[${timestamp}] ${req.method} ${req.path} - Response ${res.statusCode} (${duration}ms)`,
-    )
-    if (data && typeof data === 'string' && data.length < 1000) {
-      console.log(`[${timestamp}] Response Body:`, data)
-    } else if (data && typeof data === 'object') {
-      console.log(`[${timestamp}] Response Body:`, JSON.stringify(data, null, 2))
-    }
-    originalSend.call(this, data)
-  }
-
-  next()
 })
 
-// In-Memory-Datenbank für API Keys (entsprechend OpenAPI Schema)
-const apiKeys = {} // { [id]: { id, name, permissions, created_at, expires_at, is_active, secret, user_id } }
-const usageData = {} // { [userId]: [{ model, tokens_used, cost, timestamp }] }
-const users = {} // { [userId]: { id, email, role, is_active } }
+console.log(
+  `[MOCK-API] Initialized with ${Object.keys(apiKeys).length} hardcoded API keys:`,
+  Object.keys(apiKeys),
+)
 
 // Hilfsfunktionen
 function generateApiKey() {
@@ -408,7 +153,7 @@ function createApiKeyObject(name, permissions, userId = null) {
   }
 }
 
-// OpenAPI v1 Endpunkte entsprechend der Spezifikation
+// API Endpunkte
 
 // POST /v1/apikeys - Create a new API token
 app.post('/v1/apikeys', validateToken, (req, res) => {
@@ -416,14 +161,9 @@ app.post('/v1/apikeys', validateToken, (req, res) => {
   const userId = req.user.sub
   const timestamp = new Date().toISOString()
 
-  console.log(
-    `[${timestamp}] Creating new API key with name: "${name}" and permissions:`,
-    permissions,
-  )
-  console.log(`[${timestamp}] User ID: ${userId}`)
+  console.log(`[${timestamp}] Creating new API key with name: "${name}"`)
 
   if (!name || !permissions || !Array.isArray(permissions)) {
-    console.log(`[${timestamp}] Validation failed: Invalid request parameters`)
     return res.status(400).json({
       error: 'Invalid request. Name and permissions array are required.',
     })
@@ -433,21 +173,16 @@ app.post('/v1/apikeys', validateToken, (req, res) => {
   apiKeys[apiKey.id] = apiKey
 
   console.log(`[${timestamp}] API key created successfully with ID: ${apiKey.id}`)
-  console.log(`[${timestamp}] Total API keys in database: ${Object.keys(apiKeys).length}`)
 
-  // Simuliere Verzögerung
-  setTimeout(() => {
-    console.log(`[${timestamp}] Sending response for API key creation`)
-    res.status(201).json({
-      id: apiKey.id,
-      name: apiKey.name,
-      permissions: apiKey.permissions,
-      created_at: apiKey.created_at,
-      expires_at: apiKey.expires_at,
-      is_active: apiKey.is_active,
-      secret: apiKey.secret, // Nur bei Erstellung zurückgegeben
-    })
-  }, 1000)
+  res.status(201).json({
+    id: apiKey.id,
+    name: apiKey.name,
+    permissions: apiKey.permissions,
+    created_at: apiKey.created_at,
+    expires_at: apiKey.expires_at,
+    is_active: apiKey.is_active,
+    secret: apiKey.secret,
+  })
 })
 
 // GET /v1/apikeys - List all API tokens for the current user
@@ -457,7 +192,6 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
 
   console.log(`[${timestamp}] Listing API keys for user: ${userId}`)
 
-  // Filtere Keys nach Benutzer (außer für Admins)
   const userRoles = req.user.groups || []
   const isAdmin = userRoles.includes('API-Admin')
 
@@ -477,227 +211,10 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
     created_at: key.created_at,
     expires_at: key.expires_at,
     is_active: key.is_active,
-    // secret wird nicht zurückgegeben
   }))
 
-  console.log(`[${timestamp}] Returning ${responseKeys.length} API keys`)
   res.status(200).json(responseKeys)
 })
-
-// GET /v1/apikeys/{id} - Get a single API token by ID
-app.get('/v1/apikeys/:id', validateToken, (req, res) => {
-  const { id } = req.params
-  const userId = req.user.sub
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Getting API key with ID: ${id} for user: ${userId}`)
-
-  const apiKey = apiKeys[id]
-
-  if (!apiKey) {
-    console.log(`[${timestamp}] API key not found with ID: ${id}`)
-    return res.status(404).json({ error: 'Token not found' })
-  }
-
-  // Prüfe Berechtigung (nur eigene Keys oder Admin)
-  const userRoles = req.user.groups || []
-  const isAdmin = userRoles.includes('API-Admin')
-
-  if (!isAdmin && apiKey.user_id !== userId) {
-    console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to access key ${id} owned by ${apiKey.user_id}`,
-    )
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  console.log(`[${timestamp}] API key found: "${apiKey.name}" (active: ${apiKey.is_active})`)
-  res.status(200).json({
-    id: apiKey.id,
-    name: apiKey.name,
-    permissions: apiKey.permissions,
-    created_at: apiKey.created_at,
-    expires_at: apiKey.expires_at,
-    is_active: apiKey.is_active,
-    // secret wird nicht zurückgegeben
-  })
-})
-
-// POST /v1/apikeys/{id}/rotate - Rotate an API token
-app.post('/v1/apikeys/:id/rotate', validateToken, (req, res) => {
-  const { id } = req.params
-  const { name, permissions } = req.body
-  const userId = req.user.sub
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Rotating API key with ID: ${id} for user: ${userId}`)
-  console.log(
-    `[${timestamp}] New name: "${name || 'unchanged'}", new permissions:`,
-    permissions || 'unchanged',
-  )
-
-  const existingKey = apiKeys[id]
-  if (!existingKey) {
-    console.log(`[${timestamp}] API key not found for rotation: ${id}`)
-    return res.status(404).json({ error: 'Token not found or not rotatable' })
-  }
-
-  // Prüfe Berechtigung (nur eigene Keys oder Admin)
-  const userRoles = req.user.groups || []
-  const isAdmin = userRoles.includes('API-Admin')
-
-  if (!isAdmin && existingKey.user_id !== userId) {
-    console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to rotate key ${id} owned by ${existingKey.user_id}`,
-    )
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  console.log(`[${timestamp}] Deactivating existing key: "${existingKey.name}"`)
-  // Deaktiviere alten Key
-  existingKey.is_active = false
-
-  // Erstelle neuen Key
-  const newApiKey = createApiKeyObject(
-    name || existingKey.name,
-    permissions || existingKey.permissions,
-    existingKey.user_id,
-  )
-  apiKeys[newApiKey.id] = newApiKey
-
-  console.log(`[${timestamp}] New API key created with ID: ${newApiKey.id}`)
-  console.log(`[${timestamp}] Total API keys after rotation: ${Object.keys(apiKeys).length}`)
-
-  setTimeout(() => {
-    console.log(`[${timestamp}] Sending rotation response`)
-    res.status(201).json({
-      id: newApiKey.id,
-      name: newApiKey.name,
-      permissions: newApiKey.permissions,
-      created_at: newApiKey.created_at,
-      expires_at: newApiKey.expires_at,
-      is_active: newApiKey.is_active,
-      secret: newApiKey.secret,
-    })
-  }, 1000)
-})
-
-// PUT /v1/apikeys/{id}/deactivate - Deactivate an API token
-app.put('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
-  const { id } = req.params
-  const userId = req.user.sub
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Deactivating API key with ID: ${id} for user: ${userId}`)
-
-  const apiKey = apiKeys[id]
-
-  if (!apiKey) {
-    console.log(`[${timestamp}] API key not found for deactivation: ${id}`)
-    return res.status(404).json({ error: 'Token not found' })
-  }
-
-  // Prüfe Berechtigung (nur eigene Keys oder Admin)
-  const userRoles = req.user.groups || []
-  const isAdmin = userRoles.includes('API-Admin')
-
-  if (!isAdmin && apiKey.user_id !== userId) {
-    console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to deactivate key ${id} owned by ${apiKey.user_id}`,
-    )
-    return res.status(403).json({ error: 'Access denied' })
-  }
-
-  console.log(`[${timestamp}] Deactivating API key: "${apiKey.name}"`)
-  apiKey.is_active = false
-
-  console.log(`[${timestamp}] API key deactivated successfully`)
-  res.status(204).send()
-})
-
-// Admin Endpunkte
-
-// GET /v1/admin/apikeys - Get all API keys (Admin only)
-app.get('/v1/admin/apikeys', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Admin: Getting all API keys`)
-
-  const keys = Object.values(apiKeys).map((key) => ({
-    id: key.id,
-    name: key.name,
-    permissions: key.permissions,
-    created_at: key.created_at,
-    expires_at: key.expires_at,
-    is_active: key.is_active,
-    user_id: key.user_id,
-  }))
-
-  console.log(`[${timestamp}] Admin: Returning ${keys.length} API keys`)
-  res.status(200).json(keys)
-})
-
-// POST /v1/admin/apikeys - Create API key for specific user (Admin only)
-app.post('/v1/admin/apikeys', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const { userId, name, permissions } = req.body
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Admin: Creating API key for user ${userId}`)
-  console.log(`[${timestamp}] Name: "${name}", permissions:`, permissions)
-
-  if (!userId || !name || !permissions || !Array.isArray(permissions)) {
-    console.log(`[${timestamp}] Validation failed: Invalid request parameters`)
-    return res.status(400).json({
-      error: 'Invalid request. UserId, name and permissions array are required.',
-    })
-  }
-
-  const apiKey = createApiKeyObject(name, permissions, userId)
-  apiKeys[apiKey.id] = apiKey
-
-  console.log(`[${timestamp}] Admin: API key created successfully with ID: ${apiKey.id}`)
-
-  setTimeout(() => {
-    console.log(`[${timestamp}] Admin: Sending response for API key creation`)
-    res.status(201).json({
-      id: apiKey.id,
-      name: apiKey.name,
-      permissions: apiKey.permissions,
-      created_at: apiKey.created_at,
-      expires_at: apiKey.expires_at,
-      is_active: apiKey.is_active,
-      user_id: apiKey.user_id,
-      secret: apiKey.secret,
-    })
-  }, 1000)
-})
-
-// PUT /v1/admin/apikeys/{id}/deactivate - Deactivate API key for any user (Admin only)
-app.put(
-  '/v1/admin/apikeys/:id/deactivate',
-  validateToken,
-  requireRole(['API-Admin']),
-  (req, res) => {
-    const { id } = req.params
-    const timestamp = new Date().toISOString()
-
-    console.log(`[${timestamp}] Admin: Deactivating API key with ID: ${id}`)
-
-    const apiKey = apiKeys[id]
-
-    if (!apiKey) {
-      console.log(`[${timestamp}] Admin: API key not found for deactivation: ${id}`)
-      return res.status(404).json({ error: 'Token not found' })
-    }
-
-    console.log(
-      `[${timestamp}] Admin: Deactivating API key: "${apiKey.name}" for user: ${apiKey.user_id}`,
-    )
-    apiKey.is_active = false
-
-    console.log(`[${timestamp}] Admin: API key deactivated successfully`)
-    res.status(204).send()
-  },
-)
 
 // GET /v1/usage/ai - Get AI usage data
 app.get('/v1/usage/ai', validateToken, (req, res) => {
@@ -706,21 +223,9 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Getting AI usage data for user: ${userId}`)
-  console.log(`[${timestamp}] Date filter - from: ${from_date || 'none'}, to: ${to_date || 'none'}`)
 
-  // Generate detailed mock usage data with createDate
-  let mockUsage = []
-
-  if (from_date && to_date) {
-    // Custom date range
-    const startDate = new Date(from_date)
-    const endDate = new Date(to_date)
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
-    mockUsage = generateMockUsageData(userId, startDate, daysDiff)
-  } else {
-    // Default to 30 days
-    mockUsage = mockUsageData30Days(userId)
-  }
+  // Verwende hardcodierte Usage-Daten
+  let mockUsage = [...mockData.MOCK_USAGE_DATA]
 
   // Filter by date range if provided
   let filteredUsage = mockUsage
@@ -733,12 +238,9 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
       const to = to_date ? new Date(to_date) : new Date()
       return usageDate >= from && usageDate <= to
     })
-    console.log(
-      `[${timestamp}] Filtered usage data: ${filteredUsage.length} entries (from ${mockUsage.length} total)`,
-    )
-  } else {
-    console.log(`[${timestamp}] Returning all usage data: ${mockUsage.length} entries`)
   }
+
+  console.log(`[${timestamp}] Returning ${filteredUsage.length} usage records`)
 
   res.status(200).json({
     usage: filteredUsage,
@@ -752,30 +254,43 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Getting AI usage summary for user: ${userId}`)
-  console.log(
-    `[${timestamp}] Summary parameters - from: ${from_date || 'none'}, to: ${to_date || 'none'}, by: ${by || 'none'}`,
-  )
 
-  // Generate mock data based on the requested time period
+  // Verwende hardcodierte gruppierte Usage-Daten
   let mockUsage = []
 
-  if (from_date && to_date) {
-    // Custom date range
-    const startDate = new Date(from_date)
-    const endDate = new Date(to_date)
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
-    mockUsage = generateMockUsageData(userId, startDate, daysDiff)
+  if (by === 'apikey') {
+    // Gruppiert nach API Key (für Progress Bar)
+    mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
+    console.log(
+      `[${timestamp}] Returning usage summary grouped by API Key: ${mockUsage.length} records`,
+    )
   } else {
-    // Default to 30 days
-    mockUsage = mockUsageData30Days(userId)
+    // Standard: Alle detaillierten Daten
+    mockUsage = [...mockData.MOCK_USAGE_DATA]
+    console.log(`[${timestamp}] Returning detailed usage data: ${mockUsage.length} records`)
   }
 
-  console.log(`[${timestamp}] Generated ${mockUsage.length} usage records for user ${userId}`)
+  // Filter by date range if provided
+  let filteredUsage = mockUsage
+  if (from_date || to_date) {
+    filteredUsage = mockUsage.filter((usage) => {
+      const usageDate = usage.createDate
+        ? new Date(usage.createDate)
+        : new Date(usage.year, usage.month - 1, usage.day)
+      const from = from_date ? new Date(from_date) : new Date(0)
+      const to = to_date ? new Date(to_date) : new Date()
+      return usageDate >= from && usageDate <= to
+    })
+  }
+
+  console.log(`[${timestamp}] Returning ${filteredUsage.length} usage records`)
 
   res.status(200).json({
-    usage: mockUsage,
+    usage: filteredUsage,
   })
 })
+
+// Admin Endpunkte
 
 // GET /v1/admin/usage/ai - Get all usage data (Admin only)
 app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, res) => {
@@ -783,40 +298,21 @@ app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, r
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Admin: Getting all AI usage data`)
-  console.log(`[${timestamp}] Date filter - from: ${from_date || 'none'}, to: ${to_date || 'none'}`)
 
-  // Mock usage data für alle Benutzer
-  const mockUsage = [
-    {
-      user_id: 'user-123',
-      model: 'gpt-4',
-      tokens_used: 1500,
-      cost: 0.045,
-      timestamp: new Date().toISOString(),
-    },
-    {
-      user_id: 'user-456',
-      model: 'gpt-3.5-turbo',
-      tokens_used: 2300,
-      cost: 0.00345,
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ]
+  // Verwende hardcodierte Usage-Daten für Admin
+  const mockUsage = [...mockData.MOCK_USAGE_DATA]
 
   // Filter by date range if provided
   let filteredUsage = mockUsage
   if (from_date || to_date) {
     filteredUsage = mockUsage.filter((usage) => {
-      const usageDate = new Date(usage.timestamp)
+      const usageDate = usage.createDate
+        ? new Date(usage.createDate)
+        : new Date(usage.year, usage.month - 1, usage.day)
       const from = from_date ? new Date(from_date) : new Date(0)
       const to = to_date ? new Date(to_date) : new Date()
       return usageDate >= from && usageDate <= to
     })
-    console.log(
-      `[${timestamp}] Admin: Filtered usage data: ${filteredUsage.length} entries (from ${mockUsage.length} total)`,
-    )
-  } else {
-    console.log(`[${timestamp}] Admin: Returning all usage data: ${mockUsage.length} entries`)
   }
 
   res.status(200).json({
@@ -824,43 +320,31 @@ app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, r
   })
 })
 
-// GET /v1/admin/usage/ai/summarize - Admin usage summary (mit Security)
+// GET /v1/admin/usage/ai/summarize - Get usage summary for all users (Admin only)
 app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']), (req, res) => {
   const { from_date, to_date, by, model, technicalUserId } = req.query
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Admin: Getting AI usage summary`)
-  console.log(
-    `[${timestamp}] Admin summary parameters - from: ${from_date || 'none'}, to: ${to_date || 'none'}, by: ${by || 'none'}, model: ${model || 'none'}, technicalUserId: ${technicalUserId || 'none'}`,
-  )
 
-  // Generate mock data for all users
+  // Verwende hardcodierte gruppierte Usage-Daten für Admin
   let mockUsage = []
 
-  if (from_date && to_date) {
-    // Custom date range
-    const startDate = new Date(from_date)
-    const endDate = new Date(to_date)
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
-
-    // Generate data for multiple users
-    const users = ['user-123', 'user-456', 'user-789', 'user-101', 'user-202']
-    users.forEach((userId) => {
-      const userData = generateMockUsageData(userId, startDate, daysDiff)
-      mockUsage.push(...userData)
-    })
+  if (by === 'apikey') {
+    // Gruppiert nach API Key (für Progress Bar)
+    mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
+    console.log(
+      `[${timestamp}] Admin: Returning usage summary grouped by API Key: ${mockUsage.length} records`,
+    )
   } else {
-    // Default to 30 days for all users
-    const users = ['user-123', 'user-456', 'user-789', 'user-101', 'user-202']
-    users.forEach((userId) => {
-      const userData = mockUsageData30Days(userId)
-      mockUsage.push(...userData)
-    })
+    // Standard: Alle detaillierten Daten
+    mockUsage = [...mockData.MOCK_USAGE_DATA]
+    console.log(`[${timestamp}] Admin: Returning detailed usage data: ${mockUsage.length} records`)
   }
 
   // Filter by technicalUserId if specified
   if (technicalUserId) {
-    mockUsage = mockUsage.filter((item) => item.technicalUSerid === technicalUserId)
+    mockUsage = mockUsage.filter((item) => item.technicalUserId === technicalUserId)
   }
 
   // Filter by model if specified
@@ -875,144 +359,7 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
   })
 })
 
-// Super Admin Endpunkte
-
-// GET /v1/admin/users - Get all users (Super Admin only)
-app.get('/v1/admin/users', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Super Admin: Getting all users`)
-
-  // Mock user data
-  const mockUsers = [
-    {
-      id: 'user-123',
-      email: 'user@example.com',
-      role: 'user',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'admin-456',
-      email: 'admin@example.com',
-      role: 'admin',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    },
-  ]
-
-  console.log(`[${timestamp}] Super Admin: Returning ${mockUsers.length} users`)
-  res.status(200).json(mockUsers)
-})
-
-// PUT /v1/admin/users/{userId}/role - Update user role (Super Admin only)
-app.put('/v1/admin/users/:userId/role', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const { userId } = req.params
-  const { role } = req.body
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Super Admin: Updating role for user ${userId} to ${role}`)
-
-  if (!role || !['user', 'admin', 'super_admin'].includes(role)) {
-    return res.status(400).json({ error: 'Invalid role. Must be user, admin, or super_admin' })
-  }
-
-  // Mock update
-  console.log(`[${timestamp}] Super Admin: Role updated successfully`)
-  res.status(200).json({
-    id: userId,
-    role: role,
-    updated_at: new Date().toISOString(),
-  })
-})
-
-// PUT /v1/admin/users/{userId}/deactivate - Deactivate user (Super Admin only)
-app.put(
-  '/v1/admin/users/:userId/deactivate',
-  validateToken,
-  requireRole(['API-Admin']),
-  (req, res) => {
-    const { userId } = req.params
-    const timestamp = new Date().toISOString()
-
-    console.log(`[${timestamp}] Super Admin: Deactivating user ${userId}`)
-
-    // Mock deactivation
-    console.log(`[${timestamp}] Super Admin: User deactivated successfully`)
-    res.status(204).send()
-  },
-)
-
-// Legacy Endpunkte für Kompatibilität (falls noch verwendet)
-app.get('/api/keys', (req, res) => {
-  const email = req.query.email
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Legacy endpoint: Getting API keys for email: ${email}`)
-
-  if (!email) {
-    console.log(`[${timestamp}] Legacy endpoint: Email parameter missing`)
-    return res.status(400).json({ error: 'E-Mail erforderlich' })
-  }
-
-  const keys = Object.values(apiKeys).map((key) => ({
-    apiKey: key.secret,
-    name: key.name,
-    permissions: key.permissions.join(', '),
-    createdAt: key.created_at,
-    createdBy: 'Domenic Schumacher',
-    validUntil: key.expires_at,
-    lastUsed: 'Never',
-    status: key.is_active ? 'active' : 'revoked',
-  }))
-
-  console.log(`[${timestamp}] Legacy endpoint: Returning ${keys.length} API keys`)
-  res.json({ keys })
-})
-
-app.get('/api/key-stats', (req, res) => {
-  const email = req.query.email
-  const timestamp = new Date().toISOString()
-
-  console.log(`[${timestamp}] Legacy endpoint: Getting key stats for email: ${email}`)
-
-  if (!email) {
-    console.log(`[${timestamp}] Legacy endpoint: Email parameter missing for stats`)
-    return res.status(400).json({ error: 'E-Mail erforderlich' })
-  }
-
-  const keys = Object.values(apiKeys)
-  let active = 0,
-    expired = 0,
-    revoked = 0
-
-  for (const k of keys) {
-    if (k.is_active) active++
-    else if (new Date(k.expires_at) < new Date()) expired++
-    else revoked++
-  }
-
-  const stats = {
-    total: keys.length,
-    active,
-    expired,
-    revoked,
-    costs: (keys.length * 0.05).toFixed(2),
-  }
-
-  console.log(
-    `[${timestamp}] Legacy endpoint: Key stats - Total: ${stats.total}, Active: ${stats.active}, Expired: ${stats.expired}, Revoked: ${stats.revoked}, Costs: $${stats.costs}`,
-  )
-  res.json(stats)
-})
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] Health check requested`)
-  res.json({ status: 'OK', timestamp: new Date().toISOString() })
-})
-
+// Server starten
 app.listen(port, () => {
   const timestamp = new Date().toISOString()
   console.log(`[${timestamp}] ========================================`)
@@ -1020,27 +367,11 @@ app.listen(port, () => {
   console.log(`[${timestamp}] Server läuft auf http://localhost:${port}`)
   console.log(`[${timestamp}] ========================================`)
   console.log(`[${timestamp}] Verfügbare Endpunkte:`)
-  console.log(`[${timestamp}] OpenAPI v1 Endpunkte (mit JWT Auth):`)
-  console.log(`[${timestamp}]   POST http://localhost:${port}/v1/apikeys - Create API key`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys - List API keys`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys/:id - Get single API key`)
-  console.log(
-    `[${timestamp}]   POST http://localhost:${port}/v1/apikeys/:id/rotate - Rotate API key`,
-  )
-  console.log(
-    `[${timestamp}]   PUT  http://localhost:${port}/v1/apikeys/:id/deactivate - Deactivate API key`,
-  )
+  console.log(`[${timestamp}]   POST http://localhost:${port}/v1/apikeys - Create API key`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai - Get usage data`)
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai/summarize - Get usage summary`,
-  )
-  console.log(`[${timestamp}] Admin Endpunkte:`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/admin/apikeys - Get all API keys`)
-  console.log(
-    `[${timestamp}]   POST http://localhost:${port}/v1/admin/apikeys - Create API key for user`,
-  )
-  console.log(
-    `[${timestamp}]   PUT  http://localhost:${port}/v1/admin/apikeys/:id/deactivate - Deactivate any API key`,
   )
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/ai - Get all usage data`,
@@ -1048,22 +379,5 @@ app.listen(port, () => {
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/ai/summarize - Admin usage summary`,
   )
-  console.log(`[${timestamp}] Admin Endpunkte (User Management):`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/admin/users - Get all users`)
-  console.log(
-    `[${timestamp}]   PUT  http://localhost:${port}/v1/admin/users/:id/role - Update user role`,
-  )
-  console.log(
-    `[${timestamp}]   PUT  http://localhost:${port}/v1/admin/users/:id/deactivate - Deactivate user`,
-  )
-  console.log(`[${timestamp}] Legacy Endpunkte:`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/api/keys - Legacy API keys`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/api/key-stats - Legacy key stats`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/api/health - Health check`)
-  console.log(`[${timestamp}] ========================================`)
-  console.log(`[${timestamp}] JWT Token Testing:`)
-  console.log(`[${timestamp}]   ?token=admin - Für API-Admin-Rolle`)
-  console.log(`[${timestamp}]   ?token=default - Für API-Default-Rolle`)
-  console.log(`[${timestamp}]   ?token=stream - Für API-Stream-Rolle`)
   console.log(`[${timestamp}] ========================================`)
 })

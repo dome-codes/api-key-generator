@@ -172,6 +172,24 @@
           </button>
         </div>
       </div>
+
+      <!-- Page Size Selector -->
+      <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center space-x-2">
+          <label class="text-sm text-gray-700">Einträge pro Seite:</label>
+          <select
+            v-model="pageSize"
+            @change="currentPage = 1"
+            class="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+          >
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -216,16 +234,16 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Local state
 const currentPage = ref(1)
-const pageSize = 20
+const pageSize = ref(10)
 
 // Computed
 const filteredData = computed(() => props.data)
 
-const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize))
+const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize.value))
 
 const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
   return filteredData.value.slice(start, end)
 })
 

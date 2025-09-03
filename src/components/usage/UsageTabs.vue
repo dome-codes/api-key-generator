@@ -43,27 +43,6 @@
           </svg>
           Admin-Nutzung (Alle Konten)
         </button>
-
-        <button
-          v-if="isApiAdmin"
-          @click="activeTab = 'detailed'"
-          :class="[
-            activeTab === 'detailed'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-          ]"
-        >
-          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-            />
-          </svg>
-          Detaillierte Übersicht
-        </button>
       </nav>
     </div>
 
@@ -121,16 +100,59 @@
               <option value="ImageModelUsage">Bilder</option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Ansicht</label>
-            <select
-              v-model="ownView"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+        </div>
+
+        <!-- View Toggle Buttons -->
+        <div class="mt-4 flex justify-center">
+          <div class="bg-gray-100 rounded-lg p-1 inline-flex">
+            <button
+              @click="ownView = 'overview'"
+              :class="[
+                ownView === 'overview'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+              ]"
             >
-              <option value="overview">Übersicht</option>
-              <option value="chart">Chart-Ansicht</option>
-              <option value="detailed">Detailliert</option>
-            </select>
+              <svg
+                class="w-4 h-4 inline mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              Übersicht
+            </button>
+            <button
+              @click="ownView = 'detailed'"
+              :class="[
+                ownView === 'detailed'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+              ]"
+            >
+              <svg
+                class="w-4 h-4 inline mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
+              </svg>
+              Detailliert
+            </button>
           </div>
         </div>
       </div>
@@ -209,6 +231,7 @@
       <!-- Zusätzliche Charts -->
       <UsageAdditionalCharts v-if="showOwnChart" :usage-data="detailedUsageData || []" />
 
+      <!-- Detaillierte Tabelle -->
       <UsageDetailedTable
         v-if="showOwnDetails"
         :data="filteredUsageData || []"
@@ -277,23 +300,64 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Benutzer</option>
-              <option value="user-123">user-123 (Domenic)</option>
-              <option value="user-456">user-456 (John)</option>
-              <option value="user-789">user-789 (Maria)</option>
-              <option value="user-101">user-101 (Alex)</option>
-              <option value="user-202">user-202 (Sarah)</option>
+              <option v-for="user in uniqueUsers" :key="user.id" :value="user.id">
+                {{ user.displayName }}
+              </option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Ansicht</label>
-            <select
-              v-model="adminView"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+        </div>
+
+        <!-- View Toggle Buttons -->
+        <div class="mt-4 flex justify-center">
+          <div class="bg-gray-100 rounded-lg p-1 inline-flex">
+            <button
+              @click="adminView = 'overview'"
+              :class="[
+                adminView === 'overview'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+              ]"
             >
-              <option value="overview">Übersicht</option>
-              <option value="chart">Chart-Ansicht</option>
-              <option value="detailed">Detailliert</option>
-            </select>
+              <svg
+                class="w-4 h-4 inline mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              Übersicht
+            </button>
+            <button
+              @click="adminView = 'detailed'"
+              :class="[
+                adminView === 'detailed'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900',
+                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+              ]"
+            >
+              <svg
+                class="w-4 h-4 inline mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
+              </svg>
+              Detailliert
+            </button>
           </div>
         </div>
       </div>
@@ -382,136 +446,14 @@
       />
 
       <!-- Zusätzliche Charts -->
-      <UsageAdditionalCharts v-if="showAdminChart" :usage-data="detailedUsageData || []" />
+      <UsageAdditionalCharts v-if="showAdminChart" :usage-data="filteredAdminUsageData || []" />
 
       <UsageDetailedTable
         v-if="showAdminDetails"
-        :data="filteredUsageData || []"
+        :data="filteredAdminUsageData || []"
         :is-loading="isLoading || false"
         :error="error || null"
       />
-    </div>
-
-    <div v-else-if="activeTab === 'detailed'" class="space-y-6">
-      <!-- Pricing Disclaimer -->
-      <UsagePricingDisclaimer />
-
-      <!-- Detaillierte Nutzungsübersicht -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Detaillierte Nutzungsübersicht</h2>
-        <p class="text-gray-600 mb-4">
-          Hier sehen Sie eine detaillierte Aufschlüsselung der API-Nutzung nach technischen Nutzern,
-          Modellen und Zeiträumen.
-        </p>
-
-        <!-- Aggregation Cards -->
-        <div v-if="usageAggregation" class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div class="bg-blue-50 rounded-lg p-4">
-            <div class="text-sm text-blue-600 font-medium">Gesamte Anfragen</div>
-            <div class="text-2xl font-bold text-blue-800">
-              {{ usageAggregation.totalRequests.toLocaleString() }}
-            </div>
-          </div>
-
-          <div class="bg-green-50 rounded-lg p-4">
-            <div class="text-sm text-green-600 font-medium">Tokens In</div>
-            <div class="text-2xl font-bold text-green-800">
-              {{ usageAggregation.totalTokensIn.toLocaleString() }}
-            </div>
-          </div>
-
-          <div class="bg-purple-50 rounded-lg p-4">
-            <div class="text-sm text-purple-600 font-medium">Tokens Out</div>
-            <div class="text-2xl font-bold text-purple-800">
-              {{ usageAggregation.totalTokensOut.toLocaleString() }}
-            </div>
-          </div>
-
-          <div class="bg-orange-50 rounded-lg p-4">
-            <div class="text-sm text-orange-600 font-medium">Gesamt Tokens</div>
-            <div class="text-2xl font-bold text-orange-800">
-              {{ usageAggregation.totalTokens.toLocaleString() }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Additional Stats -->
-        <div v-if="usageAggregation" class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 font-medium">Eindeutige Nutzer</div>
-            <div class="text-xl font-bold text-gray-800">{{ usageAggregation.uniqueUsers }}</div>
-          </div>
-
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 font-medium">Eindeutige Modelle</div>
-            <div class="text-xl font-bold text-gray-800">{{ usageAggregation.uniqueModels }}</div>
-          </div>
-
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 font-medium">Ø Tokens/Anfrage</div>
-            <div class="text-xl font-bold text-gray-800">
-              {{ usageAggregation.averageTokensPerRequest.toFixed(1) }}
-            </div>
-          </div>
-
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm text-gray-600 font-medium">Gesamtkosten</div>
-            <div class="text-xl font-bold text-gray-800">
-              {{ formatCost(usageAggregation.totalCost) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Top Users und Models -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- Top Users -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">Top 5 Nutzer</h4>
-            <div class="space-y-2">
-              <div
-                v-for="user in topUsers.slice(0, 5)"
-                :key="user.technicalUserId"
-                class="flex items-center justify-between text-sm"
-              >
-                <div>
-                  <span class="text-gray-900">{{ user.technicalUserName }}</span>
-                  <div class="text-xs text-gray-500">
-                    {{ user.totalTokens.toLocaleString() }} Tokens
-                  </div>
-                </div>
-                <span class="text-gray-600"
-                  >{{ user.totalRequests.toLocaleString() }} Anfragen</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <!-- Top Models -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-700 mb-3">Top 5 Modelle</h4>
-            <div class="space-y-4">
-              <div
-                v-for="model in topModels.slice(0, 5)"
-                :key="model.modelName"
-                class="flex items-center justify-between text-sm"
-              >
-                <div>
-                  <span class="text-gray-900">{{ model.modelName }}</span>
-                  <div class="text-xs text-gray-500">
-                    {{ model.totalTokens.toLocaleString() }} Tokens
-                  </div>
-                </div>
-                <span class="text-gray-600"
-                  >{{ model.totalRequests.toLocaleString() }} Anfragen</span
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Detaillierte Tabelle -->
-      <UsageDetailedTable :data="filteredUsageData" :is-loading="isLoading" :error="error" />
     </div>
   </div>
 </template>
@@ -543,6 +485,7 @@ const {
   topUsers,
   topModels,
   loadDetailedUsageData,
+  loadUsageSummary,
 } = useUsage()
 
 // Filter State
@@ -583,11 +526,17 @@ onMounted(async () => {
   const fromDate = thirtyDaysAgo.toISOString()
   const toDate = today.toISOString()
 
-  // Lade Daten mit den korrekten Parametern
-  await loadDetailedUsageData({
-    fromDate,
-    toDate,
-  })
+  // Verwende bereits geladene Daten von HomeView
+  // Nur laden wenn wirklich keine Daten vorhanden sind
+  if (!usageAggregation.value || Object.keys(usageAggregation.value).length === 0) {
+    console.log('🔍 [USAGE-TABS] No data available, loading usage summary...')
+    await loadUsageSummary({
+      fromDate,
+      toDate,
+    })
+  } else {
+    console.log('🔍 [USAGE-TABS] Using existing data from HomeView')
+  }
 })
 
 // Computed properties für gefilterte Daten
@@ -627,6 +576,113 @@ const filteredOwnUsage = computed(() => {
   return aggregatedData
 })
 
+// Computed property für gefilterte Admin-Rohdaten (für Charts)
+const filteredAdminUsageData = computed(() => {
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    return []
+  }
+
+  // Filtere nach Admin-Filtern
+  let filteredData = detailedUsageData.value
+
+  // Filtere nach Modelltyp falls ausgewählt
+  if (adminModelType.value) {
+    filteredData = filteredData.filter(
+      (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
+    )
+  }
+
+  // Filtere nach Benutzer falls ausgewählt
+  if (adminUser.value) {
+    filteredData = filteredData.filter((item) => {
+      const userId = item.technicalUserId || item.apiKeyId || 'unknown'
+      return userId === adminUser.value
+    })
+  }
+
+  // Filtere nach Zeitraum
+  let fromDate: Date
+  let toDate: Date
+
+  if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
+    fromDate = new Date(adminFromDate.value)
+    toDate = new Date(adminToDate.value)
+  } else if (adminTimeRange.value !== 'custom') {
+    const today = new Date()
+
+    switch (adminTimeRange.value) {
+      case '7d':
+        fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '30d':
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case '90d':
+        fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        toDate = today
+        break
+      case 'thisMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        toDate = today
+        break
+      case 'lastMonth':
+        fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        toDate = new Date(today.getFullYear(), today.getMonth(), 0)
+        break
+      default:
+        fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        toDate = today
+    }
+  } else {
+    // Fallback: Letzte 30 Tage
+    const today = new Date()
+    fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    toDate = today
+  }
+
+  return filteredData.filter((item) => {
+    let itemDate: Date
+    if (item.createDate) {
+      itemDate = new Date(item.createDate)
+    } else if (item.day && item.month && item.year) {
+      itemDate = new Date(item.year, item.month - 1, item.day)
+    } else {
+      return false
+    }
+    return itemDate >= fromDate && itemDate <= toDate
+  })
+})
+
+// Computed property für eindeutige Benutzer aus den Usage-Daten
+const uniqueUsers = computed(() => {
+  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+    return []
+  }
+
+  // Extrahiere eindeutige Benutzer aus den Usage-Daten
+  const userMap = new Map<string, string>()
+
+  detailedUsageData.value.forEach((item) => {
+    const userId = item.technicalUserId || item.apiKeyId || 'unknown'
+    const userName = item.technicalUserName || `User ${userId}`
+
+    if (!userMap.has(userId)) {
+      userMap.set(userId, userName)
+    }
+  })
+
+  // Konvertiere zu Array und sortiere nach Benutzername
+  return Array.from(userMap.entries())
+    .map(([userId, userName]) => ({
+      id: userId,
+      name: userName,
+      displayName: `${userId} (${userName})`,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
 const filteredAdminUsage = computed(() => {
   if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
     return {
@@ -638,14 +694,8 @@ const filteredAdminUsage = computed(() => {
     }
   }
 
-  // Filtere nach Modelltyp falls ausgewählt
-  let filteredData = detailedUsageData.value
-  if (adminModelType.value) {
-    // Backend sendet 'type' zurück, nicht 'modelType'
-    filteredData = detailedUsageData.value.filter(
-      (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
-    )
-  }
+  // Verwende die gefilterten Admin-Daten
+  const filteredData = filteredAdminUsageData.value
 
   // Berechne aggregierte Werte
   const aggregatedData = filteredData.reduce(
@@ -683,6 +733,20 @@ const showAdminChart = computed(() => {
 
 const showAdminDetails = computed(() => {
   return adminView.value === 'detailed'
+})
+
+// Lade detaillierte Daten nur wenn benötigt
+const loadDetailedDataIfNeeded = async () => {
+  if (showOwnDetails.value || showAdminDetails.value) {
+    await loadDetailedUsageData()
+  }
+}
+
+// Watch für View-Änderungen
+watch([showOwnDetails, showAdminDetails], async ([ownDetails, adminDetails]) => {
+  if (ownDetails || adminDetails) {
+    await loadDetailedDataIfNeeded()
+  }
 })
 
 // Computed property für Chart-Perioden basierend auf Filter
@@ -1212,8 +1276,198 @@ const ownChartData = computed(() => {
 })
 
 const adminChartData = computed(() => {
-  // Verwende die gleichen Daten wie ownChartData für Admin
-  return ownChartData.value
+  // Verwende gefilterte Admin-Daten für Chart
+  if (!filteredAdminUsageData.value || filteredAdminUsageData.value.length === 0) {
+    return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
+  }
+
+  // Sortiere nach Datum
+  const sortedData = filteredAdminUsageData.value.sort((a, b) => {
+    let dateA: Date
+    let dateB: Date
+
+    if (a.createDate) {
+      dateA = new Date(a.createDate)
+    } else if (a.day && a.month && a.year) {
+      dateA = new Date(a.year, a.month - 1, a.day)
+    } else {
+      return 0
+    }
+
+    if (b.createDate) {
+      dateB = new Date(b.createDate)
+    } else if (b.day && b.month && b.year) {
+      dateB = new Date(b.year, b.month - 1, b.day)
+    } else {
+      return 0
+    }
+
+    return dateA.getTime() - dateB.getTime()
+  })
+
+  // Gruppiere nach Periode basierend auf adminChartPeriod
+  const period = adminChartPeriod.value
+
+  if (period === 'daily') {
+    // Gruppiere nach Tagen
+    const dailyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      const dayLabel = date.toLocaleDateString('de-DE', { weekday: 'short' })
+
+      if (!dailyGroups.has(dayLabel)) {
+        dailyGroups.set(dayLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+        })
+      }
+
+      const group = dailyGroups.get(dayLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += 1
+      group.count++
+    })
+
+    const sortedEntries = Array.from(dailyGroups.entries())
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  } else if (period === 'weekly') {
+    // Gruppiere nach Wochen
+    const weeklyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; weekNumber: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      const weekNumber = Math.ceil(
+        (date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000),
+      )
+      const weekLabel = `KW ${weekNumber}`
+
+      if (!weeklyGroups.has(weekLabel)) {
+        weeklyGroups.set(weekLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+          weekNumber,
+        })
+      }
+
+      const group = weeklyGroups.get(weekLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += 1
+      group.count++
+    })
+
+    const sortedEntries = Array.from(weeklyGroups.entries()).sort(
+      (a, b) => a[1].weekNumber - b[1].weekNumber,
+    )
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  } else if (period === 'monthly') {
+    // Gruppiere nach Monaten
+    const monthlyGroups = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; count: number; monthNumber: number }
+    >()
+
+    sortedData.forEach((item) => {
+      let date: Date
+      if (item.createDate) {
+        date = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        date = new Date(item.year, item.month - 1, item.day)
+      } else {
+        return
+      }
+
+      const monthNumber = date.getMonth()
+      const monthLabel = date.toLocaleDateString('de-DE', { month: 'short' })
+
+      if (!monthlyGroups.has(monthLabel)) {
+        monthlyGroups.set(monthLabel, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          count: 0,
+          monthNumber,
+        })
+      }
+
+      const group = monthlyGroups.get(monthLabel)!
+      group.tokensIn += item.tokensIn || 0
+      group.tokensOut += item.tokensOut || 0
+      group.requests += 1
+      group.count++
+    })
+
+    const sortedEntries = Array.from(monthlyGroups.entries()).sort(
+      (a, b) => a[1].monthNumber - b[1].monthNumber,
+    )
+    const labels = sortedEntries.map(([label]) => label)
+    const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+    const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+    const requests = sortedEntries.map(([, data]) => data.requests)
+
+    return { labels, tokensIn, tokensOut, requests }
+  }
+
+  // Fallback: Zeige individuelle Datenpunkte
+  const labels = sortedData.map((item) => {
+    if (item.createDate) {
+      const date = new Date(item.createDate)
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } else if (item.day && item.month && item.year) {
+      const date = new Date(item.year, item.month - 1, item.day)
+      return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+    }
+    return 'Unknown'
+  })
+
+  const tokensIn = sortedData.map((item) => item.tokensIn || 0)
+  const tokensOut = sortedData.map((item) => item.tokensOut || 0)
+  const requests = sortedData.map((item) => 1)
+
+  return { labels, tokensIn, tokensOut, requests }
 })
 
 // Handle Chart Period Change

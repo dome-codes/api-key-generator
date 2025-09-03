@@ -313,15 +313,9 @@ function calculateImageCost(
   }
 }
 
-// Formatierung für Anzeige
+// Formatierung für Anzeige - nur normale Dezimalzahlen
 export function formatCost(cost: number): string {
-  if (cost < 0.01) {
-    return `€${(cost * 1000).toFixed(2)}m` // Millicents
-  } else if (cost < 1) {
-    return `€${(cost * 100).toFixed(2)}c` // Cents
-  } else {
-    return `€${cost.toFixed(2)}` // Euros
-  }
+  return `€${cost.toFixed(2)}`
 }
 
 // Hilfsfunktion für Beispiel-Berechnungen

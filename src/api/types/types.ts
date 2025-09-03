@@ -80,11 +80,16 @@ export interface SummaryUsage {
   type?: ModelUsageType
   requests?: number
   technicalUserId?: string
+  apiKeyId?: string // Neue apiKeyId für Gruppierung
   model?: string
   tag: string
   day?: number
   month?: number
   year?: number
+  requestTokens?: number // Neue Token-Felder
+  responseTokens?: number
+  totalTokens?: number
+  cost?: number // Kosten pro API Key
 }
 export interface SummaryUsageResponse {
   from_date?: string
@@ -98,20 +103,31 @@ export interface UsageAIGetV1Params {
   to_date?: string
   model?: string
   technicalUserId?: string
+  apiKeyId?: string
 }
 
 export interface UsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
-  by?: string
+  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
   model?: string
   technicalUserId?: string
+  apiKeyId?: string
+}
+
+export interface UsageAISummaryGetV1Params {
+  from_date?: string
+  to_date?: string
+  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
+  model?: string
+  technicalUserId?: string
+  apiKeyId?: string
 }
 
 export interface AdminUsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
-  by?: string
+  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
   model?: string
   technicalUserId?: string
 }

@@ -87,39 +87,38 @@ const {
 const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 
 // Usage data for detailed breakdown
-const { usageAggregation, detailedUsageData, loadDetailedUsageData } = useUsage()
+const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
 
-// Real usage data for API keys from the API
+// API Key Usage Data from Summarize API (grouped by apiKey)
 const apiKeyUsageData = computed(() => {
   const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
 
-  console.log('🔍 Linking API Keys with Usage Data:')
+  console.log('🔍 [HOMEVIEW] Computing apiKeyUsageData from summarize API...')
   console.log(
-    '  - API Keys:',
+    '🔍 [HOMEVIEW] API Keys:',
     legacyKeys.value.map((k) => ({ id: k.id, name: k.name })),
   )
-  console.log(
-    '  - Usage Data:',
-    detailedUsageData.value.map((u) => ({
-      apiKeyId: u.apiKeyId,
-      tokensIn: u.tokensIn,
-      tokensOut: u.tokensOut,
-    })),
-  )
-  console.log('  - All Usage Data (full):', detailedUsageData.value)
+  console.log('🔍 [HOMEVIEW] Usage Summary Data:', detailedUsageData.value)
 
-  // Verwende echte API-Daten für jeden API Key
+  // Verwende gruppierte Daten aus der Summarize API
   legacyKeys.value.forEach((key) => {
-    // Suche nach Usage-Daten für diesen API Key
+    // Suche nach Usage-Daten für diesen API Key in den gruppierten Daten
     const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
 
-    console.log(`  - API Key ${key.name} (${key.id}): Found ${keyUsage.length} usage records`)
+    console.log(
+      `🔍 [HOMEVIEW] API Key ${key.name} (${key.id}): Found ${keyUsage.length} usage records`,
+    )
+    console.log(
+      '🔍 [HOMEVIEW] Available apiKeyIds in detailedUsageData:',
+      detailedUsageData.value.map((item) => item.apiKeyId),
+    )
 
     if (keyUsage.length > 0) {
-      // Summiere alle Usage-Daten für diesen API Key
-      const totalCost = keyUsage.reduce((sum, item) => sum + (item.cost || 0), 0)
-      const totalTokensIn = keyUsage.reduce((sum, item) => sum + (item.tokensIn || 0), 0)
-      const totalTokensOut = keyUsage.reduce((sum, item) => sum + (item.tokensOut || 0), 0)
+      // Verwende die ersten gruppierten Daten (da bereits nach API Key gruppiert)
+      const usage = keyUsage[0]
+      const totalCost = usage.cost || 0 // Kosten werden bereits in useUsage berechnet
+      const totalTokensIn = usage.tokensIn || 0
+      const totalTokensOut = usage.tokensOut || 0
 
       usageMap[key.id] = {
         cost: totalCost,
@@ -127,7 +126,9 @@ const apiKeyUsageData = computed(() => {
         tokensOut: totalTokensOut,
       }
 
-      console.log(`    → Total: Cost=${totalCost}, Tokens=${totalTokensIn}/${totalTokensOut}`)
+      console.log(
+        `🔍 [HOMEVIEW]   → Total: Cost=${totalCost}, Tokens=${totalTokensIn}/${totalTokensOut}`,
+      )
     } else {
       // Fallback: Verwende 0-Werte wenn keine Daten vorhanden
       usageMap[key.id] = {
@@ -136,7 +137,7 @@ const apiKeyUsageData = computed(() => {
         tokensOut: 0,
       }
 
-      console.log(`    → No usage data found, using 0 values`)
+      console.log(`🔍 [HOMEVIEW]   → No usage data found, using 0 values`)
     }
   })
 
@@ -217,10 +218,27 @@ const copyApiKeyWithSuccess = async (apiKey: string) => {
   }
 }
 
+// Zentralisierte Datenladung - nur einmal beim App-Start
+const loadInitialData = async () => {
+  console.log('🔍 [HOMEVIEW] Loading initial data...')
+
+  // Lade alle Daten parallel
+  await Promise.all([
+    loadKeys(),
+    loadBudgetData(),
+    loadUsageSummary(), // Lädt sowohl Summary als auch API-Key-Daten
+  ])
+
+  // Debug: Überprüfe ob API-Key-Daten geladen wurden
+  console.log(
+    '🔍 [HOMEVIEW] After loading - detailedUsageData length:',
+    detailedUsageData.value.length,
+  )
+  console.log('🔍 [HOMEVIEW] After loading - apiKeyUsageData:', apiKeyUsageData.value)
+}
+
 onMounted(() => {
-  loadKeys()
-  loadBudgetData()
-  loadDetailedUsageData() // Lade Usage-Daten für API Key Anzeige
+  loadInitialData()
 })
 </script>
 

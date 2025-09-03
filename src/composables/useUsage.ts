@@ -1,10 +1,12 @@
 import type {
   EnhancedUsageRecord,
   ModelUsageSummary,
+  SummaryUsage,
   UsageAggregation,
   UsageFilter,
   UserUsageSummary,
 } from '@/api/types/types'
+import { usageService } from '@/services/apiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
@@ -78,8 +80,8 @@ export function useUsage() {
     return modelUsageSummary.value.sort((a, b) => b.totalRequests - a.totalRequests).slice(0, 10)
   })
 
-  // Actions
-  const loadDetailedUsageData = async (filter?: UsageFilter) => {
+  // Optimierte Funktion: Nur Summary laden
+  const loadUsageSummary = async (filter?: UsageFilter) => {
     isLoading.value = true
     error.value = null
 
@@ -88,7 +90,155 @@ export function useUsage() {
         currentFilter.value = { ...filter }
       }
 
-      debugLog('Loading usage data with filter:', currentFilter.value)
+      debugLog('Loading usage summary with filter:', currentFilter.value)
+      console.log('🔍 [FRONTEND] Loading usage summary...')
+
+      // EINEN einzigen summarize Call mit by=apikey UND Zeitraum für alle Daten
+      const summaryData = await usageService.getUsageSummaryByApiKey(
+        convertToIsoString(currentFilter.value.fromDate),
+        convertToIsoString(currentFilter.value.toDate),
+      )
+
+      console.log('🔍 [USE-USAGE] Summary data received:', summaryData)
+      console.log('🔍 [USE-USAGE] Usage array length:', summaryData.usage?.length || 0)
+
+      // Extrahiere Aggregation aus den API-Key-Daten
+      if (summaryData.usage && summaryData.usage.length > 0) {
+        // Berechne Aggregation aus den API-Key-Daten
+        const totalRequests = summaryData.usage.reduce((sum, item) => sum + (item.requests || 0), 0)
+        const totalTokensIn = summaryData.usage.reduce(
+          (sum, item) => sum + (item.requestTokens || 0),
+          0,
+        )
+        const totalTokensOut = summaryData.usage.reduce(
+          (sum, item) => sum + (item.responseTokens || 0),
+          0,
+        )
+        const totalTokens = totalTokensIn + totalTokensOut
+
+        // Berechne Kosten für jedes Item
+        const costs = await Promise.all(
+          summaryData.usage.map(async (item) => {
+            const { calculateCost } = await import('@/config/pricing')
+            return calculateCost(
+              item.requestTokens || 0,
+              item.responseTokens || 0,
+              item.model || 'gpt-4o',
+              false,
+              item.type || 'CompletionModelUsage',
+            ).finalCost
+          }),
+        )
+        const totalCost = costs.reduce((sum, cost) => sum + cost, 0)
+
+        // Erstelle Aggregation
+        usageAggregation.value = {
+          totalRequests,
+          totalTokensIn,
+          totalTokensOut,
+          totalTokens,
+          totalCost,
+          uniqueUsers: new Set(summaryData.usage.map((item) => item.technicalUserId)).size,
+          uniqueModels: new Set(summaryData.usage.map((item) => item.model)).size,
+          averageRequestsPerUser:
+            totalRequests /
+            Math.max(new Set(summaryData.usage.map((item) => item.technicalUserId)).size, 1),
+          averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
+          averageCostPerRequest: totalCost / Math.max(totalRequests, 1),
+        }
+
+        // Konvertiere zu EnhancedUsageRecord für Progress Bars
+        const enhancedData = await Promise.all(
+          summaryData.usage.map(async (item: SummaryUsage) => {
+            const { calculateCost } = await import('@/config/pricing')
+            const costResult = calculateCost(
+              item.requestTokens || 0,
+              item.responseTokens || 0,
+              item.model || 'gpt-4o',
+              false,
+              item.type || 'CompletionModelUsage',
+            )
+
+            return {
+              technicalUserId: item.technicalUserId || 'unknown',
+              technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+              modelName: item.model || 'unknown',
+              modelType: item.type || 'CompletionModelUsage',
+              type: item.type,
+              requests: item.requests || 0,
+              tokensIn: item.requestTokens || 0,
+              tokensOut: item.responseTokens || 0,
+              totalTokens: item.totalTokens || 0,
+              cost: costResult.finalCost,
+              tag: item.tag || 'production',
+              day: item.day,
+              month: item.month,
+              year: item.year,
+              createDate: undefined,
+              apiKeyId: item.apiKeyId,
+            }
+          }),
+        )
+
+        detailedUsageData.value = enhancedData
+        console.log('🔍 [FRONTEND] API Key data loaded:', enhancedData.length, 'records')
+        console.log(
+          '🔍 [USE-USAGE] Enhanced data apiKeyIds:',
+          enhancedData.map((item) => item.apiKeyId),
+        )
+      } else {
+        // Fallback: Leere Daten
+        usageAggregation.value = {
+          totalRequests: 0,
+          totalTokensIn: 0,
+          totalTokensOut: 0,
+          totalTokens: 0,
+          totalCost: 0,
+          uniqueUsers: 0,
+          uniqueModels: 0,
+          averageRequestsPerUser: 0,
+          averageTokensPerRequest: 0,
+          averageCostPerRequest: 0,
+        }
+        detailedUsageData.value = []
+      }
+
+      // Leere Arrays für normale Benutzer
+      userUsageSummary.value = []
+      modelUsageSummary.value = []
+
+      debugLog('Usage summary loaded successfully:', {
+        aggregation: usageAggregation.value,
+        apiKeyDataLength: detailedUsageData.value.length,
+      })
+      console.log('✅ [FRONTEND] Usage summary loaded')
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
+      debugLog('Error loading usage summary:', err)
+      console.error('❌ [FRONTEND] Error loading usage summary:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Separate Funktion für detaillierte Daten (nur bei Bedarf)
+  const loadDetailedUsageData = async (filter?: UsageFilter) => {
+    // Nur laden wenn wirklich benötigt (z.B. für detaillierte Tabelle)
+    if (detailedUsageData.value.length > 0) {
+      return // Bereits geladen
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      if (filter) {
+        currentFilter.value = { ...filter }
+      }
+
+      debugLog('Loading detailed usage data with filter:', currentFilter.value)
+      console.log('🔍 [FRONTEND] Loading detailed usage data...')
 
       // Prüfe ob Admin-Berechtigung vorhanden ist
       const hasAdminPermission = await import('@/auth/keycloak').then((m) =>
@@ -96,101 +246,99 @@ export function useUsage() {
       )
 
       debugLog('Has admin permission:', hasAdminPermission)
+      console.log('🔍 [FRONTEND] Admin permission:', hasAdminPermission)
+
+      let response: EnhancedUsageRecord[]
 
       if (hasAdminPermission) {
-        // Lade alle Daten nur wenn Admin-Berechtigung vorhanden
-        debugLog('Loading admin data...')
-        const [detailedData, aggregation, userSummary, modelSummary] = await Promise.all([
-          usageAnalyticsService.getDetailedUsageData(
-            convertToIsoString(currentFilter.value.fromDate),
-            convertToIsoString(currentFilter.value.toDate),
-            true, // useAdminApi
-          ),
-          usageAnalyticsService.getUsageAggregation(
-            convertToIsoString(currentFilter.value.fromDate),
-            convertToIsoString(currentFilter.value.toDate),
-            true, // useAdminApi
-          ),
-          usageAnalyticsService.getUserUsageSummary(
-            convertToIsoString(currentFilter.value.fromDate),
-            convertToIsoString(currentFilter.value.toDate),
-          ),
-          usageAnalyticsService.getModelUsageSummary(
-            convertToIsoString(currentFilter.value.fromDate),
-            convertToIsoString(currentFilter.value.toDate),
-          ),
-        ])
-
-        debugLog('Admin data loaded:', { detailedData, aggregation, userSummary, modelSummary })
-
-        detailedUsageData.value = detailedData
-        usageAggregation.value = aggregation
-        userUsageSummary.value = userSummary
-        modelUsageSummary.value = modelSummary
+        // Admin: Alle Daten laden
+        response = await usageAnalyticsService.getDetailedUsageData(
+          convertToIsoString(currentFilter.value.fromDate),
+          convertToIsoString(currentFilter.value.toDate),
+          true, // useAdminApi = true für Admin
+        )
       } else {
-        // Lade eigene Daten für normale Benutzer
-        debugLog('Loading own data...')
-        try {
-          const [detailedData, aggregation] = await Promise.all([
-            usageAnalyticsService.getDetailedUsageData(
-              convertToIsoString(currentFilter.value.fromDate),
-              convertToIsoString(currentFilter.value.toDate),
-              false, // useAdminApi = false für normale Benutzer
-            ),
-            usageAnalyticsService.getUsageAggregation(
-              convertToIsoString(currentFilter.value.fromDate),
-              convertToIsoString(currentFilter.value.toDate),
-              false, // useAdminApi = false für normale Benutzer
-            ),
-          ])
-
-          debugLog('Own data loaded:', { detailedData, aggregation })
-
-          detailedUsageData.value = detailedData
-          usageAggregation.value = aggregation
-          userUsageSummary.value = []
-          modelUsageSummary.value = []
-        } catch (ownDataError) {
-          console.warn('Could not load own data, using fallback:', ownDataError)
-          // Fallback: Leere Arrays für nicht-Admin Benutzer, aber nicht null
-          detailedUsageData.value = []
-          usageAggregation.value = {
-            totalRequests: 0,
-            totalTokensIn: 0,
-            totalTokensOut: 0,
-            totalTokens: 0,
-            totalCost: 0,
-            uniqueUsers: 0,
-            uniqueModels: 0,
-            averageRequestsPerUser: 0,
-            averageTokensPerRequest: 0,
-            averageCostPerRequest: 0,
-          }
-          userUsageSummary.value = []
-          modelUsageSummary.value = []
-        }
+        // Normaler User: Nur eigene Daten laden
+        response = await usageAnalyticsService.getDetailedUsageData(
+          convertToIsoString(currentFilter.value.fromDate),
+          convertToIsoString(currentFilter.value.toDate),
+          false, // useAdminApi = false für normale Benutzer
+        )
       }
+
+      detailedUsageData.value = response
+
+      debugLog('Detailed usage data loaded successfully:', response.length, 'records')
+      console.log('✅ [FRONTEND] Detailed usage data loaded:', response.length, 'records')
     } catch (err) {
       error.value =
-        err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Usage-Daten'
-      console.error('Fehler beim Laden der Usage-Daten:', err)
+        err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
+      debugLog('Error loading detailed usage data:', err)
+      console.error('❌ [FRONTEND] Error loading detailed usage data:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
 
-      // Setze Fallback-Daten bei Fehlern
-      detailedUsageData.value = []
-      usageAggregation.value = {
-        totalRequests: 0,
-        totalTokensIn: 0,
-        totalTokensOut: 0,
-        totalTokens: 0,
-        totalCost: 0,
-        uniqueUsers: 0,
-        uniqueModels: 0,
-        averageRequestsPerUser: 0,
-        averageTokensPerRequest: 0,
-        averageCostPerRequest: 0,
+  // Neue Funktion: Lade Usage-Daten nach API Key gruppiert (für Progress Bar)
+  const loadUsageDataByApiKey = async (fromDate?: string, toDate?: string) => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      console.log('🔍 [FRONTEND] Loading usage data by API Key...')
+
+      // Lade gruppierte Daten aus der Summarize API
+      const { usageService } = await import('@/services/apiService')
+      const summaryResponse = await usageService.getUsageSummaryByApiKey(fromDate, toDate)
+
+      console.log('🔍 [FRONTEND] Summary response:', summaryResponse)
+
+      if (summaryResponse.usage && summaryResponse.usage.length > 0) {
+        // Konvertiere SummaryUsage zu EnhancedUsageRecord für Kompatibilität
+        const enhancedData = await Promise.all(
+          summaryResponse.usage.map(async (item) => {
+            // Berechne Kosten über pricing.ts
+            const { calculateCost } = await import('@/config/pricing')
+            const costResult = calculateCost(
+              item.requestTokens || 0, // tokensIn
+              item.responseTokens || 0, // tokensOut
+              item.model || 'gpt-4o', // modelName
+              false, // useCachedInput
+              item.type || 'CompletionModelUsage', // modelType
+            )
+
+            return {
+              technicalUserId: item.technicalUserId || 'unknown',
+              technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+              modelName: item.model || 'unknown',
+              modelType: item.type || 'CompletionModelUsage',
+              type: item.type,
+              requests: item.requests || 0,
+              tokensIn: item.requestTokens || 0,
+              tokensOut: item.responseTokens || 0,
+              totalTokens: item.totalTokens || 0,
+              cost: costResult.finalCost, // Verwende berechnete Kosten
+              tag: item.tag || 'production',
+              day: item.day,
+              month: item.month,
+              year: item.year,
+              createDate: undefined, // Nicht verfügbar in Summary
+              apiKeyId: item.apiKeyId,
+            }
+          }),
+        )
+
+        detailedUsageData.value = enhancedData
+        console.log('🔍 [FRONTEND] Enhanced data from summary:', enhancedData)
+      } else {
+        detailedUsageData.value = []
+        console.log('🔍 [FRONTEND] No usage data found in summary')
       }
-      userUsageSummary.value = []
-      modelUsageSummary.value = []
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Fehler beim Laden der API Key Usage-Daten'
+      console.error('🔍 [FRONTEND] Error loading API Key usage data:', err)
+      detailedUsageData.value = []
     } finally {
       isLoading.value = false
     }
@@ -269,6 +417,7 @@ export function useUsage() {
     topModels,
 
     // Actions
+    loadUsageSummary,
     loadDetailedUsageData,
     exportUsageData,
     updateFilter,

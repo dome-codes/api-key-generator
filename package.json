@@ -14,6 +14,7 @@
     "frontend:preview": "vite preview",
     "dev:all": "npm-run-all2 --parallel dev frontend:dev",
     "dev:all:no-debug": "SHOW_DEBUG=false npm-run-all2 --parallel dev frontend:dev",
+    "dev:all:debug": "SHOW_DEBUG=true npm-run-all2 --parallel dev frontend:dev",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
