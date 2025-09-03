@@ -79,7 +79,7 @@ const MOCK_API_KEYS = [
     permissions: ['api-access'],
     created_at: '2025-08-05T09:00:00.000Z',
     expires_at: '2026-08-05T09:00:00.000Z',
-    is_active: true,
+    is_active: false, // Deaktiviert
     user_id: 'user-008',
     user_name: 'Research User',
   },
@@ -89,7 +89,7 @@ const MOCK_API_KEYS = [
     permissions: ['api-access'],
     created_at: '2025-08-12T11:00:00.000Z',
     expires_at: '2026-08-12T11:00:00.000Z',
-    is_active: true,
+    is_active: false, // Deaktiviert
     user_id: 'user-009',
     user_name: 'Mobile Developer',
   },

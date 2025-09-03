@@ -27,7 +27,7 @@ interface LegacyApiKey {
   createdBy: string
   validUntil: string
   lastUsed: string
-  status: string
+  status: string // 'active' oder 'revoked' basierend auf is_active
 }
 
 // Composables verwenden
@@ -96,12 +96,23 @@ const apiKeyUsageData = computed(() => {
   console.log('🔍 [HOMEVIEW] Computing apiKeyUsageData from summarize API...')
   console.log(
     '🔍 [HOMEVIEW] API Keys:',
-    legacyKeys.value.map((k) => ({ id: k.id, name: k.name })),
+    legacyKeys.value.map((k) => ({ id: k.id, name: k.name, status: k.status })),
   )
   console.log('🔍 [HOMEVIEW] Usage Summary Data:', detailedUsageData.value)
 
   // Verwende gruppierte Daten aus der Summarize API
   legacyKeys.value.forEach((key) => {
+    // Für deaktivierte API-Keys keine Usage-Daten anzeigen
+    if (key.status === 'revoked') {
+      usageMap[key.id] = {
+        cost: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+      }
+      console.log(`🔍 [HOMEVIEW] API Key ${key.name} (${key.id}): Deactivated - no usage data`)
+      return
+    }
+
     // Suche nach Usage-Daten für diesen API Key in den gruppierten Daten
     const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
 

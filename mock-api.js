@@ -216,6 +216,44 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
   res.status(200).json(responseKeys)
 })
 
+// DELETE /v1/apikeys/:id/deactivate - Deactivate an API key
+app.delete('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
+  const { id } = req.params
+  const userId = req.user.sub
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Deactivating API key: ${id}`)
+
+  const apiKey = apiKeys[id]
+  if (!apiKey) {
+    console.log(`[${timestamp}] ❌ API key not found: ${id}`)
+    return res.status(404).json({ error: 'API key not found' })
+  }
+
+  // Prüfe Berechtigung: Nur Besitzer oder Admin kann deaktivieren
+  const userRoles = req.user.groups || []
+  const isAdmin = userRoles.includes('API-Admin')
+  const isOwner = apiKey.user_id === userId
+
+  if (!isAdmin && !isOwner) {
+    console.log(`[${timestamp}] ❌ Unauthorized deactivation attempt for key: ${id}`)
+    return res.status(403).json({ error: 'Unauthorized to deactivate this API key' })
+  }
+
+  // Deaktiviere den API Key
+  apiKey.is_active = false
+  apiKey.deactivated_at = timestamp
+
+  console.log(`[${timestamp}] ✅ API key deactivated successfully: ${id}`)
+
+  res.status(200).json({
+    id: apiKey.id,
+    name: apiKey.name,
+    is_active: apiKey.is_active,
+    deactivated_at: apiKey.deactivated_at,
+  })
+})
+
 // GET /v1/usage/ai - Get AI usage data
 app.get('/v1/usage/ai', validateToken, (req, res) => {
   const { from_date, to_date } = req.query
@@ -369,6 +407,7 @@ app.listen(port, () => {
   console.log(`[${timestamp}] Verfügbare Endpunkte:`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys - List API keys`)
   console.log(`[${timestamp}]   POST http://localhost:${port}/v1/apikeys - Create API key`)
+  console.log(`[${timestamp}]   DELETE http://localhost:${port}/v1/apikeys/:id/deactivate - Deactivate API key`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai - Get usage data`)
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai/summarize - Get usage summary`,
