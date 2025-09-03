@@ -288,6 +288,16 @@ function requireRole(requiredRoles) {
 // In-Memory-Datenbank für API Keys
 const apiKeys = {} // { [id]: { id, name, permissions, created_at, expires_at, is_active, secret, user_id } }
 
+// Lade hardcodierte API Keys aus mock-data.js
+mockData.MOCK_API_KEYS.forEach((key) => {
+  apiKeys[key.id] = {
+    ...key,
+    secret: generateApiKey(),
+  }
+})
+
+console.log(`[MOCK-API] Initialized with ${Object.keys(apiKeys).length} hardcoded API keys:`, Object.keys(apiKeys))
+
 // Hilfsfunktionen
 function generateApiKey() {
   return (
