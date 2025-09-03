@@ -3,8 +3,184 @@ import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import * as mockData from './mock-data.js'
 
-// Mock API verwendet nur hardcodierte Daten aus mock-data.js
-// Keine Kostenberechnung hier - das macht das Frontend!
+// Mock usage data functions
+const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days = 30) => {
+  const mockData = []
+  const currentDate = new Date(startDate)
+
+  // Available models for different types
+  const completionModels = [
+    'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4-turbo',
+    'gpt-3.5-turbo',
+    'claude-3-sonnet',
+    'claude-3-haiku',
+  ]
+
+  const embeddingModels = [
+    'text-embedding-3-small',
+    'text-embedding-3-large',
+    'text-embedding-ada-002',
+  ]
+
+  const imageModels = ['dall-e-3', 'dall-e-2', 'midjourney-v6']
+
+  // Available tags with different weights for more realistic distribution
+  const tags = [
+    { name: 'production', weight: 0.4 }, // 40% production
+    { name: 'development', weight: 0.25 }, // 25% development
+    { name: 'testing', weight: 0.15 }, // 15% testing
+    { name: 'staging', weight: 0.1 }, // 10% staging
+    { name: 'demo', weight: 0.05 }, // 5% demo
+    { name: 'backup', weight: 0.02 }, // 2% backup
+    { name: 'archive', weight: 0.015 }, // 1.5% archive
+    { name: 'experimental', weight: 0.01 }, // 1% experimental
+    { name: 'research', weight: 0.01 }, // 1% research
+    { name: 'internal', weight: 0.005 }, // 0.5% internal
+  ]
+
+  // Helper function to select tag based on weights
+  const selectRandomTag = () => {
+    const random = Math.random()
+    let cumulativeWeight = 0
+    for (const tag of tags) {
+      cumulativeWeight += tag.weight
+      if (random <= cumulativeWeight) {
+        return tag.name
+      }
+    }
+    return tags[0].name // fallback to production
+  }
+
+  for (let i = 0; i < days; i++) {
+    const day = currentDate.getDate()
+    const month = currentDate.getMonth() + 1
+    const year = currentDate.getFullYear()
+
+    // Generate realistic daily usage patterns
+    const dayOfWeek = currentDate.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    const isWeekday = !isWeekend
+
+    // Base multipliers for different days
+    const weekdayMultiplier = isWeekday ? 1.2 : 0.6
+    const weekendMultiplier = isWeekend ? 0.8 : 1.0
+
+    // CompletionModelUsage - Daily variations with different models and tags
+    const completionRequests = Math.floor((Math.random() * 200 + 100) * weekdayMultiplier)
+    const completionTokensIn = completionRequests * (Math.random() * 200 + 150)
+    const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
+
+    // Generate createDate for detailed usage
+    const createDate = new Date(
+      year,
+      month - 1,
+      day,
+      Math.floor(Math.random() * 24),
+      Math.floor(Math.random() * 60),
+    )
+
+    // Random model and tag for completion
+    const completionModel = completionModels[Math.floor(Math.random() * completionModels.length)]
+    const completionTag = selectRandomTag()
+
+    mockData.push({
+      type: 'CompletionModelUsage',
+      requests: completionRequests,
+      modelName: completionModel,
+      tag: completionTag,
+      tokensIn: Math.floor(completionTokensIn),
+      tokensOut: Math.floor(completionTokensOut),
+      totalTokens: Math.floor(completionTokensIn + completionTokensOut),
+      cost: 0,
+      technicalUserId: userId || 'user-123',
+      technicalUserName: `User ${userId || 'user-123'}`,
+      createDate: createDate.toISOString(),
+    })
+
+    // EmbeddingModelUsage - Less frequent but larger batches
+    if (Math.random() > 0.3) {
+      // 70% chance per day
+      const embeddingRequests = Math.floor((Math.random() * 50 + 20) * weekdayMultiplier)
+      const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
+
+      const embeddingCreateDate = new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      )
+
+      // Random model and tag for embedding
+      const embeddingModel = embeddingModels[Math.floor(Math.random() * embeddingModels.length)]
+      const embeddingTag = selectRandomTag()
+
+      mockData.push({
+        type: 'EmbeddingModelUsage',
+        requests: embeddingRequests,
+        modelName: embeddingModel,
+        tag: embeddingTag,
+        tokensIn: Math.floor(embeddingTokens),
+        tokensOut: 0,
+        totalTokens: Math.floor(embeddingTokens),
+        cost: 0,
+        technicalUserId: userId || 'user-123',
+        technicalUserName: `User ${userId || 'user-123'}`,
+        createDate: embeddingCreateDate.toISOString(),
+      })
+    }
+
+    // ImageModelUsage - Occasional usage
+    if (Math.random() > 0.7) {
+      // 30% chance per day
+      const imageRequests = Math.floor((Math.random() * 10 + 5) * weekendMultiplier)
+      const quality = Math.random() > 0.5 ? 'hd' : 'standard'
+      const sizeWidth = quality === 'hd' ? 1792 : 1024
+      const sizeHeight = 1024
+
+      const imageCreateDate = new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      )
+
+      // Random model and tag for image
+      const imageModel = imageModels[Math.floor(Math.random() * imageModels.length)]
+      const imageTag = selectRandomTag()
+
+      mockData.push({
+        type: 'ImageModelUsage',
+        requests: imageRequests,
+        modelName: imageModel,
+        tag: imageTag,
+        sizeWidth,
+        sizeHeight,
+        quality,
+        tokensIn: 0,
+        tokensOut: 0,
+        totalTokens: 0,
+        cost: 0,
+        technicalUserId: userId || 'user-123',
+        technicalUserName: `User ${userId || 'user-123'}`,
+        createDate: imageCreateDate.toISOString(),
+      })
+    }
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  return mockData
+}
+
+const mockUsageData30Days = (userId) => {
+  const startDate = new Date('2025-07-01')
+  return generateMockUsageData(userId, startDate, 30)
+}
 
 const app = express()
 const port = 3001
@@ -110,23 +286,7 @@ function requireRole(requiredRoles) {
 }
 
 // In-Memory-Datenbank für API Keys
-const apiKeys = {}
-
-// Lade hardcodierte API Keys
-mockData.MOCK_API_KEYS.forEach((key) => {
-  apiKeys[key.id] = {
-    ...key,
-    secret:
-      'dk_' +
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15),
-  }
-})
-
-console.log(
-  `[MOCK-API] Initialized with ${Object.keys(apiKeys).length} hardcoded API keys:`,
-  Object.keys(apiKeys),
-)
+const apiKeys = {} // { [id]: { id, name, permissions, created_at, expires_at, is_active, secret, user_id } }
 
 // Hilfsfunktionen
 function generateApiKey() {
@@ -216,6 +376,94 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
   res.status(200).json(responseKeys)
 })
 
+// GET /v1/apikeys/{id} - Get a single API token by ID
+app.get('/v1/apikeys/:id', validateToken, (req, res) => {
+  const { id } = req.params
+  const userId = req.user.sub
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Getting API key with ID: ${id} for user: ${userId}`)
+
+  const apiKey = apiKeys[id]
+
+  if (!apiKey) {
+    console.log(`[${timestamp}] API key not found with ID: ${id}`)
+    return res.status(404).json({ error: 'Token not found' })
+  }
+
+  // Prüfe Berechtigung (nur eigene Keys oder Admin)
+  const userRoles = req.user.groups || []
+  const isAdmin = userRoles.includes('API-Admin')
+
+  if (!isAdmin && apiKey.user_id !== userId) {
+    console.log(
+      `[${timestamp}] Access denied - user ${userId} tried to access key ${id} owned by ${apiKey.user_id}`,
+    )
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  console.log(`[${timestamp}] API key found: "${apiKey.name}" (active: ${apiKey.is_active})`)
+  res.status(200).json({
+    id: apiKey.id,
+    name: apiKey.name,
+    permissions: apiKey.permissions,
+    created_at: apiKey.created_at,
+    expires_at: apiKey.expires_at,
+    is_active: apiKey.is_active,
+  })
+})
+
+// POST /v1/apikeys/{id}/rotate - Rotate an API token
+app.post('/v1/apikeys/:id/rotate', validateToken, (req, res) => {
+  const { id } = req.params
+  const { name, permissions } = req.body
+  const userId = req.user.sub
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Rotating API key with ID: ${id} for user: ${userId}`)
+
+  const existingKey = apiKeys[id]
+  if (!existingKey) {
+    console.log(`[${timestamp}] API key not found for rotation: ${id}`)
+    return res.status(404).json({ error: 'Token not found or not rotatable' })
+  }
+
+  // Prüfe Berechtigung (nur eigene Keys oder Admin)
+  const userRoles = req.user.groups || []
+  const isAdmin = userRoles.includes('API-Admin')
+
+  if (!isAdmin && existingKey.user_id !== userId) {
+    console.log(
+      `[${timestamp}] Access denied - user ${userId} tried to rotate key ${id} owned by ${existingKey.user_id}`,
+    )
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  console.log(`[${timestamp}] Deactivating existing key: "${existingKey.name}"`)
+  // Deaktiviere alten Key
+  existingKey.is_active = false
+
+  // Erstelle neuen Key
+  const newApiKey = createApiKeyObject(
+    name || existingKey.name,
+    permissions || existingKey.permissions,
+    existingKey.user_id,
+  )
+  apiKeys[newApiKey.id] = newApiKey
+
+  console.log(`[${timestamp}] New API key created with ID: ${newApiKey.id}`)
+
+  res.status(201).json({
+    id: newApiKey.id,
+    name: newApiKey.name,
+    permissions: newApiKey.permissions,
+    created_at: newApiKey.created_at,
+    expires_at: newApiKey.expires_at,
+    is_active: newApiKey.is_active,
+    secret: newApiKey.secret,
+  })
+})
+
 // DELETE /v1/apikeys/:id/deactivate - Deactivate an API key
 app.delete('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
   const { id } = req.params
@@ -252,6 +500,39 @@ app.delete('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
     is_active: apiKey.is_active,
     deactivated_at: apiKey.deactivated_at,
   })
+})
+
+// PUT /v1/apikeys/{id}/deactivate - Deactivate an API token (alternative endpoint)
+app.put('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
+  const { id } = req.params
+  const userId = req.user.sub
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Deactivating API key with ID: ${id} for user: ${userId}`)
+
+  const apiKey = apiKeys[id]
+
+  if (!apiKey) {
+    console.log(`[${timestamp}] API key not found for deactivation: ${id}`)
+    return res.status(404).json({ error: 'Token not found' })
+  }
+
+  // Prüfe Berechtigung (nur eigene Keys oder Admin)
+  const userRoles = req.user.groups || []
+  const isAdmin = userRoles.includes('API-Admin')
+
+  if (!isAdmin && apiKey.user_id !== userId) {
+    console.log(
+      `[${timestamp}] Access denied - user ${userId} tried to deactivate key ${id} owned by ${apiKey.user_id}`,
+    )
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  console.log(`[${timestamp}] Deactivating API key: "${apiKey.name}"`)
+  apiKey.is_active = false
+
+  console.log(`[${timestamp}] API key deactivated successfully`)
+  res.status(204).send()
 })
 
 // GET /v1/usage/ai - Get AI usage data
@@ -308,23 +589,10 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     console.log(`[${timestamp}] Returning detailed usage data: ${mockUsage.length} records`)
   }
 
-  // Filter by date range if provided
-  let filteredUsage = mockUsage
-  if (from_date || to_date) {
-    filteredUsage = mockUsage.filter((usage) => {
-      const usageDate = usage.createDate
-        ? new Date(usage.createDate)
-        : new Date(usage.year, usage.month - 1, usage.day)
-      const from = from_date ? new Date(from_date) : new Date(0)
-      const to = to_date ? new Date(to_date) : new Date()
-      return usageDate >= from && usageDate <= to
-    })
-  }
-
-  console.log(`[${timestamp}] Returning ${filteredUsage.length} usage records`)
+  console.log(`[${timestamp}] Summary data - Total records: ${mockUsage.length}`)
 
   res.status(200).json({
-    usage: filteredUsage,
+    usage: mockUsage,
   })
 })
 
@@ -407,7 +675,16 @@ app.listen(port, () => {
   console.log(`[${timestamp}] Verfügbare Endpunkte:`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys - List API keys`)
   console.log(`[${timestamp}]   POST http://localhost:${port}/v1/apikeys - Create API key`)
-  console.log(`[${timestamp}]   DELETE http://localhost:${port}/v1/apikeys/:id/deactivate - Deactivate API key`)
+  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys/:id - Get single API key`)
+  console.log(
+    `[${timestamp}]   POST http://localhost:${port}/v1/apikeys/:id/rotate - Rotate API key`,
+  )
+  console.log(
+    `[${timestamp}]   DELETE http://localhost:${port}/v1/apikeys/:id/deactivate - Deactivate API key`,
+  )
+  console.log(
+    `[${timestamp}]   PUT  http://localhost:${port}/v1/apikeys/:id/deactivate - Deactivate API key (PUT)`,
+  )
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai - Get usage data`)
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/usage/ai/summarize - Get usage summary`,

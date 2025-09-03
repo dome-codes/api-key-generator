@@ -1,13 +1,25 @@
 <template>
-  <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 group">
-    <td class="py-3 px-4 text-sm text-gray-900">
-      <div>{{ keyData.name }}</div>
+  <tr 
+    :class="[
+      'border-b border-gray-200 last:border-0 group',
+      keyData.status === 'revoked' 
+        ? 'bg-gray-100 opacity-75' 
+        : 'hover:bg-gray-50'
+    ]"
+  >
+    <td class="py-3 px-4 text-sm">
+      <div :class="keyData.status === 'revoked' ? 'text-gray-500 line-through' : 'text-gray-900'">
+        {{ keyData.name }}
+        <span v-if="keyData.status === 'revoked'" class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+          Deaktiviert
+        </span>
+      </div>
     </td>
     <td class="py-3 px-4 font-mono text-xs break-all">
       <span v-if="keyData.status === 'active'" class="text-gray-900"
         >sk-•••{{ keyData.apiKey.slice(-4) }}</span
       >
-      <span v-else class="text-gray-500">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
+      <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
     <td class="py-3 px-4 text-xs text-gray-700">
       {{ new Date(keyData.createdAt).toLocaleDateString() }}
@@ -17,13 +29,20 @@
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
     <td class="py-3 px-4 text-xs">
-      <CostProgressBarTable
-        :current-cost="usageData.cost"
-        :budget-limit="budgetLimit"
-        :tokens-in="usageData.tokensIn"
-        :tokens-out="usageData.tokensOut"
-        :show-detailed-info="true"
-      />
+      <!-- Progress Bar nur für aktive API-Keys anzeigen -->
+      <div v-if="keyData.status === 'active'">
+        <CostProgressBarTable
+          :current-cost="usageData.cost"
+          :budget-limit="budgetLimit"
+          :tokens-in="usageData.tokensIn"
+          :tokens-out="usageData.tokensOut"
+          :show-detailed-info="true"
+        />
+      </div>
+      <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
+      <div v-else class="text-gray-400 text-xs italic">
+        Nicht in Gebrauch
+      </div>
     </td>
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
