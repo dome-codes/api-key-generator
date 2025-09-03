@@ -52,6 +52,40 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
     return tags[0].name // fallback to production
   }
 
+  // Helper function to generate usage data for all API keys
+  const generateUsageForAllApiKeys = () => {
+    const existingApiKeys = Object.keys(apiKeys).filter((keyId) => {
+      const key = apiKeys[keyId]
+      return key && key.is_active
+    })
+
+    console.log(`[API-KEY-IDS] Available API Keys:`, existingApiKeys)
+    console.log(`[API-KEY-IDS] Total API Keys in database:`, Object.keys(apiKeys).length)
+    console.log(`[API-KEY-IDS] Active API Keys:`, existingApiKeys.length)
+
+    if (existingApiKeys.length === 0) {
+      console.log(`[API-KEY-IDS] No active API keys found, using fallback`)
+      return ['dk_fallback123']
+    }
+
+    return existingApiKeys
+  }
+
+  // Helper function to get technicalUserId for an API key
+  const getTechnicalUserIdForApiKey = (apiKeyId) => {
+    const key = apiKeys[apiKeyId]
+    if (key && key.user_id) {
+      return key.user_id
+    }
+    return userId || 'user-123' // Fallback
+  }
+
+  // Helper function to select a random API key ID from existing keys
+  const selectRandomApiKey = () => {
+    const availableKeys = generateUsageForAllApiKeys()
+    return availableKeys[0] // Verwende den ersten für konsistente Zuordnung
+  }
+
   for (let i = 0; i < days; i++) {
     const day = currentDate.getDate()
     const month = currentDate.getMonth() + 1
@@ -66,108 +100,127 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
     const weekdayMultiplier = isWeekday ? 1.2 : 0.6
     const weekendMultiplier = isWeekend ? 0.8 : 1.0
 
-    // CompletionModelUsage - Daily variations with different models and tags
-    const completionRequests = Math.floor((Math.random() * 200 + 100) * weekdayMultiplier)
-    const completionTokensIn = completionRequests * (Math.random() * 200 + 150)
-    const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
+    // Get all available API keys for this day
+    const availableApiKeys = generateUsageForAllApiKeys()
 
-    // Generate createDate for detailed usage
-    const createDate = new Date(
-      year,
-      month - 1,
-      day,
-      Math.floor(Math.random() * 24),
-      Math.floor(Math.random() * 60),
-    )
+    // Generate usage data for each API key
+    availableApiKeys.forEach((apiKeyId, keyIndex) => {
+      // CompletionModelUsage - Daily variations with different models and tags
+      const completionRequests = Math.floor((Math.random() * 200 + 100) * weekdayMultiplier)
+      const completionTokensIn = completionRequests * (Math.random() * 200 + 150)
+      const completionTokensOut = completionTokensIn * (Math.random() * 0.4 + 0.3)
 
-    // Random model and tag for completion
-    const completionModel = completionModels[Math.floor(Math.random() * completionModels.length)]
-    const completionTag = selectRandomTag()
+      // Generate createDate for detailed usage
+      const createDate = new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      )
 
-    mockData.push({
-      type: 'CompletionModelUsage',
-      requests: completionRequests,
-      modelName: completionModel,
-      tag: completionTag,
-      tokensIn: Math.floor(completionTokensIn),
-      tokensOut: Math.floor(completionTokensOut),
-      totalTokens: Math.floor(completionTokensIn + completionTokensOut),
-      cost: 0,
-      technicalUserId: userId || 'user-123',
-      technicalUserName: `User ${userId || 'user-123'}`,
-      createDate: createDate.toISOString(),
+      // Random model and tag for completion
+      const completionModel = completionModels[Math.floor(Math.random() * completionModels.length)]
+      const completionTag = selectRandomTag()
+      const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
+
+      mockData.push({
+        type: 'CompletionModelUsage',
+        requests: completionRequests,
+        model: completionModel, // Geändert von modelName zu model
+        tag: completionTag,
+        requestTokens: Math.floor(completionTokensIn), // Geändert von tokensIn zu requestTokens
+        responseTokens: Math.floor(completionTokensOut), // Geändert von tokensOut zu responseTokens
+        totalTokens: Math.floor(completionTokensIn + completionTokensOut),
+        cost: 0, // Kosten werden im Frontend berechnet
+        technicalUserId: technicalUserId,
+        technicalUserName: `User ${technicalUserId}`,
+        createDate: createDate.toISOString(),
+        apiKeyId: apiKeyId, // Neue apiKeyId
+      })
+
+      console.log(`[USAGE-DATA] Generated usage for API Key ${apiKeyId}:`, {
+        type: 'CompletionModelUsage',
+        apiKeyId: apiKeyId,
+        requestTokens: Math.floor(completionTokensIn),
+        responseTokens: Math.floor(completionTokensOut),
+      })
+
+      // EmbeddingModelUsage - Less frequent but larger batches
+      if (Math.random() > 0.3) {
+        // 70% chance per day
+        const embeddingRequests = Math.floor((Math.random() * 50 + 20) * weekdayMultiplier)
+        const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
+
+        const embeddingCreateDate = new Date(
+          year,
+          month - 1,
+          day,
+          Math.floor(Math.random() * 24),
+          Math.floor(Math.random() * 60),
+        )
+
+        // Random model and tag for embedding
+        const embeddingModel = embeddingModels[Math.floor(Math.random() * embeddingModels.length)]
+        const embeddingTag = selectRandomTag()
+        const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
+
+        mockData.push({
+          type: 'EmbeddingModelUsage',
+          requests: embeddingRequests,
+          model: embeddingModel, // Geändert von modelName zu model
+          tag: embeddingTag,
+          requestTokens: Math.floor(embeddingTokens), // Geändert von tokensIn zu requestTokens
+          responseTokens: 0, // Geändert von tokensOut zu responseTokens
+          totalTokens: Math.floor(embeddingTokens),
+          cost: 0, // Kosten werden im Frontend berechnet
+          technicalUserId: technicalUserId,
+          technicalUserName: `User ${technicalUserId}`,
+          createDate: embeddingCreateDate.toISOString(),
+          apiKeyId: apiKeyId, // Neue apiKeyId
+        })
+      }
+
+      // ImageModelUsage - Occasional usage
+      if (Math.random() > 0.7) {
+        // 30% chance per day
+        const imageRequests = Math.floor((Math.random() * 10 + 5) * weekendMultiplier)
+        const quality = Math.random() > 0.5 ? 'hd' : 'standard'
+        const sizeWidth = quality === 'hd' ? 1792 : 1024
+        const sizeHeight = 1024
+
+        const imageCreateDate = new Date(
+          year,
+          month - 1,
+          day,
+          Math.floor(Math.random() * 24),
+          Math.floor(Math.random() * 60),
+        )
+
+        // Random model and tag for image
+        const imageModel = imageModels[Math.floor(Math.random() * imageModels.length)]
+        const imageTag = selectRandomTag()
+        const technicalUserId = getTechnicalUserIdForApiKey(apiKeyId)
+
+        mockData.push({
+          type: 'ImageModelUsage',
+          requests: imageRequests,
+          model: imageModel, // Geändert von modelName zu model
+          tag: imageTag,
+          sizeWidth,
+          sizeHeight,
+          quality,
+          requestTokens: 0, // Geändert von tokensIn zu requestTokens
+          responseTokens: 0, // Geändert von tokensOut zu responseTokens
+          totalTokens: 0,
+          cost: 0, // Kosten werden im Frontend berechnet
+          technicalUserId: technicalUserId,
+          technicalUserName: `User ${technicalUserId}`,
+          createDate: imageCreateDate.toISOString(),
+          apiKeyId: apiKeyId, // Neue apiKeyId
+        })
+      }
     })
-
-    // EmbeddingModelUsage - Less frequent but larger batches
-    if (Math.random() > 0.3) {
-      // 70% chance per day
-      const embeddingRequests = Math.floor((Math.random() * 50 + 20) * weekdayMultiplier)
-      const embeddingTokens = embeddingRequests * (Math.random() * 300 + 200)
-
-      const embeddingCreateDate = new Date(
-        year,
-        month - 1,
-        day,
-        Math.floor(Math.random() * 24),
-        Math.floor(Math.random() * 60),
-      )
-
-      // Random model and tag for embedding
-      const embeddingModel = embeddingModels[Math.floor(Math.random() * embeddingModels.length)]
-      const embeddingTag = selectRandomTag()
-
-      mockData.push({
-        type: 'EmbeddingModelUsage',
-        requests: embeddingRequests,
-        modelName: embeddingModel,
-        tag: embeddingTag,
-        tokensIn: Math.floor(embeddingTokens),
-        tokensOut: 0,
-        totalTokens: Math.floor(embeddingTokens),
-        cost: 0,
-        technicalUserId: userId || 'user-123',
-        technicalUserName: `User ${userId || 'user-123'}`,
-        createDate: embeddingCreateDate.toISOString(),
-      })
-    }
-
-    // ImageModelUsage - Occasional usage
-    if (Math.random() > 0.7) {
-      // 30% chance per day
-      const imageRequests = Math.floor((Math.random() * 10 + 5) * weekendMultiplier)
-      const quality = Math.random() > 0.5 ? 'hd' : 'standard'
-      const sizeWidth = quality === 'hd' ? 1792 : 1024
-      const sizeHeight = 1024
-
-      const imageCreateDate = new Date(
-        year,
-        month - 1,
-        day,
-        Math.floor(Math.random() * 24),
-        Math.floor(Math.random() * 60),
-      )
-
-      // Random model and tag for image
-      const imageModel = imageModels[Math.floor(Math.random() * imageModels.length)]
-      const imageTag = selectRandomTag()
-
-      mockData.push({
-        type: 'ImageModelUsage',
-        requests: imageRequests,
-        modelName: imageModel,
-        tag: imageTag,
-        sizeWidth,
-        sizeHeight,
-        quality,
-        tokensIn: 0,
-        tokensOut: 0,
-        totalTokens: 0,
-        cost: 0,
-        technicalUserId: userId || 'user-123',
-        technicalUserName: `User ${userId || 'user-123'}`,
-        createDate: imageCreateDate.toISOString(),
-      })
-    }
 
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1)

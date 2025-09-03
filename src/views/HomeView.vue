@@ -93,10 +93,27 @@ const { usageAggregation, detailedUsageData, loadDetailedUsageData } = useUsage(
 const apiKeyUsageData = computed(() => {
   const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
 
+  console.log('🔍 Linking API Keys with Usage Data:')
+  console.log(
+    '  - API Keys:',
+    legacyKeys.value.map((k) => ({ id: k.id, name: k.name })),
+  )
+  console.log(
+    '  - Usage Data:',
+    detailedUsageData.value.map((u) => ({
+      apiKeyId: u.apiKeyId,
+      tokensIn: u.tokensIn,
+      tokensOut: u.tokensOut,
+    })),
+  )
+  console.log('  - All Usage Data (full):', detailedUsageData.value)
+
   // Verwende echte API-Daten für jeden API Key
   legacyKeys.value.forEach((key) => {
     // Suche nach Usage-Daten für diesen API Key
     const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
+
+    console.log(`  - API Key ${key.name} (${key.id}): Found ${keyUsage.length} usage records`)
 
     if (keyUsage.length > 0) {
       // Summiere alle Usage-Daten für diesen API Key
@@ -109,6 +126,8 @@ const apiKeyUsageData = computed(() => {
         tokensIn: totalTokensIn,
         tokensOut: totalTokensOut,
       }
+
+      console.log(`    → Total: Cost=${totalCost}, Tokens=${totalTokensIn}/${totalTokensOut}`)
     } else {
       // Fallback: Verwende 0-Werte wenn keine Daten vorhanden
       usageMap[key.id] = {
@@ -116,6 +135,8 @@ const apiKeyUsageData = computed(() => {
         tokensIn: 0,
         tokensOut: 0,
       }
+
+      console.log(`    → No usage data found, using 0 values`)
     }
   })
 
