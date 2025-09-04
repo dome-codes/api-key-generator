@@ -284,10 +284,20 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     debugLog('🔍 [USAGE-TABS] User roles:', getUserRoles())
     debugLog('🔍 [USAGE-TABS] Highest role:', getHighestRole())
 
-    // Verwende die Admin-API direkt
+    // Verwende die Admin-API direkt mit by Parametern für Chart-Daten
     const params: any = {}
     if (fromDate) params.from_date = fromDate
     if (toDate) params.to_date = toDate
+    
+    // Füge by Parameter hinzu für day, month, year Gruppierung
+    const chartPeriod = adminChartPeriod.value || 'daily'
+    if (chartPeriod === 'daily') {
+      params.by = 'day'
+    } else if (chartPeriod === 'weekly') {
+      params.by = 'day,week'
+    } else if (chartPeriod === 'monthly') {
+      params.by = 'month'
+    }
 
     const response = await adminUsageAISummaryGetV1(params)
     const responseData = response.data
@@ -320,9 +330,9 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
         totalTokens: totalTokens,
         cost: costCalculation.finalCost || item.cost || 0,
         tag: item.tag || 'production',
-        day: undefined,
-        month: undefined,
-        year: undefined,
+        day: (item as any).day,
+        month: (item as any).month,
+        year: (item as any).year,
         createDate: undefined,
         apiKeyId: item.apiKeyId,
       }
@@ -790,8 +800,58 @@ watch(ownChartPeriod, (newPeriod) => {
 })
 
 // Watch für manuelle Änderungen der Admin Chart-Periode
-watch(adminChartPeriod, (newPeriod) => {
-  // Nur loggen, keine Aktionen
+watch(adminChartPeriod, async (newPeriod) => {
+  // Lade Admin-Daten neu mit der neuen Periode
+  if (adminTimeRange.value) {
+    let fromDate: string | undefined
+    let toDate: string | undefined
+
+    if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
+      fromDate = adminFromDate.value
+      toDate = adminToDate.value
+    } else if (adminTimeRange.value !== 'custom') {
+      const today = new Date()
+      const fromDateObj = new Date()
+
+      switch (adminTimeRange.value) {
+        case '7d':
+          fromDateObj.setDate(today.getDate() - 7)
+          break
+        case '30d':
+          fromDateObj.setDate(today.getDate() - 30)
+          break
+        case '90d':
+          fromDateObj.setDate(today.getDate() - 90)
+          break
+        case 'thisMonth':
+          fromDateObj.setDate(1)
+          fromDateObj.setHours(0, 0, 0, 0)
+          break
+        case 'lastMonth':
+          fromDateObj.setMonth(today.getMonth() - 1)
+          fromDateObj.setDate(1)
+          fromDateObj.setHours(0, 0, 0, 0)
+          break
+      }
+
+      fromDate = fromDateObj.toISOString()
+
+      if (adminTimeRange.value === 'thisMonth') {
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        toDate = lastDayOfMonth.toISOString()
+      } else if (adminTimeRange.value === 'lastMonth') {
+        const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+        toDate = lastDayOfLastMonth.toISOString()
+      } else {
+        toDate = today.toISOString()
+      }
+    }
+
+    // Lade Admin-Daten neu mit der neuen Periode
+    if (fromDate && toDate) {
+      await loadAdminRawData(fromDate, toDate)
+    }
+  }
 })
 
 // Watch für Filter-Änderungen
@@ -1258,11 +1318,146 @@ const adminChartData = computed(() => {
     return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
   }
 
-  // Admin-Daten aus SummaryUsage haben keine Datums-Informationen
-  // Verwende einfache Gruppierung nach Modelltyp oder Benutzer
+  // Admin-Daten können day, month, year Felder haben (wenn by Parameter verwendet wurde)
   const data = filteredAdminUsageData.value
 
-  // Gruppiere nach Modelltyp
+  // Prüfe ob Admin-Daten Datums-Informationen haben
+  const hasDateInfo = data.some(item => item.day || item.month || item.year)
+  
+  if (hasDateInfo) {
+    // Admin-Daten haben Datums-Informationen - verwende Zeit-basierte Gruppierung
+    const period = adminChartPeriod.value || 'daily'
+    
+    if (period === 'daily') {
+      // Gruppiere nach Tagen
+      const dailyGroups = new Map<
+        string,
+        { tokensIn: number; tokensOut: number; requests: number; count: number; dayNumber: number }
+      >()
+
+      data.forEach((item) => {
+        if (!item.day || !item.month || !item.year) return
+        
+        const date = new Date(item.year, item.month - 1, item.day)
+        const dayOfWeek = date.getDay()
+        const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+        const dayLabel = dayNames[dayOfWeek]
+
+        if (!dailyGroups.has(dayLabel)) {
+          dailyGroups.set(dayLabel, {
+            tokensIn: 0,
+            tokensOut: 0,
+            requests: 0,
+            count: 0,
+            dayNumber: dayOfWeek,
+          })
+        }
+
+        const group = dailyGroups.get(dayLabel)!
+        group.tokensIn += item.tokensIn || 0
+        group.tokensOut += item.tokensOut || 0
+        group.requests += item.requests || 0
+        group.count++
+      })
+
+      // Sortiere nach Wochentagen (Montag-Sonntag)
+      const sortedEntries = Array.from(dailyGroups.entries()).sort((a, b) => {
+        const dayA = a[1].dayNumber === 0 ? 7 : a[1].dayNumber // Sonntag ans Ende
+        const dayB = b[1].dayNumber === 0 ? 7 : b[1].dayNumber
+        return dayA - dayB
+      })
+
+      const labels = sortedEntries.map(([label]) => label)
+      const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+      const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+      const requests = sortedEntries.map(([, data]) => data.requests)
+
+      return { labels, tokensIn, tokensOut, requests }
+    } else if (period === 'weekly') {
+      // Gruppiere nach Wochen
+      const weeklyGroups = new Map<
+        string,
+        { tokensIn: number; tokensOut: number; requests: number; count: number; weekNumber: number }
+      >()
+
+      data.forEach((item) => {
+        if (!item.day || !item.month || !item.year) return
+        
+        const date = new Date(item.year, item.month - 1, item.day)
+        const weekNumber = Math.ceil(
+          (date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000),
+        )
+        const weekLabel = `KW ${weekNumber}`
+
+        if (!weeklyGroups.has(weekLabel)) {
+          weeklyGroups.set(weekLabel, {
+            tokensIn: 0,
+            tokensOut: 0,
+            requests: 0,
+            count: 0,
+            weekNumber,
+          })
+        }
+
+        const group = weeklyGroups.get(weekLabel)!
+        group.tokensIn += item.tokensIn || 0
+        group.tokensOut += item.tokensOut || 0
+        group.requests += item.requests || 0
+        group.count++
+      })
+
+      const sortedEntries = Array.from(weeklyGroups.entries()).sort(
+        (a, b) => a[1].weekNumber - b[1].weekNumber,
+      )
+      const labels = sortedEntries.map(([label]) => label)
+      const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+      const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+      const requests = sortedEntries.map(([, data]) => data.requests)
+
+      return { labels, tokensIn, tokensOut, requests }
+    } else if (period === 'monthly') {
+      // Gruppiere nach Monaten
+      const monthlyGroups = new Map<
+        string,
+        { tokensIn: number; tokensOut: number; requests: number; count: number; monthNumber: number }
+      >()
+
+      data.forEach((item) => {
+        if (!item.month || !item.year) return
+        
+        const monthNumber = item.month - 1 // JavaScript Monate sind 0-basiert
+        const monthLabel = new Date(item.year, monthNumber).toLocaleDateString('de-DE', { month: 'short' })
+
+        if (!monthlyGroups.has(monthLabel)) {
+          monthlyGroups.set(monthLabel, {
+            tokensIn: 0,
+            tokensOut: 0,
+            requests: 0,
+            count: 0,
+            monthNumber,
+          })
+        }
+
+        const group = monthlyGroups.get(monthLabel)!
+        group.tokensIn += item.tokensIn || 0
+        group.tokensOut += item.tokensOut || 0
+        group.requests += item.requests || 0
+        group.count++
+      })
+
+      const sortedEntries = Array.from(monthlyGroups.entries()).sort(
+        (a, b) => a[1].monthNumber - b[1].monthNumber,
+      )
+      const labels = sortedEntries.map(([label]) => label)
+      const tokensIn = sortedEntries.map(([, data]) => data.tokensIn)
+      const tokensOut = sortedEntries.map(([, data]) => data.tokensOut)
+      const requests = sortedEntries.map(([, data]) => data.requests)
+
+      return { labels, tokensIn, tokensOut, requests }
+    }
+  }
+
+  // Fallback: Gruppiere nach Modelltyp (wenn keine Datums-Informationen vorhanden)
   const modelGroups = new Map<
     string,
     { tokensIn: number; tokensOut: number; requests: number; count: number }
