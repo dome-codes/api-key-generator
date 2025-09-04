@@ -59,7 +59,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="ownTimeRange"
-              @change="handleOwnTimeRangeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
@@ -93,7 +92,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="ownModelType"
-              @change="handleOwnModelTypeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
@@ -108,7 +106,6 @@
               v-model="ownChartPeriod"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
-              <option value="hourly">Stündlich</option>
               <option value="daily">Täglich</option>
               <option value="weekly">Wöchentlich</option>
               <option value="monthly">Monatlich</option>
@@ -255,7 +252,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="adminTimeRange"
-              @change="handleAdminTimeRangeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
@@ -289,7 +285,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="adminModelType"
-              @change="handleAdminModelTypeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
@@ -316,7 +311,6 @@
               v-model="adminChartPeriod"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
-              <option value="hourly">Stündlich</option>
               <option value="daily">Täglich</option>
               <option value="weekly">Wöchentlich</option>
               <option value="monthly">Monatlich</option>
@@ -521,9 +515,7 @@ const loadOwnUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (ownView.value === 'overview') {
-      if (ownChartPeriod.value === 'hourly') {
-        grouping = 'hour'
-      } else if (ownChartPeriod.value === 'weekly') {
+      if (ownChartPeriod.value === 'weekly') {
         grouping = 'week'
       } else if (ownChartPeriod.value === 'monthly') {
         grouping = 'month'
@@ -564,12 +556,7 @@ const loadOwnUsageWithGrouping = async () => {
     // Lade zusätzlich Rohdaten für Summary-Berechnung und zusätzliche Charts
     try {
       console.log('🔍 [USAGE-TABS] Loading raw data for summary...')
-      const rawResponse = await usageService.getUsageSummaryWithGrouping(
-        undefined, // Keine Gruppierung für Rohdaten
-        fromDate,
-        toDate,
-        ownModelType.value || undefined,
-      )
+      const rawResponse = await usageService.getOwnUsage(fromDate, toDate)
       ownRawUsageData.value = rawResponse.usage || []
       console.log('🔍 [USAGE-TABS] Raw data loaded:', ownRawUsageData.value.length, 'records')
     } catch (rawError) {
@@ -618,9 +605,7 @@ const loadAdminUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (adminView.value === 'overview') {
-      if (adminChartPeriod.value === 'hourly') {
-        grouping = 'hour'
-      } else if (adminChartPeriod.value === 'weekly') {
+      if (adminChartPeriod.value === 'weekly') {
         grouping = 'week'
       } else if (adminChartPeriod.value === 'monthly') {
         grouping = 'month'
@@ -662,7 +647,11 @@ const loadAdminUsageWithGrouping = async () => {
         adminUser.value || undefined,
       )
       adminRawUsageData.value = rawResponse.usage || []
-      console.log('🔍 [USAGE-TABS] Admin raw data loaded:', adminRawUsageData.value.length, 'records')
+      console.log(
+        '🔍 [USAGE-TABS] Admin raw data loaded:',
+        adminRawUsageData.value.length,
+        'records',
+      )
     } catch (rawError) {
       console.warn('🔍 [USAGE-TABS] Could not load raw data for admin summary:', rawError)
       adminRawUsageData.value = adminUsageData.value // Verwende gruppierte Daten als Fallback
@@ -738,10 +727,16 @@ const ownUsageSummary = computed(() => {
 
   return dataToUse.reduce(
     (acc, item) => {
-      acc.tokensIn += item.tokensIn || 0
-      acc.tokensOut += item.tokensOut || 0
-      acc.requests += item.requests || 1 // Verwende tatsächliche Anzahl
-      acc.cost += item.cost || 0
+      // Verwende die korrekten Felder basierend auf dem API-Response-Typ
+      const tokensIn = item.requestTokens || item.tokensIn || 0
+      const tokensOut = item.responseTokens || item.tokensOut || 0
+      const requests = item.requests || 1
+      const cost = item.cost || 0
+      
+      acc.tokensIn += tokensIn
+      acc.tokensOut += tokensOut
+      acc.requests += requests
+      acc.cost += cost
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
@@ -750,7 +745,8 @@ const ownUsageSummary = computed(() => {
 
 const adminUsageSummary = computed(() => {
   // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
-  const dataToUse = adminRawUsageData.value.length > 0 ? adminRawUsageData.value : adminUsageData.value
+  const dataToUse =
+    adminRawUsageData.value.length > 0 ? adminRawUsageData.value : adminUsageData.value
 
   if (!dataToUse || dataToUse.length === 0) {
     return {
@@ -764,10 +760,16 @@ const adminUsageSummary = computed(() => {
 
   const summary = dataToUse.reduce(
     (acc, item) => {
-      acc.tokensIn += item.tokensIn || 0
-      acc.tokensOut += item.tokensOut || 0
-      acc.requests += item.requests || 1 // Verwende tatsächliche Anzahl
-      acc.cost += item.cost || 0
+      // Verwende die korrekten Felder basierend auf dem API-Response-Typ
+      const tokensIn = item.requestTokens || item.tokensIn || 0
+      const tokensOut = item.responseTokens || item.tokensOut || 0
+      const requests = item.requests || 1
+      const cost = item.cost || 0
+      
+      acc.tokensIn += tokensIn
+      acc.tokensOut += tokensOut
+      acc.requests += requests
+      acc.cost += cost
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 },
@@ -811,10 +813,7 @@ const adminChartData = computed(() => {
 
 // Hilfsfunktion zur Generierung von Chart-Labels basierend auf Periode
 const generateChartLabels = (period: string, data: any[]) => {
-  if (period === 'hourly') {
-    // Stündlich: 0:00-24:00 Uhr
-    return Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`)
-  } else if (period === 'daily') {
+  if (period === 'daily') {
     // Täglich: Mo, Di, Mi, Do, Fr, Sa, So
     const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
     return weekdays
@@ -904,26 +903,34 @@ const uniqueUsers = computed(() => {
 })
 
 // Einfache Watcher für Filter-Änderungen - API-basiert
-watch([ownTimeRange, ownModelType, ownChartPeriod, ownView], async () => {
-  console.log('🔍 [USAGE-TABS] Own filter changed:', {
-    timeRange: ownTimeRange.value,
-    modelType: ownModelType.value,
-    chartPeriod: ownChartPeriod.value,
-    view: ownView.value,
-  })
-  await loadOwnUsageWithGrouping()
-}, { immediate: false })
+watch(
+  [ownTimeRange, ownModelType, ownChartPeriod, ownView],
+  async () => {
+    console.log('🔍 [USAGE-TABS] Own filter changed:', {
+      timeRange: ownTimeRange.value,
+      modelType: ownModelType.value,
+      chartPeriod: ownChartPeriod.value,
+      view: ownView.value,
+    })
+    await loadOwnUsageWithGrouping()
+  },
+  { immediate: false },
+)
 
-watch([adminTimeRange, adminModelType, adminUser, adminChartPeriod, adminView], async () => {
-  console.log('🔍 [USAGE-TABS] Admin filter changed:', {
-    timeRange: adminTimeRange.value,
-    modelType: adminModelType.value,
-    user: adminUser.value,
-    chartPeriod: adminChartPeriod.value,
-    view: adminView.value,
-  })
-  await loadAdminUsageWithGrouping()
-}, { immediate: false })
+watch(
+  [adminTimeRange, adminModelType, adminUser, adminChartPeriod, adminView],
+  async () => {
+    console.log('🔍 [USAGE-TABS] Admin filter changed:', {
+      timeRange: adminTimeRange.value,
+      modelType: adminModelType.value,
+      user: adminUser.value,
+      chartPeriod: adminChartPeriod.value,
+      view: adminView.value,
+    })
+    await loadAdminUsageWithGrouping()
+  },
+  { immediate: false },
+)
 
 // Handle Chart Period Change
 const handleChartPeriodChange = (period: string) => {
@@ -934,28 +941,6 @@ const handleChartPeriodChange = (period: string) => {
 const handleAdminChartPeriodChange = (period: string) => {
   adminChartPeriod.value = period
   console.log('Admin Chart Period changed to:', period)
-}
-
-// Handle Model Type Change
-const handleOwnModelTypeChange = () => {
-  console.log('🔍 [USAGE-TABS] Own model type changed to:', ownModelType.value)
-  loadOwnUsageWithGrouping()
-}
-
-const handleAdminModelTypeChange = () => {
-  console.log('🔍 [USAGE-TABS] Admin model type changed to:', adminModelType.value)
-  loadAdminUsageWithGrouping()
-}
-
-// Handle Time Range Change
-const handleOwnTimeRangeChange = () => {
-  console.log('🔍 [USAGE-TABS] Own time range changed to:', ownTimeRange.value)
-  loadOwnUsageWithGrouping()
-}
-
-const handleAdminTimeRangeChange = () => {
-  console.log('🔍 [USAGE-TABS] Admin time range changed to:', adminTimeRange.value)
-  loadAdminUsageWithGrouping()
 }
 
 // Initialisiere beim Mounten
