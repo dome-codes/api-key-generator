@@ -52,171 +52,24 @@
       <UsagePricingDisclaimer />
 
       <!-- Filter Section -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
-            <select
-              v-model="ownTimeRange"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="7d">Letzte 7 Tage</option>
-              <option value="30d">Letzte 30 Tage</option>
-              <option value="90d">Letzte 90 Tage</option>
-              <option value="thisMonth">Diesen Monat</option>
-              <option value="lastMonth">Vormonat</option>
-              <option value="custom">Benutzerdefiniert</option>
-            </select>
-            <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
-            <div v-if="ownTimeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-xs text-gray-600 mb-1">Von</label>
-                <input
-                  v-model="ownFromDate"
-                  type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-                />
-              </div>
-              <div>
-                <label class="block text-xs text-gray-600 mb-1">Bis</label>
-                <input
-                  v-model="ownToDate"
-                  type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-                />
-              </div>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
-            <select
-              v-model="ownModelType"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="">Alle Modelltypen</option>
-              <option value="CompletionModelUsage">Chat Completions</option>
-              <option value="EmbeddingModelUsage">Embeddings</option>
-              <option value="ImageModelUsage">Bilder</option>
-            </select>
-          </div>
-        </div>
+      <UsageFilters
+        v-model:time-range="ownTimeRange"
+        v-model:model-type="ownModelType"
+        v-model:from-date="ownFromDate"
+        v-model:to-date="ownToDate"
+      />
 
-        <!-- View Toggle Buttons -->
-        <div class="mt-4 flex justify-center">
-          <div class="bg-gray-100 rounded-lg p-1 inline-flex">
-            <button
-              @click="ownView = 'overview'"
-              :class="[
-                ownView === 'overview'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-              ]"
-            >
-              <svg
-                class="w-4 h-4 inline mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              Übersicht
-            </button>
-            <button
-              @click="ownView = 'detailed'"
-              :class="[
-                ownView === 'detailed'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-              ]"
-            >
-              <svg
-                class="w-4 h-4 inline mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                />
-              </svg>
-              Detailliert
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- View Toggle -->
+      <UsageViewToggle v-model:view="ownView" />
 
-      <!-- Own Usage Content -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Meine Nutzungsdaten</h2>
-        <p class="text-gray-600 mb-4">Hier sehen Sie Ihre persönlichen API-Nutzungsdaten.</p>
-
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div class="bg-blue-50 rounded-lg p-4">
-            <div class="text-sm text-blue-600 font-medium">Tokens In</div>
-            <div class="text-2xl font-bold text-blue-800">
-              {{ filteredOwnUsage.tokensIn.toLocaleString() }}
-            </div>
-            <div
-              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
-              class="text-xs text-blue-600 mt-1"
-            >
-              +12% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-green-50 rounded-lg p-4">
-            <div class="text-sm text-green-600 font-medium">Tokens Out</div>
-            <div class="text-2xl font-bold text-green-800">
-              {{ filteredOwnUsage.tokensOut.toLocaleString() }}
-            </div>
-            <div
-              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
-              class="text-xs text-green-600 mt-1"
-            >
-              +8% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-purple-50 rounded-lg p-4">
-            <div class="text-sm text-purple-600 font-medium">Gesamte Anfragen</div>
-            <div class="text-2xl font-bold text-purple-800">
-              {{ filteredOwnUsage.requests.toLocaleString() }}
-            </div>
-            <div
-              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
-              class="text-xs text-purple-600 mt-1"
-            >
-              +15% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-orange-50 rounded-lg p-4">
-            <div class="text-sm text-orange-600 font-medium">Geschätzte Kosten</div>
-            <div class="text-2xl font-bold text-orange-800">
-              {{ formatCost(filteredOwnUsage.cost) }}
-            </div>
-            <div
-              v-if="ownTimeRange === 'thisMonth' || ownTimeRange === 'lastMonth'"
-              class="text-xs text-orange-600 mt-1"
-            >
-              +10% vs. letzter Monat
-            </div>
-            <div v-else class="text-xs text-orange-600 mt-1">Basierend auf aktuellen Preisen</div>
-          </div>
-        </div>
-      </div>
+      <!-- Summary Cards -->
+      <UsageSummary
+        title="Meine Nutzungsdaten"
+        description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
+        :summary="filteredOwnUsage"
+        :is-loading="isLoading"
+        :error="error"
+      />
 
       <!-- Usage Chart -->
       <UsageChart
@@ -466,7 +319,10 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
+import UsageFilters from './UsageFilters.vue'
 import UsagePricingDisclaimer from './UsagePricingDisclaimer.vue'
+import UsageSummary from './UsageSummary.vue'
+import UsageViewToggle from './UsageViewToggle.vue'
 
 const activeTab = ref('own')
 
@@ -491,7 +347,7 @@ const {
 // Filter State
 const ownTimeRange = ref('30d')
 const ownModelType = ref('')
-const ownView = ref('overview')
+const ownView = ref<'overview' | 'detailed'>('overview')
 const ownChartPeriod = ref('daily')
 const ownFromDate = ref('')
 const ownToDate = ref('')
@@ -499,7 +355,7 @@ const ownToDate = ref('')
 const adminTimeRange = ref('30d')
 const adminModelType = ref('')
 const adminUser = ref('')
-const adminView = ref('overview')
+const adminView = ref<'overview' | 'detailed'>('overview')
 const adminChartPeriod = ref('daily')
 const adminFromDate = ref('')
 const adminToDate = ref('')
@@ -836,7 +692,7 @@ const filteredAdminUsage = computed(() => {
 
 // Computed properties für die Anzeige basierend auf Ansicht
 const showOwnChart = computed(() => {
-  return ownView.value === 'overview' || ownView.value === 'chart'
+  return ownView.value === 'overview'
 })
 
 const showOwnDetails = computed(() => {
@@ -844,7 +700,7 @@ const showOwnDetails = computed(() => {
 })
 
 const showAdminChart = computed(() => {
-  return adminView.value === 'overview' || adminView.value === 'chart'
+  return adminView.value === 'overview'
 })
 
 const showAdminDetails = computed(() => {
