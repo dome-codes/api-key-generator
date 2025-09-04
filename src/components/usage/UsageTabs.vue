@@ -238,13 +238,13 @@ onMounted(async () => {
   // Verwende bereits geladene Daten von HomeView
   // Nur laden wenn wirklich keine Daten vorhanden sind
   if (!usageAggregation.value || Object.keys(usageAggregation.value).length === 0) {
-    console.log('🔍 [USAGE-TABS] No data available, loading usage summary...')
+    debugLog('🔍 [USAGE-TABS] No data available, loading usage summary...')
     await loadUsageSummary({
       fromDate,
       toDate,
     })
   } else {
-    console.log('🔍 [USAGE-TABS] Using existing data from HomeView')
+    debugLog('🔍 [USAGE-TABS] Using existing data from HomeView')
   }
 
   // Lade eigene Rohdaten für "Meine Nutzung"
@@ -529,28 +529,17 @@ const filteredOwnUsageData = computed(() => {
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
 const filteredAdminUsageData = computed(() => {
-  console.log(
-    '🔍 [USAGE-TABS] filteredAdminUsageData - adminRawUsageData length:',
-    adminRawUsageData.value?.length || 0,
-  )
-
   if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
-    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - No adminRawUsageData available')
     return []
   }
 
   // Filtere nach Admin-Filtern
   let filteredData = adminRawUsageData.value
-  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Initial data length:', filteredData.length)
 
   // Filtere nach Modelltyp falls ausgewählt
   if (adminModelType.value) {
     filteredData = filteredData.filter(
       (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
-    )
-    console.log(
-      '🔍 [USAGE-TABS] filteredAdminUsageData - After modelType filter:',
-      filteredData.length,
     )
   }
 
@@ -560,7 +549,6 @@ const filteredAdminUsageData = computed(() => {
       const userId = item.technicalUserId || item.apiKeyId || 'unknown'
       return userId === adminUser.value
     })
-    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After user filter:', filteredData.length)
   }
 
   // Filtere nach Zeitraum
@@ -605,34 +593,24 @@ const filteredAdminUsageData = computed(() => {
     toDate = today
   }
 
-  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Date range:', { fromDate, toDate })
-
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
     // Admin-Daten aus SummaryUsage haben keine Datums-Informationen
     // Deshalb überspringen wir die Datum-Filterung für Admin-Daten
     if (!item.createDate && !item.day && !item.month && !item.year) {
-      console.log(
-        '🔍 [USAGE-TABS] filteredAdminUsageData - Admin item without date, skipping date filter:',
-        item,
-      )
       return true // Behalte alle Admin-Daten ohne Datum
     }
-
+    
     let itemDate: Date
     if (item.createDate) {
       itemDate = new Date(item.createDate)
     } else if (item.day && item.month && item.year) {
       itemDate = new Date(item.year, item.month - 1, item.day)
     } else {
-      console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Item without date:', item)
       return false
     }
     return itemDate >= fromDate && itemDate <= toDate
   })
-
-  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After date filter:', filteredData.length)
-  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Final result length:', filteredData.length)
 
   return filteredData
 })
