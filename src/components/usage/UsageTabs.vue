@@ -147,7 +147,7 @@
 import type { UsageResponse } from '@/api/types/types'
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts } from '@/config/pricing'
+import { calculateExampleCosts, formatCost } from '@/config/pricing'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -324,19 +324,19 @@ const filteredOwnUsage = computed(() => {
   // Berechne aggregierte Werte für ModelUsage
   const aggregatedData = filteredData.reduce(
     (acc, item) => {
-      // Für ModelUsage haben wir keine direkten Token-Werte, also berechnen wir sie basierend auf dem Typ
+      // Verwende echte Token-Daten falls verfügbar
       if (item.type === 'CompletionModelUsage') {
-        // Schätzung: durchschnittlich 1000 tokens in, 500 tokens out pro Request
-        acc.tokensIn += 1000
-        acc.tokensOut += 500
+        const requestTokens = (item as any).requestTokens || 1000
+        const responseTokens = (item as any).responseTokens || 500
+        acc.tokensIn += requestTokens
+        acc.tokensOut += responseTokens
         acc.cost += 0.01 // Schätzung: ~1 Cent pro Request
       } else if (item.type === 'EmbeddingModelUsage') {
-        // Schätzung: durchschnittlich 1000 tokens pro Embedding
-        acc.tokensIn += 1000
+        const requestTokens = (item as any).requestTokens || 1000
+        acc.tokensIn += requestTokens
         acc.tokensOut += 0
         acc.cost += 0.001 // Schätzung: ~0.1 Cent pro Request
       } else if (item.type === 'ImageModelUsage') {
-        // Schätzung: keine Tokens, aber Kosten für Bildgenerierung
         acc.tokensIn += 0
         acc.tokensOut += 0
         acc.cost += 0.02 // Schätzung: ~2 Cent pro Bild
@@ -415,24 +415,46 @@ const filteredOwnUsageData = computed(() => {
   })
 
   // Konvertiere zu EnhancedUsageRecord für Kompatibilität
-  return filteredData.map((item) => ({
-    technicalUserId: 'own',
-    technicalUserName: 'Meine Nutzung',
-    modelName: item.model || 'unknown',
-    modelType: item.type || 'CompletionModelUsage',
-    type: item.type || 'CompletionModelUsage',
-    requests: 1,
-    tokensIn: 0,
-    tokensOut: 0,
-    totalTokens: 0,
-    cost: 0,
-    tag: item.tag || 'production',
-    day: undefined,
-    month: undefined,
-    year: undefined,
-    createDate: item.createDate,
-    apiKeyId: 'own',
-  }))
+  return filteredData.map((item) => {
+    // Berechne Token-Werte basierend auf dem Typ
+    let tokensIn = 0
+    let tokensOut = 0
+    let cost = 0
+
+    if (item.type === 'CompletionModelUsage') {
+      // Verwende echte Token-Daten falls verfügbar
+      tokensIn = (item as any).requestTokens || 1000 // Fallback-Schätzung
+      tokensOut = (item as any).responseTokens || 500 // Fallback-Schätzung
+      cost = 0.01 // Schätzung: ~1 Cent pro Request
+    } else if (item.type === 'EmbeddingModelUsage') {
+      tokensIn = (item as any).requestTokens || 1000 // Fallback-Schätzung
+      tokensOut = 0
+      cost = 0.001 // Schätzung: ~0.1 Cent pro Request
+    } else if (item.type === 'ImageModelUsage') {
+      tokensIn = 0
+      tokensOut = 0
+      cost = 0.02 // Schätzung: ~2 Cent pro Bild
+    }
+
+    return {
+      technicalUserId: 'own',
+      technicalUserName: 'Meine Nutzung',
+      modelName: item.model || 'unknown',
+      modelType: item.type || 'CompletionModelUsage',
+      type: item.type || 'CompletionModelUsage',
+      requests: 1,
+      tokensIn,
+      tokensOut,
+      totalTokens: tokensIn + tokensOut,
+      cost,
+      tag: item.tag || 'production',
+      day: undefined,
+      month: undefined,
+      year: undefined,
+      createDate: item.createDate,
+      apiKeyId: 'own',
+    }
+  })
 })
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
