@@ -59,6 +59,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="ownTimeRange"
+              @change="handleOwnTimeRangeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
@@ -92,6 +93,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="ownModelType"
+              @change="handleOwnModelTypeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
@@ -253,6 +255,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
             <select
               v-model="adminTimeRange"
+              @change="handleAdminTimeRangeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="7d">Letzte 7 Tage</option>
@@ -286,6 +289,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
             <select
               v-model="adminModelType"
+              @change="handleAdminModelTypeChange"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
               <option value="">Alle Modelltypen</option>
@@ -579,6 +583,8 @@ const loadOwnUsageWithGrouping = async () => {
       'Raw data:',
       ownRawUsageData.value.length,
       'records',
+      'Sample raw data:',
+      ownRawUsageData.value.slice(0, 2),
     )
   } catch (error) {
     console.error('🔍 [USAGE-TABS] Error loading own usage data:', error)
@@ -924,6 +930,28 @@ const handleChartPeriodChange = (period: string) => {
 const handleAdminChartPeriodChange = (period: string) => {
   adminChartPeriod.value = period
   console.log('Admin Chart Period changed to:', period)
+}
+
+// Handle Model Type Change
+const handleOwnModelTypeChange = () => {
+  console.log('🔍 [USAGE-TABS] Own model type changed to:', ownModelType.value)
+  loadOwnUsageWithGrouping()
+}
+
+const handleAdminModelTypeChange = () => {
+  console.log('🔍 [USAGE-TABS] Admin model type changed to:', adminModelType.value)
+  loadAdminUsageWithGrouping()
+}
+
+// Handle Time Range Change
+const handleOwnTimeRangeChange = () => {
+  console.log('🔍 [USAGE-TABS] Own time range changed to:', ownTimeRange.value)
+  loadOwnUsageWithGrouping()
+}
+
+const handleAdminTimeRangeChange = () => {
+  console.log('🔍 [USAGE-TABS] Admin time range changed to:', adminTimeRange.value)
+  loadAdminUsageWithGrouping()
 }
 
 // Initialisiere beim Mounten
