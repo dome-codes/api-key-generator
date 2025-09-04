@@ -149,6 +149,7 @@ import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateExampleCosts } from '@/config/pricing'
 import { usageService } from '@/services/apiService'
+import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
 import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -273,10 +274,16 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     console.log('🔍 [USAGE-TABS] User roles:', getUserRoles())
     console.log('🔍 [USAGE-TABS] Highest role:', getHighestRole())
     
-    // Verwende die bestehende getAdminUsageSummary Funktion
-    const response = await usageService.getAdminUsageSummary(fromDate, toDate)
+    // Verwende die Admin-API direkt
+    const params: any = {}
+    if (fromDate) params.from_date = fromDate
+    if (toDate) params.to_date = toDate
+    
+    const response = await adminUsageAISummaryGetV1(params)
+    const responseData = response.data
+    
     // Konvertiere SummaryUsage zu EnhancedUsageRecord
-    const convertedData = (response.usage || []).map((item) => ({
+    const convertedData = (responseData.usage || []).map((item) => ({
       technicalUserId: item.technicalUserId || 'unknown',
       technicalUserName: item.technicalUserId || 'Unknown User', // Verwende technicalUserId als Name
       modelName: item.model || 'unknown',
