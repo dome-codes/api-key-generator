@@ -227,7 +227,7 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     const params: any = {
       from_date: fromDate,
       to_date: toDate,
-      by: 'day', // Always use day grouping for admin data
+      by: 'day,month,year', // Use day grouping for admin charts
     }
 
     const response = await adminUsageAISummaryGetV1(params)
@@ -354,14 +354,12 @@ const filteredAdminUsageData = computed(() => {
   const toDate = new Date(adminToDate.value)
 
   filteredData = filteredData.filter((item) => {
-    if (!item.day && !item.month && !item.year) return true // Keep items without date info
-
-    if (item.day && item.month && item.year) {
-      const itemDate = new Date(item.year, item.month - 1, item.day)
+    // Admin data has day/month/year from API grouping, but they can be null
+    if (item.day !== null && item.month !== null && item.year !== null) {
+      const itemDate = new Date(item.year!, item.month! - 1, item.day!)
       return itemDate >= fromDate && itemDate <= toDate
     }
-
-    return false
+    return true // Keep items without date info
   })
 
   return filteredData
@@ -466,17 +464,19 @@ const adminChartData = computed(() => {
   const data = filteredAdminUsageData.value
   if (data.length === 0) return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
 
-  // Check if we have date information
-  const hasDateInfo = data.some((item) => item.day && item.month && item.year)
+  // Check if we have date information (day/month/year are not null)
+  const hasDateInfo = data.some(
+    (item) => item.day !== null && item.month !== null && item.year !== null,
+  )
 
   if (hasDateInfo) {
     // Group by date (daily)
     const dailyGroups = new Map<string, { tokensIn: number; tokensOut: number; requests: number }>()
 
     data.forEach((item) => {
-      if (!item.day || !item.month || !item.year) return
+      if (item.day === null || item.month === null || item.year === null) return
 
-      const date = new Date(item.year, item.month - 1, item.day)
+      const date = new Date(item.year!, item.month! - 1, item.day!)
       const dayLabel = date.toLocaleDateString('de-DE', { weekday: 'short' })
 
       if (!dailyGroups.has(dayLabel)) {
@@ -497,7 +497,7 @@ const adminChartData = computed(() => {
       requests: sortedEntries.map(([, data]) => data.requests),
     }
   } else {
-    // Group by model type
+    // Group by model type (fallback when no date info)
     const modelGroups = new Map<string, { tokensIn: number; tokensOut: number; requests: number }>()
 
     data.forEach((item) => {

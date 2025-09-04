@@ -646,6 +646,12 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     console.log(
       `[${timestamp}] Admin: Returning usage summary grouped by API Key: ${mockUsage.length} records`,
     )
+  } else if (by === 'day' || by === 'day,month' || by === 'day,month,year') {
+    // Gruppiert nach Tag/Monat/Jahr (für Charts)
+    mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_DAY]
+    console.log(
+      `[${timestamp}] Admin: Returning usage summary grouped by day: ${mockUsage.length} records`,
+    )
   } else {
     // Standard: Alle detaillierten Daten
     mockUsage = [...mockData.MOCK_USAGE_DATA]
