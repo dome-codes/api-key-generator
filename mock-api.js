@@ -676,6 +676,22 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     mockUsage = mockUsage.filter((item) => item.model === model)
   }
 
+  // Filter by date range if provided
+  if (from_date || to_date) {
+    mockUsage = mockUsage.filter((usage) => {
+      // Use createDate if available, otherwise use day/month/year
+      const usageDate = usage.createDate
+        ? new Date(usage.createDate)
+        : usage.day && usage.month && usage.year
+          ? new Date(usage.year, usage.month - 1, usage.day)
+          : new Date() // Fallback to current date if no date info
+
+      const from = from_date ? new Date(from_date) : new Date(0)
+      const to = to_date ? new Date(to_date) : new Date()
+      return usageDate >= from && usageDate <= to
+    })
+  }
+
   console.log(`[${timestamp}] Admin summary data - Total records: ${mockUsage.length}`)
 
   res.status(200).json({
