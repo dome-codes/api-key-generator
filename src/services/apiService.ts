@@ -155,7 +155,7 @@ export const usageService = {
   // - by: ['month', 'year', 'tag'] → month, year und tag werden befüllt
   // usw.
   async getUsageSummaryWithGrouping(
-    by:
+    by?:
       | 'day'
       | 'week'
       | 'month'
@@ -184,7 +184,8 @@ export const usageService = {
       }
 
       const params: UsageAISummaryGetV1Params = {
-        by: Array.isArray(by) ? by.join(',') : by,
+        // Nur by senden wenn es definiert ist
+        ...(by && { by: Array.isArray(by) ? by.join(',') : by }),
       }
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate
@@ -203,7 +204,7 @@ export const usageService = {
 
   // Admin: Usage-Summary mit Gruppierung für alle Benutzer
   async getAdminUsageSummaryWithGrouping(
-    by:
+    by?:
       | 'day'
       | 'week'
       | 'month'
@@ -226,7 +227,8 @@ export const usageService = {
       }
 
       const params: AdminUsageAISummaryGetV1Params = {
-        by: Array.isArray(by) ? by.join(',') : by,
+        // Nur by senden wenn es definiert ist
+        ...(by && { by: Array.isArray(by) ? by.join(',') : by }),
       }
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate

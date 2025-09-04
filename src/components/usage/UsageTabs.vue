@@ -491,7 +491,8 @@ const loadOwnUsageWithGrouping = async () => {
       | 'apikey'
       | 'tag'
       | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
-      | string = 'day'
+      | string
+      | undefined = undefined
 
     if (ownChartPeriod.value === 'weekly') {
       grouping = 'week'
@@ -549,7 +550,8 @@ const loadAdminUsageWithGrouping = async () => {
       | 'apikey'
       | 'tag'
       | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
-      | string = 'day'
+      | string
+      | undefined = undefined
 
     if (adminChartPeriod.value === 'weekly') {
       grouping = 'week'
@@ -643,7 +645,7 @@ const ownUsageSummary = computed(() => {
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
-      acc.requests += 1
+      acc.requests += item.requests || 1 // Verwende tatsächliche Anzahl
       acc.cost += item.cost || 0
       return acc
     },
@@ -666,7 +668,7 @@ const adminUsageSummary = computed(() => {
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
-      acc.requests += 1
+      acc.requests += item.requests || 1 // Verwende tatsächliche Anzahl
       acc.cost += item.cost || 0
       return acc
     },
@@ -703,7 +705,7 @@ const ownChartData = computed(() => {
 
   const tokensIn = ownUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = ownUsageData.value.map((item) => item.tokensOut || 0)
-  const requests = ownUsageData.value.map((item) => 1)
+  const requests = ownUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
 
   return { labels, tokensIn, tokensOut, requests }
 })
@@ -730,7 +732,7 @@ const adminChartData = computed(() => {
 
   const tokensIn = adminUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = adminUsageData.value.map((item) => item.tokensOut || 0)
-  const requests = adminUsageData.value.map((item) => 1)
+  const requests = adminUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
 
   return { labels, tokensIn, tokensOut, requests }
 })
