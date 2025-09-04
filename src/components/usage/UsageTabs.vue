@@ -237,7 +237,7 @@
       <!-- Detaillierte Tabelle -->
       <UsageDetailedTable
         v-if="showOwnDetails"
-        :data="ownUsageData"
+        :data="ownRawUsageData"
         :is-loading="isLoadingOwn"
         :error="ownError"
       />
@@ -451,7 +451,7 @@
 
       <UsageDetailedTable
         v-if="showAdminDetails"
-        :data="adminUsageData"
+        :data="adminRawUsageData"
         :is-loading="isLoadingAdmin"
         :error="adminError"
       />
@@ -563,6 +563,7 @@ const loadOwnUsageWithGrouping = async () => {
 
     // Lade zusätzlich Rohdaten für Summary-Berechnung und zusätzliche Charts
     try {
+      console.log('🔍 [USAGE-TABS] Loading raw data for summary...')
       const rawResponse = await usageService.getUsageSummaryWithGrouping(
         undefined, // Keine Gruppierung für Rohdaten
         fromDate,
@@ -570,6 +571,7 @@ const loadOwnUsageWithGrouping = async () => {
         ownModelType.value || undefined,
       )
       ownRawUsageData.value = rawResponse.usage || []
+      console.log('🔍 [USAGE-TABS] Raw data loaded:', ownRawUsageData.value.length, 'records')
     } catch (rawError) {
       console.warn('🔍 [USAGE-TABS] Could not load raw data for summary:', rawError)
       ownRawUsageData.value = ownUsageData.value // Verwende gruppierte Daten als Fallback
@@ -651,6 +653,7 @@ const loadAdminUsageWithGrouping = async () => {
 
     // Lade zusätzlich Rohdaten für Summary-Berechnung und zusätzliche Charts
     try {
+      console.log('🔍 [USAGE-TABS] Loading admin raw data for summary...')
       const rawResponse = await usageService.getAdminUsageSummaryWithGrouping(
         undefined, // Keine Gruppierung für Rohdaten
         fromDate,
@@ -659,6 +662,7 @@ const loadAdminUsageWithGrouping = async () => {
         adminUser.value || undefined,
       )
       adminRawUsageData.value = rawResponse.usage || []
+      console.log('🔍 [USAGE-TABS] Admin raw data loaded:', adminRawUsageData.value.length, 'records')
     } catch (rawError) {
       console.warn('🔍 [USAGE-TABS] Could not load raw data for admin summary:', rawError)
       adminRawUsageData.value = adminUsageData.value // Verwende gruppierte Daten als Fallback
@@ -722,7 +726,7 @@ const calculateDateRange = (timeRange: string, fromDate: string, toDate: string)
 const ownUsageSummary = computed(() => {
   // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
   const dataToUse = ownRawUsageData.value.length > 0 ? ownRawUsageData.value : ownUsageData.value
-  
+
   if (!dataToUse || dataToUse.length === 0) {
     return {
       tokensIn: 0,
@@ -747,7 +751,7 @@ const ownUsageSummary = computed(() => {
 const adminUsageSummary = computed(() => {
   // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
   const dataToUse = adminRawUsageData.value.length > 0 ? adminRawUsageData.value : adminUsageData.value
-  
+
   if (!dataToUse || dataToUse.length === 0) {
     return {
       tokensIn: 0,
