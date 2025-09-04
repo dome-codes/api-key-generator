@@ -123,6 +123,7 @@ export interface UsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
   by?:
+    | 'hour'
     | 'day'
     | 'week'
     | 'month'
@@ -130,7 +131,7 @@ export interface UsageAISummaryGetV1Params {
     | 'model'
     | 'apikey'
     | 'tag'
-    | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
+    | ('hour' | 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
     | string // Für komma-getrennte Strings wie "day,month,year"
   model?: string
   technicalUserId?: string
@@ -141,6 +142,7 @@ export interface AdminUsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
   by?:
+    | 'hour'
     | 'day'
     | 'week'
     | 'month'
@@ -148,7 +150,7 @@ export interface AdminUsageAISummaryGetV1Params {
     | 'model'
     | 'apikey'
     | 'tag'
-    | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
+    | ('hour' | 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
     | string // Für komma-getrennte Strings wie "day,month,year"
   model?: string
   technicalUserId?: string

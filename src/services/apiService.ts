@@ -156,6 +156,7 @@ export const usageService = {
   // usw.
   async getUsageSummaryWithGrouping(
     by?:
+      | 'hour'
       | 'day'
       | 'week'
       | 'month'
@@ -163,7 +164,7 @@ export const usageService = {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | ('hour' | 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
       | string,
     fromDate?: string,
     toDate?: string,
@@ -205,6 +206,7 @@ export const usageService = {
   // Admin: Usage-Summary mit Gruppierung für alle Benutzer
   async getAdminUsageSummaryWithGrouping(
     by?:
+      | 'hour'
       | 'day'
       | 'week'
       | 'month'
@@ -212,7 +214,7 @@ export const usageService = {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | ('hour' | 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
       | string,
     fromDate?: string,
     toDate?: string,

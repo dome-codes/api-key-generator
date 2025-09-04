@@ -106,6 +106,7 @@
               v-model="ownChartPeriod"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
+              <option value="hourly">Stündlich</option>
               <option value="daily">Täglich</option>
               <option value="weekly">Wöchentlich</option>
               <option value="monthly">Monatlich</option>
@@ -226,7 +227,7 @@
       <!-- Additional Charts (Pie Chart, Bar Chart) -->
       <UsageAdditionalCharts
         v-if="showOwnChart"
-        :usage-data="ownUsageData"
+        :usage-data="ownRawUsageData"
         :is-loading="isLoadingOwn"
         :error="ownError"
       />
@@ -311,6 +312,7 @@
               v-model="adminChartPeriod"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
             >
+              <option value="hourly">Stündlich</option>
               <option value="daily">Täglich</option>
               <option value="weekly">Wöchentlich</option>
               <option value="monthly">Monatlich</option>
@@ -438,7 +440,7 @@
       <!-- Additional Charts (Pie Chart, Bar Chart) for Admin -->
       <UsageAdditionalCharts
         v-if="showAdminChart"
-        :usage-data="adminUsageData"
+        :usage-data="adminRawUsageData"
         :is-loading="isLoadingAdmin"
         :error="adminError"
       />
@@ -458,10 +460,10 @@ import { hasPermission } from '@/auth/keycloak'
 import { formatCost } from '@/config/pricing'
 import { usageService } from '@/services/apiService'
 import { computed, onMounted, ref, watch } from 'vue'
+import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
 import UsagePricingDisclaimer from './UsagePricingDisclaimer.vue'
-import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 
 const activeTab = ref('own')
 
@@ -486,7 +488,9 @@ const adminToDate = ref('')
 
 // API-basierte Daten
 const ownUsageData = ref<any[]>([])
+const ownRawUsageData = ref<any[]>([]) // Rohdaten für zusätzliche Charts
 const adminUsageData = ref<any[]>([])
+const adminRawUsageData = ref<any[]>([]) // Rohdaten für zusätzliche Charts
 const isLoadingOwn = ref(false)
 const isLoadingAdmin = ref(false)
 const ownError = ref<string | null>(null)
@@ -513,7 +517,9 @@ const loadOwnUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (ownView.value === 'overview') {
-      if (ownChartPeriod.value === 'weekly') {
+      if (ownChartPeriod.value === 'hourly') {
+        grouping = 'hour'
+      } else if (ownChartPeriod.value === 'weekly') {
         grouping = 'week'
       } else if (ownChartPeriod.value === 'monthly') {
         grouping = 'month'
@@ -541,6 +547,7 @@ const loadOwnUsageWithGrouping = async () => {
       view: ownView.value,
     })
 
+    // Lade gruppierte Daten für Hauptdiagramm
     const response = await usageService.getUsageSummaryWithGrouping(
       grouping,
       fromDate,
@@ -549,18 +556,39 @@ const loadOwnUsageWithGrouping = async () => {
     )
 
     ownUsageData.value = response.usage || []
+
+    // Lade zusätzlich Rohdaten für zusätzliche Charts (nur in Overview)
+    if (ownView.value === 'overview') {
+      try {
+        const rawResponse = await usageService.getUsageSummaryWithGrouping(
+          undefined, // Keine Gruppierung für Rohdaten
+          fromDate,
+          toDate,
+          ownModelType.value || undefined,
+        )
+        ownRawUsageData.value = rawResponse.usage || []
+      } catch (rawError) {
+        console.warn('🔍 [USAGE-TABS] Could not load raw data for additional charts:', rawError)
+        ownRawUsageData.value = []
+      }
+    } else {
+      ownRawUsageData.value = ownUsageData.value // Verwende gruppierte Daten als Fallback
+    }
+
     console.log(
       '🔍 [USAGE-TABS] Own usage data loaded:',
       grouping,
       ownUsageData.value.length,
       'records',
-      'Sample data:',
-      ownUsageData.value.slice(0, 2),
+      'Raw data:',
+      ownRawUsageData.value.length,
+      'records',
     )
   } catch (error) {
     console.error('🔍 [USAGE-TABS] Error loading own usage data:', error)
     ownError.value = 'Fehler beim Laden der Nutzungsdaten'
     ownUsageData.value = []
+    ownRawUsageData.value = []
   } finally {
     isLoadingOwn.value = false
   }
@@ -586,7 +614,9 @@ const loadAdminUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (adminView.value === 'overview') {
-      if (adminChartPeriod.value === 'weekly') {
+      if (adminChartPeriod.value === 'hourly') {
+        grouping = 'hour'
+      } else if (adminChartPeriod.value === 'weekly') {
         grouping = 'week'
       } else if (adminChartPeriod.value === 'monthly') {
         grouping = 'month'
@@ -606,6 +636,7 @@ const loadAdminUsageWithGrouping = async () => {
       adminToDate.value,
     )
 
+    // Lade gruppierte Daten für Hauptdiagramm
     const response = await usageService.getAdminUsageSummaryWithGrouping(
       grouping,
       fromDate,
@@ -615,16 +646,40 @@ const loadAdminUsageWithGrouping = async () => {
     )
 
     adminUsageData.value = response.usage || []
+
+    // Lade zusätzlich Rohdaten für zusätzliche Charts (nur in Overview)
+    if (adminView.value === 'overview') {
+      try {
+        const rawResponse = await usageService.getAdminUsageSummaryWithGrouping(
+          undefined, // Keine Gruppierung für Rohdaten
+          fromDate,
+          toDate,
+          adminModelType.value || undefined,
+          adminUser.value || undefined,
+        )
+        adminRawUsageData.value = rawResponse.usage || []
+      } catch (rawError) {
+        console.warn('🔍 [USAGE-TABS] Could not load raw data for additional charts:', rawError)
+        adminRawUsageData.value = []
+      }
+    } else {
+      adminRawUsageData.value = adminUsageData.value // Verwende gruppierte Daten als Fallback
+    }
+
     console.log(
-      '🔍 [USAGE-TABS] Admin usage data loaded with grouping:',
+      '🔍 [USAGE-TABS] Admin usage data loaded:',
       grouping,
       adminUsageData.value.length,
+      'records',
+      'Raw data:',
+      adminRawUsageData.value.length,
       'records',
     )
   } catch (error) {
     console.error('🔍 [USAGE-TABS] Error loading admin usage data:', error)
     adminError.value = 'Fehler beim Laden der Admin-Nutzungsdaten'
     adminUsageData.value = []
+    adminRawUsageData.value = []
   } finally {
     isLoadingAdmin.value = false
   }
@@ -723,24 +778,8 @@ const ownChartData = computed(() => {
     return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
   }
 
-  // Backend hat bereits korrekt gruppiert - nur noch für Chart formatieren
-  const labels = ownUsageData.value.map((item) => {
-    // Verwende createDate falls verfügbar, sonst year/month/day
-    if (item.createDate) {
-      return new Date(item.createDate).toLocaleDateString('de-DE')
-    } else if (item.year && item.month && item.day) {
-      return new Date(item.year, item.month - 1, item.day).toLocaleDateString('de-DE')
-    } else if (item.year && item.month) {
-      return new Date(item.year, item.month - 1, 1).toLocaleDateString('de-DE', {
-        month: 'short',
-        year: 'numeric',
-      })
-    } else if (item.year) {
-      return new Date(item.year, 0, 1).toLocaleDateString('de-DE', { year: 'numeric' })
-    }
-    return 'Unknown'
-  })
-
+  // Erstelle Labels basierend auf Chart-Periode
+  const labels = generateChartLabels(ownChartPeriod.value, ownUsageData.value)
   const tokensIn = ownUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = ownUsageData.value.map((item) => item.tokensOut || 0)
   const requests = ownUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
@@ -753,30 +792,53 @@ const adminChartData = computed(() => {
     return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
   }
 
-  // Backend hat bereits korrekt gruppiert - nur noch für Chart formatieren
-  const labels = adminUsageData.value.map((item) => {
-    // Verwende createDate falls verfügbar, sonst year/month/day
-    if (item.createDate) {
-      return new Date(item.createDate).toLocaleDateString('de-DE')
-    } else if (item.year && item.month && item.day) {
-      return new Date(item.year, item.month - 1, item.day).toLocaleDateString('de-DE')
-    } else if (item.year && item.month) {
-      return new Date(item.year, item.month - 1, 1).toLocaleDateString('de-DE', {
-        month: 'short',
-        year: 'numeric',
-      })
-    } else if (item.year) {
-      return new Date(item.year, 0, 1).toLocaleDateString('de-DE', { year: 'numeric' })
-    }
-    return 'Unknown'
-  })
-
+  // Erstelle Labels basierend auf Chart-Periode
+  const labels = generateChartLabels(adminChartPeriod.value, adminUsageData.value)
   const tokensIn = adminUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = adminUsageData.value.map((item) => item.tokensOut || 0)
   const requests = adminUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
 
   return { labels, tokensIn, tokensOut, requests }
 })
+
+// Hilfsfunktion zur Generierung von Chart-Labels basierend auf Periode
+const generateChartLabels = (period: string, data: any[]) => {
+  if (period === 'hourly') {
+    // Stündlich: 0:00-24:00 Uhr
+    return Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`)
+  } else if (period === 'daily') {
+    // Täglich: Mo, Di, Mi, Do, Fr, Sa, So
+    const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    return weekdays
+  } else if (period === 'weekly') {
+    // Wöchentlich: Woche 1, Woche 2, etc.
+    return data.map((_, index) => `Woche ${index + 1}`)
+  } else if (period === 'monthly') {
+    // Monatlich: Jan, Feb, Mar, etc.
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'
+    ]
+    return data.map((_, index) => months[index % 12])
+  } else {
+    // Fallback: Verwende createDate falls verfügbar
+    return data.map((item) => {
+      if (item.createDate) {
+        return new Date(item.createDate).toLocaleDateString('de-DE')
+      } else if (item.year && item.month && item.day) {
+        return new Date(item.year, item.month - 1, item.day).toLocaleDateString('de-DE')
+      } else if (item.year && item.month) {
+        return new Date(item.year, item.month - 1, 1).toLocaleDateString('de-DE', {
+          month: 'short',
+          year: 'numeric',
+        })
+      } else if (item.year) {
+        return new Date(item.year, 0, 1).toLocaleDateString('de-DE', { year: 'numeric' })
+      }
+      return 'Unknown'
+    })
+  }
+}
 
 // Computed properties für die Anzeige basierend auf Ansicht
 const showOwnChart = computed(() => {
