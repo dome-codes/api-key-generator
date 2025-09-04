@@ -100,17 +100,6 @@
               <option value="ImageModelUsage">Bilder</option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Chart-Periode</label>
-            <select
-              v-model="ownChartPeriod"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="daily">Täglich</option>
-              <option value="weekly">Wöchentlich</option>
-              <option value="monthly">Monatlich</option>
-            </select>
-          </div>
         </div>
 
         <!-- View Toggle Buttons -->
@@ -217,10 +206,10 @@
       <UsageChart
         v-if="showOwnChart"
         title="Nutzungsverlauf"
-        :selected-period="ownChartPeriod"
+        :selected-period="'daily'"
         :chart-data="ownChartData"
         chart-placeholder="Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="handleChartPeriodChange"
+        @update:selected-period="() => {}"
       />
 
       <!-- Additional Charts (Pie Chart, Bar Chart) -->
@@ -461,7 +450,6 @@ const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
 const ownTimeRange = ref('30d')
 const ownModelType = ref('')
 const ownView = ref('overview')
-const ownChartPeriod = ref('daily')
 const ownFromDate = ref('')
 const ownToDate = ref('')
 
@@ -503,16 +491,8 @@ const loadOwnUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (ownView.value === 'overview') {
-      if (ownChartPeriod.value === 'weekly') {
-        grouping = 'week'
-      } else if (ownChartPeriod.value === 'monthly') {
-        grouping = 'month'
-      } else if (ownChartPeriod.value === 'yearly') {
-        grouping = 'month' // Verwende 'month' für jährliche Ansicht
-      } else {
-        // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-        grouping = 'day,month'
-      }
+      // Verwende 'day,month' für vollständige Datumsinformation
+      grouping = 'day,month'
     }
     // Für 'detailed' view keine Gruppierung - zeige Rohdaten
 
@@ -696,6 +676,8 @@ const ownUsageSummary = computed(() => {
   // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
   const dataToUse = ownRawUsageData.value.length > 0 ? ownRawUsageData.value : ownUsageData.value
 
+  console.log('🔍 [USAGE-TABS] ownUsageSummary - dataToUse:', dataToUse)
+
   if (!dataToUse || dataToUse.length === 0) {
     return {
       tokensIn: 0,
@@ -705,14 +687,22 @@ const ownUsageSummary = computed(() => {
     }
   }
 
-  return dataToUse.reduce(
+  const summary = dataToUse.reduce(
     (acc, item) => {
       // Verwende die korrekten Felder basierend auf dem API-Response-Typ
       const tokensIn = item.requestTokens || item.tokensIn || 0
       const tokensOut = item.responseTokens || item.tokensOut || 0
       const requests = item.requests || 1
       const cost = item.cost || 0
-
+      
+      console.log('🔍 [USAGE-TABS] Processing item:', {
+        item,
+        tokensIn,
+        tokensOut,
+        requests,
+        cost
+      })
+      
       acc.tokensIn += tokensIn
       acc.tokensOut += tokensOut
       acc.requests += requests
@@ -721,6 +711,9 @@ const ownUsageSummary = computed(() => {
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
   )
+
+  console.log('🔍 [USAGE-TABS] Final summary:', summary)
+  return summary
 })
 
 const adminUsageSummary = computed(() => {
@@ -769,7 +762,7 @@ const ownChartData = computed(() => {
   }
 
   // Erstelle Labels basierend auf Chart-Periode
-  const labels = generateChartLabels(ownChartPeriod.value, ownUsageData.value)
+  const labels = generateChartLabels('daily', ownUsageData.value)
   const tokensIn = ownUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = ownUsageData.value.map((item) => item.tokensOut || 0)
   const requests = ownUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
@@ -884,12 +877,11 @@ const uniqueUsers = computed(() => {
 
 // Einfache Watcher für Filter-Änderungen - API-basiert
 watch(
-  [ownTimeRange, ownModelType, ownChartPeriod, ownView],
+  [ownTimeRange, ownModelType, ownView],
   async () => {
     console.log('🔍 [USAGE-TABS] Own filter changed:', {
       timeRange: ownTimeRange.value,
       modelType: ownModelType.value,
-      chartPeriod: ownChartPeriod.value,
       view: ownView.value,
     })
     await loadOwnUsageWithGrouping()
@@ -913,7 +905,6 @@ watch(
 
 // Handle Chart Period Change
 const handleChartPeriodChange = (period: string) => {
-  ownChartPeriod.value = period
   console.log('Chart Period changed to:', period)
 }
 
