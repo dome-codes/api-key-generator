@@ -305,17 +305,6 @@
               </option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Chart-Periode</label>
-            <select
-              v-model="adminChartPeriod"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="daily">Täglich</option>
-              <option value="weekly">Wöchentlich</option>
-              <option value="monthly">Monatlich</option>
-            </select>
-          </div>
         </div>
 
         <!-- View Toggle Buttons -->
@@ -429,10 +418,10 @@
       <UsageChart
         v-if="showAdminChart"
         title="Admin-Nutzungsverlauf"
-        :selected-period="adminChartPeriod"
+        :selected-period="'daily'"
         :chart-data="adminChartData"
         chart-placeholder="Admin-Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="handleAdminChartPeriodChange"
+        @update:selected-period="() => {}"
       />
 
       <!-- Additional Charts (Pie Chart, Bar Chart) for Admin -->
@@ -480,7 +469,6 @@ const adminTimeRange = ref('30d')
 const adminModelType = ref('')
 const adminUser = ref('')
 const adminView = ref('overview')
-const adminChartPeriod = ref('daily')
 const adminFromDate = ref('')
 const adminToDate = ref('')
 
@@ -605,16 +593,8 @@ const loadAdminUsageWithGrouping = async () => {
 
     // Nur gruppieren wenn wir Diagramme anzeigen wollen
     if (adminView.value === 'overview') {
-      if (adminChartPeriod.value === 'weekly') {
-        grouping = 'week'
-      } else if (adminChartPeriod.value === 'monthly') {
-        grouping = 'month'
-      } else if (adminChartPeriod.value === 'yearly') {
-        grouping = 'month' // Verwende 'month' für jährliche Ansicht
-      } else {
-        // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-        grouping = 'day,month'
-      }
+      // Verwende 'day,month' für vollständige Datumsinformation
+      grouping = 'day,month'
     }
     // Für 'detailed' view keine Gruppierung - zeige Rohdaten
 
@@ -732,7 +712,7 @@ const ownUsageSummary = computed(() => {
       const tokensOut = item.responseTokens || item.tokensOut || 0
       const requests = item.requests || 1
       const cost = item.cost || 0
-      
+
       acc.tokensIn += tokensIn
       acc.tokensOut += tokensOut
       acc.requests += requests
@@ -765,7 +745,7 @@ const adminUsageSummary = computed(() => {
       const tokensOut = item.responseTokens || item.tokensOut || 0
       const requests = item.requests || 1
       const cost = item.cost || 0
-      
+
       acc.tokensIn += tokensIn
       acc.tokensOut += tokensOut
       acc.requests += requests
@@ -803,7 +783,7 @@ const adminChartData = computed(() => {
   }
 
   // Erstelle Labels basierend auf Chart-Periode
-  const labels = generateChartLabels(adminChartPeriod.value, adminUsageData.value)
+  const labels = generateChartLabels('daily', adminUsageData.value)
   const tokensIn = adminUsageData.value.map((item) => item.tokensIn || 0)
   const tokensOut = adminUsageData.value.map((item) => item.tokensOut || 0)
   const requests = adminUsageData.value.map((item) => item.requests || 1) // Verwende tatsächliche Anzahl
@@ -918,13 +898,12 @@ watch(
 )
 
 watch(
-  [adminTimeRange, adminModelType, adminUser, adminChartPeriod, adminView],
+  [adminTimeRange, adminModelType, adminUser, adminView],
   async () => {
     console.log('🔍 [USAGE-TABS] Admin filter changed:', {
       timeRange: adminTimeRange.value,
       modelType: adminModelType.value,
       user: adminUser.value,
-      chartPeriod: adminChartPeriod.value,
       view: adminView.value,
     })
     await loadAdminUsageWithGrouping()
@@ -936,11 +915,6 @@ watch(
 const handleChartPeriodChange = (period: string) => {
   ownChartPeriod.value = period
   console.log('Chart Period changed to:', period)
-}
-
-const handleAdminChartPeriodChange = (period: string) => {
-  adminChartPeriod.value = period
-  console.log('Admin Chart Period changed to:', period)
 }
 
 // Initialisiere beim Mounten
