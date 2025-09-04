@@ -172,6 +172,27 @@ export const usageService = {
     }
   },
 
+  // Admin: Detaillierte Usage-Daten für alle Benutzer (verwendet Summary-API)
+  async getAdminUsage(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
+    try {
+      // Prüfe Admin-Berechtigung
+      if (!hasPermission('canViewAdminUsage')) {
+        console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Daten')
+        return { usage: [] }
+      }
+
+      const params: AdminUsageAISummaryGetV1Params = {}
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+
+      const response = await adminUsageAISummaryGetV1(params)
+      return response.data
+    } catch (error) {
+      console.warn('Fehler beim Laden der Admin-Usage-Daten:', error)
+      return { usage: [] }
+    }
+  },
+
   // Admin: Usage-Summary für alle Benutzer
   async getAdminUsageSummary(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
     try {

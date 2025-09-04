@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import type { TooltipItem } from 'chart.js'
 import type { Chart } from 'chart.js/auto'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface UsageDataItem {
   modelName?: string
@@ -360,6 +360,14 @@ onMounted(() => {
   createPieChart()
   createBarChart()
 })
+
+// Einfacher Watcher für Daten-Änderungen
+watch(() => props.usageData, () => {
+  if (props.usageData && props.usageData.length > 0) {
+    createPieChart()
+    createBarChart()
+  }
+}, { immediate: false })
 
 // Cleanup beim Unmount
 onUnmounted(() => {

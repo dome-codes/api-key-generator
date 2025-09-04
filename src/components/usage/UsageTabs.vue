@@ -147,8 +147,9 @@
 import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts } from '@/config/pricing'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { calculateExampleCosts, formatCost } from '@/config/pricing'
+import { usageService } from '@/services/apiService'
+import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
@@ -267,9 +268,27 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
 const loadAdminRawData = async (fromDate: string, toDate: string) => {
   isLoadingAdminData.value = true
   try {
-    const { usageAnalyticsService } = await import('@/services/usageAnalyticsService')
-    const response = await usageAnalyticsService.getDetailedUsageData(fromDate, toDate, true) // useAdminApi = true
-    adminRawUsageData.value = response || []
+    const response = await usageService.getAdminUsage(fromDate, toDate)
+    // Konvertiere SummaryUsage zu EnhancedUsageRecord
+    const convertedData = (response.usage || []).map((item) => ({
+      technicalUserId: item.technicalUserId || 'unknown',
+      technicalUserName: item.technicalUserId || 'Unknown User', // Verwende technicalUserId als Name
+      modelName: item.model || 'unknown',
+      modelType: item.type || 'CompletionModelUsage',
+      type: item.type || 'CompletionModelUsage',
+      requests: item.requests || 0,
+      tokensIn: 0, // SummaryUsage hat keine Token-Details
+      tokensOut: 0, // SummaryUsage hat keine Token-Details
+      totalTokens: 0, // SummaryUsage hat keine Token-Details
+      cost: item.cost || 0,
+      tag: item.tag || 'production',
+      day: item.day,
+      month: item.month,
+      year: item.year,
+      createDate: undefined,
+      apiKeyId: item.apiKeyId,
+    }))
+    adminRawUsageData.value = convertedData
     console.log(
       '🔍 [USAGE-TABS] Admin raw data loaded:',
       adminRawUsageData.value?.length || 0,
