@@ -145,11 +145,10 @@
 
 <script setup lang="ts">
 import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
+import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
 import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateExampleCosts } from '@/config/pricing'
-import { usageService } from '@/services/apiService'
-import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
 import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -273,15 +272,15 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     console.log('🔍 [USAGE-TABS] Checking admin permission:', hasPermission('canViewAdminUsage'))
     console.log('🔍 [USAGE-TABS] User roles:', getUserRoles())
     console.log('🔍 [USAGE-TABS] Highest role:', getHighestRole())
-    
+
     // Verwende die Admin-API direkt
     const params: any = {}
     if (fromDate) params.from_date = fromDate
     if (toDate) params.to_date = toDate
-    
+
     const response = await adminUsageAISummaryGetV1(params)
     const responseData = response.data
-    
+
     // Konvertiere SummaryUsage zu EnhancedUsageRecord
     const convertedData = (responseData.usage || []).map((item) => ({
       technicalUserId: item.technicalUserId || 'unknown',
@@ -519,18 +518,23 @@ const filteredOwnUsageData = computed(() => {
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
 const filteredAdminUsageData = computed(() => {
+  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - adminRawUsageData length:', adminRawUsageData.value?.length || 0)
+  
   if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
+    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - No adminRawUsageData available')
     return []
   }
 
   // Filtere nach Admin-Filtern
   let filteredData = adminRawUsageData.value
+  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Initial data length:', filteredData.length)
 
   // Filtere nach Modelltyp falls ausgewählt
   if (adminModelType.value) {
     filteredData = filteredData.filter(
       (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
     )
+    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After modelType filter:', filteredData.length)
   }
 
   // Filtere nach Benutzer falls ausgewählt
@@ -539,6 +543,7 @@ const filteredAdminUsageData = computed(() => {
       const userId = item.technicalUserId || item.apiKeyId || 'unknown'
       return userId === adminUser.value
     })
+    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After user filter:', filteredData.length)
   }
 
   // Filtere nach Zeitraum
@@ -583,17 +588,26 @@ const filteredAdminUsageData = computed(() => {
     toDate = today
   }
 
-  return filteredData.filter((item) => {
+  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Date range:', { fromDate, toDate })
+
+  // Filtere nach Datum
+  filteredData = filteredData.filter((item) => {
     let itemDate: Date
     if (item.createDate) {
       itemDate = new Date(item.createDate)
     } else if (item.day && item.month && item.year) {
       itemDate = new Date(item.year, item.month - 1, item.day)
     } else {
+      console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Item without date:', item)
       return false
     }
     return itemDate >= fromDate && itemDate <= toDate
   })
+  
+  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After date filter:', filteredData.length)
+  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Final result length:', filteredData.length)
+
+  return filteredData
 })
 
 // Computed property für eindeutige Benutzer aus den Usage-Daten
