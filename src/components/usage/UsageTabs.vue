@@ -223,6 +223,14 @@
         @update:selected-period="handleChartPeriodChange"
       />
 
+      <!-- Additional Charts (Pie Chart, Bar Chart) -->
+      <UsageAdditionalCharts
+        v-if="showOwnChart"
+        :usage-data="ownUsageData"
+        :is-loading="isLoadingOwn"
+        :error="ownError"
+      />
+
       <!-- Detaillierte Tabelle -->
       <UsageDetailedTable
         v-if="showOwnDetails"
@@ -427,6 +435,14 @@
         @update:selected-period="handleAdminChartPeriodChange"
       />
 
+      <!-- Additional Charts (Pie Chart, Bar Chart) for Admin -->
+      <UsageAdditionalCharts
+        v-if="showAdminChart"
+        :usage-data="adminUsageData"
+        :is-loading="isLoadingAdmin"
+        :error="adminError"
+      />
+
       <UsageDetailedTable
         v-if="showAdminDetails"
         :data="adminUsageData"
@@ -445,6 +461,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
 import UsagePricingDisclaimer from './UsagePricingDisclaimer.vue'
+import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 
 const activeTab = ref('own')
 
@@ -516,6 +533,14 @@ const loadOwnUsageWithGrouping = async () => {
       ownToDate.value,
     )
 
+    console.log('🔍 [USAGE-TABS] Loading own usage with params:', {
+      grouping,
+      fromDate,
+      toDate,
+      model: ownModelType.value,
+      view: ownView.value,
+    })
+
     const response = await usageService.getUsageSummaryWithGrouping(
       grouping,
       fromDate,
@@ -525,10 +550,12 @@ const loadOwnUsageWithGrouping = async () => {
 
     ownUsageData.value = response.usage || []
     console.log(
-      '🔍 [USAGE-TABS] Own usage data loaded with grouping:',
+      '🔍 [USAGE-TABS] Own usage data loaded:',
       grouping,
       ownUsageData.value.length,
       'records',
+      'Sample data:',
+      ownUsageData.value.slice(0, 2),
     )
   } catch (error) {
     console.error('🔍 [USAGE-TABS] Error loading own usage data:', error)
