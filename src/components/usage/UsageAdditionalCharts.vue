@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import type { TooltipItem } from 'chart.js'
 import type { Chart } from 'chart.js/auto'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 interface UsageDataItem {
   modelName?: string
@@ -357,50 +357,9 @@ const createBarChart = async () => {
 
 // Charts erstellen wenn Komponente gemountet ist
 onMounted(() => {
-  setTimeout(() => {
-    createPieChart()
-    createBarChart()
-  }, 100)
+  createPieChart()
+  createBarChart()
 })
-
-// Charts aktualisieren wenn sich die Daten ändern
-watch(
-  () => props.usageData,
-  (newData) => {
-    if (newData && newData.length > 0) {
-      setTimeout(() => {
-        createPieChart()
-        createBarChart()
-      }, 100)
-    }
-  },
-  { deep: true },
-)
-
-// Charts aktualisieren wenn sich die computed properties ändern
-watch(
-  () => modelDistributionData.value,
-  (newData) => {
-    if (newData && newData.data && newData.data.length > 0) {
-      setTimeout(() => {
-        createPieChart()
-      }, 100)
-    }
-  },
-  { deep: true },
-)
-
-watch(
-  () => tagUsageData.value,
-  (newData) => {
-    if (newData && newData.data && newData.data.length > 0) {
-      setTimeout(() => {
-        createBarChart()
-      }, 100)
-    }
-  },
-  { deep: true },
-)
 
 // Cleanup beim Unmount
 onUnmounted(() => {

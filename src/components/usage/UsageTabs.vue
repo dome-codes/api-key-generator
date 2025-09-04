@@ -709,12 +709,12 @@ watch(adminChartPeriodFromFilter, (newPeriod) => {
 
 // Watch für manuelle Änderungen der Chart-Periode
 watch(ownChartPeriod, (newPeriod) => {
-  console.log('Own chart period manually changed to:', newPeriod)
+  // Nur loggen, keine Aktionen
 })
 
 // Watch für manuelle Änderungen der Admin Chart-Periode
 watch(adminChartPeriod, (newPeriod) => {
-  console.log('Admin chart period manually changed to:', newPeriod)
+  // Nur loggen, keine Aktionen
 })
 
 // Watch für Filter-Änderungen
@@ -775,33 +775,16 @@ watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () =>
     // Lade eigene Rohdaten neu
     await loadOwnRawData(fromDate, toDate)
   }
-
-  console.log('Filter geändert - Neue Chart-Periode:', ownChartPeriod.value)
-  console.log('Aktuelle Filter:', {
-    timeRange: ownTimeRange.value,
-    modelType: ownModelType.value,
-    view: ownView.value,
-    fromDate,
-    toDate,
-  })
 })
 
 // Zusätzlicher Watch für modelType-Änderungen - Charts neu rendern
 watch(ownModelType, () => {
-  console.log('ModelType geändert zu:', ownModelType.value)
-  // Force re-computation der Chart-Daten
-  nextTick(() => {
-    console.log('Chart-Daten neu berechnet für ModelType:', ownModelType.value)
-  })
+  // Keine Aktionen
 })
 
 // Zusätzlicher Watch für adminModelType-Änderungen
 watch(adminModelType, () => {
-  console.log('Admin ModelType geändert zu:', adminModelType.value)
-  // Force re-computation der Admin Chart-Daten
-  nextTick(() => {
-    console.log('Admin Chart-Daten neu berechnet für ModelType:', adminModelType.value)
-  })
+  // Keine Aktionen
 })
 
 watch(
