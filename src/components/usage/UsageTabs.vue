@@ -144,10 +144,10 @@
 </template>
 
 <script setup lang="ts">
-import type { UsageResponse } from '@/api/types/types'
+import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts, formatCost } from '@/config/pricing'
+import { calculateExampleCosts } from '@/config/pricing'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -180,6 +180,10 @@ const {
 // Eigene Rohdaten für "Meine Nutzung"
 const ownRawUsageData = ref<UsageResponse['usage']>([])
 const isLoadingOwnData = ref(false)
+
+// Admin-Rohdaten für "Admin-Nutzung"
+const adminRawUsageData = ref<EnhancedUsageRecord[]>([])
+const isLoadingAdminData = ref(false)
 
 // Filter State
 const ownTimeRange = ref('30d')
@@ -233,6 +237,11 @@ onMounted(async () => {
 
   // Lade eigene Rohdaten für "Meine Nutzung"
   await loadOwnRawData(fromDate, toDate)
+
+  // Lade Admin-Rohdaten für "Admin-Nutzung" (nur wenn Admin-Berechtigung vorhanden)
+  if (isApiAdmin.value) {
+    await loadAdminRawData(fromDate, toDate)
+  }
 })
 
 // Funktion zum Laden der eigenen Rohdaten
@@ -251,6 +260,25 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
     console.error('❌ [USAGE-TABS] Error loading own raw data:', err)
   } finally {
     isLoadingOwnData.value = false
+  }
+}
+
+// Funktion zum Laden der Admin-Rohdaten
+const loadAdminRawData = async (fromDate: string, toDate: string) => {
+  isLoadingAdminData.value = true
+  try {
+    const { usageAnalyticsService } = await import('@/services/usageAnalyticsService')
+    const response = await usageAnalyticsService.getDetailedUsageData(fromDate, toDate, true) // useAdminApi = true
+    adminRawUsageData.value = response || []
+    console.log(
+      '🔍 [USAGE-TABS] Admin raw data loaded:',
+      adminRawUsageData.value?.length || 0,
+      'records',
+    )
+  } catch (err) {
+    console.error('❌ [USAGE-TABS] Error loading admin raw data:', err)
+  } finally {
+    isLoadingAdminData.value = false
   }
 }
 
@@ -459,18 +487,26 @@ const filteredOwnUsageData = computed(() => {
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
 const filteredAdminUsageData = computed(() => {
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  console.log(
+    '🔍 [DEBUG] filteredAdminUsageData - adminRawUsageData length:',
+    adminRawUsageData.value?.length || 0,
+  )
+
+  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
+    console.log('🔍 [DEBUG] filteredAdminUsageData - No adminRawUsageData available')
     return []
   }
 
   // Filtere nach Admin-Filtern
-  let filteredData = detailedUsageData.value
+  let filteredData = adminRawUsageData.value
+  console.log('🔍 [DEBUG] filteredAdminUsageData - Initial data length:', filteredData.length)
 
   // Filtere nach Modelltyp falls ausgewählt
   if (adminModelType.value) {
     filteredData = filteredData.filter(
       (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
     )
+    console.log('🔍 [DEBUG] filteredAdminUsageData - After modelType filter:', filteredData.length)
   }
 
   // Filtere nach Benutzer falls ausgewählt
@@ -479,6 +515,7 @@ const filteredAdminUsageData = computed(() => {
       const userId = item.technicalUserId || item.apiKeyId || 'unknown'
       return userId === adminUser.value
     })
+    console.log('🔍 [DEBUG] filteredAdminUsageData - After user filter:', filteredData.length)
   }
 
   // Filtere nach Zeitraum
@@ -565,7 +602,13 @@ const uniqueUsers = computed(() => {
 })
 
 const filteredAdminUsage = computed(() => {
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  console.log(
+    '🔍 [DEBUG] filteredAdminUsage - filteredAdminUsageData length:',
+    filteredAdminUsageData.value?.length || 0,
+  )
+
+  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
+    console.log('🔍 [DEBUG] filteredAdminUsage - No adminRawUsageData available')
     return {
       tokensIn: 0,
       tokensOut: 0,
@@ -577,6 +620,7 @@ const filteredAdminUsage = computed(() => {
 
   // Verwende die gefilterten Admin-Daten
   const filteredData = filteredAdminUsageData.value
+  console.log('🔍 [DEBUG] filteredAdminUsage - Using filteredData length:', filteredData.length)
 
   // Berechne aggregierte Werte
   const aggregatedData = filteredData.reduce(
@@ -831,6 +875,9 @@ watch(
         toDate,
         modelType: adminModelType.value || undefined,
       })
+      
+      // Lade Admin-Rohdaten neu
+      await loadAdminRawData(fromDate, toDate)
     }
 
     console.log('Admin-Filter geändert - Neue Chart-Periode:', adminChartPeriod.value)
