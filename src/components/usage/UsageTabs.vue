@@ -148,7 +148,7 @@ import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
 import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
 import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts } from '@/config/pricing'
+import { calculateExampleCosts, calculateCost } from '@/config/pricing'
 import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -293,24 +293,40 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     const responseData = response.data
 
     // Konvertiere SummaryUsage zu EnhancedUsageRecord
-    const convertedData = (responseData.usage || []).map((item) => ({
-      technicalUserId: item.technicalUserId || 'unknown',
-      technicalUserName: item.technicalUserId || 'Unknown User', // Verwende technicalUserId als Name
-      modelName: item.model || 'unknown',
-      modelType: item.type || 'CompletionModelUsage',
-      type: item.type || 'CompletionModelUsage',
-      requests: item.requests || 0,
-      tokensIn: 0, // SummaryUsage hat keine Token-Details
-      tokensOut: 0, // SummaryUsage hat keine Token-Details
-      totalTokens: 0, // SummaryUsage hat keine Token-Details
-      cost: item.cost || 0,
-      tag: item.tag || 'production',
-      day: undefined,
-      month: undefined,
-      year: undefined,
-      createDate: undefined,
-      apiKeyId: item.apiKeyId,
-    }))
+    const convertedData = (responseData.usage || []).map((item) => {
+      // Berechne Token-Werte aus den verfügbaren Daten
+      const requestTokens = (item as any).requestTokens || 0
+      const responseTokens = (item as any).responseTokens || 0
+      const totalTokens = requestTokens + responseTokens
+      
+      // Berechne Kosten mit der calculateCost Funktion
+      const costCalculation = calculateCost(
+        requestTokens,
+        responseTokens,
+        item.model || 'unknown',
+        false, // useCachedInput
+        item.type || 'CompletionModelUsage'
+      )
+      
+      return {
+        technicalUserId: item.technicalUserId || 'unknown',
+        technicalUserName: item.technicalUserId || 'Unknown User', // Verwende technicalUserId als Name
+        modelName: item.model || 'unknown',
+        modelType: item.type || 'CompletionModelUsage',
+        type: item.type || 'CompletionModelUsage',
+        requests: item.requests || 0,
+        tokensIn: requestTokens,
+        tokensOut: responseTokens,
+        totalTokens: totalTokens,
+        cost: costCalculation.finalCost || item.cost || 0,
+        tag: item.tag || 'production',
+        day: undefined,
+        month: undefined,
+        year: undefined,
+        createDate: undefined,
+        apiKeyId: item.apiKeyId,
+      }
+    })
     adminRawUsageData.value = convertedData
     debugLog(
       '🔍 [USAGE-TABS] Admin raw data loaded:',
@@ -600,7 +616,7 @@ const filteredAdminUsageData = computed(() => {
     if (!item.createDate && !item.day && !item.month && !item.year) {
       return true // Behalte alle Admin-Daten ohne Datum
     }
-    
+
     let itemDate: Date
     if (item.createDate) {
       itemDate = new Date(item.createDate)
