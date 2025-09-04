@@ -481,7 +481,7 @@ const loadOwnUsageWithGrouping = async () => {
     isLoadingOwn.value = true
     ownError.value = null
 
-    // Bestimme Gruppierung basierend auf Chart-Periode
+    // Bestimme Gruppierung basierend auf Chart-Periode und View
     let grouping:
       | 'day'
       | 'week'
@@ -494,16 +494,20 @@ const loadOwnUsageWithGrouping = async () => {
       | string
       | undefined = undefined
 
-    if (ownChartPeriod.value === 'weekly') {
-      grouping = 'week'
-    } else if (ownChartPeriod.value === 'monthly') {
-      grouping = 'month'
-    } else if (ownChartPeriod.value === 'yearly') {
-      grouping = 'month' // Verwende 'month' für jährliche Ansicht
-    } else {
-      // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-      grouping = 'day,month'
+    // Nur gruppieren wenn wir Diagramme anzeigen wollen
+    if (ownView.value === 'overview') {
+      if (ownChartPeriod.value === 'weekly') {
+        grouping = 'week'
+      } else if (ownChartPeriod.value === 'monthly') {
+        grouping = 'month'
+      } else if (ownChartPeriod.value === 'yearly') {
+        grouping = 'month' // Verwende 'month' für jährliche Ansicht
+      } else {
+        // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
+        grouping = 'day,month'
+      }
     }
+    // Für 'detailed' view keine Gruppierung - zeige Rohdaten
 
     // Berechne Datumswerte
     const { fromDate, toDate } = calculateDateRange(
@@ -540,7 +544,7 @@ const loadAdminUsageWithGrouping = async () => {
     isLoadingAdmin.value = true
     adminError.value = null
 
-    // Bestimme Gruppierung basierend auf Chart-Periode
+    // Bestimme Gruppierung basierend auf Chart-Periode und View
     let grouping:
       | 'day'
       | 'week'
@@ -553,16 +557,20 @@ const loadAdminUsageWithGrouping = async () => {
       | string
       | undefined = undefined
 
-    if (adminChartPeriod.value === 'weekly') {
-      grouping = 'week'
-    } else if (adminChartPeriod.value === 'monthly') {
-      grouping = 'month'
-    } else if (adminChartPeriod.value === 'yearly') {
-      grouping = 'month' // Verwende 'month' für jährliche Ansicht
-    } else {
-      // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-      grouping = 'day,month'
+    // Nur gruppieren wenn wir Diagramme anzeigen wollen
+    if (adminView.value === 'overview') {
+      if (adminChartPeriod.value === 'weekly') {
+        grouping = 'week'
+      } else if (adminChartPeriod.value === 'monthly') {
+        grouping = 'month'
+      } else if (adminChartPeriod.value === 'yearly') {
+        grouping = 'month' // Verwende 'month' für jährliche Ansicht
+      } else {
+        // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
+        grouping = 'day,month'
+      }
     }
+    // Für 'detailed' view keine Gruppierung - zeige Rohdaten
 
     // Berechne Datumswerte
     const { fromDate, toDate } = calculateDateRange(
@@ -690,7 +698,10 @@ const ownChartData = computed(() => {
 
   // Backend hat bereits korrekt gruppiert - nur noch für Chart formatieren
   const labels = ownUsageData.value.map((item) => {
-    if (item.year && item.month && item.day) {
+    // Verwende createDate falls verfügbar, sonst year/month/day
+    if (item.createDate) {
+      return new Date(item.createDate).toLocaleDateString('de-DE')
+    } else if (item.year && item.month && item.day) {
       return new Date(item.year, item.month - 1, item.day).toLocaleDateString('de-DE')
     } else if (item.year && item.month) {
       return new Date(item.year, item.month - 1, 1).toLocaleDateString('de-DE', {
@@ -717,7 +728,10 @@ const adminChartData = computed(() => {
 
   // Backend hat bereits korrekt gruppiert - nur noch für Chart formatieren
   const labels = adminUsageData.value.map((item) => {
-    if (item.year && item.month && item.day) {
+    // Verwende createDate falls verfügbar, sonst year/month/day
+    if (item.createDate) {
+      return new Date(item.createDate).toLocaleDateString('de-DE')
+    } else if (item.year && item.month && item.day) {
       return new Date(item.year, item.month - 1, item.day).toLocaleDateString('de-DE')
     } else if (item.year && item.month) {
       return new Date(item.year, item.month - 1, 1).toLocaleDateString('de-DE', {
@@ -783,11 +797,11 @@ const uniqueUsers = computed(() => {
 })
 
 // Einfache Watcher für Filter-Änderungen - API-basiert
-watch([ownTimeRange, ownModelType, ownChartPeriod], async () => {
+watch([ownTimeRange, ownModelType, ownChartPeriod, ownView], async () => {
   await loadOwnUsageWithGrouping()
 })
 
-watch([adminTimeRange, adminModelType, adminUser, adminChartPeriod], async () => {
+watch([adminTimeRange, adminModelType, adminUser, adminChartPeriod, adminView], async () => {
   await loadAdminUsageWithGrouping()
 })
 
