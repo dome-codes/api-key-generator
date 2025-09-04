@@ -148,6 +148,7 @@ import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateExampleCosts, formatCost } from '@/config/pricing'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import type { UsageResponse } from '@/api/types/types'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
@@ -175,6 +176,10 @@ const {
   loadDetailedUsageData,
   loadUsageSummary,
 } = useUsage()
+
+// Eigene Rohdaten für "Meine Nutzung"
+const ownRawUsageData = ref<UsageResponse['usage']>([])
+const isLoadingOwnData = ref(false)
 
 // Filter State
 const ownTimeRange = ref('30d')
@@ -225,7 +230,25 @@ onMounted(async () => {
   } else {
     console.log('🔍 [USAGE-TABS] Using existing data from HomeView')
   }
+
+  // Lade eigene Rohdaten für "Meine Nutzung"
+  await loadOwnRawData(fromDate, toDate)
 })
+
+// Funktion zum Laden der eigenen Rohdaten
+const loadOwnRawData = async (fromDate: string, toDate: string) => {
+  isLoadingOwnData.value = true
+  try {
+    const usageService = await import('@/services/apiService')
+    const response = await usageService.usageService.getOwnUsage(fromDate, toDate)
+    ownRawUsageData.value = response.usage || []
+    console.log('🔍 [USAGE-TABS] Own raw data loaded:', ownRawUsageData.value?.length || 0, 'records')
+  } catch (err) {
+    console.error('❌ [USAGE-TABS] Error loading own raw data:', err)
+  } finally {
+    isLoadingOwnData.value = false
+  }
+}
 
 // Computed properties für gefilterte Daten
 const filteredOwnUsage = computed(() => {
@@ -315,19 +338,19 @@ const filteredOwnUsage = computed(() => {
   return aggregatedData
 })
 
-// Computed property für gefilterte eigene Rohdaten (für Charts)
+// Computed property für gefilterte eigene Rohdaten (für Charts und Details)
 const filteredOwnUsageData = computed(() => {
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  if (!ownRawUsageData.value || ownRawUsageData.value.length === 0) {
     return []
   }
 
   // Filtere nach eigenen Filtern
-  let filteredData = detailedUsageData.value
+  let filteredData = ownRawUsageData.value
 
   // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
     filteredData = filteredData.filter(
-      (item) => item.type === ownModelType.value || item.modelType === ownModelType.value,
+      (item) => item.type === ownModelType.value,
     )
   }
 
@@ -375,13 +398,29 @@ const filteredOwnUsageData = computed(() => {
 
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
-    const itemDate = item.createDate
-      ? new Date(item.createDate)
-      : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    const itemDate = item.createDate ? new Date(item.createDate) : new Date()
     return itemDate >= fromDate && itemDate <= toDate
   })
 
-  return filteredData
+  // Konvertiere zu EnhancedUsageRecord für Kompatibilität
+  return filteredData.map((item) => ({
+    technicalUserId: 'own',
+    technicalUserName: 'Meine Nutzung',
+    modelName: item.model || 'unknown',
+    modelType: item.type || 'CompletionModelUsage',
+    type: item.type || 'CompletionModelUsage',
+    requests: 1,
+    tokensIn: 0,
+    tokensOut: 0,
+    totalTokens: 0,
+    cost: 0,
+    tag: item.tag || 'production',
+    day: undefined,
+    month: undefined,
+    year: undefined,
+    createDate: item.createDate,
+    apiKeyId: 'own',
+  }))
 })
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
@@ -670,6 +709,9 @@ watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () =>
       toDate,
       modelType: ownModelType.value || undefined,
     })
+    
+    // Lade eigene Rohdaten neu
+    await loadOwnRawData(fromDate, toDate)
   }
 
   console.log('Filter geändert - Neue Chart-Periode:', ownChartPeriod.value)
