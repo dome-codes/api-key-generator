@@ -272,8 +272,9 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     console.log('🔍 [USAGE-TABS] Checking admin permission:', hasPermission('canViewAdminUsage'))
     console.log('🔍 [USAGE-TABS] User roles:', getUserRoles())
     console.log('🔍 [USAGE-TABS] Highest role:', getHighestRole())
-
-    const response = await usageService.getAdminUsage(fromDate, toDate)
+    
+    // Verwende die bestehende getAdminUsageSummary Funktion
+    const response = await usageService.getAdminUsageSummary(fromDate, toDate)
     // Konvertiere SummaryUsage zu EnhancedUsageRecord
     const convertedData = (response.usage || []).map((item) => ({
       technicalUserId: item.technicalUserId || 'unknown',
@@ -287,9 +288,9 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
       totalTokens: 0, // SummaryUsage hat keine Token-Details
       cost: item.cost || 0,
       tag: item.tag || 'production',
-      day: item.day,
-      month: item.month,
-      year: item.year,
+      day: undefined,
+      month: undefined,
+      year: undefined,
       createDate: undefined,
       apiKeyId: item.apiKeyId,
     }))
@@ -949,7 +950,10 @@ const ownChartData = computed(() => {
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
 
-  console.log('🔍 [USAGE-TABS] ownChartData - ownRawUsageData length:', ownRawUsageData.value?.length || 0)
+  console.log(
+    '🔍 [USAGE-TABS] ownChartData - ownRawUsageData length:',
+    ownRawUsageData.value?.length || 0,
+  )
 
   if (!ownRawUsageData.value || ownRawUsageData.value.length === 0) {
     // Keine Daten verfügbar - leere Chart-Daten zurückgeben
