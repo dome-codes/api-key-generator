@@ -147,7 +147,7 @@
 import type { UsageResponse } from '@/api/types/types'
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts, formatCost } from '@/config/pricing'
+import { calculateExampleCosts } from '@/config/pricing'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -270,9 +270,7 @@ const filteredOwnUsage = computed(() => {
 
   // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
-    filteredData = filteredData.filter(
-      (item) => item.type === ownModelType.value,
-    )
+    filteredData = filteredData.filter((item) => item.type === ownModelType.value)
   }
 
   // Filtere nach Zeitraum
