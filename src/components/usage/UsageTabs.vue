@@ -500,6 +500,7 @@ const filteredAdminUsageData = computed(() => {
   // Filtere nach Admin-Filtern
   let filteredData = adminRawUsageData.value
   console.log('🔍 [DEBUG] filteredAdminUsageData - Initial data length:', filteredData.length)
+  console.log('🔍 [DEBUG] filteredAdminUsageData - Sample item:', filteredData[0])
 
   // Filtere nach Modelltyp falls ausgewählt
   if (adminModelType.value) {
@@ -567,9 +568,14 @@ const filteredAdminUsageData = computed(() => {
     } else if (item.day && item.month && item.year) {
       itemDate = new Date(item.year, item.month - 1, item.day)
     } else {
+      console.log('🔍 [DEBUG] filteredAdminUsageData - Item without date:', item)
       return false
     }
-    return itemDate >= fromDate && itemDate <= toDate
+    const isInRange = itemDate >= fromDate && itemDate <= toDate
+    if (!isInRange) {
+      console.log('🔍 [DEBUG] filteredAdminUsageData - Item outside date range:', itemDate, 'not in', fromDate, 'to', toDate)
+    }
+    return isInRange
   })
 })
 
@@ -607,8 +613,8 @@ const filteredAdminUsage = computed(() => {
     filteredAdminUsageData.value?.length || 0,
   )
 
-  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
-    console.log('🔍 [DEBUG] filteredAdminUsage - No adminRawUsageData available')
+  if (!filteredAdminUsageData.value || filteredAdminUsageData.value.length === 0) {
+    console.log('🔍 [DEBUG] filteredAdminUsage - No filteredAdminUsageData available')
     return {
       tokensIn: 0,
       tokensOut: 0,
