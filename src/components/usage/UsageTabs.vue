@@ -71,23 +71,22 @@
         :error="error"
       />
 
-      <!-- Usage Chart -->
-      <UsageChart
-        v-if="showOwnChart"
-        title="Nutzungsverlauf"
-        :selected-period="ownChartPeriod"
-        :chart-data="ownChartData"
-        chart-placeholder="Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="handleChartPeriodChange"
-      />
+      <!-- Charts and Details -->
+      <div v-if="showOwnChart" class="space-y-6">
+        <UsageChart
+          title="Nutzungsverlauf"
+          :selected-period="ownChartPeriod"
+          :chart-data="ownChartData"
+          chart-placeholder="Nutzungsdiagramm wird hier angezeigt"
+          @update:selected-period="handleChartPeriodChange"
+        />
 
-      <!-- Zusätzliche Charts -->
-              <UsageAdditionalCharts v-if="showOwnChart" :usage-data="filteredOwnUsageData || []" />
+        <UsageAdditionalCharts :usage-data="filteredOwnUsageData || []" />
+      </div>
 
-      <!-- Detaillierte Tabelle -->
       <UsageDetailedTable
         v-if="showOwnDetails"
-        :data="filteredUsageData || []"
+        :data="filteredOwnUsageData || []"
         :is-loading="isLoading || false"
         :error="error || null"
       />
@@ -98,208 +97,41 @@
       <UsagePricingDisclaimer />
 
       <!-- Filter Section -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
-            <select
-              v-model="adminTimeRange"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="7d">Letzte 7 Tage</option>
-              <option value="30d">Letzte 30 Tage</option>
-              <option value="90d">Letzte 90 Tage</option>
-              <option value="thisMonth">Diesen Monat</option>
-              <option value="lastMonth">Vormonat</option>
-              <option value="custom">Benutzerdefiniert</option>
-            </select>
-            <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
-            <div v-if="adminTimeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-xs text-gray-600 mb-1">Von</label>
-                <input
-                  v-model="adminFromDate"
-                  type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-                />
-              </div>
-              <div>
-                <label class="block text-xs text-gray-600 mb-1">Bis</label>
-                <input
-                  v-model="adminToDate"
-                  type="date"
-                  class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-                />
-              </div>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
-            <select
-              v-model="adminModelType"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="">Alle Modelltypen</option>
-              <option value="CompletionModelUsage">Chat Completions</option>
-              <option value="EmbeddingModelUsage">Embeddings</option>
-              <option value="ImageModelUsage">Bilder</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
-            <select
-              v-model="adminUser"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-            >
-              <option value="">Alle Benutzer</option>
-              <option v-for="user in uniqueUsers" :key="user.id" :value="user.id">
-                {{ user.displayName }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- View Toggle Buttons -->
-        <div class="mt-4 flex justify-center">
-          <div class="bg-gray-100 rounded-lg p-1 inline-flex">
-            <button
-              @click="adminView = 'overview'"
-              :class="[
-                adminView === 'overview'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-              ]"
-            >
-              <svg
-                class="w-4 h-4 inline mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              Übersicht
-            </button>
-            <button
-              @click="adminView = 'detailed'"
-              :class="[
-                adminView === 'detailed'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
-              ]"
-            >
-              <svg
-                class="w-4 h-4 inline mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                />
-              </svg>
-              Detailliert
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Admin Usage Content -->
-      <div class="bg-white rounded-xl shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Admin-Nutzung - Alle Konten</h2>
-        <p class="text-gray-600 mb-4">Übersicht über die API-Nutzung aller Benutzer.</p>
-
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div class="bg-blue-50 rounded-lg p-4">
-            <div class="text-sm text-blue-600 font-medium">Aktive Benutzer</div>
-            <div class="text-2xl font-bold text-blue-800">
-              {{ filteredAdminUsage.uniqueUsers || 0 }}
-            </div>
-            <div
-              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
-              class="text-xs text-blue-600 mt-1"
-            >
-              +3 neue diesen Monat
-            </div>
-          </div>
-
-          <div class="bg-green-50 rounded-lg p-4">
-            <div class="text-sm text-green-600 font-medium">Tokens In</div>
-            <div class="text-2xl font-bold text-green-800">
-              {{ filteredAdminUsage.tokensIn.toLocaleString() }}
-            </div>
-            <div
-              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
-              class="text-xs text-green-600 mt-1"
-            >
-              +18% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-purple-50 rounded-lg p-4">
-            <div class="text-sm text-purple-600 font-medium">Tokens Out</div>
-            <div class="text-2xl font-bold text-purple-800">
-              {{ filteredAdminUsage.tokensOut.toLocaleString() }}
-            </div>
-            <div
-              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
-              class="text-xs text-purple-600 mt-1"
-            >
-              +15% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-orange-50 rounded-lg p-4">
-            <div class="text-sm text-orange-600 font-medium">Gesamtkosten</div>
-            <div class="text-2xl font-bold text-orange-800">
-              {{ formatCost(filteredAdminUsage.cost) }}
-            </div>
-            <div
-              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
-              class="text-xs text-orange-600 mt-1"
-            >
-              +22% vs. letzter Monat
-            </div>
-          </div>
-
-          <div class="bg-red-50 rounded-lg p-4">
-            <div class="text-sm text-red-600 font-medium">Anfragen</div>
-            <div class="text-2xl font-bold text-red-800">
-              {{ filteredAdminUsage.requests.toLocaleString() }}
-            </div>
-            <div
-              v-if="adminTimeRange === 'thisMonth' || adminTimeRange === 'lastMonth'"
-              class="text-xs text-red-600 mt-1"
-            >
-              +20% vs. letzter Monat
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Admin Usage Chart -->
-      <UsageChart
-        v-if="showAdminChart"
-        title="Admin-Nutzungsverlauf"
-        :selected-period="adminChartPeriod"
-        :chart-data="adminChartData"
-        chart-placeholder="Admin-Nutzungsdiagramm wird hier angezeigt"
-        @update:selected-period="handleAdminChartPeriodChange"
+      <UsageFilters
+        v-model:time-range="adminTimeRange"
+        v-model:model-type="adminModelType"
+        v-model:from-date="adminFromDate"
+        v-model:to-date="adminToDate"
+        v-model:selected-user="adminUser"
+        :show-user-filter="true"
+        :users="uniqueUsers"
       />
 
-      <!-- Zusätzliche Charts -->
-      <UsageAdditionalCharts v-if="showAdminChart" :usage-data="filteredAdminUsageData || []" />
+      <!-- View Toggle -->
+      <UsageViewToggle v-model:view="adminView" />
+
+      <!-- Summary Cards -->
+      <UsageSummary
+        title="Admin-Nutzung - Alle Konten"
+        description="Übersicht über die API-Nutzung aller Benutzer."
+        :summary="filteredAdminUsage"
+        :is-loading="isLoading"
+        :error="error"
+        :show-unique-users="true"
+      />
+
+      <!-- Charts and Details -->
+      <div v-if="showAdminChart" class="space-y-6">
+        <UsageChart
+          title="Admin-Nutzungsverlauf"
+          :selected-period="adminChartPeriod"
+          :chart-data="adminChartData"
+          chart-placeholder="Admin-Nutzungsdiagramm wird hier angezeigt"
+          @update:selected-period="handleAdminChartPeriodChange"
+        />
+
+        <UsageAdditionalCharts :usage-data="filteredAdminUsageData || []" />
+      </div>
 
       <UsageDetailedTable
         v-if="showAdminDetails"
@@ -408,7 +240,7 @@ const filteredOwnUsage = computed(() => {
 
   // Filtere nach Modelltyp und Zeitraum
   let filteredData = detailedUsageData.value
-  
+
   // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
     filteredData = filteredData.filter(
@@ -460,7 +292,9 @@ const filteredOwnUsage = computed(() => {
 
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
-    const itemDate = item.createDate ? new Date(item.createDate) : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    const itemDate = item.createDate
+      ? new Date(item.createDate)
+      : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
     return itemDate >= fromDate && itemDate <= toDate
   })
 
@@ -541,7 +375,9 @@ const filteredOwnUsageData = computed(() => {
 
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
-    const itemDate = item.createDate ? new Date(item.createDate) : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    const itemDate = item.createDate
+      ? new Date(item.createDate)
+      : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
     return itemDate >= fromDate && itemDate <= toDate
   })
 
