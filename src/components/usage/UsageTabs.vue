@@ -124,10 +124,8 @@
       <div v-if="showAdminChart" class="space-y-6">
         <UsageChart
           title="Admin-Nutzungsverlauf"
-          :selected-period="adminChartPeriod"
           :chart-data="adminChartData"
           chart-placeholder="Admin-Nutzungsdiagramm wird hier angezeigt"
-          @update:selected-period="handleAdminChartPeriodChange"
         />
 
         <UsageAdditionalCharts :usage-data="filteredAdminUsageData || []" />
@@ -209,7 +207,6 @@ const adminTimeRange = ref('30d')
 const adminModelType = ref('')
 const adminUser = ref('')
 const adminView = ref<'overview' | 'detailed'>('overview')
-const adminChartPeriod = ref('daily')
 const adminFromDate = ref('')
 const adminToDate = ref('')
 
@@ -765,33 +762,9 @@ const ownChartPeriodFromFilter = computed(() => {
   return 'daily'
 })
 
-const adminChartPeriodFromFilter = computed(() => {
-  if (adminTimeRange.value === '7d') return 'daily'
-  if (adminTimeRange.value === '30d') return 'weekly'
-  if (adminTimeRange.value === '90d') return 'monthly'
-  if (adminTimeRange.value === 'thisMonth') return 'daily'
-  if (adminTimeRange.value === 'lastMonth') return 'daily'
-  if (adminTimeRange.value === 'custom' && adminFromDate.value && adminToDate.value) {
-    // Berechne Tage für benutzerdefinierte Zeiträume
-    const fromDate = new Date(adminFromDate.value)
-    const toDate = new Date(adminToDate.value)
-    const daysDiff = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
-
-    if (daysDiff <= 7) return 'daily'
-    if (daysDiff <= 30) return 'weekly'
-    return 'monthly'
-  }
-  return 'daily'
-})
-
 // Watch für Änderungen der Chart-Periode
 watch(ownChartPeriodFromFilter, (newPeriod) => {
   ownChartPeriod.value = newPeriod
-})
-
-// Watch für Änderungen der Admin Chart-Periode
-watch(adminChartPeriodFromFilter, (newPeriod) => {
-  adminChartPeriod.value = newPeriod
 })
 
 // Watch für manuelle Änderungen der Chart-Periode
@@ -799,6 +772,7 @@ watch(ownChartPeriod, (newPeriod) => {
   // Nur loggen, keine Aktionen
 })
 
+<<<<<<< HEAD
 // Watch für manuelle Änderungen der Admin Chart-Periode
 watch(adminChartPeriod, async (newPeriod) => {
   // Lade Admin-Daten neu mit der neuen Periode
@@ -854,6 +828,8 @@ watch(adminChartPeriod, async (newPeriod) => {
   }
 })
 
+=======
+>>>>>>> e88ca74 (fix: Remove admin chart period controls and simplify admin strategy - Remove adminChartPeriod variable and related watchers/handlers - Remove chart period controls from admin UsageChart component - Admin charts now only show data grouped by model type - This simplifies admin view and removes time-based complexity)
 // Watch für Filter-Änderungen
 watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () => {
   // Berechne from_date und to_date basierend auf dem ausgewählten Zeitraum
@@ -984,7 +960,7 @@ watch(
       await loadAdminRawData(fromDate, toDate)
     }
 
-    console.log('Admin-Filter geändert - Neue Chart-Periode:', adminChartPeriod.value)
+    console.log('Admin-Filter geändert')
     console.log('Aktuelle Admin-Filter:', {
       timeRange: adminTimeRange.value,
       modelType: adminModelType.value,
@@ -1498,10 +1474,5 @@ const adminChartData = computed(() => {
 const handleChartPeriodChange = (period: string) => {
   ownChartPeriod.value = period
   console.log('Chart Period changed to:', period)
-}
-
-const handleAdminChartPeriodChange = (period: string) => {
-  adminChartPeriod.value = period
-  console.log('Admin Chart Period changed to:', period)
 }
 </script>
