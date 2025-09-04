@@ -505,7 +505,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-001',
     requests: 100,
     day: 2,
-    month: 9,
+    month: null, // Partial date info
     year: 2025,
   },
   {
@@ -517,7 +517,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     responseTokens: 0,
     technicalUserId: 'user-001',
     requests: 50,
-    day: 3,
+    day: null, // Partial date info
     month: 9,
     year: 2025,
   },

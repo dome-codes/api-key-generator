@@ -354,12 +354,18 @@ const filteredAdminUsageData = computed(() => {
   const toDate = new Date(adminToDate.value)
 
   filteredData = filteredData.filter((item) => {
-    // Admin data has day/month/year from API grouping, but they can be null
+    // Admin data has day/month/year from API grouping, but they can be null or partially filled
     if (item.day !== null && item.month !== null && item.year !== null) {
+      // Complete date info - filter by date range
       const itemDate = new Date(item.year!, item.month! - 1, item.day!)
       return itemDate >= fromDate && itemDate <= toDate
+    } else if (item.day !== null || item.month !== null || item.year !== null) {
+      // Partial date info - keep item but don't filter by date
+      return true
+    } else {
+      // No date info at all - keep item
+      return true
     }
-    return true // Keep items without date info
   })
 
   return filteredData
@@ -470,10 +476,11 @@ const adminChartData = computed(() => {
   )
 
   if (hasDateInfo) {
-    // Group by date (daily)
+    // Group by date (daily) - only if we have complete date info
     const dailyGroups = new Map<string, { tokensIn: number; tokensOut: number; requests: number }>()
 
     data.forEach((item) => {
+      // Only group by date if we have complete date information
       if (item.day === null || item.month === null || item.year === null) return
 
       const date = new Date(item.year!, item.month! - 1, item.day!)
@@ -497,7 +504,7 @@ const adminChartData = computed(() => {
       requests: sortedEntries.map(([, data]) => data.requests),
     }
   } else {
-    // Group by model type (fallback when no date info)
+    // Group by model type (fallback when no complete date info)
     const modelGroups = new Map<string, { tokensIn: number; tokensOut: number; requests: number }>()
 
     data.forEach((item) => {
