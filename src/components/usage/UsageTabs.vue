@@ -145,9 +145,9 @@
 
 <script setup lang="ts">
 import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
-import { hasPermission } from '@/auth/keycloak'
+import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts, formatCost } from '@/config/pricing'
+import { calculateExampleCosts } from '@/config/pricing'
 import { usageService } from '@/services/apiService'
 import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
@@ -268,6 +268,11 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
 const loadAdminRawData = async (fromDate: string, toDate: string) => {
   isLoadingAdminData.value = true
   try {
+    // Debug: Prüfe Admin-Berechtigung
+    console.log('🔍 [USAGE-TABS] Checking admin permission:', hasPermission('canViewAdminUsage'))
+    console.log('🔍 [USAGE-TABS] User roles:', getUserRoles())
+    console.log('🔍 [USAGE-TABS] Highest role:', getHighestRole())
+
     const response = await usageService.getAdminUsage(fromDate, toDate)
     // Konvertiere SummaryUsage zu EnhancedUsageRecord
     const convertedData = (response.usage || []).map((item) => ({
