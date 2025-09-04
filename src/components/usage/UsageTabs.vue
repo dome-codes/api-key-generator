@@ -573,7 +573,14 @@ const filteredAdminUsageData = computed(() => {
     }
     const isInRange = itemDate >= fromDate && itemDate <= toDate
     if (!isInRange) {
-      console.log('🔍 [DEBUG] filteredAdminUsageData - Item outside date range:', itemDate, 'not in', fromDate, 'to', toDate)
+      console.log(
+        '🔍 [DEBUG] filteredAdminUsageData - Item outside date range:',
+        itemDate,
+        'not in',
+        fromDate,
+        'to',
+        toDate,
+      )
     }
     return isInRange
   })
