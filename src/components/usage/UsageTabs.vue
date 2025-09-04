@@ -1441,7 +1441,7 @@ const adminChartData = computed(() => {
 
   data.forEach((item) => {
     const modelType = item.type || item.modelType || 'Unknown'
-    
+
     if (!modelGroups.has(modelType)) {
       modelGroups.set(modelType, {
         tokensIn: 0,
