@@ -106,19 +106,31 @@ export interface UsageAIGetV1Params {
   apiKeyId?: string
 }
 
-export interface UsageAISummaryGetV1Params {
-  from_date?: string
-  to_date?: string
-  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
+// By-Parameter Typ für Gruppierung
+export interface UsageAISummaryGetV1ByItem {
+  day?: string
+  month?: string
+  year?: string
+  week?: string
+  hour?: string
+  user?: string
   model?: string
-  technicalUserId?: string
-  apiKeyId?: string
+  apikey?: string
+  tag?: string
 }
 
 export interface UsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
-  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
+  by?:
+    | 'day'
+    | 'week'
+    | 'month'
+    | 'user'
+    | 'model'
+    | 'apikey'
+    | 'tag'
+    | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
   model?: string
   technicalUserId?: string
   apiKeyId?: string
@@ -127,7 +139,15 @@ export interface UsageAISummaryGetV1Params {
 export interface AdminUsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
-  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
+  by?:
+    | 'day'
+    | 'week'
+    | 'month'
+    | 'user'
+    | 'model'
+    | 'apikey'
+    | 'tag'
+    | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
   model?: string
   technicalUserId?: string
 }

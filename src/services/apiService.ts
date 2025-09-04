@@ -144,6 +144,107 @@ export const usageService = {
     }
   },
 
+  // Usage-Summary mit Gruppierung abrufen
+  //
+  // WICHTIG: Die 'by' Parameter bestimmen, welche Felder im Response befüllt werden:
+  // - by: 'day'           → nur day wird befüllt, month und year sind null
+  // - by: 'week'          → nur week wird befüllt, day/month/year sind null
+  // - by: 'month'         → nur month wird befüllt, day/year sind null
+  // - by: 'apikey'        → nur apikey wird befüllt, day/month/year sind null
+  // - by: ['day', 'month', 'year'] → day, month und year werden befüllt
+  // - by: ['month', 'year', 'tag'] → month, year und tag werden befüllt
+  // usw.
+  async getUsageSummaryWithGrouping(
+    by:
+      | 'day'
+      | 'week'
+      | 'month'
+      | 'user'
+      | 'model'
+      | 'apikey'
+      | 'tag'
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[],
+    fromDate?: string,
+    toDate?: string,
+    model?: string,
+  ): Promise<SummaryUsageResponse> {
+    try {
+      console.log('🔍 [API-SERVICE] getUsageSummaryWithGrouping called with:', {
+        by,
+        fromDate,
+        toDate,
+        model,
+      })
+
+      // Prüfe Berechtigung
+      if (!hasPermission('canViewOwnUsage')) {
+        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
+        return { usage: [] }
+      }
+
+      const params: UsageAISummaryGetV1Params = {
+        by: by,
+      }
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+      if (model) params.model = model
+
+      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with grouping params:', params)
+      const response = await usageAISummaryGetV1(params)
+      console.log('🔍 [API-SERVICE] API response (grouped by', by, '):', response.data)
+
+      return response.data
+    } catch (error) {
+      console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary mit Gruppierung:', error)
+      return { usage: [] }
+    }
+  },
+
+  // Admin: Usage-Summary mit Gruppierung für alle Benutzer
+  async getAdminUsageSummaryWithGrouping(
+    by:
+      | 'day'
+      | 'week'
+      | 'month'
+      | 'user'
+      | 'model'
+      | 'apikey'
+      | 'tag'
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[],
+    fromDate?: string,
+    toDate?: string,
+    model?: string,
+    technicalUserId?: string,
+  ): Promise<SummaryUsageResponse> {
+    try {
+      // Prüfe Admin-Berechtigung
+      if (!hasPermission('canViewAdminUsage')) {
+        console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
+        return { usage: [] }
+      }
+
+      const params: AdminUsageAISummaryGetV1Params = {
+        by: by,
+      }
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+      if (model) params.model = model
+      if (technicalUserId) params.technicalUserId = technicalUserId
+
+      console.log('🔍 [API-SERVICE] Calling adminUsageAISummaryGetV1 with grouping params:', params)
+      const response = await adminUsageAISummaryGetV1(params)
+      console.log('🔍 [API-SERVICE] Admin API response (grouped by', by, '):', response.data)
+
+      return response.data
+    } catch (error) {
+      console.warn(
+        '🔍 [API-SERVICE] Fehler beim Laden der Admin-Usage-Summary mit Gruppierung:',
+        error,
+      )
+      return { usage: [] }
+    }
+  },
+
   // Usage-Summary nach API Key gruppiert abrufen (für Progress Bar)
   async getUsageSummaryByApiKey(fromDate?: string, toDate?: string): Promise<SummaryUsageResponse> {
     try {
