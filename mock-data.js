@@ -502,7 +502,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     createDate: '2025-09-01T10:00:00.000Z',
     requests: 150,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -530,7 +530,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     createDate: '2025-09-01T10:00:00.000Z',
     requests: 50,
     day: null, // Partial date info
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -544,7 +544,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     createDate: '2025-09-02T10:00:00.000Z',
     requests: 80,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -558,7 +558,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     createDate: '2025-09-02T10:00:00.000Z',
     requests: 60,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -575,7 +575,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     createDate: '2025-09-02T10:00:00.000Z',
     requests: 10,
     day: 3,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -588,7 +588,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-004',
     requests: 450,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -601,7 +601,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-004',
     requests: 300,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -617,7 +617,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-004',
     requests: 25,
     day: 3,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -630,7 +630,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-005',
     requests: 600,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -643,7 +643,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-005',
     requests: 200,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -659,7 +659,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-005',
     requests: 50,
     day: 3,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -672,7 +672,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-006',
     requests: 700,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -685,7 +685,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-006',
     requests: 250,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -698,7 +698,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-007',
     requests: 800,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -711,7 +711,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-007',
     requests: 300,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -724,7 +724,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-008',
     requests: 900,
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -737,7 +737,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-008',
     requests: 400,
     day: 2,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -753,7 +753,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     technicalUserId: 'user-008',
     requests: 75,
     day: 3,
-    month: 9,
+    month: 1,
     year: 2025,
   },
 ]
@@ -771,7 +771,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     createDate: '2025-09-01T10:00:00.000Z',
     requests: 300, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -785,7 +785,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     createDate: '2025-09-02T10:00:00.000Z',
     requests: 150, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -799,7 +799,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     createDate: '2025-09-03T10:00:00.000Z',
     requests: 50, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -812,7 +812,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-004',
     requests: 775, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -825,7 +825,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-005',
     requests: 850, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -838,7 +838,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-006',
     requests: 950, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -851,7 +851,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-007',
     requests: 1100, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -864,7 +864,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-008',
     requests: 1375, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -877,7 +877,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-009',
     requests: 150, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -890,7 +890,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-010',
     requests: 200, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -903,7 +903,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-011',
     requests: 300, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -916,7 +916,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-012',
     requests: 400, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -929,7 +929,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-013',
     requests: 500, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -942,7 +942,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-014',
     requests: 600, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
   {
@@ -955,7 +955,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     technicalUserId: 'user-015',
     requests: 700, // Summe aller Requests
     day: 1,
-    month: 9,
+    month: 1,
     year: 2025,
   },
 ]

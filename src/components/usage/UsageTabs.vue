@@ -546,6 +546,32 @@ watch([ownTimeRange, ownModelType, ownFromDate, ownToDate], async () => {
   }
 })
 
+// Watch admin time range changes and update dates accordingly
+watch(adminTimeRange, (newTimeRange) => {
+  const today = new Date()
+  let fromDate: Date
+
+  switch (newTimeRange) {
+    case '7d':
+      fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      break
+    case '30d':
+      fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      break
+    case '90d':
+      fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+      break
+    case '1y':
+      fromDate = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000)
+      break
+    default:
+      fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  }
+
+  adminFromDate.value = fromDate.toISOString()
+  adminToDate.value = today.toISOString()
+})
+
 watch([adminTimeRange, adminModelType, adminUser, adminFromDate, adminToDate], async () => {
   const fromDate = adminFromDate.value
   const toDate = adminToDate.value
