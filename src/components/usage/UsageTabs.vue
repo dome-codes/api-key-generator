@@ -949,8 +949,11 @@ const ownChartData = computed(() => {
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
 
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  console.log('🔍 [USAGE-TABS] ownChartData - ownRawUsageData length:', ownRawUsageData.value?.length || 0)
+
+  if (!ownRawUsageData.value || ownRawUsageData.value.length === 0) {
     // Keine Daten verfügbar - leere Chart-Daten zurückgeben
+    console.log('🔍 [USAGE-TABS] ownChartData - No ownRawUsageData available')
     return {
       labels: [],
       tokensIn: [],
@@ -960,27 +963,23 @@ const ownChartData = computed(() => {
   }
 
   // Gruppiere Daten basierend auf der ausgewählten Periode
-  let sortedData = detailedUsageData.value
-    .filter((item) => item.createDate || (item.day && item.month && item.year))
+  let sortedData = ownRawUsageData.value
+    .filter((item) => item.createDate)
     // Filtere nach Modelltyp falls ausgewählt
     .filter((item) => {
       if (!modelType) return true // Alle Modelltypen anzeigen
-      // Backend sendet 'type' zurück, nicht 'modelType'
-      return item.type === modelType || item.modelType === modelType
+      return item.type === modelType
     })
+
+  console.log('🔍 [USAGE-TABS] ownChartData - Filtered data length:', sortedData.length)
 
   const period = chartPeriod
 
   // Sortiere die Daten nach Datum
   sortedData = sortedData.sort((a, b) => {
-    // Verwende createDate falls verfügbar, sonst day/month/year
+    // Verwende createDate falls verfügbar
     if (a.createDate && b.createDate) {
       return new Date(a.createDate).getTime() - new Date(b.createDate).getTime()
-    }
-    if (a.day && a.month && a.year && b.day && b.month && b.year) {
-      const dateA = new Date(a.year, a.month - 1, a.day)
-      const dateB = new Date(b.year, b.month - 1, b.day)
-      return dateA.getTime() - dateB.getTime()
     }
     return 0
   })
