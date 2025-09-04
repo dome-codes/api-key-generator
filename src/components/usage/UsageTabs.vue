@@ -158,6 +158,17 @@ import UsagePricingDisclaimer from './UsagePricingDisclaimer.vue'
 import UsageSummary from './UsageSummary.vue'
 import UsageViewToggle from './UsageViewToggle.vue'
 
+// Debug-Log-Funktion (nur im Debug-Modus)
+const debugLog = (...args: unknown[]) => {
+  const isDevelopment = import.meta.env.DEV
+  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
+  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
+  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
+  if (showDebugMode) {
+    console.log(...args)
+  }
+}
+
 const activeTab = ref('own')
 
 // Prüfe ob Benutzer API-Admin ist
@@ -269,9 +280,9 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
   isLoadingAdminData.value = true
   try {
     // Debug: Prüfe Admin-Berechtigung
-    console.log('🔍 [USAGE-TABS] Checking admin permission:', hasPermission('canViewAdminUsage'))
-    console.log('🔍 [USAGE-TABS] User roles:', getUserRoles())
-    console.log('🔍 [USAGE-TABS] Highest role:', getHighestRole())
+    debugLog('🔍 [USAGE-TABS] Checking admin permission:', hasPermission('canViewAdminUsage'))
+    debugLog('🔍 [USAGE-TABS] User roles:', getUserRoles())
+    debugLog('🔍 [USAGE-TABS] Highest role:', getHighestRole())
 
     // Verwende die Admin-API direkt
     const params: any = {}
@@ -301,7 +312,7 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
       apiKeyId: item.apiKeyId,
     }))
     adminRawUsageData.value = convertedData
-    console.log(
+    debugLog(
       '🔍 [USAGE-TABS] Admin raw data loaded:',
       adminRawUsageData.value?.length || 0,
       'records',
@@ -601,10 +612,13 @@ const filteredAdminUsageData = computed(() => {
     // Admin-Daten aus SummaryUsage haben keine Datums-Informationen
     // Deshalb überspringen wir die Datum-Filterung für Admin-Daten
     if (!item.createDate && !item.day && !item.month && !item.year) {
-      console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Admin item without date, skipping date filter:', item)
+      console.log(
+        '🔍 [USAGE-TABS] filteredAdminUsageData - Admin item without date, skipping date filter:',
+        item,
+      )
       return true // Behalte alle Admin-Daten ohne Datum
     }
-    
+
     let itemDate: Date
     if (item.createDate) {
       itemDate = new Date(item.createDate)
@@ -652,8 +666,11 @@ const uniqueUsers = computed(() => {
 })
 
 const filteredAdminUsage = computed(() => {
-  console.log('🔍 [USAGE-TABS] filteredAdminUsage - filteredAdminUsageData length:', filteredAdminUsageData.value?.length || 0)
-  
+  console.log(
+    '🔍 [USAGE-TABS] filteredAdminUsage - filteredAdminUsageData length:',
+    filteredAdminUsageData.value?.length || 0,
+  )
+
   if (!filteredAdminUsageData.value || filteredAdminUsageData.value.length === 0) {
     console.log('🔍 [USAGE-TABS] filteredAdminUsage - No filteredAdminUsageData available')
     return {
@@ -667,7 +684,10 @@ const filteredAdminUsage = computed(() => {
 
   // Verwende die gefilterten Admin-Daten
   const filteredData = filteredAdminUsageData.value
-  console.log('🔍 [USAGE-TABS] filteredAdminUsage - Using filteredData length:', filteredData.length)
+  console.log(
+    '🔍 [USAGE-TABS] filteredAdminUsage - Using filteredData length:',
+    filteredData.length,
+  )
 
   // Berechne aggregierte Werte
   const aggregatedData = filteredData.reduce(
