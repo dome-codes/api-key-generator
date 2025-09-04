@@ -547,7 +547,7 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
 
   console.log(`[${timestamp}] Getting AI usage data for user: ${userId}`)
 
-  // Verwende hardcodierte Usage-Daten
+  // Verwende hardcodierte Usage-Daten für den aktuellen Nutzer
   let mockUsage = [...mockData.MOCK_USAGE_DATA]
 
   // Filter by date range if provided
