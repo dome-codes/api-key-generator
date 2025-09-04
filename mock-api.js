@@ -92,10 +92,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       tag: completionTag,
       tokensIn: Math.floor(completionTokensIn),
       tokensOut: Math.floor(completionTokensOut),
-      totalTokens: Math.floor(completionTokensIn + completionTokensOut),
-      cost: 0,
       technicalUserId: userId || 'user-123',
-      technicalUserName: `User ${userId || 'user-123'}`,
       createDate: createDate.toISOString(),
     })
 
@@ -124,10 +121,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
         tag: embeddingTag,
         tokensIn: Math.floor(embeddingTokens),
         tokensOut: 0,
-        totalTokens: Math.floor(embeddingTokens),
-        cost: 0,
         technicalUserId: userId || 'user-123',
-        technicalUserName: `User ${userId || 'user-123'}`,
         createDate: embeddingCreateDate.toISOString(),
       })
     }
@@ -162,10 +156,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
         quality,
         tokensIn: 0,
         tokensOut: 0,
-        totalTokens: 0,
-        cost: 0,
         technicalUserId: userId || 'user-123',
-        technicalUserName: `User ${userId || 'user-123'}`,
         createDate: imageCreateDate.toISOString(),
       })
     }
@@ -296,7 +287,10 @@ mockData.MOCK_API_KEYS.forEach((key) => {
   }
 })
 
-console.log(`[MOCK-API] Initialized with ${Object.keys(apiKeys).length} hardcoded API keys:`, Object.keys(apiKeys))
+console.log(
+  `[MOCK-API] Initialized with ${Object.keys(apiKeys).length} hardcoded API keys:`,
+  Object.keys(apiKeys),
+)
 
 // Hilfsfunktionen
 function generateApiKey() {

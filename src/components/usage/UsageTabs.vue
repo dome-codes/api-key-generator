@@ -145,7 +145,7 @@
 <script setup lang="ts">
 import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
 import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
-import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
+import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateCost } from '@/config/pricing'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -159,7 +159,10 @@ import UsageViewToggle from './UsageViewToggle.vue'
 
 // Debug-Log-Funktion
 const debugLog = (...args: unknown[]) => {
-  if (import.meta.env.DEV && (import.meta.env.VITE_SHOW_DEBUG === 'true' || localStorage.getItem('debug') === 'true')) {
+  if (
+    import.meta.env.DEV &&
+    (import.meta.env.VITE_SHOW_DEBUG === 'true' || localStorage.getItem('debug') === 'true')
+  ) {
     console.log(...args)
   }
 }
@@ -195,7 +198,7 @@ const adminToDate = ref('')
 const setDefaultDates = () => {
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  
+
   ownFromDate.value = thirtyDaysAgo.toISOString()
   ownToDate.value = today.toISOString()
   adminFromDate.value = thirtyDaysAgo.toISOString()
@@ -224,7 +227,7 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     const params: any = {
       from_date: fromDate,
       to_date: toDate,
-      by: 'day' // Always use day grouping for admin data
+      by: 'day', // Always use day grouping for admin data
     }
 
     const response = await adminUsageAISummaryGetV1(params)
@@ -241,12 +244,12 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
         responseTokens,
         item.model || 'unknown',
         false,
-        item.type || 'CompletionModelUsage'
+        item.type || 'CompletionModelUsage',
       )
 
       return {
         technicalUserId: item.technicalUserId || 'unknown',
-        technicalUserName: item.technicalUserId || 'Unknown User',
+        technicalUserName: item.technicalUserId || 'Unknown User', // Fallback to technicalUserId
         modelName: item.model || 'unknown',
         modelType: item.type || 'CompletionModelUsage',
         type: item.type || 'CompletionModelUsage',
@@ -259,13 +262,17 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
         day: item.day,
         month: item.month,
         year: item.year,
-        createDate: undefined,
+        createDate: item.createDate, // Use createDate if available, otherwise undefined
         apiKeyId: item.apiKeyId,
       }
     })
-    
+
     adminRawUsageData.value = convertedData
-    debugLog('🔍 [USAGE-TABS] Admin raw data loaded:', adminRawUsageData.value?.length || 0, 'records')
+    debugLog(
+      '🔍 [USAGE-TABS] Admin raw data loaded:',
+      adminRawUsageData.value?.length || 0,
+      'records',
+    )
   } catch (err) {
     console.error('❌ [USAGE-TABS] Error loading admin raw data:', err)
   } finally {
@@ -287,7 +294,7 @@ const filteredOwnUsageData = computed(() => {
   // Filter by date range
   const fromDate = new Date(ownFromDate.value)
   const toDate = new Date(ownToDate.value)
-  
+
   filteredData = filteredData.filter((item) => {
     const itemDate = item.createDate ? new Date(item.createDate) : new Date()
     return itemDate >= fromDate && itemDate <= toDate
@@ -297,7 +304,7 @@ const filteredOwnUsageData = computed(() => {
   return filteredData.map((item) => {
     const requestTokens = (item as any).requestTokens || 1000
     const responseTokens = (item as any).responseTokens || 500
-    
+
     return {
       technicalUserId: 'own',
       technicalUserName: 'Meine Nutzung',
@@ -326,10 +333,11 @@ const filteredAdminUsageData = computed(() => {
 
   // Filter by model type
   if (adminModelType.value) {
-    filteredData = filteredData.filter((item) => 
-      item.type === adminModelType.value || 
-      item.modelType === adminModelType.value || 
-      (item as any).model === adminModelType.value
+    filteredData = filteredData.filter(
+      (item) =>
+        item.type === adminModelType.value ||
+        item.modelType === adminModelType.value ||
+        (item as any).model === adminModelType.value,
     )
   }
 
@@ -344,15 +352,15 @@ const filteredAdminUsageData = computed(() => {
   // Filter by date range (skip if no date info)
   const fromDate = new Date(adminFromDate.value)
   const toDate = new Date(adminToDate.value)
-  
+
   filteredData = filteredData.filter((item) => {
     if (!item.day && !item.month && !item.year) return true // Keep items without date info
-    
+
     if (item.day && item.month && item.year) {
       const itemDate = new Date(item.year, item.month - 1, item.day)
       return itemDate >= fromDate && itemDate <= toDate
     }
-    
+
     return false
   })
 
@@ -364,12 +372,15 @@ const filteredOwnUsage = computed(() => {
   const data = filteredOwnUsageData.value
   if (data.length === 0) return { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 }
 
-  return data.reduce((acc, item) => ({
-    tokensIn: acc.tokensIn + item.tokensIn,
-    tokensOut: acc.tokensOut + item.tokensOut,
-    requests: acc.requests + item.requests,
-    cost: acc.cost + item.cost
-  }), { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 })
+  return data.reduce(
+    (acc, item) => ({
+      tokensIn: acc.tokensIn + item.tokensIn,
+      tokensOut: acc.tokensOut + item.tokensOut,
+      requests: acc.requests + item.requests,
+      cost: acc.cost + item.cost,
+    }),
+    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
+  )
 })
 
 const filteredAdminUsage = computed(() => {
@@ -377,14 +388,17 @@ const filteredAdminUsage = computed(() => {
   if (data.length === 0) return { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 }
 
   const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
-  
-  return data.reduce((acc, item) => ({
-    tokensIn: acc.tokensIn + item.tokensIn,
-    tokensOut: acc.tokensOut + item.tokensOut,
-    requests: acc.requests + item.requests,
-    cost: acc.cost + item.cost,
-    uniqueUsers
-  }), { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 })
+
+  return data.reduce(
+    (acc, item) => ({
+      tokensIn: acc.tokensIn + item.tokensIn,
+      tokensOut: acc.tokensOut + item.tokensOut,
+      requests: acc.requests + item.requests,
+      cost: acc.cost + item.cost,
+      uniqueUsers,
+    }),
+    { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 },
+  )
 })
 
 // Unique users for admin filter
@@ -425,7 +439,7 @@ const ownChartData = computed(() => {
 
   data.forEach((item) => {
     if (!item.createDate) return
-    
+
     const date = new Date(item.createDate)
     const dayLabel = date.toLocaleDateString('de-DE', { weekday: 'short' })
 
@@ -444,7 +458,7 @@ const ownChartData = computed(() => {
     labels: sortedEntries.map(([label]) => label),
     tokensIn: sortedEntries.map(([, data]) => data.tokensIn),
     tokensOut: sortedEntries.map(([, data]) => data.tokensOut),
-    requests: sortedEntries.map(([, data]) => data.requests)
+    requests: sortedEntries.map(([, data]) => data.requests),
   }
 })
 
@@ -453,7 +467,7 @@ const adminChartData = computed(() => {
   if (data.length === 0) return { labels: [], tokensIn: [], tokensOut: [], requests: [] }
 
   // Check if we have date information
-  const hasDateInfo = data.some(item => item.day && item.month && item.year)
+  const hasDateInfo = data.some((item) => item.day && item.month && item.year)
 
   if (hasDateInfo) {
     // Group by date (daily)
@@ -461,7 +475,7 @@ const adminChartData = computed(() => {
 
     data.forEach((item) => {
       if (!item.day || !item.month || !item.year) return
-      
+
       const date = new Date(item.year, item.month - 1, item.day)
       const dayLabel = date.toLocaleDateString('de-DE', { weekday: 'short' })
 
@@ -480,7 +494,7 @@ const adminChartData = computed(() => {
       labels: sortedEntries.map(([label]) => label),
       tokensIn: sortedEntries.map(([, data]) => data.tokensIn),
       tokensOut: sortedEntries.map(([, data]) => data.tokensOut),
-      requests: sortedEntries.map(([, data]) => data.requests)
+      requests: sortedEntries.map(([, data]) => data.requests),
     }
   } else {
     // Group by model type
@@ -488,7 +502,7 @@ const adminChartData = computed(() => {
 
     data.forEach((item) => {
       const modelType = item.type || item.modelType || 'Unknown'
-      
+
       if (!modelGroups.has(modelType)) {
         modelGroups.set(modelType, { tokensIn: 0, tokensOut: 0, requests: 0 })
       }
@@ -499,12 +513,14 @@ const adminChartData = computed(() => {
       group.requests += item.requests
     })
 
-    const sortedEntries = Array.from(modelGroups.entries()).sort((a, b) => b[1].requests - a[1].requests)
+    const sortedEntries = Array.from(modelGroups.entries()).sort(
+      (a, b) => b[1].requests - a[1].requests,
+    )
     return {
       labels: sortedEntries.map(([label]) => label),
       tokensIn: sortedEntries.map(([, data]) => data.tokensIn),
       tokensOut: sortedEntries.map(([, data]) => data.tokensOut),
-      requests: sortedEntries.map(([, data]) => data.requests)
+      requests: sortedEntries.map(([, data]) => data.requests),
     }
   }
 })
@@ -534,12 +550,12 @@ watch([adminTimeRange, adminModelType, adminUser, adminFromDate, adminToDate], a
 // Initialize
 onMounted(async () => {
   setDefaultDates()
-  
+
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
-  
+
   await loadOwnRawData(fromDate, toDate)
-  
+
   if (isApiAdmin.value) {
     await loadAdminRawData(fromDate, toDate)
   }

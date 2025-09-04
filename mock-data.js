@@ -165,11 +165,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-001',
     requestTokens: 50000,
     responseTokens: 25000,
-    totalTokens: 75000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-001',
-    technicalUserName: 'Admin User',
-    createDate: '2025-09-01T10:00:00.000Z',
     requests: 150,
   },
   {
@@ -179,11 +175,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-001',
     requestTokens: 30000,
     responseTokens: 15000,
-    totalTokens: 45000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-001',
-    technicalUserName: 'Admin User',
-    createDate: '2025-09-02T11:00:00.000Z',
     requests: 100,
   },
   {
@@ -193,11 +185,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-001',
     requestTokens: 20000,
     responseTokens: 0,
-    totalTokens: 20000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-001',
-    technicalUserName: 'Admin User',
-    createDate: '2025-09-03T12:00:00.000Z',
     requests: 50,
   },
 
@@ -209,11 +197,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-002',
     requestTokens: 25000,
     responseTokens: 12000,
-    totalTokens: 37000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-002',
-    technicalUserName: 'Developer User',
-    createDate: '2025-09-01T14:00:00.000Z',
     requests: 80,
   },
   {
@@ -223,11 +207,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-002',
     requestTokens: 15000,
     responseTokens: 8000,
-    totalTokens: 23000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-002',
-    technicalUserName: 'Developer User',
-    createDate: '2025-09-02T15:00:00.000Z',
     requests: 60,
   },
   {
@@ -240,11 +220,7 @@ const MOCK_USAGE_DATA = [
     quality: 'hd',
     requestTokens: 0,
     responseTokens: 0,
-    totalTokens: 0,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-002',
-    technicalUserName: 'Developer User',
-    createDate: '2025-09-03T16:00:00.000Z',
     requests: 10,
   },
 
@@ -256,11 +232,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-003',
     requestTokens: 10000,
     responseTokens: 5000,
-    totalTokens: 15000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-003',
-    technicalUserName: 'Tester User',
-    createDate: '2025-09-01T09:00:00.000Z',
     requests: 30,
   },
   {
@@ -270,11 +242,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-003',
     requestTokens: 5000,
     responseTokens: 0,
-    totalTokens: 5000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-003',
-    technicalUserName: 'Tester User',
-    createDate: '2025-09-02T10:00:00.000Z',
     requests: 20,
   },
 
@@ -286,11 +254,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-004',
     requestTokens: 8000000, // 8M Tokens
     responseTokens: 4000000, // 4M Tokens
-    totalTokens: 12000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-004',
-    technicalUserName: 'High Usage User',
-    createDate: '2025-09-01T08:00:00.000Z',
     requests: 450,
   },
   {
@@ -300,11 +264,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-004',
     requestTokens: 4000000, // 4M Tokens
     responseTokens: 2000000, // 2M Tokens
-    totalTokens: 6000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-004',
-    technicalUserName: 'High Usage User',
-    createDate: '2025-09-02T09:00:00.000Z',
     requests: 300,
   },
   {
@@ -317,11 +277,7 @@ const MOCK_USAGE_DATA = [
     quality: 'hd',
     requestTokens: 0,
     responseTokens: 0,
-    totalTokens: 0,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-004',
-    technicalUserName: 'High Usage User',
-    createDate: '2025-09-03T10:00:00.000Z',
     requests: 25,
   },
 
@@ -333,11 +289,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-005',
     requestTokens: 9000000, // 9M Tokens
     responseTokens: 4500000, // 4.5M Tokens
-    totalTokens: 13500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-005',
-    technicalUserName: 'Marketing User',
-    createDate: '2025-09-01T12:00:00.000Z',
     requests: 600,
   },
   {
@@ -347,11 +299,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-005',
     requestTokens: 3000000, // 3M Tokens
     responseTokens: 1500000, // 1.5M Tokens
-    totalTokens: 4500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-005',
-    technicalUserName: 'Marketing User',
-    createDate: '2025-09-02T13:00:00.000Z',
     requests: 200,
   },
   {
@@ -364,11 +312,7 @@ const MOCK_USAGE_DATA = [
     quality: 'standard',
     requestTokens: 0,
     responseTokens: 0,
-    totalTokens: 0,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-005',
-    technicalUserName: 'Marketing User',
-    createDate: '2025-09-03T14:00:00.000Z',
     requests: 50,
   },
 
@@ -380,11 +324,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-006',
     requestTokens: 10000000, // 10M Tokens
     responseTokens: 5000000, // 5M Tokens
-    totalTokens: 15000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-006',
-    technicalUserName: 'Analytics User',
-    createDate: '2025-09-01T16:00:00.000Z',
     requests: 700,
   },
   {
@@ -394,11 +334,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-006',
     requestTokens: 4000000, // 4M Tokens
     responseTokens: 0,
-    totalTokens: 4000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-006',
-    technicalUserName: 'Analytics User',
-    createDate: '2025-09-02T17:00:00.000Z',
     requests: 250,
   },
 
@@ -410,11 +346,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-007',
     requestTokens: 11000000, // 11M Tokens
     responseTokens: 5500000, // 5.5M Tokens
-    totalTokens: 16500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-007',
-    technicalUserName: 'Support User',
-    createDate: '2025-09-01T07:00:00.000Z',
     requests: 800,
   },
   {
@@ -424,11 +356,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-007',
     requestTokens: 3000000, // 3M Tokens
     responseTokens: 1500000, // 1.5M Tokens
-    totalTokens: 4500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-007',
-    technicalUserName: 'Support User',
-    createDate: '2025-09-02T08:00:00.000Z',
     requests: 300,
   },
 
@@ -440,11 +368,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-008',
     requestTokens: 12000000, // 12M Tokens
     responseTokens: 6000000, // 6M Tokens
-    totalTokens: 18000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-008',
-    technicalUserName: 'Research User',
-    createDate: '2025-09-01T09:00:00.000Z',
     requests: 900,
   },
   {
@@ -454,11 +378,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-008',
     requestTokens: 4000000, // 4M Tokens
     responseTokens: 2000000, // 2M Tokens
-    totalTokens: 6000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-008',
-    technicalUserName: 'Research User',
-    createDate: '2025-09-02T10:00:00.000Z',
     requests: 400,
   },
   {
@@ -471,11 +391,7 @@ const MOCK_USAGE_DATA = [
     quality: 'hd',
     requestTokens: 0,
     responseTokens: 0,
-    totalTokens: 0,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-008',
-    technicalUserName: 'Research User',
-    createDate: '2025-09-03T11:00:00.000Z',
     requests: 75,
   },
 
@@ -487,11 +403,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-009',
     requestTokens: 2000000, // 2M Tokens
     responseTokens: 1000000, // 1M Tokens
-    totalTokens: 3000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-009',
-    technicalUserName: 'Mobile Developer',
-    createDate: '2025-09-01T11:00:00.000Z',
     requests: 150,
   },
 
@@ -503,11 +415,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-010',
     requestTokens: 3000000, // 3M Tokens
     responseTokens: 1500000, // 1.5M Tokens
-    totalTokens: 4500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-010',
-    technicalUserName: 'Data Scientist',
-    createDate: '2025-09-01T13:00:00.000Z',
     requests: 200,
   },
 
@@ -519,11 +427,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-011',
     requestTokens: 4000000, // 4M Tokens
     responseTokens: 2000000, // 2M Tokens
-    totalTokens: 6000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-011',
-    technicalUserName: 'Chatbot Developer',
-    createDate: '2025-09-01T15:00:00.000Z',
     requests: 300,
   },
 
@@ -535,11 +439,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-012',
     requestTokens: 5000000, // 5M Tokens
     responseTokens: 2500000, // 2.5M Tokens
-    totalTokens: 7500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-012',
-    technicalUserName: 'Content Creator',
-    createDate: '2025-09-01T17:00:00.000Z',
     requests: 400,
   },
 
@@ -551,11 +451,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-013',
     requestTokens: 6000000, // 6M Tokens
     responseTokens: 3000000, // 3M Tokens
-    totalTokens: 9000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-013',
-    technicalUserName: 'Translation Expert',
-    createDate: '2025-09-01T19:00:00.000Z',
     requests: 500,
   },
 
@@ -567,11 +463,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-014',
     requestTokens: 7000000, // 7M Tokens
     responseTokens: 3500000, // 3.5M Tokens
-    totalTokens: 10500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-014',
-    technicalUserName: 'Voice Developer',
-    createDate: '2025-09-01T21:00:00.000Z',
     requests: 600,
   },
 
@@ -583,11 +475,7 @@ const MOCK_USAGE_DATA = [
     apiKeyId: 'api-key-015',
     requestTokens: 8000000, // 8M Tokens
     responseTokens: 4000000, // 4M Tokens
-    totalTokens: 12000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-015',
-    technicalUserName: 'Document Analyst',
-    createDate: '2025-09-01T23:00:00.000Z',
     requests: 700,
   },
 ]
@@ -601,10 +489,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-001',
     requestTokens: 80000, // Summe von gpt-4o + claude-3-haiku + embedding
     responseTokens: 40000,
-    totalTokens: 120000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-001',
-    technicalUserName: 'Admin User',
     requests: 300, // Summe aller Requests
     day: 1,
     month: 9,
@@ -617,10 +502,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-002',
     requestTokens: 40000, // Summe von gpt-4o-mini + claude-3-haiku + dall-e-3
     responseTokens: 20000,
-    totalTokens: 60000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-002',
-    technicalUserName: 'Developer User',
     requests: 150, // Summe aller Requests
     day: 1,
     month: 9,
@@ -633,10 +515,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-003',
     requestTokens: 15000, // Summe von gpt-4o + embedding
     responseTokens: 5000,
-    totalTokens: 20000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-003',
-    technicalUserName: 'Tester User',
     requests: 50, // Summe aller Requests
     day: 1,
     month: 9,
@@ -649,10 +528,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-004',
     requestTokens: 12000000, // Summe aller Tokens für High Usage
     responseTokens: 6000000,
-    totalTokens: 18000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-004',
-    technicalUserName: 'High Usage User',
     requests: 775, // Summe aller Requests
     day: 1,
     month: 9,
@@ -665,10 +541,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-005',
     requestTokens: 12000000, // Summe aller Tokens für Marketing
     responseTokens: 6000000,
-    totalTokens: 18000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-005',
-    technicalUserName: 'Marketing User',
     requests: 850, // Summe aller Requests
     day: 1,
     month: 9,
@@ -681,10 +554,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-006',
     requestTokens: 14000000, // Summe aller Tokens für Analytics
     responseTokens: 5000000,
-    totalTokens: 19000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-006',
-    technicalUserName: 'Analytics User',
     requests: 950, // Summe aller Requests
     day: 1,
     month: 9,
@@ -697,10 +567,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-007',
     requestTokens: 14000000, // Summe aller Tokens für Support
     responseTokens: 7000000,
-    totalTokens: 21000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-007',
-    technicalUserName: 'Support User',
     requests: 1100, // Summe aller Requests
     day: 1,
     month: 9,
@@ -713,10 +580,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-008',
     requestTokens: 16000000, // Summe aller Tokens für Research
     responseTokens: 8000000,
-    totalTokens: 24000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-008',
-    technicalUserName: 'Research User',
     requests: 1375, // Summe aller Requests
     day: 1,
     month: 9,
@@ -729,10 +593,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-009',
     requestTokens: 2000000, // Summe aller Tokens für Mobile App
     responseTokens: 1000000,
-    totalTokens: 3000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-009',
-    technicalUserName: 'Mobile Developer',
     requests: 150, // Summe aller Requests
     day: 1,
     month: 9,
@@ -745,10 +606,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-010',
     requestTokens: 3000000, // Summe aller Tokens für Data Processing
     responseTokens: 1500000,
-    totalTokens: 4500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-010',
-    technicalUserName: 'Data Scientist',
     requests: 200, // Summe aller Requests
     day: 1,
     month: 9,
@@ -761,10 +619,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-011',
     requestTokens: 4000000, // Summe aller Tokens für Chatbot
     responseTokens: 2000000,
-    totalTokens: 6000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-011',
-    technicalUserName: 'Chatbot Developer',
     requests: 300, // Summe aller Requests
     day: 1,
     month: 9,
@@ -777,10 +632,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-012',
     requestTokens: 5000000, // Summe aller Tokens für Content Generation
     responseTokens: 2500000,
-    totalTokens: 7500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-012',
-    technicalUserName: 'Content Creator',
     requests: 400, // Summe aller Requests
     day: 1,
     month: 9,
@@ -793,10 +645,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-013',
     requestTokens: 6000000, // Summe aller Tokens für Translation
     responseTokens: 3000000,
-    totalTokens: 9000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-013',
-    technicalUserName: 'Translation Expert',
     requests: 500, // Summe aller Requests
     day: 1,
     month: 9,
@@ -809,10 +658,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-014',
     requestTokens: 7000000, // Summe aller Tokens für Voice Assistant
     responseTokens: 3500000,
-    totalTokens: 10500000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-014',
-    technicalUserName: 'Voice Developer',
     requests: 600, // Summe aller Requests
     day: 1,
     month: 9,
@@ -825,10 +671,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     apiKeyId: 'api-key-015',
     requestTokens: 8000000, // Summe aller Tokens für Document Analysis
     responseTokens: 4000000,
-    totalTokens: 12000000,
-    // cost wird im Frontend berechnet, nicht von der API
     technicalUserId: 'user-015',
-    technicalUserName: 'Document Analyst',
     requests: 700, // Summe aller Requests
     day: 1,
     month: 9,
