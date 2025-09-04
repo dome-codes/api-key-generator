@@ -144,11 +144,11 @@
 </template>
 
 <script setup lang="ts">
+import type { UsageResponse } from '@/api/types/types'
 import { hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
 import { calculateExampleCosts, formatCost } from '@/config/pricing'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import type { UsageResponse } from '@/api/types/types'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
 import UsageDetailedTable from './UsageDetailedTable.vue'
@@ -242,7 +242,11 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
     const usageService = await import('@/services/apiService')
     const response = await usageService.usageService.getOwnUsage(fromDate, toDate)
     ownRawUsageData.value = response.usage || []
-    console.log('🔍 [USAGE-TABS] Own raw data loaded:', ownRawUsageData.value?.length || 0, 'records')
+    console.log(
+      '🔍 [USAGE-TABS] Own raw data loaded:',
+      ownRawUsageData.value?.length || 0,
+      'records',
+    )
   } catch (err) {
     console.error('❌ [USAGE-TABS] Error loading own raw data:', err)
   } finally {
@@ -252,7 +256,7 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
 
 // Computed properties für gefilterte Daten
 const filteredOwnUsage = computed(() => {
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  if (!ownRawUsageData.value || ownRawUsageData.value.length === 0) {
     return {
       tokensIn: 0,
       tokensOut: 0,
@@ -262,12 +266,12 @@ const filteredOwnUsage = computed(() => {
   }
 
   // Filtere nach Modelltyp und Zeitraum
-  let filteredData = detailedUsageData.value
+  let filteredData = ownRawUsageData.value
 
   // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
     filteredData = filteredData.filter(
-      (item) => item.type === ownModelType.value || item.modelType === ownModelType.value,
+      (item) => item.type === ownModelType.value,
     )
   }
 
@@ -315,24 +319,36 @@ const filteredOwnUsage = computed(() => {
 
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
-    const itemDate = item.createDate
-      ? new Date(item.createDate)
-      : new Date(item.year || 2025, (item.month || 1) - 1, item.day || 1)
+    const itemDate = item.createDate ? new Date(item.createDate) : new Date()
     return itemDate >= fromDate && itemDate <= toDate
   })
 
-  // Berechne aggregierte Werte
+  // Berechne aggregierte Werte für ModelUsage
   const aggregatedData = filteredData.reduce(
     (acc, item) => {
-      acc.tokensIn += item.tokensIn || 0
-      acc.tokensOut += item.tokensOut || 0
-      acc.cost += item.cost || 0
+      // Für ModelUsage haben wir keine direkten Token-Werte, also berechnen wir sie basierend auf dem Typ
+      if (item.type === 'CompletionModelUsage') {
+        // Schätzung: durchschnittlich 1000 tokens in, 500 tokens out pro Request
+        acc.tokensIn += 1000
+        acc.tokensOut += 500
+        acc.cost += 0.01 // Schätzung: ~1 Cent pro Request
+      } else if (item.type === 'EmbeddingModelUsage') {
+        // Schätzung: durchschnittlich 1000 tokens pro Embedding
+        acc.tokensIn += 1000
+        acc.tokensOut += 0
+        acc.cost += 0.001 // Schätzung: ~0.1 Cent pro Request
+      } else if (item.type === 'ImageModelUsage') {
+        // Schätzung: keine Tokens, aber Kosten für Bildgenerierung
+        acc.tokensIn += 0
+        acc.tokensOut += 0
+        acc.cost += 0.02 // Schätzung: ~2 Cent pro Bild
+      }
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 },
   )
 
-  // Jedes Objekt repräsentiert einen Request, also nehmen wir die Länge des Arrays
+  // Jedes Objekt repräsentiert einen Request
   aggregatedData.requests = filteredData.length
 
   return aggregatedData
@@ -349,9 +365,7 @@ const filteredOwnUsageData = computed(() => {
 
   // Filtere nach Modelltyp falls ausgewählt
   if (ownModelType.value) {
-    filteredData = filteredData.filter(
-      (item) => item.type === ownModelType.value,
-    )
+    filteredData = filteredData.filter((item) => item.type === ownModelType.value)
   }
 
   // Filtere nach Zeitraum
@@ -709,7 +723,7 @@ watch([ownTimeRange, ownModelType, ownView, ownFromDate, ownToDate], async () =>
       toDate,
       modelType: ownModelType.value || undefined,
     })
-    
+
     // Lade eigene Rohdaten neu
     await loadOwnRawData(fromDate, toDate)
   }
