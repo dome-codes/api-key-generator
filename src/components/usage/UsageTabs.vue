@@ -148,7 +148,7 @@ import type { EnhancedUsageRecord, UsageResponse } from '@/api/types/types'
 import { adminUsageAISummaryGetV1 } from '@/api/usage/usage'
 import { getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
 import { useUsage } from '@/composables/useUsage'
-import { calculateExampleCosts, calculateCost } from '@/config/pricing'
+import { calculateCost, calculateExampleCosts } from '@/config/pricing'
 import { computed, onMounted, ref, watch } from 'vue'
 import UsageAdditionalCharts from './UsageAdditionalCharts.vue'
 import UsageChart from './UsageChart.vue'
@@ -298,16 +298,16 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
       const requestTokens = (item as any).requestTokens || 0
       const responseTokens = (item as any).responseTokens || 0
       const totalTokens = requestTokens + responseTokens
-      
+
       // Berechne Kosten mit der calculateCost Funktion
       const costCalculation = calculateCost(
         requestTokens,
         responseTokens,
         item.model || 'unknown',
         false, // useCachedInput
-        item.type || 'CompletionModelUsage'
+        item.type || 'CompletionModelUsage',
       )
-      
+
       return {
         technicalUserId: item.technicalUserId || 'unknown',
         technicalUserName: item.technicalUserId || 'Unknown User', // Verwende technicalUserId als Name
@@ -631,16 +631,16 @@ const filteredAdminUsageData = computed(() => {
   return filteredData
 })
 
-// Computed property für eindeutige Benutzer aus den Usage-Daten
+// Computed property für eindeutige Benutzer aus den Admin-Usage-Daten
 const uniqueUsers = computed(() => {
-  if (!detailedUsageData.value || detailedUsageData.value.length === 0) {
+  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
     return []
   }
 
-  // Extrahiere eindeutige Benutzer aus den Usage-Daten
+  // Extrahiere eindeutige Benutzer aus den Admin-Usage-Daten
   const userMap = new Map<string, string>()
 
-  detailedUsageData.value.forEach((item) => {
+  adminRawUsageData.value.forEach((item) => {
     const userId = item.technicalUserId || item.apiKeyId || 'unknown'
     const userName = item.technicalUserName || `User ${userId}`
 
@@ -689,13 +689,11 @@ const filteredAdminUsage = computed(() => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
       acc.cost += item.cost || 0
+      acc.requests += item.requests || 0 // Verwende item.requests statt 1
       return acc
     },
     { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0, uniqueUsers: 0 },
   )
-
-  // Jedes Objekt repräsentiert einen Request, also nehmen wir die Länge des Arrays
-  aggregatedData.requests = filteredData.length
 
   // Berechne eindeutige Benutzer
   const uniqueUsers = new Set(filteredData.map((item) => item.technicalUserId)).size
