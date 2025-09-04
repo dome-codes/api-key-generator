@@ -238,9 +238,6 @@ const createPieChart = async () => {
     })
 
     pieChartLoaded.value = true
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Pie chart created successfully')
-    }
   } catch (error) {
     console.error('Fehler beim Erstellen des Pie-Charts:', error)
     pieChartLoaded.value = false
@@ -352,9 +349,6 @@ const createBarChart = async () => {
     })
 
     barChartLoaded.value = true
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Bar chart created successfully')
-    }
   } catch (error) {
     console.error('Fehler beim Erstellen des Bar-Charts:', error)
     barChartLoaded.value = false
@@ -363,9 +357,6 @@ const createBarChart = async () => {
 
 // Charts erstellen wenn Komponente gemountet ist
 onMounted(() => {
-  if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-    console.log('UsageAdditionalCharts mounted - creating charts...')
-  }
   setTimeout(() => {
     createPieChart()
     createBarChart()
@@ -374,36 +365,39 @@ onMounted(() => {
 
 // Charts aktualisieren wenn sich die Daten ändern
 watch(
-  props.usageData,
-  () => {
-    console.log('Usage data changed, recreating charts...')
-    setTimeout(() => {
-      createPieChart()
-      createBarChart()
-    }, 100)
+  () => props.usageData,
+  (newData) => {
+    if (newData && newData.length > 0) {
+      setTimeout(() => {
+        createPieChart()
+        createBarChart()
+      }, 100)
+    }
   },
   { deep: true },
 )
 
 // Charts aktualisieren wenn sich die computed properties ändern
 watch(
-  modelDistributionData,
-  () => {
-    console.log('Model distribution data changed, recreating pie chart...')
-    setTimeout(() => {
-      createPieChart()
-    }, 100)
+  () => modelDistributionData.value,
+  (newData) => {
+    if (newData && newData.data && newData.data.length > 0) {
+      setTimeout(() => {
+        createPieChart()
+      }, 100)
+    }
   },
   { deep: true },
 )
 
 watch(
-  tagUsageData,
-  () => {
-    console.log('Tag usage data changed, recreating bar chart...')
-    setTimeout(() => {
-      createBarChart()
-    }, 100)
+  () => tagUsageData.value,
+  (newData) => {
+    if (newData && newData.data && newData.data.length > 0) {
+      setTimeout(() => {
+        createBarChart()
+      }, 100)
+    }
   },
   { deep: true },
 )

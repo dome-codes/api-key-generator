@@ -875,7 +875,7 @@ watch(
         toDate,
         modelType: adminModelType.value || undefined,
       })
-      
+
       // Lade Admin-Rohdaten neu
       await loadAdminRawData(fromDate, toDate)
     }
