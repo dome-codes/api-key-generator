@@ -518,8 +518,11 @@ const filteredOwnUsageData = computed(() => {
 
 // Computed property für gefilterte Admin-Rohdaten (für Charts)
 const filteredAdminUsageData = computed(() => {
-  console.log('🔍 [USAGE-TABS] filteredAdminUsageData - adminRawUsageData length:', adminRawUsageData.value?.length || 0)
-  
+  console.log(
+    '🔍 [USAGE-TABS] filteredAdminUsageData - adminRawUsageData length:',
+    adminRawUsageData.value?.length || 0,
+  )
+
   if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
     console.log('🔍 [USAGE-TABS] filteredAdminUsageData - No adminRawUsageData available')
     return []
@@ -534,7 +537,10 @@ const filteredAdminUsageData = computed(() => {
     filteredData = filteredData.filter(
       (item) => item.type === adminModelType.value || item.modelType === adminModelType.value,
     )
-    console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After modelType filter:', filteredData.length)
+    console.log(
+      '🔍 [USAGE-TABS] filteredAdminUsageData - After modelType filter:',
+      filteredData.length,
+    )
   }
 
   // Filtere nach Benutzer falls ausgewählt
@@ -592,6 +598,13 @@ const filteredAdminUsageData = computed(() => {
 
   // Filtere nach Datum
   filteredData = filteredData.filter((item) => {
+    // Admin-Daten aus SummaryUsage haben keine Datums-Informationen
+    // Deshalb überspringen wir die Datum-Filterung für Admin-Daten
+    if (!item.createDate && !item.day && !item.month && !item.year) {
+      console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Admin item without date, skipping date filter:', item)
+      return true // Behalte alle Admin-Daten ohne Datum
+    }
+    
     let itemDate: Date
     if (item.createDate) {
       itemDate = new Date(item.createDate)
@@ -603,7 +616,7 @@ const filteredAdminUsageData = computed(() => {
     }
     return itemDate >= fromDate && itemDate <= toDate
   })
-  
+
   console.log('🔍 [USAGE-TABS] filteredAdminUsageData - After date filter:', filteredData.length)
   console.log('🔍 [USAGE-TABS] filteredAdminUsageData - Final result length:', filteredData.length)
 
@@ -639,7 +652,10 @@ const uniqueUsers = computed(() => {
 })
 
 const filteredAdminUsage = computed(() => {
+  console.log('🔍 [USAGE-TABS] filteredAdminUsage - filteredAdminUsageData length:', filteredAdminUsageData.value?.length || 0)
+  
   if (!filteredAdminUsageData.value || filteredAdminUsageData.value.length === 0) {
+    console.log('🔍 [USAGE-TABS] filteredAdminUsage - No filteredAdminUsageData available')
     return {
       tokensIn: 0,
       tokensOut: 0,
@@ -651,6 +667,7 @@ const filteredAdminUsage = computed(() => {
 
   // Verwende die gefilterten Admin-Daten
   const filteredData = filteredAdminUsageData.value
+  console.log('🔍 [USAGE-TABS] filteredAdminUsage - Using filteredData length:', filteredData.length)
 
   // Berechne aggregierte Werte
   const aggregatedData = filteredData.reduce(
@@ -669,6 +686,8 @@ const filteredAdminUsage = computed(() => {
   // Berechne eindeutige Benutzer
   const uniqueUsers = new Set(filteredData.map((item) => item.technicalUserId)).size
   aggregatedData.uniqueUsers = uniqueUsers
+
+  console.log('🔍 [USAGE-TABS] filteredAdminUsage - Aggregated data:', aggregatedData)
 
   return aggregatedData
 })
