@@ -557,21 +557,17 @@ const loadOwnUsageWithGrouping = async () => {
 
     ownUsageData.value = response.usage || []
 
-    // Lade zusätzlich Rohdaten für zusätzliche Charts (nur in Overview)
-    if (ownView.value === 'overview') {
-      try {
-        const rawResponse = await usageService.getUsageSummaryWithGrouping(
-          undefined, // Keine Gruppierung für Rohdaten
-          fromDate,
-          toDate,
-          ownModelType.value || undefined,
-        )
-        ownRawUsageData.value = rawResponse.usage || []
-      } catch (rawError) {
-        console.warn('🔍 [USAGE-TABS] Could not load raw data for additional charts:', rawError)
-        ownRawUsageData.value = []
-      }
-    } else {
+    // Lade zusätzlich Rohdaten für Summary-Berechnung und zusätzliche Charts
+    try {
+      const rawResponse = await usageService.getUsageSummaryWithGrouping(
+        undefined, // Keine Gruppierung für Rohdaten
+        fromDate,
+        toDate,
+        ownModelType.value || undefined,
+      )
+      ownRawUsageData.value = rawResponse.usage || []
+    } catch (rawError) {
+      console.warn('🔍 [USAGE-TABS] Could not load raw data for summary:', rawError)
       ownRawUsageData.value = ownUsageData.value // Verwende gruppierte Daten als Fallback
     }
 
@@ -647,22 +643,18 @@ const loadAdminUsageWithGrouping = async () => {
 
     adminUsageData.value = response.usage || []
 
-    // Lade zusätzlich Rohdaten für zusätzliche Charts (nur in Overview)
-    if (adminView.value === 'overview') {
-      try {
-        const rawResponse = await usageService.getAdminUsageSummaryWithGrouping(
-          undefined, // Keine Gruppierung für Rohdaten
-          fromDate,
-          toDate,
-          adminModelType.value || undefined,
-          adminUser.value || undefined,
-        )
-        adminRawUsageData.value = rawResponse.usage || []
-      } catch (rawError) {
-        console.warn('🔍 [USAGE-TABS] Could not load raw data for additional charts:', rawError)
-        adminRawUsageData.value = []
-      }
-    } else {
+    // Lade zusätzlich Rohdaten für Summary-Berechnung und zusätzliche Charts
+    try {
+      const rawResponse = await usageService.getAdminUsageSummaryWithGrouping(
+        undefined, // Keine Gruppierung für Rohdaten
+        fromDate,
+        toDate,
+        adminModelType.value || undefined,
+        adminUser.value || undefined,
+      )
+      adminRawUsageData.value = rawResponse.usage || []
+    } catch (rawError) {
+      console.warn('🔍 [USAGE-TABS] Could not load raw data for admin summary:', rawError)
       adminRawUsageData.value = adminUsageData.value // Verwende gruppierte Daten als Fallback
     }
 
@@ -722,7 +714,10 @@ const calculateDateRange = (timeRange: string, fromDate: string, toDate: string)
 
 // Computed properties für gefilterte Daten - EINFACH UND API-BASIERT
 const ownUsageSummary = computed(() => {
-  if (!ownUsageData.value || ownUsageData.value.length === 0) {
+  // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
+  const dataToUse = ownRawUsageData.value.length > 0 ? ownRawUsageData.value : ownUsageData.value
+  
+  if (!dataToUse || dataToUse.length === 0) {
     return {
       tokensIn: 0,
       tokensOut: 0,
@@ -731,7 +726,7 @@ const ownUsageSummary = computed(() => {
     }
   }
 
-  return ownUsageData.value.reduce(
+  return dataToUse.reduce(
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
@@ -744,7 +739,10 @@ const ownUsageSummary = computed(() => {
 })
 
 const adminUsageSummary = computed(() => {
-  if (!adminUsageData.value || adminUsageData.value.length === 0) {
+  // Verwende Rohdaten für Summary-Berechnung, da diese die vollständigen Werte haben
+  const dataToUse = adminRawUsageData.value.length > 0 ? adminRawUsageData.value : adminUsageData.value
+  
+  if (!dataToUse || dataToUse.length === 0) {
     return {
       tokensIn: 0,
       tokensOut: 0,
@@ -754,7 +752,7 @@ const adminUsageSummary = computed(() => {
     }
   }
 
-  const summary = adminUsageData.value.reduce(
+  const summary = dataToUse.reduce(
     (acc, item) => {
       acc.tokensIn += item.tokensIn || 0
       acc.tokensOut += item.tokensOut || 0
@@ -766,7 +764,7 @@ const adminUsageSummary = computed(() => {
   )
 
   // Berechne eindeutige Benutzer
-  const uniqueUsers = new Set(adminUsageData.value.map((item) => item.technicalUserId)).size
+  const uniqueUsers = new Set(dataToUse.map((item) => item.technicalUserId)).size
   summary.uniqueUsers = uniqueUsers
 
   return summary
@@ -816,8 +814,18 @@ const generateChartLabels = (period: string, data: any[]) => {
   } else if (period === 'monthly') {
     // Monatlich: Jan, Feb, Mar, etc.
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Dez',
     ]
     return data.map((_, index) => months[index % 12])
   } else {
@@ -887,12 +895,25 @@ const uniqueUsers = computed(() => {
 
 // Einfache Watcher für Filter-Änderungen - API-basiert
 watch([ownTimeRange, ownModelType, ownChartPeriod, ownView], async () => {
+  console.log('🔍 [USAGE-TABS] Own filter changed:', {
+    timeRange: ownTimeRange.value,
+    modelType: ownModelType.value,
+    chartPeriod: ownChartPeriod.value,
+    view: ownView.value,
+  })
   await loadOwnUsageWithGrouping()
-})
+}, { immediate: false })
 
 watch([adminTimeRange, adminModelType, adminUser, adminChartPeriod, adminView], async () => {
+  console.log('🔍 [USAGE-TABS] Admin filter changed:', {
+    timeRange: adminTimeRange.value,
+    modelType: adminModelType.value,
+    user: adminUser.value,
+    chartPeriod: adminChartPeriod.value,
+    view: adminView.value,
+  })
   await loadAdminUsageWithGrouping()
-})
+}, { immediate: false })
 
 // Handle Chart Period Change
 const handleChartPeriodChange = (period: string) => {
