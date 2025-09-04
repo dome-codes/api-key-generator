@@ -131,6 +131,7 @@ export interface UsageAISummaryGetV1Params {
     | 'apikey'
     | 'tag'
     | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
+    | string // Für komma-getrennte Strings wie "day,month,year"
   model?: string
   technicalUserId?: string
   apiKeyId?: string
@@ -148,6 +149,7 @@ export interface AdminUsageAISummaryGetV1Params {
     | 'apikey'
     | 'tag'
     | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] // Einzelner String oder Array
+    | string // Für komma-getrennte Strings wie "day,month,year"
   model?: string
   technicalUserId?: string
 }

@@ -163,7 +163,8 @@ export const usageService = {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[],
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | string,
     fromDate?: string,
     toDate?: string,
     model?: string,
@@ -183,7 +184,7 @@ export const usageService = {
       }
 
       const params: UsageAISummaryGetV1Params = {
-        by: by,
+        by: Array.isArray(by) ? by.join(',') : by,
       }
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate
@@ -210,7 +211,8 @@ export const usageService = {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[],
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | string,
     fromDate?: string,
     toDate?: string,
     model?: string,
@@ -224,7 +226,7 @@ export const usageService = {
       }
 
       const params: AdminUsageAISummaryGetV1Params = {
-        by: by,
+        by: Array.isArray(by) ? by.join(',') : by,
       }
       if (fromDate) params.from_date = fromDate
       if (toDate) params.to_date = toDate

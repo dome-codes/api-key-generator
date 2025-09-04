@@ -490,7 +490,8 @@ const loadOwnUsageWithGrouping = async () => {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] = 'day'
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | string = 'day'
 
     if (ownChartPeriod.value === 'weekly') {
       grouping = 'week'
@@ -500,7 +501,7 @@ const loadOwnUsageWithGrouping = async () => {
       grouping = 'month' // Verwende 'month' für jährliche Ansicht
     } else {
       // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-      grouping = ['day', 'month']
+      grouping = 'day,month'
     }
 
     // Berechne Datumswerte
@@ -547,7 +548,8 @@ const loadAdminUsageWithGrouping = async () => {
       | 'model'
       | 'apikey'
       | 'tag'
-      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[] = 'day'
+      | ('day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag')[]
+      | string = 'day'
 
     if (adminChartPeriod.value === 'weekly') {
       grouping = 'week'
@@ -557,7 +559,7 @@ const loadAdminUsageWithGrouping = async () => {
       grouping = 'month' // Verwende 'month' für jährliche Ansicht
     } else {
       // Täglich: Verwende mehrere Gruppierungen für vollständige Datumsinformation
-      grouping = ['day', 'month']
+      grouping = 'day,month'
     }
 
     // Berechne Datumswerte
