@@ -166,6 +166,8 @@ const MOCK_USAGE_DATA = [
     requestTokens: 50000,
     responseTokens: 25000,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 150,
   },
   {
@@ -176,6 +178,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 30000,
     responseTokens: 15000,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 100,
   },
   {
@@ -186,6 +189,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 20000,
     responseTokens: 0,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 50,
   },
 
@@ -198,6 +202,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 25000,
     responseTokens: 12000,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 80,
   },
   {
@@ -208,6 +213,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 15000,
     responseTokens: 8000,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 60,
   },
   {
@@ -221,6 +227,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 0,
     responseTokens: 0,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 10,
   },
 
@@ -233,6 +240,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 10000,
     responseTokens: 5000,
     technicalUserId: 'user-003',
+    createDate: '2025-09-03T10:00:00.000Z',
     requests: 30,
   },
   {
@@ -243,6 +251,7 @@ const MOCK_USAGE_DATA = [
     requestTokens: 5000,
     responseTokens: 0,
     technicalUserId: 'user-003',
+    createDate: '2025-09-03T10:00:00.000Z',
     requests: 20,
   },
 
@@ -490,6 +499,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 50000,
     responseTokens: 25000,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 150,
     day: 1,
     month: 9,
@@ -503,6 +513,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 30000,
     responseTokens: 15000,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 100,
     day: 2,
     month: null, // Partial date info
@@ -516,6 +527,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 20000,
     responseTokens: 0,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 50,
     day: null, // Partial date info
     month: 9,
@@ -529,6 +541,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 25000,
     responseTokens: 12000,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 80,
     day: 1,
     month: 9,
@@ -542,6 +555,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 15000,
     responseTokens: 8000,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 60,
     day: 2,
     month: 9,
@@ -558,6 +572,7 @@ const MOCK_USAGE_SUMMARY_BY_DAY = [
     requestTokens: 0,
     responseTokens: 0,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 10,
     day: 3,
     month: 9,
@@ -753,6 +768,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     requestTokens: 80000, // Summe von gpt-4o + claude-3-haiku + embedding
     responseTokens: 40000,
     technicalUserId: 'user-001',
+    createDate: '2025-09-01T10:00:00.000Z',
     requests: 300, // Summe aller Requests
     day: 1,
     month: 9,
@@ -766,6 +782,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     requestTokens: 40000, // Summe von gpt-4o-mini + claude-3-haiku + dall-e-3
     responseTokens: 20000,
     technicalUserId: 'user-002',
+    createDate: '2025-09-02T10:00:00.000Z',
     requests: 150, // Summe aller Requests
     day: 1,
     month: 9,
@@ -779,6 +796,7 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     requestTokens: 15000, // Summe von gpt-4o + embedding
     responseTokens: 5000,
     technicalUserId: 'user-003',
+    createDate: '2025-09-03T10:00:00.000Z',
     requests: 50, // Summe aller Requests
     day: 1,
     month: 9,
@@ -969,14 +987,14 @@ const getAllApiKeys = () => {
 
 // Export für Mock API
 export {
-  MOCK_API_KEYS,
-  MOCK_USAGE_DATA,
-  MOCK_USAGE_SUMMARY_BY_APIKEY,
-  MOCK_USAGE_SUMMARY_BY_DAY,
   getAllApiKeys,
   getAllUsageData,
   getAllUsageSummaryByApiKey,
   getApiKeyById,
   getUsageByApiKeyId,
   getUsageSummaryByApiKeyId,
+  MOCK_API_KEYS,
+  MOCK_USAGE_DATA,
+  MOCK_USAGE_SUMMARY_BY_APIKEY,
+  MOCK_USAGE_SUMMARY_BY_DAY,
 }

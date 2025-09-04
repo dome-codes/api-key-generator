@@ -554,9 +554,13 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
   let filteredUsage = mockUsage
   if (from_date || to_date) {
     filteredUsage = mockUsage.filter((usage) => {
+      // Use createDate if available, otherwise use day/month/year
       const usageDate = usage.createDate
         ? new Date(usage.createDate)
-        : new Date(usage.year, usage.month - 1, usage.day)
+        : usage.day && usage.month && usage.year
+          ? new Date(usage.year, usage.month - 1, usage.day)
+          : new Date() // Fallback to current date if no date info
+
       const from = from_date ? new Date(from_date) : new Date(0)
       const to = to_date ? new Date(to_date) : new Date()
       return usageDate >= from && usageDate <= to
@@ -616,9 +620,13 @@ app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, r
   let filteredUsage = mockUsage
   if (from_date || to_date) {
     filteredUsage = mockUsage.filter((usage) => {
+      // Use createDate if available, otherwise use day/month/year
       const usageDate = usage.createDate
         ? new Date(usage.createDate)
-        : new Date(usage.year, usage.month - 1, usage.day)
+        : usage.day && usage.month && usage.year
+          ? new Date(usage.year, usage.month - 1, usage.day)
+          : new Date() // Fallback to current date if no date info
+
       const from = from_date ? new Date(from_date) : new Date(0)
       const to = to_date ? new Date(to_date) : new Date()
       return usageDate >= from && usageDate <= to
