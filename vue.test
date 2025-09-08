@@ -1,0 +1,94 @@
+<template>
+  <div>
+    <!-- Dein bestehender Button -->
+    <q-btn
+      unelevated
+      label="An Support wenden"
+      @click="openSupportDialog = true"
+      class="new-session-btn"
+      icon="support_agent"
+      no-caps
+    />
+
+    <!-- Dialog mit Hybrid-Optionen -->
+    <q-dialog v-model="openSupportDialog">
+      <q-card class="q-pa-md" style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">Support kontaktieren</div>
+          <div class="text-subtitle2 text-grey">
+            Wähle eine Option:
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="around">
+          <q-btn
+            color="primary"
+            label="E-Mail öffnen"
+            @click="openMail"
+          />
+          <q-btn
+            color="secondary"
+            label="Chat-Verlauf herunterladen"
+            @click="downloadChatLog"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      openSupportDialog: false,
+      chatData: {
+        name: "Max Mustermann",
+        ticketId: "T-12345",
+        problem: "Die Anwendung stürzt beim Login ab.",
+        phone: "+49 123 456789"
+      }
+    }
+  },
+  methods: {
+    openMail() {
+      const recipient = "support@firma.de";
+      const subject = `Supportanfrage: ${this.chatData.ticketId}`;
+      const body = `
+Hallo Support-Team,
+
+ich benötige Hilfe bei folgendem Problem:
+
+Ticket-ID: ${this.chatData.ticketId}
+Name: ${this.chatData.name}
+Telefonnummer: ${this.chatData.phone}
+Beschreibung: ${this.chatData.problem}
+
+Vielen Dank!
+      `.trim();
+
+      const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+
+      this.openSupportDialog = false;
+    },
+
+    downloadChatLog() {
+      const content = `
+Ticket-ID: ${this.chatData.ticketId}
+Name: ${this.chatData.name}
+Telefonnummer: ${this.chatData.phone}
+Beschreibung: ${this.chatData.problem}
+      `.trim();
+
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `support-${this.chatData.ticketId}.txt`;
+      link.click();
+
+      this.openSupportDialog = false;
+    }
+  }
+}
+</script>
