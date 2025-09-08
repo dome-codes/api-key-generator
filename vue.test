@@ -37,58 +37,63 @@
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      openSupportDialog: false,
-      chatData: {
-        name: "Max Mustermann",
-        ticketId: "T-12345",
-        problem: "Die Anwendung stürzt beim Login ab.",
-        phone: "+49 123 456789"
-      }
-    }
-  },
-  methods: {
-    openMail() {
-      const recipient = "support@firma.de";
-      const subject = `Supportanfrage: ${this.chatData.ticketId}`;
-      const body = `
+<script setup lang="ts">
+import { ref } from "vue";
+
+const openSupportDialog = ref(false);
+
+interface ChatData {
+  name: string;
+  ticketId: string;
+  problem: string;
+  phone: string;
+}
+
+const chatData: ChatData = {
+  name: "Max Mustermann",
+  ticketId: "T-12345",
+  problem: "Die Anwendung stürzt beim Login ab.",
+  phone: "+49 123 456789"
+};
+
+const openMail = () => {
+  const recipient = "support@firma.de";
+  const subject = `Supportanfrage: ${chatData.ticketId}`;
+  const body = `
 Hallo Support-Team,
 
 ich benötige Hilfe bei folgendem Problem:
 
-Ticket-ID: ${this.chatData.ticketId}
-Name: ${this.chatData.name}
-Telefonnummer: ${this.chatData.phone}
-Beschreibung: ${this.chatData.problem}
+Ticket-ID: ${chatData.ticketId}
+Name: ${chatData.name}
+Telefonnummer: ${chatData.phone}
+Beschreibung: ${chatData.problem}
 
 Vielen Dank!
-      `.trim();
+  `.trim();
 
-      const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoLink;
+  const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
 
-      this.openSupportDialog = false;
-    },
+  window.location.href = mailtoLink;
+  openSupportDialog.value = false;
+};
 
-    downloadChatLog() {
-      const content = `
-Ticket-ID: ${this.chatData.ticketId}
-Name: ${this.chatData.name}
-Telefonnummer: ${this.chatData.phone}
-Beschreibung: ${this.chatData.problem}
-      `.trim();
+const downloadChatLog = () => {
+  const content = `
+Ticket-ID: ${chatData.ticketId}
+Name: ${chatData.name}
+Telefonnummer: ${chatData.phone}
+Beschreibung: ${chatData.problem}
+  `.trim();
 
-      const blob = new Blob([content], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `support-${this.chatData.ticketId}.txt`;
-      link.click();
+  const blob = new Blob([content], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `support-${chatData.ticketId}.txt`;
+  link.click();
 
-      this.openSupportDialog = false;
-    }
-  }
-}
+  openSupportDialog.value = false;
+};
 </script>
