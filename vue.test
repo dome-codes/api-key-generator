@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- Dein bestehender Button -->
     <q-btn
       unelevated
       label="An Support wenden"
@@ -8,28 +7,31 @@
       class="new-session-btn"
       icon="support_agent"
       no-caps
+      color="red"
+      text-color="white"
     />
 
-    <!-- Dialog mit Hybrid-Optionen -->
-    <q-dialog v-model="openSupportDialog">
-      <q-card class="q-pa-md" style="min-width: 350px">
+    <q-dialog v-model="openSupportDialog" persistent>
+      <q-card class="q-pa-md" style="min-width: 420px; max-width: 600px">
         <q-card-section>
-          <div class="text-h6">Support kontaktieren</div>
-          <div class="text-subtitle2 text-grey">
-            Wähle eine Option:
+          <div class="text-h6 text-red">Support kontaktieren</div>
+          <div class="text-body2 text-grey-8 q-mt-sm">
+            Wenn Sie ein Problem haben, können Sie den folgenden Button nutzen.  
+            Ihr Chat-Verlauf wird automatisch in die Mail eingefügt.  
+            Bitte ergänzen Sie im E-Mail-Programm eine kurze Beschreibung des Problems.
           </div>
         </q-card-section>
 
-        <q-card-actions align="around">
+        <q-card-actions align="right">
           <q-btn
-            color="primary"
-            label="E-Mail öffnen"
+            color="red"
+            label="E-Mail an Support öffnen"
             @click="openMail"
           />
           <q-btn
-            color="secondary"
-            label="Chat-Verlauf herunterladen"
-            @click="downloadChatLog"
+            flat
+            label="Abbrechen"
+            v-close-popup
           />
         </q-card-actions>
       </q-card>
@@ -39,61 +41,64 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+// import { useChatStore } from "@/stores/chat"; // falls Pinia im Projekt
 
 const openSupportDialog = ref(false);
 
-interface ChatData {
-  name: string;
-  ticketId: string;
-  problem: string;
-  phone: string;
+// Beispielhafter ChatStore-Inhalt
+interface ChatMessage {
+  type: "user" | "bot";
+  content: string;
+  createdAt: string;
 }
 
-const chatData: ChatData = {
-  name: "Max Mustermann",
-  ticketId: "T-12345",
-  problem: "Die Anwendung stürzt beim Login ab.",
-  phone: "+49 123 456789"
+const chatMessages: ChatMessage[] = [
+  { type: "user", content: "Hallo, ich habe ein Problem.", createdAt: "2025-09-08T15:20:00" },
+  { type: "bot", content: "Bitte beschreiben Sie Ihr Problem genauer.", createdAt: "2025-09-08T15:21:00" },
+  { type: "user", content: "Es stürzt beim Login ab.", createdAt: "2025-09-08T15:22:00" }
+];
+
+// Ticket-ID generieren (hier nur Dummy)
+const ticketId = `T-${Date.now()}`;
+
+const formatChatHistory = (messages: ChatMessage[]) => {
+  return messages
+    .map(msg => {
+      const time = new Date(msg.createdAt).toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      const sender = msg.type === "user" ? "User" : "Bot";
+      return `[${time}] ${sender}: ${msg.content}`;
+    })
+    .join("\n");
 };
 
 const openMail = () => {
   const recipient = "support@firma.de";
-  const subject = `Supportanfrage: ${chatData.ticketId}`;
+  const subject = `Supportanfrage: ${ticketId}`;
+
   const body = `
 Hallo Support-Team,
 
-ich benötige Hilfe bei folgendem Problem:
+ich benötige Hilfe. Bitte prüfen Sie den untenstehenden Chat-Verlauf.
 
-Ticket-ID: ${chatData.ticketId}
-Name: ${chatData.name}
-Telefonnummer: ${chatData.phone}
-Beschreibung: ${chatData.problem}
+Ticket-ID: ${ticketId}
+Datum: ${new Date().toLocaleString("de-DE")}
+
+Beschreibung des Problems:
+[Bitte hier ergänzen]
+
+--- Chat-Verlauf ---
+${formatChatHistory(chatMessages)}
+--------------------
 
 Vielen Dank!
   `.trim();
 
-  const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(
-    subject
-  )}&body=${encodeURIComponent(body)}`;
+  const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   window.location.href = mailtoLink;
-  openSupportDialog.value = false;
-};
-
-const downloadChatLog = () => {
-  const content = `
-Ticket-ID: ${chatData.ticketId}
-Name: ${chatData.name}
-Telefonnummer: ${chatData.phone}
-Beschreibung: ${chatData.problem}
-  `.trim();
-
-  const blob = new Blob([content], { type: "text/plain" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `support-${chatData.ticketId}.txt`;
-  link.click();
-
   openSupportDialog.value = false;
 };
 </script>
