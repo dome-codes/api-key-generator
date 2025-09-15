@@ -212,18 +212,13 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
 }
 
 // Load admin usage data
-const loadAdminRawData = async (fromDate: string, toDate: string, technicalUserId?: string) => {
+const loadAdminRawData = async (fromDate: string, toDate: string) => {
   isLoadingAdminData.value = true
   try {
     const params: any = {
       from_date: fromDate,
       to_date: toDate,
       by: 'day,month,year', // Use day grouping for admin charts
-    }
-
-    // Add technicalUserId filter if provided
-    if (technicalUserId) {
-      params.technicalUserId = technicalUserId
     }
 
     const response = await adminUsageAISummaryGetV1(params)
@@ -590,23 +585,13 @@ watch(adminTimeRange, (newTimeRange) => {
 })
 
 watch(
-  [adminTimeRange, adminModelType, adminUser, adminUserGroup, adminFromDate, adminToDate],
+  [adminTimeRange, adminFromDate, adminToDate],
   async () => {
     const fromDate = adminFromDate.value
     const toDate = adminToDate.value
     if (fromDate && toDate) {
-      // Determine which user(s) to filter by
-      let technicalUserId: string | undefined = undefined
-
-      if (adminUserGroup.value) {
-        // If a group is selected, we need to get all users in that group
-        // For now, we'll load all data and filter on the frontend
-        // TODO: Implement backend group filtering
-      } else if (adminUser.value) {
-        technicalUserId = adminUser.value
-      }
-
-      await loadAdminRawData(fromDate, toDate, technicalUserId)
+      // Load all admin data - filtering happens in computed properties
+      await loadAdminRawData(fromDate, toDate)
     }
   },
 )
