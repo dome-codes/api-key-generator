@@ -16,7 +16,7 @@
           <option value="lastMonth">Vormonat</option>
           <option value="custom">Benutzerdefiniert</option>
         </select>
-        
+
         <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
         <div v-if="timeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
           <div>
@@ -60,8 +60,22 @@
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
         >
           <option value="">Alle Benutzer</option>
-          <option v-for="user in users" :key="user.id" :value="user.id">
+          <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
             {{ user.displayName }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Gruppen Filter (nur für Admin) -->
+      <div v-if="showUserFilter">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
+        <select
+          v-model="selectedUserGroup"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+        >
+          <option value="">Alle Gruppen</option>
+          <option v-for="group in availableGroups" :key="group.id" :value="group.id">
+            {{ group.name }} ({{ group.count }})
           </option>
         </select>
       </div>
@@ -70,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 // Props
 interface Props {
@@ -79,13 +93,14 @@ interface Props {
   fromDate?: string
   toDate?: string
   selectedUser?: string
+  selectedUserGroup?: string
   showUserFilter?: boolean
   users?: Array<{ id: string; displayName: string }>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showUserFilter: false,
-  users: () => []
+  users: () => [],
 })
 
 // Emits
@@ -95,31 +110,95 @@ const emit = defineEmits<{
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
+  'update:selectedUserGroup': [value: string]
 }>()
 
 // Local reactive state
 const timeRange = computed({
   get: () => props.timeRange,
-  set: (value) => emit('update:timeRange', value)
+  set: (value) => emit('update:timeRange', value),
 })
 
 const modelType = computed({
   get: () => props.modelType,
-  set: (value) => emit('update:modelType', value)
+  set: (value) => emit('update:modelType', value),
 })
 
 const fromDate = computed({
   get: () => props.fromDate || '',
-  set: (value) => emit('update:fromDate', value)
+  set: (value) => emit('update:fromDate', value),
 })
 
 const toDate = computed({
   get: () => props.toDate || '',
-  set: (value) => emit('update:toDate', value)
+  set: (value) => emit('update:toDate', value),
 })
 
 const selectedUser = computed({
   get: () => props.selectedUser || '',
-  set: (value) => emit('update:selectedUser', value)
+  set: (value) => emit('update:selectedUser', value),
+})
+
+const selectedUserGroup = computed({
+  get: () => props.selectedUserGroup || '',
+  set: (value) => emit('update:selectedUserGroup', value),
+})
+
+// Gruppierungslogik
+const getUserGroup = (userId: string): string => {
+  if (userId.startsWith('SVC_ADMIN')) {
+    return 'ADMIN'
+  } else if (userId.startsWith('SVC_')) {
+    return 'TECHNICAL'
+  } else if (userId.startsWith('e') || userId.startsWith('b')) {
+    return 'DEVELOPMENT'
+  } else {
+    return 'DEFAULT'
+  }
+}
+
+const availableGroups = computed(() => {
+  const groups: Record<string, { id: string; name: string; count: number }> = {
+    DEVELOPMENT: { id: 'DEVELOPMENT', name: 'Entwicklung', count: 0 },
+    TECHNICAL: { id: 'TECHNICAL', name: 'Technische Nutzer', count: 0 },
+    ADMIN: { id: 'ADMIN', name: 'ADMIN', count: 0 },
+    DEFAULT: { id: 'DEFAULT', name: 'Default', count: 0 },
+  }
+
+  // Zähle Nutzer pro Gruppe
+  props.users.forEach((user) => {
+    const group = getUserGroup(user.id)
+    if (groups[group]) {
+      groups[group].count++
+    }
+  })
+
+  // Nur Gruppen mit Nutzern zurückgeben
+  return Object.values(groups).filter((group) => group.count > 0)
+})
+
+// Gefilterte Nutzer basierend auf ausgewählter Gruppe
+const filteredUsers = computed(() => {
+  if (!selectedUserGroup.value) {
+    return props.users
+  }
+
+  return props.users.filter((user) => getUserGroup(user.id) === selectedUserGroup.value)
+})
+
+// Watcher für Gruppenänderungen
+watch(selectedUserGroup, (newGroup) => {
+  // Wenn eine Gruppe ausgewählt wird, lösche die individuelle Nutzerauswahl
+  if (newGroup) {
+    selectedUser.value = ''
+  }
+})
+
+// Watcher für Einzelner Nutzeränderungen
+watch(selectedUser, (newUser) => {
+  // Wenn ein Einzelner Nutzer ausgewählt wird, lösche die Gruppenauswahl
+  if (newUser) {
+    selectedUserGroup.value = ''
+  }
 })
 </script>

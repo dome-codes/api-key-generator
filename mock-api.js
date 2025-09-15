@@ -676,8 +676,8 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     mockUsage = mockUsage.filter((item) => item.model === model)
   }
 
-  // Filter by date range if provided
-  if (from_date || to_date) {
+  // Filter by date range if provided - DEBUG: Deaktiviere Datumsfilterung
+  if (false && (from_date || to_date)) {
     mockUsage = mockUsage.filter((usage) => {
       // Use createDate if available, otherwise use day/month/year
       const usageDate = usage.createDate
@@ -696,6 +696,29 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
 
   res.status(200).json({
     usage: mockUsage,
+  })
+})
+
+// GET /v1/admin/users - Get all users (Admin only)
+app.get('/v1/admin/users', validateToken, requireRole(['API-Admin']), (req, res) => {
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Admin: Getting all users`)
+
+  // Extrahiere alle eindeutigen Nutzer aus den API Keys
+  const allUsers = mockData.MOCK_API_KEYS.map((key) => ({
+    id: key.user_id,
+    displayName: key.user_name,
+    technicalUserId: key.user_id,
+    technicalUserName: key.user_name,
+    isActive: key.is_active,
+    createdAt: key.created_at,
+  }))
+
+  console.log(`[${timestamp}] Admin: Returning ${allUsers.length} users`)
+
+  res.status(200).json({
+    users: allUsers,
   })
 })
 
@@ -729,5 +752,6 @@ app.listen(port, () => {
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/ai/summarize - Admin usage summary`,
   )
+  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/admin/users - Get all users`)
   console.log(`[${timestamp}] ========================================`)
 })

@@ -103,6 +103,7 @@
         v-model:from-date="adminFromDate"
         v-model:to-date="adminToDate"
         v-model:selected-user="adminUser"
+        v-model:selected-user-group="adminUserGroup"
         :show-user-filter="true"
         :users="uniqueUsers"
       />
@@ -157,16 +158,6 @@ import UsagePricingDisclaimer from './UsagePricingDisclaimer.vue'
 import UsageSummary from './UsageSummary.vue'
 import UsageViewToggle from './UsageViewToggle.vue'
 
-// Debug-Log-Funktion
-const debugLog = (...args: unknown[]) => {
-  if (
-    import.meta.env.DEV &&
-    (import.meta.env.VITE_SHOW_DEBUG === 'true' || localStorage.getItem('debug') === 'true')
-  ) {
-    console.log(...args)
-  }
-}
-
 const activeTab = ref('own')
 const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
 
@@ -190,6 +181,7 @@ const ownToDate = ref('')
 const adminTimeRange = ref('30d')
 const adminModelType = ref('')
 const adminUser = ref('')
+const adminUserGroup = ref('')
 const adminView = ref<'overview' | 'detailed'>('overview')
 const adminFromDate = ref('')
 const adminToDate = ref('')
@@ -212,7 +204,6 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
     const usageService = await import('@/services/apiService')
     const response = await usageService.usageService.getOwnUsage(fromDate, toDate)
     ownRawUsageData.value = response.usage || []
-    debugLog('🔍 [USAGE-TABS] Own raw data loaded:', ownRawUsageData.value?.length || 0, 'records')
   } catch (err) {
     console.error('❌ [USAGE-TABS] Error loading own raw data:', err)
   } finally {
@@ -221,13 +212,18 @@ const loadOwnRawData = async (fromDate: string, toDate: string) => {
 }
 
 // Load admin usage data
-const loadAdminRawData = async (fromDate: string, toDate: string) => {
+const loadAdminRawData = async (fromDate: string, toDate: string, technicalUserId?: string) => {
   isLoadingAdminData.value = true
   try {
     const params: any = {
       from_date: fromDate,
       to_date: toDate,
       by: 'day,month,year', // Use day grouping for admin charts
+    }
+
+    // Add technicalUserId filter if provided
+    if (technicalUserId) {
+      params.technicalUserId = technicalUserId
     }
 
     const response = await adminUsageAISummaryGetV1(params)
@@ -239,13 +235,20 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
       const responseTokens = item.responseTokens || 0
       const totalTokens = requestTokens + responseTokens
 
-      const costCalculation = calculateCost(
-        requestTokens,
-        responseTokens,
-        item.model || 'unknown',
-        false,
-        item.type || 'CompletionModelUsage',
-      )
+      let cost = 0
+      try {
+        const costCalculation = calculateCost(
+          requestTokens,
+          responseTokens,
+          item.model || 'unknown',
+          false,
+          item.type || 'CompletionModelUsage',
+        )
+        cost = costCalculation.finalCost || 0
+      } catch (error) {
+        console.warn('🔍 [USAGE-TABS] Error calculating cost:', error)
+        cost = (requestTokens + responseTokens) * 0.00001 // Fallback
+      }
 
       return {
         technicalUserId: item.technicalUserId || 'unknown',
@@ -257,7 +260,7 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
         tokensIn: requestTokens,
         tokensOut: responseTokens,
         totalTokens: totalTokens,
-        cost: costCalculation.finalCost || item.cost || 0,
+        cost: cost,
         tag: item.tag || 'production',
         day: item.day,
         month: item.month,
@@ -268,11 +271,6 @@ const loadAdminRawData = async (fromDate: string, toDate: string) => {
     })
 
     adminRawUsageData.value = convertedData
-    debugLog(
-      '🔍 [USAGE-TABS] Admin raw data loaded:',
-      adminRawUsageData.value?.length || 0,
-      'records',
-    )
   } catch (err) {
     console.error('❌ [USAGE-TABS] Error loading admin raw data:', err)
   } finally {
@@ -327,7 +325,9 @@ const filteredOwnUsageData = computed(() => {
 })
 
 const filteredAdminUsageData = computed(() => {
-  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) return []
+  if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) {
+    return []
+  }
 
   let filteredData = adminRawUsageData.value
 
@@ -341,11 +341,32 @@ const filteredAdminUsageData = computed(() => {
     )
   }
 
-  // Filter by user
+  // Filter by user group or individual user
+  // Einzelner Nutzerfilter hat Priorität über Gruppenfilter
   if (adminUser.value) {
+    // Einzelner Nutzerfilter hat Priorität
     filteredData = filteredData.filter((item) => {
       const userId = item.technicalUserId || item.apiKeyId || 'unknown'
       return userId === adminUser.value
+    })
+  } else if (adminUserGroup.value) {
+    // Gruppierungsfilter (nur wenn kein Einzelner Nutzer ausgewählt)
+    const getUserGroup = (userId: string): string => {
+      if (userId.startsWith('SVC_ADMIN')) {
+        return 'ADMIN'
+      } else if (userId.startsWith('SVC_')) {
+        return 'TECHNICAL'
+      } else if (userId.startsWith('e') || userId.startsWith('b')) {
+        return 'DEVELOPMENT'
+      } else {
+        return 'DEFAULT'
+      }
+    }
+
+    filteredData = filteredData.filter((item) => {
+      const userId = item.technicalUserId || item.apiKeyId || 'unknown'
+      const userGroup = getUserGroup(userId)
+      return userGroup === adminUserGroup.value
     })
   }
 
@@ -359,11 +380,8 @@ const filteredAdminUsageData = computed(() => {
       // Complete date info - filter by date range
       const itemDate = new Date(item.year!, item.month! - 1, item.day!)
       return itemDate >= fromDate && itemDate <= toDate
-    } else if (item.day !== null || item.month !== null || item.year !== null) {
-      // Partial date info - keep item but don't filter by date
-      return true
     } else {
-      // No date info at all - keep item
+      // No complete date info - keep item
       return true
     }
   })
@@ -405,7 +423,7 @@ const filteredAdminUsage = computed(() => {
   )
 })
 
-// Unique users for admin filter
+// Unique users for admin filter - Lade alle Nutzer aus den Usage-Daten
 const uniqueUsers = computed(() => {
   if (!adminRawUsageData.value || adminRawUsageData.value.length === 0) return []
 
@@ -421,10 +439,9 @@ const uniqueUsers = computed(() => {
   return Array.from(userMap.entries())
     .map(([userId, userName]) => ({
       id: userId,
-      name: userName,
-      displayName: `${userId} (${userName})`,
+      displayName: userName,
     }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName))
 })
 
 // View computed properties
@@ -572,13 +589,27 @@ watch(adminTimeRange, (newTimeRange) => {
   adminToDate.value = today.toISOString()
 })
 
-watch([adminTimeRange, adminModelType, adminUser, adminFromDate, adminToDate], async () => {
-  const fromDate = adminFromDate.value
-  const toDate = adminToDate.value
-  if (fromDate && toDate) {
-    await loadAdminRawData(fromDate, toDate)
-  }
-})
+watch(
+  [adminTimeRange, adminModelType, adminUser, adminUserGroup, adminFromDate, adminToDate],
+  async () => {
+    const fromDate = adminFromDate.value
+    const toDate = adminToDate.value
+    if (fromDate && toDate) {
+      // Determine which user(s) to filter by
+      let technicalUserId: string | undefined = undefined
+
+      if (adminUserGroup.value) {
+        // If a group is selected, we need to get all users in that group
+        // For now, we'll load all data and filter on the frontend
+        // TODO: Implement backend group filtering
+      } else if (adminUser.value) {
+        technicalUserId = adminUser.value
+      }
+
+      await loadAdminRawData(fromDate, toDate, technicalUserId)
+    }
+  },
+)
 
 // Initialize
 onMounted(async () => {
@@ -587,11 +618,9 @@ onMounted(async () => {
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
 
+  // Load both own and admin data
   await loadOwnRawData(fromDate, toDate)
-
-  if (isApiAdmin.value) {
-    await loadAdminRawData(fromDate, toDate)
-  }
+  await loadAdminRawData(fromDate, toDate)
 })
 
 // Set default tab based on role
