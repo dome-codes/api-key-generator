@@ -12,9 +12,10 @@
             <div class="flex items-center gap-1">
               Name
               <svg
-                v-if="sortField === 'name'"
                 class="w-3 h-3"
-                :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                :class="
+                  sortField === 'name' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -31,14 +32,43 @@
           <th class="py-3 px-4 font-semibold">Geheimer Schlüssel</th>
           <th
             class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
+            @click="sortBy('status')"
+          >
+            <div class="flex items-center gap-1">
+              Status
+              <svg
+                class="w-3 h-3"
+                :class="
+                  sortField === 'status' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </div>
+          </th>
+          <th
+            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
             @click="sortBy('createdAt')"
           >
             <div class="flex items-center gap-1">
               Erstellt
               <svg
-                v-if="sortField === 'createdAt'"
                 class="w-3 h-3"
-                :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                :class="
+                  sortField === 'createdAt'
+                    ? sortOrder === 'asc'
+                      ? 'rotate-180'
+                      : ''
+                    : 'opacity-30'
+                "
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -63,9 +93,10 @@
                 >(Aktueller Monat)</span
               >
               <svg
-                v-if="sortField === 'cost'"
                 class="w-3 h-3"
-                :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                :class="
+                  sortField === 'cost' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

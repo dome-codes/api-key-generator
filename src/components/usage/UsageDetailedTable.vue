@@ -46,9 +46,14 @@
               <div class="flex items-center gap-1">
                 Technischer Nutzer
                 <svg
-                  v-if="sortField === 'technicalUserName'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="
+                    sortField === 'technicalUserName'
+                      ? sortOrder === 'asc'
+                        ? 'rotate-180'
+                        : ''
+                      : 'opacity-30'
+                  "
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

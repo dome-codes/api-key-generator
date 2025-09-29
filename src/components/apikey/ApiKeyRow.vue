@@ -1,16 +1,17 @@
 <template>
-  <tr 
+  <tr
     :class="[
       'border-b border-gray-200 last:border-0 group',
-      keyData.status === 'revoked' 
-        ? 'bg-gray-100 opacity-75' 
-        : 'hover:bg-gray-50'
+      keyData.status === 'revoked' ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50',
     ]"
   >
     <td class="py-3 px-4 text-sm">
       <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
         <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
-        <span v-if="keyData.status === 'revoked'" class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+        <span
+          v-if="keyData.status === 'revoked'"
+          class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded"
+        >
           Deaktiviert
         </span>
       </div>
@@ -20,6 +21,20 @@
         >sk-•••{{ keyData.apiKey.slice(-4) }}</span
       >
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
+    </td>
+    <td class="py-3 px-4 text-xs">
+      <span
+        v-if="keyData.status === 'active'"
+        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+      >
+        Aktiv
+      </span>
+      <span
+        v-else
+        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+      >
+        Deaktiviert
+      </span>
     </td>
     <td class="py-3 px-4 text-xs text-gray-700">
       {{ new Date(keyData.createdAt).toLocaleDateString() }}
@@ -40,9 +55,7 @@
         />
       </div>
       <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
-      <div v-else class="text-gray-400 text-xs italic">
-        Nicht in Gebrauch
-      </div>
+      <div v-else class="text-gray-400 text-xs italic">Nicht in Gebrauch</div>
     </td>
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
