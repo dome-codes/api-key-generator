@@ -91,9 +91,32 @@
               </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('modelType')"
             >
-              Modelltyp
+              <div class="flex items-center gap-1">
+                Modelltyp
+                <svg
+                  class="w-3 h-3"
+                  :class="
+                    sortField === 'modelType'
+                      ? sortOrder === 'asc'
+                        ? 'rotate-180'
+                        : ''
+                      : 'opacity-30'
+                  "
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -328,14 +351,17 @@
           <label class="text-sm text-gray-700">Einträge pro Seite:</label>
           <select
             v-model="pageSize"
-            @change="currentPage = 1"
+            @change="
+              currentPage = 1
+              pageSize = Number(pageSize)
+            "
             class="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
           >
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="200">200</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
           </select>
         </div>
       </div>
@@ -404,6 +430,11 @@ const sortedData = computed(() => {
         break
       case 'modelName':
         comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'modelType':
+        const typeA = a.type || a.modelType || ''
+        const typeB = b.type || b.modelType || ''
+        comparison = typeA.localeCompare(typeB)
         break
       case 'requests':
         comparison = (a.requests || 0) - (b.requests || 0)
