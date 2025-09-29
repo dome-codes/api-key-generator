@@ -94,9 +94,18 @@ const itemsPerPage = 8 // Zeige 8 API Keys pro Seite
 
 // Computed properties
 const paginatedKeys = computed(() => {
+  // Sortiere Keys: aktive Keys zuerst, deaktivierte Keys nach hinten
+  const sortedKeys = [...props.keys].sort((a, b) => {
+    // Aktive Keys (status === 'active') kommen zuerst
+    if (a.status === 'active' && b.status === 'revoked') return -1
+    if (a.status === 'revoked' && b.status === 'active') return 1
+    // Bei gleichem Status: nach Erstellungsdatum sortieren (neueste zuerst)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+
   const startIndex = (currentPage.value - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  return props.keys.slice(startIndex, endIndex)
+  return sortedKeys.slice(startIndex, endIndex)
 })
 
 // Get usage data for a specific key
