@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500">{{ filteredData.length }} Einträge</span>
+        <span class="text-sm text-gray-500">{{ sortedData.length }} Einträge</span>
         <button
           @click="exportTableData"
           class="text-sm text-blue-600 hover:text-blue-800"
@@ -35,19 +35,55 @@
     </div>
 
     <!-- Data Table -->
-    <div v-else-if="filteredData.length > 0" class="overflow-x-auto">
+    <div v-else-if="sortedData.length > 0" class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('technicalUserName')"
             >
-              Technischer Nutzer
+              <div class="flex items-center gap-1">
+                Technischer Nutzer
+                <svg
+                  v-if="sortField === 'technicalUserName'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('modelName')"
             >
-              Modell
+              <div class="flex items-center gap-1">
+                Modell
+                <svg
+                  v-if="sortField === 'modelName'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -55,29 +91,119 @@
               Modelltyp
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('requests')"
             >
-              Anfragen
+              <div class="flex items-center gap-1">
+                Anfragen
+                <svg
+                  v-if="sortField === 'requests'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('tokensIn')"
             >
-              Tokens In
+              <div class="flex items-center gap-1">
+                Tokens In
+                <svg
+                  v-if="sortField === 'tokensIn'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('tokensOut')"
             >
-              Tokens Out
+              <div class="flex items-center gap-1">
+                Tokens Out
+                <svg
+                  v-if="sortField === 'tokensOut'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('totalTokens')"
             >
-              Gesamt Tokens
+              <div class="flex items-center gap-1">
+                Gesamt Tokens
+                <svg
+                  v-if="sortField === 'totalTokens'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('cost')"
             >
-              Kosten (€)
+              <div class="flex items-center gap-1">
+                Kosten (€)
+                <svg
+                  v-if="sortField === 'cost'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -85,9 +211,27 @@
               Tag
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('date')"
             >
-              Datum
+              <div class="flex items-center gap-1">
+                Datum
+                <svg
+                  v-if="sortField === 'date'"
+                  class="w-3 h-3"
+                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
           </tr>
         </thead>
@@ -150,8 +294,8 @@
         <div class="flex items-center text-sm text-gray-700">
           <span>
             Zeige {{ (currentPage - 1) * pageSize + 1 }} bis
-            {{ Math.min(currentPage * pageSize, filteredData.length) }} von
-            {{ filteredData.length }} Einträgen
+            {{ Math.min(currentPage * pageSize, sortedData.length) }} von
+            {{ sortedData.length }} Einträgen
           </span>
         </div>
         <div class="flex items-center space-x-2">
@@ -236,15 +380,61 @@ const props = withDefaults(defineProps<Props>(), {
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+// Sortierung state
+const sortField = ref('date')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
 // Computed
 const filteredData = computed(() => props.data)
 
-const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize.value))
+const sortedData = computed(() => {
+  const data = [...filteredData.value]
+
+  return data.sort((a, b) => {
+    let comparison = 0
+
+    switch (sortField.value) {
+      case 'technicalUserName':
+        comparison = (a.technicalUserName || '').localeCompare(b.technicalUserName || '')
+        break
+      case 'modelName':
+        comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'requests':
+        comparison = (a.requests || 0) - (b.requests || 0)
+        break
+      case 'tokensIn':
+        comparison = (a.tokensIn || 0) - (b.tokensIn || 0)
+        break
+      case 'tokensOut':
+        comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
+        break
+      case 'totalTokens':
+        comparison = (a.totalTokens || 0) - (b.totalTokens || 0)
+        break
+      case 'cost':
+        comparison = (a.cost || 0) - (b.cost || 0)
+        break
+      case 'date':
+        // Sortiere nach Datum (Jahr, Monat, Tag)
+        const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
+        const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
+        comparison = dateA.getTime() - dateB.getTime()
+        break
+      default:
+        comparison = 0
+    }
+
+    return sortOrder.value === 'asc' ? comparison : -comparison
+  })
+})
+
+const totalPages = computed(() => Math.ceil(sortedData.value.length / pageSize.value))
 
 const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
-  return filteredData.value.slice(start, end)
+  return sortedData.value.slice(start, end)
 })
 
 // Methods
@@ -292,6 +482,19 @@ const formatDate = (day?: number, month?: number, year?: number): string => {
   return '-'
 }
 
+// Methods
+const sortBy = (field: string) => {
+  if (sortField.value === field) {
+    // Toggle sort order if same field
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // Set new field and default to desc
+    sortField.value = field
+    sortOrder.value = 'desc'
+  }
+  currentPage.value = 1 // Reset to first page when sorting changes
+}
+
 const exportTableData = async () => {
   try {
     const headers = [
@@ -312,7 +515,7 @@ const exportTableData = async () => {
 
     const csvContent = [
       headers.join(','),
-      ...filteredData.value.map((item) =>
+      ...sortedData.value.map((item) =>
         [
           item.technicalUserId,
           item.technicalUserName,
