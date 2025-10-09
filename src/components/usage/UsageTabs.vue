@@ -328,12 +328,7 @@ const filteredAdminUsageData = computed(() => {
 
   // Filter by model type
   if (adminModelType.value) {
-    filteredData = filteredData.filter(
-      (item) =>
-        item.type === adminModelType.value ||
-        item.modelType === adminModelType.value ||
-        (item as any).model === adminModelType.value,
-    )
+    filteredData = filteredData.filter((item) => item.type === adminModelType.value)
   }
 
   // Filter by user group or individual user
@@ -584,17 +579,14 @@ watch(adminTimeRange, (newTimeRange) => {
   adminToDate.value = today.toISOString()
 })
 
-watch(
-  [adminTimeRange, adminFromDate, adminToDate],
-  async () => {
-    const fromDate = adminFromDate.value
-    const toDate = adminToDate.value
-    if (fromDate && toDate) {
-      // Load all admin data - filtering happens in computed properties
-      await loadAdminRawData(fromDate, toDate)
-    }
-  },
-)
+watch([adminTimeRange, adminFromDate, adminToDate], async () => {
+  const fromDate = adminFromDate.value
+  const toDate = adminToDate.value
+  if (fromDate && toDate) {
+    // Load all admin data - filtering happens in computed properties
+    await loadAdminRawData(fromDate, toDate)
+  }
+})
 
 // Initialize
 onMounted(async () => {
