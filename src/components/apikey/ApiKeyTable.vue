@@ -464,7 +464,7 @@ const sortedKeys = computed(() => {
           // Sortiere nach Anzahl aktiver Keys
           comparison = a.activeKeys - b.activeKeys
         } else {
-          // Aktive Keys zuerst, dann deaktivierte
+          // Aktive Keys zuerst, dann deaktivierte (unabhängig von sortOrder)
           if (a.status === 'active' && b.status === 'revoked') comparison = -1
           else if (a.status === 'revoked' && b.status === 'active') comparison = 1
           else comparison = 0
@@ -486,6 +486,11 @@ const sortedKeys = computed(() => {
     // Bei gleichem Wert: nach Erstellungsdatum sortieren (neueste zuerst)
     if (comparison === 0 && sortField.value !== 'createdAt') {
       comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+
+    // Für Status-Sortierung: Aktive Keys immer zuerst (unabhängig von sortOrder)
+    if (sortField.value === 'status' && !isAdmin.value) {
+      return comparison
     }
 
     return sortOrder.value === 'asc' ? comparison : -comparison

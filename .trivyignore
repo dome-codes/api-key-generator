@@ -1,0 +1,7 @@
+# Trivy ignore file for non-critical vulnerabilities
+# libxml2 vulnerability - not critical for nginx container
+CVE-2024-40305
+CVE-2024-40306
+
+# Other non-critical vulnerabilities can be added here
+# Format: CVE-YYYY-NNNNN
