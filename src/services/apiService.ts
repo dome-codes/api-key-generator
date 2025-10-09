@@ -25,6 +25,12 @@ export const apiKeyService = {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
     }
 
+    // Verwende Admin-Endpunkt wenn Admin-Berechtigung vorhanden
+    if (hasPermission('canViewAdminUsage')) {
+      const response = await apikeysApi.getAllApiKeysAdminV1()
+      return response.data
+    }
+
     const response = await apikeysApi.getAllApiKeysV1()
     return response.data
   },

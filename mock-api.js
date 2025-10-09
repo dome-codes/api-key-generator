@@ -347,6 +347,39 @@ app.post('/v1/apikeys', validateToken, (req, res) => {
   })
 })
 
+// GET /v1/admin/apikeys - List all API tokens for admin perspective
+app.get('/v1/admin/apikeys', validateToken, (req, res) => {
+  const userId = req.user.sub
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Admin: Listing all API keys for admin perspective`)
+
+  // Nur Admins können diesen Endpunkt verwenden
+  const userRoles = req.user.groups || []
+  const isAdmin = userRoles.includes('API-Admin')
+
+  if (!isAdmin) {
+    console.log(`[${timestamp}] Access denied - non-admin user tried to access admin endpoint`)
+    return res.status(403).json({ error: 'Access denied - Admin permission required' })
+  }
+
+  // Alle Keys für Admin anzeigen
+  const keys = Object.values(apiKeys)
+  console.log(`[${timestamp}] Admin: Returning all ${keys.length} API keys`)
+
+  const responseKeys = keys.map((key) => ({
+    id: key.id,
+    name: key.name,
+    createdAt: key.createdAt,
+    expiresAt: key.expiresAt,
+    active: key.active,
+    userId: key.userId,
+    userName: key.userName,
+  }))
+
+  res.status(200).json(responseKeys)
+})
+
 // GET /v1/apikeys - List all API tokens for the current user
 app.get('/v1/apikeys', validateToken, (req, res) => {
   const userId = req.user.sub

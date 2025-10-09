@@ -109,7 +109,8 @@
             Filter zurücksetzen
           </button>
           <div class="text-sm text-gray-500">
-            {{ filteredKeys.length }} von {{ props.keys.length }} Keys
+            {{ isAdmin ? adminGroupedKeys.length : filteredKeys.length }} von
+            {{ isAdmin ? adminGroupedKeys.length : props.keys.length }} Keys
           </div>
         </div>
       </div>
@@ -259,9 +260,9 @@
 
     <!-- Pagination -->
     <Pagination
-      v-if="filteredKeys.length > itemsPerPage"
+      v-if="(isAdmin ? adminGroupedKeys.length : filteredKeys.length) > itemsPerPage"
       :current-page="currentPage"
-      :total-items="filteredKeys.length"
+      :total-items="isAdmin ? adminGroupedKeys.length : filteredKeys.length"
       :items-per-page="itemsPerPage"
       @update:current-page="currentPage = $event"
     />

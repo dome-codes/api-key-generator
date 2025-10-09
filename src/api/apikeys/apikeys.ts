@@ -33,6 +33,16 @@ const getAllApiKeysV1 = <TData = AxiosResponse<MobaRagApiKey[]>>(
 }
 
 /**
+ * List all API tokens for admin perspective
+ * @summary List all API tokens for admin perspective
+ */
+const getAllApiKeysAdminV1 = <TData = AxiosResponse<MobaRagApiKey[]>>(
+  options?: AxiosRequestConfig,
+): Promise<TData> => {
+  return api.get('/admin/apikeys', options)
+}
+
+/**
  * Get a single API token by ID
  * @summary Get a single API token by ID
  */
@@ -71,6 +81,7 @@ const deactivateKeyV1 = <TData = AxiosResponse<void>>(
 const apikeysApi = {
   createApiKeyV1,
   getAllApiKeysV1,
+  getAllApiKeysAdminV1,
   getApiKeyV1,
   rotateKeyV1,
   deactivateKeyV1,
