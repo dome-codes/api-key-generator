@@ -7,12 +7,11 @@ export interface MobaRagApiKeyRequest {
 export interface MobaRagApiKey {
   id: string
   name: string
-  permissions: string[]
-  created_at: string
-  expires_at: string | null
-  is_active: boolean
-  user_id?: string
-  user_name?: string
+  createdAt: string
+  expiresAt: string | null
+  active: boolean
+  userId?: string
+  userName?: string
 }
 
 export interface MobaRagApiKeyWithSecret extends MobaRagApiKey {

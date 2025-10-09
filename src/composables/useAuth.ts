@@ -20,7 +20,7 @@ export function useAuth() {
   // Rollenbasierte Computed Properties
   const userRoles = computed(() => getUserRoles())
   const highestRole = computed(() => getHighestRole())
-  const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
+  const isAdmin = computed(() => hasPermission('canViewAdminUsage'))
   const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
   const canViewUsage = computed(() => hasPermission('canViewOwnUsage'))
 
@@ -33,7 +33,7 @@ export function useAuth() {
     userProfile,
     userRoles,
     highestRole,
-    isApiAdmin,
+    isAdmin,
     canCreateKeys,
     canViewUsage,
     handleLogout,

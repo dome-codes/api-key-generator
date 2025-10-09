@@ -22,19 +22,19 @@
       >
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
-    <td v-if="isApiAdmin" class="py-3 px-4 text-xs">
+    <td v-if="isAdmin" class="py-3 px-4 text-xs">
       <div class="flex items-center space-x-2">
         <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
         <div>
           <div class="font-medium text-gray-900">
-            {{ keyData.user_name || keyData.user_id || 'Unbekannt' }}
+            {{ keyData.userName || keyData.userId || 'Unbekannt' }}
           </div>
-          <div class="text-gray-500 text-xs">{{ keyData.user_id || 'N/A' }}</div>
+          <div class="text-gray-500 text-xs">{{ keyData.userId || 'N/A' }}</div>
           <div
-            v-if="adminUsageByUser && adminUsageByUser[keyData.user_id]"
+            v-if="adminUsageByUser && adminUsageByUser[keyData.userId]"
             class="text-xs text-blue-600"
           >
-            {{ adminUsageByUser[keyData.user_id].keys.length }} Key(s)
+            {{ adminUsageByUser[keyData.userId].keys.length }} Key(s)
           </div>
         </div>
       </div>
@@ -60,7 +60,7 @@
     <td class="py-3 px-4 text-xs text-gray-700">
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
-    <td v-if="isApiAdmin" class="py-3 px-4 text-xs">
+    <td v-if="isAdmin" class="py-3 px-4 text-xs">
       <!-- Progress Bar nur für aktive API-Keys anzeigen -->
       <div v-if="keyData.status === 'active'">
         <CostProgressBarTable
@@ -74,7 +74,7 @@
       <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
       <div v-else class="text-gray-400 text-xs italic">Nicht in Gebrauch</div>
     </td>
-    <td v-if="isEntwicklung && !isApiAdmin" class="py-3 px-4 text-xs">
+    <td v-if="isEntwicklung && !isAdmin" class="py-3 px-4 text-xs">
       <!-- Token-Verbrauch nur für aktive API-Keys anzeigen -->
       <div v-if="keyData.status === 'active'" class="text-center">
         <div class="text-sm text-gray-700">
@@ -136,8 +136,8 @@ interface LegacyApiKey {
   validUntil: string
   lastUsed: string
   status: string
-  user_id?: string
-  user_name?: string
+  userId?: string
+  userName?: string
 }
 
 interface UsageData {
@@ -152,7 +152,7 @@ const props = defineProps<{
   editingName: string
   usageData: UsageData
   budgetLimit: number
-  isApiAdmin: boolean
+  isAdmin: boolean
   isEntwicklung: boolean
   adminUsageByUser?: {
     [userId: string]: { cost: number; tokensIn: number; tokensOut: number; keys: string[] }

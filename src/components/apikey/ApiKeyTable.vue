@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <!-- Akkumulierte Verbrauchsansicht für Entwicklung-Nutzer -->
-    <div v-if="isEntwicklung && !isApiAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
+    <div v-if="isEntwicklung && !isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-sm font-medium text-gray-900">Gesamtverbrauch (Aktueller Monat)</h3>
@@ -44,7 +44,7 @@
     </div>
 
     <!-- Admin Filter Section -->
-    <div v-if="isApiAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
+    <div v-if="isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
@@ -74,12 +74,12 @@
                 </div>
                 <div
                   v-for="user in filteredUserOptions"
-                  :key="user.user_id"
-                  @click="selectUser(user.user_id, user.user_name)"
+                  :key="user.userId"
+                  @click="selectUser(user.userId, user.userName)"
                   class="px-3 py-2 text-sm text-gray-900 cursor-pointer hover:bg-blue-50"
-                  :class="{ 'bg-blue-100': selectedUserFilter === user.user_id }"
+                  :class="{ 'bg-blue-100': selectedUserFilter === user.userId }"
                 >
-                  {{ user.user_name || user.user_id }} ({{ user.keyCount }} Key{{
+                  {{ user.userName || user.userId }} ({{ user.keyCount }} Key{{
                     user.keyCount !== 1 ? 's' : ''
                   }})
                 </div>
@@ -145,7 +145,7 @@
             </div>
           </th>
           <th class="py-3 px-4 font-semibold">Geheimer Schlüssel</th>
-          <th v-if="isApiAdmin" class="py-3 px-4 font-semibold">Benutzer</th>
+          <th v-if="isAdmin" class="py-3 px-4 font-semibold">Benutzer</th>
           <th
             class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
             @click="sortBy('status')"
@@ -201,7 +201,7 @@
           <th class="py-3 px-4 font-semibold">Zuletzt verwendet</th>
           <th class="py-3 px-4 font-semibold">Gültig bis</th>
           <th
-            v-if="isApiAdmin"
+            v-if="isAdmin"
             class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
             @click="sortBy('cost')"
           >
@@ -227,7 +227,7 @@
               </svg>
             </div>
           </th>
-          <th v-if="isEntwicklung && !isApiAdmin" class="py-3 px-4 font-semibold">
+          <th v-if="isEntwicklung && !isAdmin" class="py-3 px-4 font-semibold">
             Token-Verbrauch<br /><span class="text-xs text-gray-500 font-normal"
               >(Aktueller Monat)</span
             >
@@ -238,13 +238,13 @@
       <tbody>
         <ApiKeyRow
           v-for="key in paginatedKeys"
-          :key="isApiAdmin ? key.user_id : key.id"
-          :keyData="isApiAdmin ? createGroupedKeyData(key) : key"
-          :editing="editingKey === (isApiAdmin ? key.user_id : key.id)"
+          :key="isAdmin ? key.userId : key.id"
+          :keyData="isAdmin ? createGroupedKeyData(key) : key"
+          :editing="editingKey === (isAdmin ? key.userId : key.id)"
           :editingName="editingName"
-          :usageData="getUsageDataForKey(isApiAdmin ? key.user_id : key.id)"
+          :usageData="getUsageDataForKey(isAdmin ? key.userId : key.id)"
           :budgetLimit="budgetLimit"
-          :isApiAdmin="isApiAdmin"
+          :isAdmin="isAdmin"
           :isEntwicklung="isEntwicklung"
           :adminUsageByUser="adminUsageByUser"
           @edit="$emit('edit', $event)"
@@ -286,8 +286,8 @@ interface LegacyApiKey {
   validUntil: string
   lastUsed: string
   status: string
-  user_id?: string
-  user_name?: string
+  userId?: string
+  userName?: string
 }
 
 interface UsageData {
@@ -305,7 +305,7 @@ const props = defineProps<{
 }>()
 
 // Auth composable verwenden
-const { isApiAdmin, userRoles } = useAuth()
+const { isAdmin, userRoles } = useAuth()
 
 // Prüfen ob Benutzer Entwicklung-Rolle hat
 const isEntwicklung = computed(() => {
@@ -340,19 +340,19 @@ const uniqueUsers = computed(() => {
   const userMap = new Map()
 
   props.keys.forEach((key) => {
-    if (key.user_id) {
-      if (!userMap.has(key.user_id)) {
-        userMap.set(key.user_id, {
-          user_id: key.user_id,
-          user_name: key.user_name || key.user_id,
+    if (key.userId) {
+      if (!userMap.has(key.userId)) {
+        userMap.set(key.userId, {
+          userId: key.userId,
+          userName: key.userName || key.userId,
           keyCount: 0,
         })
       }
-      userMap.get(key.user_id).keyCount++
+      userMap.get(key.userId).keyCount++
     }
   })
 
-  return Array.from(userMap.values()).sort((a, b) => a.user_name.localeCompare(b.user_name))
+  return Array.from(userMap.values()).sort((a, b) => a.userName.localeCompare(b.userName))
 })
 
 // Gefilterte Benutzeroptionen basierend auf Suchanfrage
@@ -363,7 +363,7 @@ const filteredUserOptions = computed(() => {
   const query = userSearchQuery.value.toLowerCase()
   return uniqueUsers.value.filter(
     (user) =>
-      user.user_name.toLowerCase().includes(query) || user.user_id.toLowerCase().includes(query),
+      user.userName.toLowerCase().includes(query) || user.userId.toLowerCase().includes(query),
   )
 })
 
@@ -373,7 +373,7 @@ const filteredKeys = computed(() => {
 
   // Benutzer-Filter
   if (selectedUserFilter.value) {
-    keys = keys.filter((key) => key.user_id === selectedUserFilter.value)
+    keys = keys.filter((key) => key.userId === selectedUserFilter.value)
   }
 
   // Status-Filter
@@ -386,16 +386,16 @@ const filteredKeys = computed(() => {
 
 // Für Admins: Gruppiere Keys nach Benutzer
 const adminGroupedKeys = computed(() => {
-  if (!isApiAdmin.value) return filteredKeys.value
+  if (!isAdmin.value) return filteredKeys.value
 
   const grouped = new Map()
 
   filteredKeys.value.forEach((key) => {
-    if (key.user_id) {
-      if (!grouped.has(key.user_id)) {
-        grouped.set(key.user_id, {
-          user_id: key.user_id,
-          user_name: key.user_name || key.user_id,
+    if (key.userId) {
+      if (!grouped.has(key.userId)) {
+        grouped.set(key.userId, {
+          userId: key.userId,
+          userName: key.userName || key.userId,
           keys: [],
           totalCost: 0,
           totalTokensIn: 0,
@@ -405,7 +405,7 @@ const adminGroupedKeys = computed(() => {
         })
       }
 
-      const group = grouped.get(key.user_id)
+      const group = grouped.get(key.userId)
       group.keys.push(key)
 
       // Akkumuliere Verbrauchsdaten
@@ -425,26 +425,26 @@ const adminGroupedKeys = computed(() => {
     }
   })
 
-  return Array.from(grouped.values()).sort((a, b) => a.user_name.localeCompare(b.user_name))
+  return Array.from(grouped.values()).sort((a, b) => a.userName.localeCompare(b.userName))
 })
 
 const sortedKeys = computed(() => {
   // Für Admins: Verwende gruppierte Keys
-  const keys = isApiAdmin.value ? [...adminGroupedKeys.value] : [...filteredKeys.value]
+  const keys = isAdmin.value ? [...adminGroupedKeys.value] : [...filteredKeys.value]
 
   return keys.sort((a, b) => {
     let comparison = 0
 
     switch (sortField.value) {
       case 'name':
-        if (isApiAdmin.value) {
-          comparison = a.user_name.localeCompare(b.user_name)
+        if (isAdmin.value) {
+          comparison = a.userName.localeCompare(b.userName)
         } else {
           comparison = a.name.localeCompare(b.name)
         }
         break
       case 'createdAt':
-        if (isApiAdmin.value) {
+        if (isAdmin.value) {
           // Sortiere nach dem neuesten Key pro Benutzer
           const aLatestKey = a.keys.reduce((latest: any, key: any) =>
             new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
@@ -459,7 +459,7 @@ const sortedKeys = computed(() => {
         }
         break
       case 'status':
-        if (isApiAdmin.value) {
+        if (isAdmin.value) {
           // Sortiere nach Anzahl aktiver Keys
           comparison = a.activeKeys - b.activeKeys
         } else {
@@ -470,7 +470,7 @@ const sortedKeys = computed(() => {
         }
         break
       case 'cost':
-        if (isApiAdmin.value) {
+        if (isAdmin.value) {
           comparison = a.totalCost - b.totalCost
         } else {
           const costA = props.usageData?.[a.id]?.cost || 0
@@ -517,9 +517,9 @@ const clearFilters = () => {
   currentPage.value = 1
 }
 
-const selectUser = (user_id: string, user_name: string) => {
-  selectedUserFilter.value = user_id
-  userSearchQuery.value = user_id === '' ? 'Alle Benutzer' : user_name
+const selectUser = (userId: string, userName: string) => {
+  selectedUserFilter.value = userId
+  userSearchQuery.value = userId === '' ? 'Alle Benutzer' : userName
   showUserDropdown.value = false
   currentPage.value = 1 // Reset pagination
 }
@@ -544,9 +544,9 @@ const handleUserBlur = () => {
     showUserDropdown.value = false
     if (selectedUserFilter.value) {
       // If a user is selected, ensure the input displays their name
-      const selected = uniqueUsers.value.find((u) => u.user_id === selectedUserFilter.value)
+      const selected = uniqueUsers.value.find((u) => u.userId === selectedUserFilter.value)
       if (selected) {
-        userSearchQuery.value = selected.user_name
+        userSearchQuery.value = selected.userName
       }
     } else {
       // If no user is selected and field is empty, show placeholder
@@ -564,25 +564,25 @@ const createGroupedKeyData = (groupedKey: any): LegacyApiKey => {
   )
 
   return {
-    id: groupedKey.user_id,
-    apiKey: groupedKey.user_id,
-    name: `${groupedKey.user_name} (${groupedKey.keys.length} Keys)`,
+    id: groupedKey.userId,
+    apiKey: groupedKey.userId,
+    name: `${groupedKey.userName} (${groupedKey.keys.length} Keys)`,
     permissions: 'api-access',
     createdAt: latestKey.createdAt,
-    createdBy: groupedKey.user_name,
+    createdBy: groupedKey.userName,
     validUntil: latestKey.validUntil,
     lastUsed: 'Never',
     status: groupedKey.activeKeys > 0 ? 'active' : 'revoked',
-    user_id: groupedKey.user_id,
-    user_name: groupedKey.user_name,
+    userId: groupedKey.userId,
+    userName: groupedKey.userName,
   }
 }
 
 // Get usage data for a specific key or user group
 const getUsageDataForKey = (keyId: string): UsageData => {
   // Für Admins: Wenn es ein gruppierter Key ist, verwende die gruppierten Daten
-  if (isApiAdmin.value) {
-    const groupedKey = adminGroupedKeys.value.find((group) => group.user_id === keyId)
+  if (isAdmin.value) {
+    const groupedKey = adminGroupedKeys.value.find((group) => group.userId === keyId)
     if (groupedKey) {
       return {
         cost: groupedKey.totalCost,
@@ -622,7 +622,7 @@ const totalTokensOut = computed(() => {
 
 // Berechne akkumulierte Verbrauchsdaten für Admins (pro Nutzer gruppiert)
 const adminUsageByUser = computed(() => {
-  if (!props.usageData || !isApiAdmin.value) return {}
+  if (!props.usageData || !isAdmin.value) return {}
 
   const userUsage: {
     [userId: string]: { cost: number; tokensIn: number; tokensOut: number; keys: string[] }
@@ -631,14 +631,14 @@ const adminUsageByUser = computed(() => {
   // Gruppiere Usage-Daten nach Nutzer
   Object.entries(props.usageData).forEach(([keyId, usage]) => {
     const key = props.keys.find((k) => k.id === keyId)
-    if (key && key.user_id) {
-      if (!userUsage[key.user_id]) {
-        userUsage[key.user_id] = { cost: 0, tokensIn: 0, tokensOut: 0, keys: [] }
+    if (key && key.userId) {
+      if (!userUsage[key.userId]) {
+        userUsage[key.userId] = { cost: 0, tokensIn: 0, tokensOut: 0, keys: [] }
       }
-      userUsage[key.user_id].cost += usage.cost
-      userUsage[key.user_id].tokensIn += usage.tokensIn
-      userUsage[key.user_id].tokensOut += usage.tokensOut
-      userUsage[key.user_id].keys.push(keyId)
+      userUsage[key.userId].cost += usage.cost
+      userUsage[key.userId].tokensIn += usage.tokensIn
+      userUsage[key.userId].tokensOut += usage.tokensOut
+      userUsage[key.userId].keys.push(keyId)
     }
   })
 

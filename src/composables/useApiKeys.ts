@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 
 // Legacy interface für Kompatibilität mit bestehenden Komponenten
 interface LegacyApiKey {
+  id: string
   apiKey: string
   name: string
   permissions: string
@@ -12,6 +13,8 @@ interface LegacyApiKey {
   validUntil: string
   lastUsed: string
   status: string
+  userId?: string
+  userName?: string
 }
 
 interface UserProfile {
@@ -43,15 +46,15 @@ export function useApiKeys(userProfile: UserProfile) {
       id: key.id,
       apiKey: key.id,
       name: key.name,
-      permissions: key.permissions.join(', '),
-      createdAt: key.created_at,
+      permissions: 'api-access',
+      createdAt: key.createdAt,
       // TODO: createdBy can be retrieved from Keycloak later
       createdBy: userProfile.value?.name || 'Unknown',
-      validUntil: key.expires_at || 'Never',
+      validUntil: key.expiresAt || 'Never',
       lastUsed: 'Never',
-      status: key.is_active ? 'active' : 'revoked',
-      user_id: key.user_id,
-      user_name: key.user_name,
+      status: key.active ? 'active' : 'revoked',
+      userId: key.userId,
+      userName: key.userName,
     }))
   })
 
@@ -76,8 +79,8 @@ export function useApiKeys(userProfile: UserProfile) {
 
       createdSecret.value = data.secret || ''
       createdKeyName.value = data.name
-      createdKeyPermissions.value = data.permissions
-      createdKeyValidUntil.value = data.expires_at || 'Never'
+      createdKeyPermissions.value = ['api-access']
+      createdKeyValidUntil.value = data.expiresAt || 'Never'
       createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
       await loadKeys()
     } catch (err) {

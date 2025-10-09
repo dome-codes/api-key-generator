@@ -277,7 +277,7 @@ function requireRole(requiredRoles) {
 }
 
 // In-Memory-Datenbank für API Keys
-const apiKeys = {} // { [id]: { id, name, permissions, created_at, expires_at, is_active, secret, user_id } }
+const apiKeys = {} // { [id]: { id, name, createdAt, expiresAt, active, secret, userId } }
 
 // Lade hardcodierte API Keys aus mock-data.js
 mockData.MOCK_API_KEYS.forEach((key) => {
@@ -308,12 +308,11 @@ function createApiKeyObject(name, permissions, userId = null) {
   return {
     id: uuidv4(),
     name: name,
-    permissions: permissions,
-    created_at: now.toISOString(),
-    expires_at: expiresAt.toISOString(),
-    is_active: true,
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    active: true,
     secret: generateApiKey(),
-    user_id: userId,
+    userId: userId,
   }
 }
 
@@ -341,10 +340,9 @@ app.post('/v1/apikeys', validateToken, (req, res) => {
   res.status(201).json({
     id: apiKey.id,
     name: apiKey.name,
-    permissions: apiKey.permissions,
-    created_at: apiKey.created_at,
-    expires_at: apiKey.expires_at,
-    is_active: apiKey.is_active,
+    createdAt: apiKey.createdAt,
+    expiresAt: apiKey.expiresAt,
+    active: apiKey.active,
     secret: apiKey.secret,
   })
 })
@@ -364,19 +362,18 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
     keys = Object.values(apiKeys)
     console.log(`[${timestamp}] Admin access - showing all ${keys.length} API keys`)
   } else {
-    keys = Object.values(apiKeys).filter((key) => key.user_id === userId)
+    keys = Object.values(apiKeys).filter((key) => key.userId === userId)
     console.log(`[${timestamp}] User access - showing ${keys.length} API keys for user ${userId}`)
   }
 
   const responseKeys = keys.map((key) => ({
     id: key.id,
     name: key.name,
-    permissions: key.permissions,
-    created_at: key.created_at,
-    expires_at: key.expires_at,
-    is_active: key.is_active,
-    user_id: key.user_id,
-    user_name: key.user_name,
+    createdAt: key.createdAt,
+    expiresAt: key.expiresAt,
+    active: key.active,
+    userId: key.userId,
+    userName: key.userName,
   }))
 
   res.status(200).json(responseKeys)
@@ -401,23 +398,22 @@ app.get('/v1/apikeys/:id', validateToken, (req, res) => {
   const userRoles = req.user.groups || []
   const isAdmin = userRoles.includes('API-Admin')
 
-  if (!isAdmin && apiKey.user_id !== userId) {
+  if (!isAdmin && apiKey.userId !== userId) {
     console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to access key ${id} owned by ${apiKey.user_id}`,
+      `[${timestamp}] Access denied - user ${userId} tried to access key ${id} owned by ${apiKey.userId}`,
     )
     return res.status(403).json({ error: 'Access denied' })
   }
 
-  console.log(`[${timestamp}] API key found: "${apiKey.name}" (active: ${apiKey.is_active})`)
+  console.log(`[${timestamp}] API key found: "${apiKey.name}" (active: ${apiKey.active})`)
   res.status(200).json({
     id: apiKey.id,
     name: apiKey.name,
-    permissions: apiKey.permissions,
-    created_at: apiKey.created_at,
-    expires_at: apiKey.expires_at,
-    is_active: apiKey.is_active,
-    user_id: apiKey.user_id,
-    user_name: apiKey.user_name,
+    createdAt: apiKey.createdAt,
+    expiresAt: apiKey.expiresAt,
+    active: apiKey.active,
+    userId: apiKey.userId,
+    userName: apiKey.userName,
   })
 })
 
@@ -440,22 +436,22 @@ app.post('/v1/apikeys/:id/rotate', validateToken, (req, res) => {
   const userRoles = req.user.groups || []
   const isAdmin = userRoles.includes('API-Admin')
 
-  if (!isAdmin && existingKey.user_id !== userId) {
+  if (!isAdmin && existingKey.userId !== userId) {
     console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to rotate key ${id} owned by ${existingKey.user_id}`,
+      `[${timestamp}] Access denied - user ${userId} tried to rotate key ${id} owned by ${existingKey.userId}`,
     )
     return res.status(403).json({ error: 'Access denied' })
   }
 
   console.log(`[${timestamp}] Deactivating existing key: "${existingKey.name}"`)
   // Deaktiviere alten Key
-  existingKey.is_active = false
+  existingKey.active = false
 
   // Erstelle neuen Key
   const newApiKey = createApiKeyObject(
     name || existingKey.name,
     permissions || existingKey.permissions,
-    existingKey.user_id,
+    existingKey.userId,
   )
   apiKeys[newApiKey.id] = newApiKey
 
@@ -464,13 +460,12 @@ app.post('/v1/apikeys/:id/rotate', validateToken, (req, res) => {
   res.status(201).json({
     id: newApiKey.id,
     name: newApiKey.name,
-    permissions: newApiKey.permissions,
-    created_at: newApiKey.created_at,
-    expires_at: newApiKey.expires_at,
-    is_active: newApiKey.is_active,
+    createdAt: newApiKey.createdAt,
+    expiresAt: newApiKey.expiresAt,
+    active: newApiKey.active,
     secret: newApiKey.secret,
-    user_id: newApiKey.user_id,
-    user_name: newApiKey.user_name,
+    userId: newApiKey.userId,
+    userName: newApiKey.userName,
   })
 })
 
@@ -491,7 +486,7 @@ app.delete('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
   // Prüfe Berechtigung: Nur Besitzer oder Admin kann deaktivieren
   const userRoles = req.user.groups || []
   const isAdmin = userRoles.includes('API-Admin')
-  const isOwner = apiKey.user_id === userId
+  const isOwner = apiKey.userId === userId
 
   if (!isAdmin && !isOwner) {
     console.log(`[${timestamp}] ❌ Unauthorized deactivation attempt for key: ${id}`)
@@ -499,16 +494,16 @@ app.delete('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
   }
 
   // Deaktiviere den API Key
-  apiKey.is_active = false
-  apiKey.deactivated_at = timestamp
+  apiKey.active = false
+  apiKey.deactivatedAt = timestamp
 
   console.log(`[${timestamp}] ✅ API key deactivated successfully: ${id}`)
 
   res.status(200).json({
     id: apiKey.id,
     name: apiKey.name,
-    is_active: apiKey.is_active,
-    deactivated_at: apiKey.deactivated_at,
+    active: apiKey.active,
+    deactivatedAt: apiKey.deactivatedAt,
   })
 })
 
@@ -531,15 +526,15 @@ app.put('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
   const userRoles = req.user.groups || []
   const isAdmin = userRoles.includes('API-Admin')
 
-  if (!isAdmin && apiKey.user_id !== userId) {
+  if (!isAdmin && apiKey.userId !== userId) {
     console.log(
-      `[${timestamp}] Access denied - user ${userId} tried to deactivate key ${id} owned by ${apiKey.user_id}`,
+      `[${timestamp}] Access denied - user ${userId} tried to deactivate key ${id} owned by ${apiKey.userId}`,
     )
     return res.status(403).json({ error: 'Access denied' })
   }
 
   console.log(`[${timestamp}] Deactivating API key: "${apiKey.name}"`)
-  apiKey.is_active = false
+  apiKey.active = false
 
   console.log(`[${timestamp}] API key deactivated successfully`)
   res.status(204).send()
@@ -713,12 +708,12 @@ app.get('/v1/admin/users', validateToken, requireRole(['API-Admin']), (req, res)
 
   // Extrahiere alle eindeutigen Nutzer aus den API Keys
   const allUsers = mockData.MOCK_API_KEYS.map((key) => ({
-    id: key.user_id,
-    displayName: key.user_name,
-    technicalUserId: key.user_id,
-    technicalUserName: key.user_name,
-    isActive: key.is_active,
-    createdAt: key.created_at,
+    id: key.userId,
+    displayName: key.userName,
+    technicalUserId: key.userId,
+    technicalUserName: key.userName,
+    isActive: key.active,
+    createdAt: key.createdAt,
   }))
 
   console.log(`[${timestamp}] Admin: Returning ${allUsers.length} users`)
