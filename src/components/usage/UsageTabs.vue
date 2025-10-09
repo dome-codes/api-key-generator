@@ -550,7 +550,7 @@ const handleChartPeriodChange = (period: string) => {
 }
 
 // Watchers
-watch([ownTimeRange, ownModelType, ownFromDate, ownToDate], async () => {
+watch([ownTimeRange, ownFromDate, ownToDate], async () => {
   const fromDate = ownFromDate.value
   const toDate = ownToDate.value
   if (fromDate && toDate) {
