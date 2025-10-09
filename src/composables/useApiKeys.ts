@@ -50,6 +50,8 @@ export function useApiKeys(userProfile: UserProfile) {
       validUntil: key.expires_at || 'Never',
       lastUsed: 'Never',
       status: key.is_active ? 'active' : 'revoked',
+      user_id: key.user_id,
+      user_name: key.user_name,
     }))
   })
 

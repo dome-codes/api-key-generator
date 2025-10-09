@@ -375,6 +375,8 @@ app.get('/v1/apikeys', validateToken, (req, res) => {
     created_at: key.created_at,
     expires_at: key.expires_at,
     is_active: key.is_active,
+    user_id: key.user_id,
+    user_name: key.user_name,
   }))
 
   res.status(200).json(responseKeys)
@@ -414,6 +416,8 @@ app.get('/v1/apikeys/:id', validateToken, (req, res) => {
     created_at: apiKey.created_at,
     expires_at: apiKey.expires_at,
     is_active: apiKey.is_active,
+    user_id: apiKey.user_id,
+    user_name: apiKey.user_name,
   })
 })
 
@@ -465,6 +469,8 @@ app.post('/v1/apikeys/:id/rotate', validateToken, (req, res) => {
     expires_at: newApiKey.expires_at,
     is_active: newApiKey.is_active,
     secret: newApiKey.secret,
+    user_id: newApiKey.user_id,
+    user_name: newApiKey.user_name,
   })
 })
 

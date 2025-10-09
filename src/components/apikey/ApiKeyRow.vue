@@ -22,6 +22,23 @@
       >
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
+    <td v-if="isApiAdmin" class="py-3 px-4 text-xs">
+      <div class="flex items-center space-x-2">
+        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+        <div>
+          <div class="font-medium text-gray-900">
+            {{ keyData.user_name || keyData.user_id || 'Unbekannt' }}
+          </div>
+          <div class="text-gray-500 text-xs">{{ keyData.user_id || 'N/A' }}</div>
+          <div
+            v-if="adminUsageByUser && adminUsageByUser[keyData.user_id]"
+            class="text-xs text-blue-600"
+          >
+            {{ adminUsageByUser[keyData.user_id].keys.length }} Key(s)
+          </div>
+        </div>
+      </div>
+    </td>
     <td class="py-3 px-4 text-xs">
       <span
         v-if="keyData.status === 'active'"
@@ -43,7 +60,7 @@
     <td class="py-3 px-4 text-xs text-gray-700">
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
-    <td class="py-3 px-4 text-xs">
+    <td v-if="isApiAdmin" class="py-3 px-4 text-xs">
       <!-- Progress Bar nur für aktive API-Keys anzeigen -->
       <div v-if="keyData.status === 'active'">
         <CostProgressBarTable
@@ -56,6 +73,16 @@
       </div>
       <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
       <div v-else class="text-gray-400 text-xs italic">Nicht in Gebrauch</div>
+    </td>
+    <td v-if="isEntwicklung && !isApiAdmin" class="py-3 px-4 text-xs">
+      <!-- Token-Verbrauch nur für aktive API-Keys anzeigen -->
+      <div v-if="keyData.status === 'active'" class="text-center">
+        <div class="text-sm text-gray-700">
+          {{ formatNumber(usageData.tokensIn) }} In / {{ formatNumber(usageData.tokensOut) }} Out
+        </div>
+      </div>
+      <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
+      <div v-else class="text-gray-400 text-xs italic text-center">Nicht in Gebrauch</div>
     </td>
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
@@ -109,6 +136,8 @@ interface LegacyApiKey {
   validUntil: string
   lastUsed: string
   status: string
+  user_id?: string
+  user_name?: string
 }
 
 interface UsageData {
@@ -123,6 +152,11 @@ const props = defineProps<{
   editingName: string
   usageData: UsageData
   budgetLimit: number
+  isApiAdmin: boolean
+  isEntwicklung: boolean
+  adminUsageByUser?: {
+    [userId: string]: { cost: number; tokensIn: number; tokensOut: number; keys: string[] }
+  }
 }>()
 
 const emits = defineEmits<{
@@ -142,4 +176,25 @@ const shouldShowRotateButton = computed(() => {
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
   return expiryDate <= thirtyDaysFromNow
 })
+
+// Helper function for number formatting
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`
+  }
+  return num.toString()
+}
+
+// Helper function for token ratio formatting
+const formatTokenRatio = (tokensIn: number, tokensOut: number): string => {
+  if (tokensIn === 0) return '0:0'
+  const ratio = tokensOut / tokensIn
+  if (ratio >= 1) {
+    return `1:${ratio.toFixed(1)}`
+  } else {
+    return `${(1 / ratio).toFixed(1)}:1`
+  }
+}
 </script>

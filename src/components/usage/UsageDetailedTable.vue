@@ -351,10 +351,7 @@
           <label class="text-sm text-gray-700">Einträge pro Seite:</label>
           <select
             v-model="pageSize"
-            @change="
-              currentPage = 1
-              pageSize = Number(pageSize)
-            "
+            @change="handlePageSizeChange"
             class="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
           >
             <option :value="10">10</option>
@@ -410,6 +407,12 @@ const props = withDefaults(defineProps<Props>(), {
 // Local state
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+// Handle page size change
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  pageSize.value = Number(pageSize.value)
+}
 
 // Sortierung state
 const sortField = ref('date')
