@@ -408,6 +408,7 @@
 <script setup lang="ts">
 import type { EnhancedUsageRecord, ModelUsageType } from '@/api/types/types'
 import { formatCost } from '@/config/pricing'
+import EmptyState from './shared/EmptyState.vue'
 import { computed, ref } from 'vue'
 
 

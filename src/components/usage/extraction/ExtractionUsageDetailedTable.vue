@@ -13,8 +13,12 @@
       <p class="text-red-600">{{ error }}</p>
     </div>
 
-    <div v-else-if="!data || data.length === 0" class="text-center py-12">
-      <p class="text-gray-500">Keine Daten verfügbar</p>
+    <div v-else-if="!data || data.length === 0">
+      <EmptyState
+        title="Keine Extraction-Daten"
+        description="Für die gewählten Filter wurden keine Extraction-Nutzungsdaten gefunden."
+        :show-reset-button="false"
+      />
     </div>
 
     <div v-else>
@@ -155,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import EmptyState from '../shared/EmptyState.vue'
 import type { EnhancedExtractionUsageRecord, PaginationInfo } from '@/api/types/extraction'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
 

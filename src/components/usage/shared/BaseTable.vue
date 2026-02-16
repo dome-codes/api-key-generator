@@ -22,8 +22,13 @@
       <p class="text-red-600">{{ error }}</p>
     </div>
 
-    <div v-else-if="!data || data.length === 0" class="text-center py-12">
-      <p class="text-gray-500">Keine Daten verfügbar</p>
+    <div v-else-if="!data || data.length === 0">
+      <EmptyState
+        :title="emptyStateTitle"
+        :description="emptyStateDescription"
+        :show-reset-button="showResetButton"
+        @reset-filters="$emit('reset-filters')"
+      />
     </div>
 
     <div v-else>
@@ -51,6 +56,7 @@
 
 <script setup lang="ts">
 import type { PaginationInfo } from '@/api/types/types'
+import EmptyState from './EmptyState.vue'
 import PaginationControls from './PaginationControls.vue'
 
 interface Props {
@@ -59,11 +65,19 @@ interface Props {
   isLoading: boolean
   error: string | null
   pagination?: PaginationInfo
+  emptyStateTitle?: string
+  emptyStateDescription?: string
+  showResetButton?: boolean
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  emptyStateTitle: 'Keine Daten verfügbar',
+  emptyStateDescription: 'Für die gewählten Filter wurden keine Daten gefunden.',
+  showResetButton: false,
+})
 
 defineEmits<{
   'page-change': [page: number]
+  'reset-filters': []
 }>()
 </script>
