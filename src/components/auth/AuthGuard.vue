@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { initKeycloak } from '@/auth/keycloak'
+import { initKeycloak, hasPermission } from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
@@ -49,7 +49,7 @@ const debugLog = (...args: unknown[]) => {
 
 const route = useRoute()
 const router = useRouter()
-const { userProfile, userRoles, highestRole, isApiAdmin } = useAuth()
+const { userProfile, highestRole, isAdmin } = useAuth()
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
 const error = ref('')
@@ -106,7 +106,6 @@ watch(
   () => route.path,
   () => {
     if (isAuthenticated.value && route.meta.requiredPermissions) {
-      const { hasPermission } = require('@/auth/keycloak')
       const hasAllPermissions = route.meta.requiredPermissions.every((permission) =>
         hasPermission(permission as any),
       )

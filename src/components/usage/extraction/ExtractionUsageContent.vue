@@ -57,7 +57,7 @@
       :error="error"
       :pagination="pagination"
       :sort-field="currentFilter.sort"
-      :sort-order="currentFilter.order"
+      :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
       :use-backend-sorting="true"
       @page-change="handlePageChange"
       @sort-change="handleSortChange"
@@ -70,7 +70,7 @@
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { useUrlFilters } from '@/composables/useUrlFilters'
 import { computed, onMounted, ref, watch } from 'vue'
-import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
 import ExtractionUsageFilters from './ExtractionUsageFilters.vue'
 import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
@@ -110,7 +110,7 @@ const {
 // Filter State
 const ownTimeRange = ref('')
 const ownModelId = ref('')
-const ownStatus = ref<ExtractionOperationStatus | ''>('')
+const ownStatus = ref<DocumentIntelligenceOperationStatus | ''>('')
 const ownTag = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownFromDate = ref('')
@@ -137,7 +137,7 @@ const setDefaultDates = () => {
 const loadFiltersFromUrl = () => {
   ownTimeRange.value = getQueryParam('timeRange') || ''
   ownModelId.value = getQueryParam('modelId') || ''
-  ownStatus.value = (getQueryParam('status') as ExtractionOperationStatus | '') || ''
+  ownStatus.value = (getQueryParam('status') as DocumentIntelligenceOperationStatus | '') || ''
   ownTag.value = getQueryParam('tag') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
@@ -162,7 +162,7 @@ const saveFiltersToUrl = () => {
     if (adminUser.value) params.userId = adminUser.value
     if (adminUserGroup.value) params.userGroup = adminUserGroup.value
   }
-  if (pagination.value.page > 1) params.page = pagination.value.page
+  if ((pagination.value.page ?? 1) > 1) params.page = pagination.value.page
   setQueryParams(params)
 }
 

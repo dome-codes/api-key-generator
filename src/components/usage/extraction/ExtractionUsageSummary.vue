@@ -29,7 +29,7 @@
       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
         <div class="text-sm text-gray-600 font-medium">Durchschnittliche Confidence</div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ formatConfidence(summary.averageConfidence) }}%
+          {{ formatConfidence(summary.averageConfidence ?? 0) }}%
         </div>
       </div>
 
@@ -72,7 +72,7 @@
           :key="status"
           class="bg-gray-50 rounded-lg p-3"
         >
-          <div class="text-xs text-gray-600 font-medium">{{ getStatusLabel(status) }}</div>
+          <div class="text-xs text-gray-600 font-medium">{{ getStatusLabel(String(status)) }}</div>
           <div class="text-xl font-bold text-gray-800">{{ count }}</div>
         </div>
       </div>
@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ExtractionUsageAggregation } from '@/api/types/extraction'
+import type { ExtractionUsageAggregation } from '@/api/types/frontend'
 import ErrorState from '../shared/ErrorState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 

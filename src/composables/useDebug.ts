@@ -1,4 +1,4 @@
-import { debugToken, getHighestRole, getUserRoles, hasPermission } from '@/auth/keycloak'
+import { debugToken, getHighestRole, hasPermission } from '@/auth/keycloak'
 import { computed, ref } from 'vue'
 
 export function useDebug() {
@@ -37,14 +37,10 @@ export function useDebug() {
       // Console-Logs
       debugToken()
       debugLog('🔍 Zusätzliche Debug-Info:')
-      debugLog('User Roles:', getUserRoles())
       debugLog('Highest Role:', getHighestRole())
-      debugLog('Is API Admin:', hasPermission('canViewAdminUsage'))
-      debugLog('Can View Admin Usage:', hasPermission('canViewAdminUsage'))
+      debugLog('Can Use Admin Features:', hasPermission('canUseAdminFeatures'))
       debugLog('Can Create Keys:', hasPermission('canCreateKeys'))
-      debugLog('Can Edit Keys:', hasPermission('canEditOwnKeys'))
-      debugLog('Can Deactivate Keys:', hasPermission('canDeactivateOwnKeys'))
-      debugLog('Can View Usage:', hasPermission('canViewOwnUsage'))
+      debugLog('Can See Own Usage:', hasPermission('canSeeOwnUsage'))
     }
   }
 

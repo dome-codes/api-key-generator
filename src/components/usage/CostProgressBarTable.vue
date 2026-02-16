@@ -77,7 +77,7 @@ const props = withDefaults(defineProps<Props>(), {
   showDetailedInfo: false,
 })
 
-const { isApiAdmin } = useAuth()
+const { isAdmin: isApiAdmin } = useAuth()
 
 // Computed
 const progressPercentage = computed(() => {

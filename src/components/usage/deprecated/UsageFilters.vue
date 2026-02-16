@@ -235,7 +235,7 @@ const handleTimeRangeChange = () => {
       return
   }
 
-  if (timeRange.value !== 'custom') {
+  if ((timeRange.value as string) !== 'custom') {
     fromDate.value = startDate.toISOString().split('T')[0]
     toDate.value = today.toISOString().split('T')[0]
   }

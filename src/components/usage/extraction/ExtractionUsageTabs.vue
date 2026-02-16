@@ -204,14 +204,14 @@
 import { hasPermission } from '@/auth/keycloak'
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { computed, onMounted, ref, watch } from 'vue'
-import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
 import ExtractionUsageFilters from './ExtractionUsageFilters.vue'
 import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
 import ExtractionUsageDetailedTable from './ExtractionUsageDetailedTable.vue'
 
 const activeTab = ref('own')
-const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
+const isApiAdmin = computed(() => hasPermission('canUseAdminFeatures'))
 
 // Extraction Usage Composable mit API-basierter Filterung
 const {
@@ -232,7 +232,7 @@ const {
 // Filter State - Own
 const ownTimeRange = ref('30d')
 const ownModelId = ref('')
-const ownStatus = ref<ExtractionOperationStatus | ''>('')
+const ownStatus = ref<DocumentIntelligenceOperationStatus | ''>('')
 const ownTag = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownFromDate = ref('')
@@ -241,7 +241,7 @@ const ownToDate = ref('')
 // Filter State - Admin
 const adminTimeRange = ref('30d')
 const adminModelId = ref('')
-const adminStatus = ref<ExtractionOperationStatus | ''>('')
+const adminStatus = ref<DocumentIntelligenceOperationStatus | ''>('')
 const adminTag = ref('')
 const adminUser = ref('')
 const adminUserGroup = ref('')

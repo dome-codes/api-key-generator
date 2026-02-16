@@ -8,9 +8,9 @@
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
-  PaginationInfo,
   ExtractionUsageAggregation,
-} from '@/api/types/extraction'
+} from '@/api/types/frontend'
+import type { PaginationInfo } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
 import { computed, ref } from 'vue'
 
@@ -44,11 +44,11 @@ export function useExtractionUsageApi() {
 
   // Computed
   const hasMorePages = computed(() => {
-    return pagination.value.page < pagination.value.totalPages
+    return (pagination.value.page ?? 1) < (pagination.value.totalPages ?? 0)
   })
 
   const hasPreviousPage = computed(() => {
-    return pagination.value.page > 1
+    return (pagination.value.page ?? 1) > 1
   })
 
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
@@ -178,9 +178,9 @@ export function useExtractionUsageApi() {
     }
 
     const totalOperations = data.length
-    const totalPages = data.reduce((sum, item) => sum + item.pages, 0)
-    const totalCost = data.reduce((sum, item) => sum + item.cost, 0)
-    const totalConfidence = data.reduce((sum, item) => sum + item.confidenceScore, 0)
+    const totalPages = data.reduce((sum, item) => sum + (item.pages ?? 0), 0)
+    const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+    const totalConfidence = data.reduce((sum, item) => sum + (item.confidenceScore ?? 0), 0)
 
     const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
     const uniqueProviders = new Set(data.map((item) => item.provider)).size
@@ -188,7 +188,8 @@ export function useExtractionUsageApi() {
 
     const operationsByStatus: { [key: string]: number } = {}
     data.forEach((item) => {
-      operationsByStatus[item.status] = (operationsByStatus[item.status] || 0) + 1
+      const status = item.status ?? 'unknown'
+      operationsByStatus[status] = (operationsByStatus[status] || 0) + 1
     })
 
     return {
@@ -272,9 +273,10 @@ export function useExtractionUsageApi() {
       // Wenn es mehr Daten gibt, lade alle Seiten
       let allData = [...result.data]
       let currentPage = 1
-      const totalPages = result.pagination.totalPages
+      const totalPages = result.pagination?.totalPages ?? 0
+      const total = result.pagination?.total ?? 0
 
-      while (currentPage < totalPages && allData.length < result.pagination.total) {
+      while (currentPage < totalPages && allData.length < total) {
         currentPage++
         const pageResult = await extractionUsageApiService.getUsageSummary(
           { ...summaryFilter, page: currentPage },
@@ -312,19 +314,19 @@ export function useExtractionUsageApi() {
   const nextPage = async (useAdminApi: boolean = false) => {
     if (!hasMorePages.value) return
 
-    const newPage = pagination.value.page + 1
+    const newPage = (pagination.value.page ?? 1) + 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const previousPage = async (useAdminApi: boolean = false) => {
     if (!hasPreviousPage.value) return
 
-    const newPage = pagination.value.page - 1
+    const newPage = (pagination.value.page ?? 1) - 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const goToPage = async (page: number, useAdminApi: boolean = false) => {
-    if (page < 1 || page > pagination.value.totalPages) return
+    if (page < 1 || page > (pagination.value.totalPages ?? 0)) return
 
     await loadUsageData({ page }, useAdminApi)
   }

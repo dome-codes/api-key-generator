@@ -38,10 +38,14 @@ export interface UsageFilterApi {
   apiKeyId?: string
   model?: string
   modelType?: string
+  technicalUserIds?: string[]
   sort?: string
   order?: string
   groupBy?: string[]
 }
+
+/** UI filter (alias for backward compat) */
+export type UsageFilter = UsageFilterApi
 
 /** Filter params for extraction usage API */
 export interface ExtractionUsageFilterApi {
@@ -142,4 +146,17 @@ export interface ImageModelUsage extends AIUsageSummaryRecord {
   sizeWidth?: number
   sizeHeight?: number
   quality?: string
+}
+
+export interface ExtractionUsageAggregation {
+  totalOperations: number
+  totalPages: number
+  totalCost: number
+  uniqueUsers: number
+  uniqueProviders?: number
+  uniqueModels: number
+  averageConfidence?: number
+  operationsByStatus?: { [key: string]: number }
+  averagePagesPerOperation: number
+  averageCostPerOperation: number
 }

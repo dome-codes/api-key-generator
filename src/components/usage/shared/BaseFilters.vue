@@ -172,7 +172,7 @@ const handleTimeRangeChange = () => {
       return
   }
 
-  if (localTimeRange.value !== 'custom') {
+  if ((localTimeRange.value as string) !== 'custom') {
     localFromDate.value = startDate.toISOString().split('T')[0]
     localToDate.value = today.toISOString().split('T')[0]
   }

@@ -34,13 +34,13 @@ interface LegacyApiKey {
 // Composables verwenden
 const {
   userProfile,
-  userRoles,
   highestRole,
-  isApiAdmin,
+  isAdmin,
   canCreateKeys,
-  canViewUsage,
+  canSeeOwnUsage,
   handleLogout,
 } = useAuth()
+const userRolesForHeader = computed(() => [String(highestRole.value)])
 const { isDevelopment, showDebugMode, showDebugInfo, debugTokenInfo } = useDebug()
 const {
   keys,
@@ -258,13 +258,13 @@ onMounted(() => {
   <div class="min-h-screen bg-gray-50 flex">
     <AppSidebar
       :active-sidebar="activeSidebar"
-      :can-view-usage="canViewUsage"
+      :can-view-usage="canSeeOwnUsage"
       @update:active-sidebar="(value: 'api' | 'usage') => (activeSidebar = value)"
     />
     <div class="flex-1 flex flex-col min-h-screen">
       <AppHeader
         :user-profile="userProfile"
-        :user-roles="userRoles"
+        :user-roles="userRolesForHeader"
         :is-development="isDevelopment"
         :show-debug-mode="showDebugMode"
         @logout="handleLogout"
@@ -403,7 +403,7 @@ onMounted(() => {
 
         <!-- Usage Section -->
         <div v-else-if="activeSidebar === 'usage'">
-          <div v-if="!canViewUsage" class="rounded-lg border border-amber-200 bg-amber-50 p-6">
+          <div v-if="!canSeeOwnUsage" class="rounded-lg border border-amber-200 bg-amber-50 p-6">
             <p class="text-amber-800">Sie haben keine Berechtigung, die Nutzungsdaten anzuzeigen.</p>
           </div>
           <UsageTabs v-else />

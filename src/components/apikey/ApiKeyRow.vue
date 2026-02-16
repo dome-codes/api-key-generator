@@ -31,7 +31,7 @@
           </div>
           <div class="text-gray-500 text-xs">{{ keyData.userId || 'N/A' }}</div>
           <div
-            v-if="adminUsageByUser && adminUsageByUser[keyData.userId]"
+            v-if="keyData.userId && adminUsageByUser && adminUsageByUser[keyData.userId]"
             class="text-xs text-blue-600"
           >
             {{ adminUsageByUser[keyData.userId].keys.length }} Key(s)

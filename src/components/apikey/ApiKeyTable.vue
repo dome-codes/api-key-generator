@@ -306,11 +306,11 @@ const props = defineProps<{
 }>()
 
 // Auth composable verwenden
-const { isAdmin, userRoles } = useAuth()
+const { isAdmin, highestRole } = useAuth()
 
-// Prüfen ob Benutzer Entwicklung-Rolle hat
+// Prüfen ob Benutzer USER-Rolle hat (entspricht früherer ENTWICKLUNG)
 const isEntwicklung = computed(() => {
-  return userRoles.value.includes(UserRole.ENTWICKLUNG)
+  return highestRole.value === UserRole.USER
 })
 
 const emits = defineEmits<{

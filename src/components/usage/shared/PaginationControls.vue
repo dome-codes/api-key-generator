@@ -1,15 +1,15 @@
 <template>
-  <div v-if="pagination && pagination.totalPages > 1" class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+  <div v-if="pagination && (pagination.totalPages ?? 0) > 1" class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
     <div class="text-sm text-gray-700">
-      Seite {{ pagination.page }} von {{ pagination.totalPages }} ({{ pagination.total }} Einträge)
+      Seite {{ page }} von {{ totalPages }} ({{ total }} Einträge)
     </div>
     <div class="flex space-x-2">
       <button
-        @click="$emit('page-change', pagination.page - 1)"
-        :disabled="pagination.page <= 1"
+        @click="$emit('page-change', page - 1)"
+        :disabled="page <= 1"
         :class="[
           'px-3 py-2 text-sm font-medium rounded-md',
-          pagination.page <= 1
+          page <= 1
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
         ]"
@@ -17,11 +17,11 @@
         Zurück
       </button>
       <button
-        @click="$emit('page-change', pagination.page + 1)"
-        :disabled="pagination.page >= pagination.totalPages"
+        @click="$emit('page-change', page + 1)"
+        :disabled="page >= totalPages"
         :class="[
           'px-3 py-2 text-sm font-medium rounded-md',
-          pagination.page >= pagination.totalPages
+          page >= totalPages
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
         ]"
@@ -33,13 +33,18 @@
 </template>
 
 <script setup lang="ts">
-import type { PaginationInfo } from '@/api/types/types'
+import type { PaginationInfo } from '@/api/types'
+import { computed } from 'vue'
 
 interface Props {
   pagination?: PaginationInfo
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const page = computed(() => props.pagination?.page ?? 1)
+const totalPages = computed(() => props.pagination?.totalPages ?? 0)
+const total = computed(() => props.pagination?.total ?? 0)
 
 defineEmits<{
   'page-change': [page: number]

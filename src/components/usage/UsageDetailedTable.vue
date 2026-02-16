@@ -303,25 +303,25 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <span
                 class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="getModelTypeBadgeClass(item.type || item.modelType)"
+                :class="getModelTypeBadgeClass((item.type ?? item.modelType) ?? '')"
               >
-                {{ getModelTypeLabel(item.type || item.modelType) }}
+                {{ getModelTypeLabel((item.type ?? item.modelType) ?? 'CompletionModelUsage') }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ item.requests.toLocaleString() }}
+              {{ (item.requests ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ item.tokensIn.toLocaleString() }}
+              {{ (item.tokensIn ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ item.tokensOut.toLocaleString() }}
+              {{ (item.tokensOut ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ item.totalTokens.toLocaleString() }}
+              {{ (item.totalTokens ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ formatCost(item.cost) }}
+              {{ formatCost(item.cost ?? 0) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ item.tag }}
@@ -338,17 +338,17 @@
 
       <!-- Pagination: Backend-Pagination hat Priorität, sonst Client-seitige Pagination -->
       <!-- Backend-Pagination -->
-      <div v-if="pagination && pagination.totalPages > 1" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
+      <div v-if="pagination && (pagination.totalPages ?? 0) > 1" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
         <div class="text-sm text-gray-700">
-          Seite {{ pagination.page }} von {{ pagination.totalPages }} ({{ pagination.total }} Einträge)
+          Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
         </div>
         <div class="flex space-x-2">
           <button
-            @click="$emit('page-change', pagination.page - 1)"
-            :disabled="pagination.page <= 1"
+            @click="$emit('page-change', paginationPage - 1)"
+            :disabled="paginationPage <= 1"
             :class="[
               'px-3 py-2 text-sm font-medium rounded-md',
-              pagination.page <= 1
+              paginationPage <= 1
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
             ]"
@@ -356,11 +356,11 @@
             Zurück
           </button>
           <button
-            @click="$emit('page-change', pagination.page + 1)"
-            :disabled="pagination.page >= pagination.totalPages"
+            @click="$emit('page-change', paginationPage + 1)"
+            :disabled="paginationPage >= paginationTotalPages"
             :class="[
               'px-3 py-2 text-sm font-medium rounded-md',
-              pagination.page >= pagination.totalPages
+              paginationPage >= paginationTotalPages
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
             ]"
@@ -422,7 +422,8 @@
 </template>
 
 <script setup lang="ts">
-import type { EnhancedUsageRecord, ModelUsageType } from '@/api/types/types'
+import type { EnhancedUsageRecord } from '@/api/types/frontend'
+import type { ModelUsageType } from '@/api/types'
 import { formatCost } from '@/config/pricing'
 import EmptyState from './shared/EmptyState.vue'
 import ErrorState from './shared/ErrorState.vue'
@@ -456,10 +457,10 @@ interface Props {
   isLoading?: boolean
   error?: string | null
   pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+    page?: number
+    limit?: number
+    total?: number
+    totalPages?: number
   }
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
@@ -545,10 +546,14 @@ const currentSortOrder = computed(() => {
   return props.useBackendSorting && props.sortOrder ? props.sortOrder : sortOrder.value
 })
 
+const paginationPage = computed(() => props.pagination?.page ?? 1)
+const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
+const paginationTotal = computed(() => props.pagination?.total ?? 0)
+
 // Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
 const totalPages = computed(() => {
   if (props.pagination) {
-    return props.pagination.totalPages
+    return props.pagination?.totalPages ?? 0
   }
   return Math.ceil(sortedData.value.length / pageSize.value)
 })
@@ -577,7 +582,7 @@ const getInitials = (name?: string): string => {
     .slice(0, 2)
 }
 
-const getModelTypeLabel = (type: ModelUsageType): string => {
+const getModelTypeLabel = (type: ModelUsageType | string): string => {
   switch (type) {
     case 'CompletionModelUsage':
       return 'Chat'
@@ -586,11 +591,11 @@ const getModelTypeLabel = (type: ModelUsageType): string => {
     case 'ImageModelUsage':
       return 'Bild'
     default:
-      return type
+      return type || 'Chat'
   }
 }
 
-const getModelTypeBadgeClass = (type: ModelUsageType): string => {
+const getModelTypeBadgeClass = (type: ModelUsageType | string): string => {
   switch (type) {
     case 'CompletionModelUsage':
       return 'bg-blue-100 text-blue-800'
@@ -662,7 +667,7 @@ const exportTableData = async () => {
           item.tokensIn,
           item.tokensOut,
           item.totalTokens,
-          item.cost.toFixed(4),
+          (item.cost ?? 0).toFixed(4),
           item.tag,
           item.apiKeyId || '',
           item.day || '',

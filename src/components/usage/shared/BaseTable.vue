@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PaginationInfo } from '@/api/types/types'
+import type { PaginationInfo } from '@/api/types'
 import EmptyState from './EmptyState.vue'
 import ErrorState from './ErrorState.vue'
 import PaginationControls from './PaginationControls.vue'

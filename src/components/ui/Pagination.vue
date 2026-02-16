@@ -63,7 +63,7 @@
           <template v-for="page in visiblePages" :key="page">
             <button
               v-if="page !== '...'"
-              @click="goToPage(page)"
+              @click="goToPage(Number(page))"
               :class="[
                 page === currentPage
                   ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'

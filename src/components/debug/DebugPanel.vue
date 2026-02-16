@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getHighestRole, getUserInfo, getUserRoles, hasPermission } from '@/auth/keycloak'
+import { getHighestRole, getUserInfo, hasPermission } from '@/auth/keycloak'
 import { computed } from 'vue'
 
 interface Props {
@@ -14,6 +14,7 @@ const tokenInfo = computed(() => {
   const userInfo = getUserInfo()
   if (!userInfo) return null
 
+  const groups = Array.isArray(userInfo.groups) ? userInfo.groups : []
   return {
     userId: userInfo.sub,
     email: userInfo.email,
@@ -21,12 +22,18 @@ const tokenInfo = computed(() => {
     givenName: userInfo.given_name,
     familyName: userInfo.family_name,
     preferredUsername: userInfo.preferred_username,
-    groups: userInfo.groups || [],
+    groups,
     issuedAt: userInfo.iat ? new Date(userInfo.iat * 1000) : null,
     expiresAt: userInfo.exp ? new Date(userInfo.exp * 1000) : null,
     isExpired: userInfo.exp ? new Date() > new Date(userInfo.exp * 1000) : false,
   }
 })
+
+// Rollen/Berechtigungen für Anzeige (computed, damit reaktiv)
+const highestRole = computed(() => getHighestRole())
+const canUseAdminFeatures = computed(() => hasPermission('canUseAdminFeatures'))
+const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
+const canSeeOwnUsage = computed(() => hasPermission('canSeeOwnUsage'))
 </script>
 
 <template>
@@ -49,31 +56,10 @@ const tokenInfo = computed(() => {
         <hr class="my-2 border-yellow-300" />
 
         <!-- Rollen und Berechtigungen -->
-        <div><strong>User Roles:</strong> {{ getUserRoles().join(', ') }}</div>
-        <div><strong>Highest Role:</strong> {{ getHighestRole() }}</div>
-        <div>
-          <strong>Is API Admin:</strong> {{ hasPermission('canViewAdminUsage') ? 'Yes' : 'No' }}
-        </div>
-        <div>
-          <strong>Can View Admin Usage:</strong>
-          {{ hasPermission('canViewAdminUsage') ? 'Yes' : 'No' }}
-        </div>
-        <div>
-          <strong>Can Create Keys:</strong>
-          {{ hasPermission('canCreateKeys') ? 'Yes' : 'No' }}
-        </div>
-        <div>
-          <strong>Can Edit Keys:</strong>
-          {{ hasPermission('canEditOwnKeys') ? 'Yes' : 'No' }}
-        </div>
-        <div>
-          <strong>Can Deactivate Keys:</strong>
-          {{ hasPermission('canDeactivateOwnKeys') ? 'Yes' : 'No' }}
-        </div>
-        <div>
-          <strong>Can View Usage:</strong>
-          {{ hasPermission('canViewOwnUsage') ? 'Yes' : 'No' }}
-        </div>
+        <div><strong>Highest Role:</strong> {{ highestRole }}</div>
+        <div><strong>Can Use Admin Features:</strong> {{ canUseAdminFeatures ? 'Yes' : 'No' }}</div>
+        <div><strong>Can Create Keys:</strong> {{ canCreateKeys ? 'Yes' : 'No' }}</div>
+        <div><strong>Can See Own Usage:</strong> {{ canSeeOwnUsage ? 'Yes' : 'No' }}</div>
       </div>
       <div v-else class="text-xs text-yellow-600">Token-Informationen werden geladen...</div>
     </div>

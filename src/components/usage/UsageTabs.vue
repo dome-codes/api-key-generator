@@ -112,7 +112,7 @@ import ExtractionUsageContent from './extraction/ExtractionUsageContent.vue'
 
 const { getQueryParam, setQueryParam } = useUrlFilters()
 
-const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
+const isApiAdmin = computed(() => hasPermission('canUseAdminFeatures'))
 
 // Haupt-Tab: 'own' oder 'admin'
 const activeMainTab = ref<'own' | 'admin'>(

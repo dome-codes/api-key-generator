@@ -129,13 +129,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 
 // Props
 interface Props {
   timeRange: string
   modelId?: string
-  status?: ExtractionOperationStatus | ''
+  status?: DocumentIntelligenceOperationStatus | ''
   tag?: string
   fromDate?: string
   toDate?: string
@@ -154,7 +154,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:timeRange': [value: string]
   'update:modelId': [value: string]
-  'update:status': [value: ExtractionOperationStatus | '']
+  'update:status': [value: DocumentIntelligenceOperationStatus | '']
   'update:tag': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
@@ -176,7 +176,7 @@ const modelId = computed({
 
 const status = computed({
   get: () => props.status || '',
-  set: (value) => emit('update:status', value as ExtractionOperationStatus | ''),
+    set: (value) => emit('update:status', value as DocumentIntelligenceOperationStatus | ''),
 })
 
 // Local Tag Input (wird erst beim Button-Klick oder Enter aktualisiert)
@@ -278,7 +278,7 @@ const handleTimeRangeChange = () => {
       return
   }
 
-  if (timeRange.value !== 'custom') {
+  if ((timeRange.value as string) !== 'custom') {
     fromDate.value = startDate.toISOString().split('T')[0]
     toDate.value = today.toISOString().split('T')[0]
   }

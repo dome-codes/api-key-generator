@@ -14,13 +14,13 @@ import { hasPermission } from '@/auth/keycloak'
 export const apiKeyService = {
   // Alle API-Keys abrufen (rollenbasiert)
   async getApiKeys(): Promise<any[]> {
-    // Prüfe Berechtigung
-    if (!hasPermission('canViewOwnKeys')) {
+    // Prüfe Berechtigung (canCreateKeys erlaubt auch View)
+    if (!hasPermission('canCreateKeys') && !hasPermission('canSeeOwnUsage')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
     }
 
     // Verwende Admin-Endpunkt wenn Admin-Berechtigung vorhanden
-    if (hasPermission('canViewAdminUsage')) {
+    if (hasPermission('canUseAdminFeatures')) {
       const response = await api.get('/admin/apikeys')
       return response.data as any[]
     }
@@ -44,7 +44,7 @@ export const apiKeyService = {
   // API-Key deaktivieren (rollenbasiert)
   async deactivateApiKey(keyId: string): Promise<void> {
     // Prüfe Berechtigung
-    if (!hasPermission('canDeactivateOwnKeys')) {
+    if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Deaktivieren von API-Keys')
     }
 
@@ -58,7 +58,7 @@ export const apiKeyService = {
     permissions: string[],
   ): Promise<any> {
     // Prüfe Berechtigung
-    if (!hasPermission('canEditOwnKeys')) {
+    if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Bearbeiten von API-Keys')
     }
 
@@ -69,8 +69,8 @@ export const apiKeyService = {
 
   // Einzelnen API-Key abrufen
   async getApiKey(keyId: string): Promise<any> {
-    // Prüfe Berechtigung
-    if (!hasPermission('canViewOwnKeys')) {
+    // Prüfe Berechtigung (canCreateKeys erlaubt auch View)
+    if (!hasPermission('canCreateKeys') && !hasPermission('canSeeOwnUsage')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
     }
 
@@ -81,7 +81,7 @@ export const apiKeyService = {
   // Admin: Alle API-Keys aller Benutzer abrufen (gleiche Funktion wie getApiKeys, da alle Benutzer alle Keys sehen)
   async getAllApiKeys(): Promise<any[]> {
     // Prüfe Admin-Berechtigung
-    if (!hasPermission('canViewAdminUsage')) {
+    if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller API-Keys')
     }
 
@@ -97,7 +97,7 @@ export const usageService = {
     try {
       console.log('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
 
-      if (!hasPermission('canViewOwnUsage')) {
+      if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
@@ -122,7 +122,7 @@ export const usageService = {
     try {
       console.log('🔍 [API-SERVICE] getUsageSummary called with:', { fromDate, toDate })
 
-      if (!hasPermission('canViewOwnUsage')) {
+      if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
@@ -147,7 +147,7 @@ export const usageService = {
     try {
       console.log('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
 
-      if (!hasPermission('canViewOwnUsage')) {
+      if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
@@ -170,7 +170,7 @@ export const usageService = {
   // Admin: Detaillierte Usage-Daten für alle Benutzer (verwendet Summary-API)
   async getAdminUsage(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
-      if (!hasPermission('canViewAdminUsage')) {
+      if (!hasPermission('canUseAdminFeatures')) {
         console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Daten')
         return { data: [], pagination: undefined }
       }
@@ -190,7 +190,7 @@ export const usageService = {
   // Admin: Usage-Summary für alle Benutzer
   async getAdminUsageSummary(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
-      if (!hasPermission('canViewAdminUsage')) {
+      if (!hasPermission('canUseAdminFeatures')) {
         console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
         return { data: [], pagination: undefined }
       }
@@ -213,7 +213,7 @@ export const userService = {
   // Alle Benutzer abrufen
   async getAllUsers() {
     // Prüfe Admin-Berechtigung
-    if (!hasPermission('canManageUsers')) {
+    if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller Benutzer')
     }
 
@@ -224,7 +224,7 @@ export const userService = {
   // Benutzer-Rolle ändern
   async updateUserRole(userId: string, role: string) {
     // Prüfe Admin-Berechtigung
-    if (!hasPermission('canManageUsers')) {
+    if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Ändern von Benutzer-Rollen')
     }
 
@@ -235,7 +235,7 @@ export const userService = {
   // Benutzer deaktivieren
   async deactivateUser(userId: string) {
     // Prüfe Admin-Berechtigung
-    if (!hasPermission('canManageUsers')) {
+    if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Deaktivieren von Benutzern')
     }
 

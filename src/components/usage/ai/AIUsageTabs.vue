@@ -95,7 +95,7 @@
         :error="error"
         :pagination="pagination"
         :sort-field="currentFilter.sort"
-        :sort-order="currentFilter.order"
+        :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
         :use-backend-sorting="true"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
@@ -156,7 +156,7 @@
         :error="error"
         :pagination="pagination"
         :sort-field="currentFilter.sort"
-        :sort-order="currentFilter.order"
+        :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
         :use-backend-sorting="true"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
@@ -183,7 +183,7 @@ const { getQueryParam, setQueryParams } = useUrlFilters()
 
 // Initialize activeTab from URL or default
 const activeTab = ref<'own' | 'admin'>((getQueryParam('tab') as 'own' | 'admin') || 'own')
-const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
+const isApiAdmin = computed(() => hasPermission('canUseAdminFeatures'))
 
 // Usage API Composable - Nutzt server-seitige Filterung
 const {
@@ -300,9 +300,9 @@ const saveFiltersToUrl = () => {
   }
 
   // Pagination und Sortierung
-  if (pagination.value.page > 1) params.page = pagination.value.page
+  if ((pagination.value.page ?? 1) > 1) params.page = pagination.value.page
   if (currentFilter.value.sort) params.sort = currentFilter.value.sort
-  if (currentFilter.value.order) params.order = currentFilter.value.order
+  if (currentFilter.value.order) params.order = currentFilter.value.order as 'asc' | 'desc'
 
   setQueryParams(params)
 }

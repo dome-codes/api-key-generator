@@ -19,9 +19,9 @@
 import type {
   EnhancedUsageRecord,
   UsageFilterApi,
-  PaginationInfo,
   UsageAggregation,
-} from '@/api/types/types'
+} from '@/api/types/frontend'
+import type { PaginationInfo } from '@/api/types'
 import { usageApiService } from '@/services/usageApiService'
 import { computed, ref } from 'vue'
 
@@ -55,11 +55,11 @@ export function useUsageApi() {
 
   // Computed
   const hasMorePages = computed(() => {
-    return pagination.value.page < pagination.value.totalPages
+    return (pagination.value.page ?? 1) < (pagination.value.totalPages ?? 0)
   })
 
   const hasPreviousPage = computed(() => {
-    return pagination.value.page > 1
+    return (pagination.value.page ?? 1) > 1
   })
 
   const usageAggregation = computed<UsageAggregation>(() => {
@@ -81,11 +81,11 @@ export function useUsageApi() {
       }
     }
 
-    const totalRequests = data.reduce((sum, item) => sum + item.requests, 0)
-    const totalTokensIn = data.reduce((sum, item) => sum + item.tokensIn, 0)
-    const totalTokensOut = data.reduce((sum, item) => sum + item.tokensOut, 0)
-    const totalTokens = data.reduce((sum, item) => sum + item.totalTokens, 0)
-    const totalCost = data.reduce((sum, item) => sum + item.cost, 0)
+    const totalRequests = data.reduce((sum, item) => sum + (item.requests ?? 0), 0)
+    const totalTokensIn = data.reduce((sum, item) => sum + (item.tokensIn ?? 0), 0)
+    const totalTokensOut = data.reduce((sum, item) => sum + (item.tokensOut ?? 0), 0)
+    const totalTokens = data.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0)
+    const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
 
     const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
     const uniqueModels = new Set(data.map((item) => item.modelName)).size
@@ -174,7 +174,7 @@ export function useUsageApi() {
     data.forEach((item) => {
       const modelName = item.modelName || 'Unknown'
       const currentCount = modelMap.get(modelName) || 0
-      modelMap.set(modelName, currentCount + item.requests)
+      modelMap.set(modelName, currentCount + (item.requests ?? 0))
     })
 
     return {
@@ -197,7 +197,7 @@ export function useUsageApi() {
     data.forEach((item) => {
       const tag = item.tag || 'Unknown'
       const currentCount = tagMap.get(tag) || 0
-      tagMap.set(tag, currentCount + item.requests)
+      tagMap.set(tag, currentCount + (item.requests ?? 0))
     })
 
     return {
@@ -269,9 +269,10 @@ export function useUsageApi() {
       // Wenn es mehr Daten gibt, lade alle Seiten
       let allData = [...result.data]
       let currentPage = 1
-      const totalPages = result.pagination.totalPages
+      const totalPages = result.pagination?.totalPages ?? 0
+      const total = result.pagination?.total ?? 0
 
-      while (currentPage < totalPages && allData.length < result.pagination.total) {
+      while (currentPage < totalPages && allData.length < total) {
         currentPage++
         const pageResult = await usageApiService.getUsageSummary(
           { ...summaryFilter, page: currentPage },
@@ -311,19 +312,19 @@ export function useUsageApi() {
   const nextPage = async (useAdminApi: boolean = false) => {
     if (!hasMorePages.value) return
 
-    const newPage = pagination.value.page + 1
+    const newPage = (pagination.value.page ?? 1) + 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const previousPage = async (useAdminApi: boolean = false) => {
     if (!hasPreviousPage.value) return
 
-    const newPage = pagination.value.page - 1
+    const newPage = (pagination.value.page ?? 1) - 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const goToPage = async (page: number, useAdminApi: boolean = false) => {
-    if (page < 1 || page > pagination.value.totalPages) return
+    if (page < 1 || page > (pagination.value.totalPages ?? 0)) return
 
     await loadUsageData({ page }, useAdminApi)
   }

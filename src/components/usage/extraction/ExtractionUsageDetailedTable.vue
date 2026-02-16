@@ -249,35 +249,35 @@
                 <span
                   :class="[
                     'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-                    getStatusClass(item.status),
+                    getStatusClass(item.status ?? 'processing'),
                   ]"
                 >
-                  {{ getStatusLabel(item.status) }}
+                  {{ getStatusLabel(item.status ?? 'processing') }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ item.provider }}
+                {{ item.provider ?? '-' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ item.modelId }}
+                {{ item.modelId ?? '-' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ item.pages }}
+                {{ item.pages ?? 0 }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatConfidence(item.confidenceScore) }}%
+                {{ formatConfidence(item.confidenceScore ?? 0) }}%
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCost(item.cost) }}
+                {{ formatCost(item.cost ?? 0) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(item.createDate) }}
+                {{ formatDate(item.createDate ?? '') }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <span
                   class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
                 >
-                  {{ item.tag }}
+                  {{ item.tag ?? '-' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
@@ -289,19 +289,19 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination && pagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200">
+      <div v-if="pagination && (paginationTotalPages > 1)" class="px-6 py-4 border-t border-gray-200">
         <div class="flex items-center justify-between">
           <div class="text-sm text-gray-700">
-            Seite {{ pagination.page }} von {{ pagination.totalPages }} ({{ pagination.total }}
+            Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }}
             Einträge)
           </div>
           <div class="flex space-x-2">
             <button
-              @click="$emit('page-change', pagination.page - 1)"
-              :disabled="pagination.page <= 1"
+              @click="$emit('page-change', paginationPage - 1)"
+              :disabled="paginationPage <= 1"
               :class="[
                 'px-3 py-2 text-sm font-medium rounded-md',
-                pagination.page <= 1
+                paginationPage <= 1
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
               ]"
@@ -309,11 +309,11 @@
               Zurück
             </button>
             <button
-              @click="$emit('page-change', pagination.page + 1)"
-              :disabled="pagination.page >= pagination.totalPages"
+              @click="$emit('page-change', paginationPage + 1)"
+              :disabled="paginationPage >= paginationTotalPages"
               :class="[
                 'px-3 py-2 text-sm font-medium rounded-md',
-                pagination.page >= pagination.totalPages
+                paginationPage >= paginationTotalPages
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
               ]"
@@ -331,10 +331,10 @@
 import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
-import type { EnhancedExtractionUsageRecord } from '@/api/types/extraction'
-import type { ExtractionOperationStatus } from '@/api/types/extraction'
-import type { PaginationInfo } from '@/api/types/types'
-import { ref, watch } from 'vue'
+import type { EnhancedExtractionUsageRecord } from '@/api/types/frontend'
+import type { DocumentIntelligenceOperationStatus } from '@/api/types'
+import type { PaginationInfo } from '@/api/types'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   data: EnhancedExtractionUsageRecord[]
@@ -354,6 +354,10 @@ const props = withDefaults(defineProps<Props>(), {
   sortOrder: undefined,
   useBackendSorting: false,
 })
+
+const paginationPage = computed(() => props.pagination?.page ?? 1)
+const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
+const paginationTotal = computed(() => props.pagination?.total ?? 0)
 
 const emit = defineEmits<{
   'page-change': [page: number]
@@ -406,8 +410,8 @@ const sortBy = (field: string) => {
 }
 
 // Helper functions
-const getStatusLabel = (status: ExtractionOperationStatus): string => {
-  const labels: Record<ExtractionOperationStatus, string> = {
+const getStatusLabel = (status: DocumentIntelligenceOperationStatus | string): string => {
+  const labels: Record<string, string> = {
     processing: 'In Bearbeitung',
     completed: 'Abgeschlossen',
     failed: 'Fehlgeschlagen',
@@ -417,15 +421,15 @@ const getStatusLabel = (status: ExtractionOperationStatus): string => {
   return labels[status] || status
 }
 
-const getStatusClass = (status: ExtractionOperationStatus): string => {
-  const classes: Record<ExtractionOperationStatus, string> = {
+const getStatusClass = (status: DocumentIntelligenceOperationStatus | string): string => {
+  const classes: Record<string, string> = {
     processing: 'bg-yellow-100 text-yellow-800',
     completed: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
     canceled: 'bg-gray-100 text-gray-800',
     skipped: 'bg-blue-100 text-blue-800',
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status as string] || 'bg-gray-100 text-gray-800'
 }
 
 const formatCost = (cost: number): string => {

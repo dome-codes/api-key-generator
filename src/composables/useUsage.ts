@@ -17,7 +17,7 @@ import type {
   UsageAggregation,
   UsageFilter,
   UserUsageSummary,
-} from '@/api/types/types'
+} from '@/api/types/frontend'
 import { usageService } from '@/services/apiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
@@ -77,7 +77,7 @@ export function useUsage() {
 
     if (currentFilter.value.technicalUserIds && currentFilter.value.technicalUserIds.length > 0) {
       filtered = filtered.filter((item) =>
-        currentFilter.value.technicalUserIds!.includes(item.technicalUserId),
+        currentFilter.value.technicalUserIds!.includes(item.technicalUserId ?? ''),
       )
     }
 
@@ -112,25 +112,25 @@ export function useUsage() {
       )
 
       console.log('🔍 [USE-USAGE] Summary data received:', summaryData)
-      console.log('🔍 [USE-USAGE] Usage array length:', summaryData.usage?.length || 0)
+      console.log('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
 
       // Extrahiere Aggregation aus den API-Key-Daten
-      if (summaryData.usage && summaryData.usage.length > 0) {
+      if (summaryData.data && summaryData.data.length > 0) {
         // Berechne Aggregation aus den API-Key-Daten
-        const totalRequests = summaryData.usage.reduce((sum, item) => sum + (item.requests || 0), 0)
-        const totalTokensIn = summaryData.usage.reduce(
-          (sum, item) => sum + (item.requestTokens || 0),
+        const totalRequests = summaryData.data.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
+        const totalTokensIn = summaryData.data.reduce(
+          (sum: number, item: any) => sum + (item.requestTokens || 0),
           0,
         )
-        const totalTokensOut = summaryData.usage.reduce(
-          (sum, item) => sum + (item.responseTokens || 0),
+        const totalTokensOut = summaryData.data.reduce(
+          (sum: number, item: any) => sum + (item.responseTokens || 0),
           0,
         )
         const totalTokens = totalTokensIn + totalTokensOut
 
         // Berechne Kosten für jedes Item
         const costs = await Promise.all(
-          summaryData.usage.map(async (item) => {
+          summaryData.data.map(async (item: any) => {
             const { calculateCost } = await import('@/config/pricing')
             return calculateCost(
               item.requestTokens || 0,
@@ -150,18 +150,18 @@ export function useUsage() {
           totalTokensOut,
           totalTokens,
           totalCost,
-          uniqueUsers: new Set(summaryData.usage.map((item) => item.technicalUserId)).size,
-          uniqueModels: new Set(summaryData.usage.map((item) => item.model)).size,
+          uniqueUsers: new Set(summaryData.data.map((item: any) => item.technicalUserId)).size,
+          uniqueModels: new Set(summaryData.data.map((item: any) => item.model)).size,
           averageRequestsPerUser:
             totalRequests /
-            Math.max(new Set(summaryData.usage.map((item) => item.technicalUserId)).size, 1),
+            Math.max(new Set(summaryData.data.map((item: any) => item.technicalUserId)).size, 1),
           averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
           averageCostPerRequest: totalCost / Math.max(totalRequests, 1),
         }
 
         // Konvertiere zu EnhancedUsageRecord für Progress Bars
         const enhancedData = await Promise.all(
-          summaryData.usage.map(async (item: SummaryUsage) => {
+          summaryData.data.map(async (item: SummaryUsage) => {
             const { calculateCost } = await import('@/config/pricing')
             const costResult = calculateCost(
               item.requestTokens || 0,
@@ -254,7 +254,7 @@ export function useUsage() {
 
       // Prüfe ob Admin-Berechtigung vorhanden ist
       const hasAdminPermission = await import('@/auth/keycloak').then((m) =>
-        m.hasPermission('canViewAdminUsage'),
+        m.hasPermission('canUseAdminFeatures'),
       )
 
       debugLog('Has admin permission:', hasAdminPermission)
@@ -306,10 +306,10 @@ export function useUsage() {
 
       console.log('🔍 [FRONTEND] Summary response:', summaryResponse)
 
-      if (summaryResponse.usage && summaryResponse.usage.length > 0) {
+      if (summaryResponse.data && summaryResponse.data.length > 0) {
         // Konvertiere SummaryUsage zu EnhancedUsageRecord für Kompatibilität
         const enhancedData = await Promise.all(
-          summaryResponse.usage.map(async (item) => {
+          summaryResponse.data.map(async (item: SummaryUsage) => {
             // Berechne Kosten über pricing.ts
             const { calculateCost } = await import('@/config/pricing')
             const costResult = calculateCost(
