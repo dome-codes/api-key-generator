@@ -82,6 +82,12 @@ export interface EnhancedUsageRecord {
   year?: number
   createDate?: string
   apiKeyId?: string
+  /** Nur bei ImageModelUsage: Bildbreite */
+  sizeWidth?: number
+  /** Nur bei ImageModelUsage: Bildhöhe */
+  sizeHeight?: number
+  /** Nur bei ImageModelUsage: Qualität (z. B. standard, hd) */
+  quality?: string
 }
 
 /** UI record for extraction with display fields */
@@ -118,6 +124,8 @@ export interface UsageAggregation {
   averageRequestsPerUser: number
   averageTokensPerRequest: number
   averageCostPerRequest: number
+  /** Bei ImageModelUsage: Summe der erzeugten Bilder (Anfragen) */
+  totalImages?: number
 }
 
 export interface ModelUsageSummary {

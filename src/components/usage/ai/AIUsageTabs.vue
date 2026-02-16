@@ -340,6 +340,7 @@ const ownSummary = computed(() => {
     tokensOut: agg.totalTokensOut,
     requests: agg.totalRequests,
     cost: agg.totalCost,
+    imageCount: agg.totalImages,
   }
 })
 
@@ -349,6 +350,7 @@ const adminSummary = computed(() => ({
   requests: usageAggregation.value.totalRequests,
   cost: usageAggregation.value.totalCost,
   uniqueUsers: usageAggregation.value.uniqueUsers,
+  imageCount: usageAggregation.value.totalImages,
 }))
 
 // Handle filter changes - Own

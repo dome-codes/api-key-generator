@@ -166,8 +166,7 @@ export const usageApiService = {
     try {
       debugLog('Loading usage data with filter:', filter)
 
-      // Überall usageType mit CAPITAL (COMPLETION_USAGE etc.) – einheitlich für User und Admin
-      const usageTypeValue = toBackendUsageType(filter.modelType)
+      // List-API erwartet modelType (PascalCase: CompletionModelUsage, EmbeddingModelUsage, ImageModelUsage), nicht usageType
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -177,7 +176,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        usageType: usageTypeValue,
+        modelType: filter.modelType || undefined,
       } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
@@ -235,7 +234,15 @@ export const usageApiService = {
             month: (item as SummaryUsage).month,
             year: (item as SummaryUsage).year,
             createDate: (item as { createDate?: string }).createDate,
-            apiKeyId: (item as SummaryUsage).apiKeyId,
+            apiKeyId:
+              (item as SummaryUsage).apiKeyId ??
+              (item as { api_key_id?: string }).api_key_id,
+            sizeWidth: (item as { sizeWidth?: number }).sizeWidth,
+            sizeHeight: (item as { sizeHeight?: number }).sizeHeight,
+            quality:
+              typeof (item as { quality?: unknown }).quality === 'string'
+                ? (item as { quality: string }).quality
+                : (item as { quality?: { value?: string } }).quality?.value,
           } as EnhancedUsageRecord
         }),
       )
@@ -345,7 +352,14 @@ export const usageApiService = {
             month: item.month,
             year: item.year,
             createDate: undefined,
-            apiKeyId: item.apiKeyId,
+            apiKeyId:
+              item.apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
+            sizeWidth: (item as { sizeWidth?: number }).sizeWidth,
+            sizeHeight: (item as { sizeHeight?: number }).sizeHeight,
+            quality:
+              typeof (item as { quality?: unknown }).quality === 'string'
+                ? (item as { quality: string }).quality
+                : (item as { quality?: { value?: string } }).quality?.value,
           } as EnhancedUsageRecord
         }),
       )

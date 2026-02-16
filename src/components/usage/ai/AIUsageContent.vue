@@ -170,6 +170,7 @@ const ownSummary = computed(() => {
     tokensOut: agg.totalTokensOut,
     requests: agg.totalRequests,
     cost: agg.totalCost,
+    imageCount: agg.totalImages,
   }
 })
 

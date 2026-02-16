@@ -209,6 +209,16 @@
               Tag
             </th>
             <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Größe
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Qualität
+            </th>
+            <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
               @click="sortBy('apiKeyId')"
             >
@@ -299,6 +309,12 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ item.tag }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              {{ formatImageSize(item.sizeWidth, item.sizeHeight) }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              {{ item.quality || '–' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
               {{ item.apiKeyId || '-' }}
@@ -610,6 +626,13 @@ const formatDate = (
   return '–'
 }
 
+const formatImageSize = (width?: number, height?: number): string => {
+  if (width != null && height != null) return `${width}×${height}`
+  if (width != null) return `${width}×?`
+  if (height != null) return `?×${height}`
+  return '–'
+}
+
 // Methods
 const sortBy = (field: string) => {
   if (props.useBackendSorting) {
@@ -644,6 +667,8 @@ const exportTableData = async () => {
       'Gesamt Tokens',
       'Kosten (€)',
       'Tag',
+      'Größe',
+      'Qualität',
       'API Key ID',
       'Tag',
       'Monat',
@@ -664,6 +689,8 @@ const exportTableData = async () => {
           item.totalTokens,
           (item.cost ?? 0).toFixed(4),
           item.tag,
+          formatImageSize(item.sizeWidth, item.sizeHeight),
+          item.quality || '',
           item.apiKeyId || '',
           item.day || '',
           item.month || '',

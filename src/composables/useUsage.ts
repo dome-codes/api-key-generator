@@ -192,7 +192,7 @@ export function useUsage() {
               month: item.month,
               year: item.year,
               createDate: undefined,
-              apiKeyId: item.apiKeyId,
+              apiKeyId: item.apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
             }
           }),
         )

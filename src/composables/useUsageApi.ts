@@ -86,6 +86,9 @@ export function useUsageApi() {
     const totalTokensOut = data.reduce((sum, item) => sum + (item.tokensOut ?? 0), 0)
     const totalTokens = data.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+    const totalImages = data
+      .filter((item) => item.type === 'ImageModelUsage' || item.modelType === 'ImageModelUsage')
+      .reduce((sum, item) => sum + (item.requests ?? 1), 0)
 
     const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
     const uniqueModels = new Set(data.map((item) => item.modelName)).size
@@ -101,6 +104,7 @@ export function useUsageApi() {
       averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,
       averageTokensPerRequest: totalRequests > 0 ? totalTokens / totalRequests : 0,
       averageCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
+      totalImages: totalImages > 0 ? totalImages : undefined,
     }
   })
 

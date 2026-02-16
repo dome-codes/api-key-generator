@@ -35,6 +35,17 @@
         </div>
       </div>
 
+      <!-- Bei Image-Nutzung: Kachel „Bilder“ -->
+      <div
+        v-if="summary.imageCount != null && summary.imageCount > 0"
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Bilder</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.imageCount.toLocaleString() }}
+        </div>
+      </div>
+
       <!-- Additional card for unique users (Admin only) -->
       <div v-if="showUniqueUsers" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
         <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
@@ -56,6 +67,8 @@ interface UsageSummary {
   requests: number
   cost: number
   uniqueUsers?: number
+  /** Bei ImageModelUsage: Anzahl erzeugter Bilder */
+  imageCount?: number
 }
 
 interface Props {
