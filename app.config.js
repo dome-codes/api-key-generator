@@ -16,6 +16,8 @@ export default {
   keycloakUrl: import.meta.env.VITE_KEYCLOAK_URL || '__VITE_KEYCLOAK_URL__',
   keycloakRealm: import.meta.env.VITE_KEYCLOAK_REALM || '__VITE_KEYCLOAK_REALM__',
   keycloakClientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || '__VITE_KEYCLOAK_CLIENT_ID__',
+  /** Scopes für Access-Token (z. B. "openid default admin"). Bei insufficient_scope vom Backend anpassen. */
+  keycloakScope: import.meta.env.VITE_KEYCLOAK_SCOPE || undefined,
 
   // Debug Configuration
   showDebug: import.meta.env.VITE_SHOW_DEBUG === 'true' || '__VITE_SHOW_DEBUG__' === 'true',

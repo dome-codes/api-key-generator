@@ -6,6 +6,8 @@ declare module '*/app.config.js' {
     keycloakUrl: string
     keycloakRealm: string
     keycloakClientId: string
+    /** Scopes für Access-Token (z. B. "openid default admin"). Optional. */
+    keycloakScope?: string
     showDebug: boolean
   }
 
@@ -21,6 +23,7 @@ declare module '../../app.config.js' {
     keycloakUrl: string
     keycloakRealm: string
     keycloakClientId: string
+    keycloakScope?: string
     showDebug: boolean
   }
 
@@ -36,6 +39,7 @@ declare module '@/app.config.js' {
     keycloakUrl: string
     keycloakRealm: string
     keycloakClientId: string
+    keycloakScope?: string
     showDebug: boolean
   }
 
@@ -51,6 +55,7 @@ declare module '@root/app.config.js' {
     keycloakUrl: string
     keycloakRealm: string
     keycloakClientId: string
+    keycloakScope?: string
     showDebug: boolean
   }
 
@@ -66,6 +71,7 @@ declare module 'app.config.js' {
     keycloakUrl: string
     keycloakRealm: string
     keycloakClientId: string
+    keycloakScope?: string
     showDebug: boolean
   }
 

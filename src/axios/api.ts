@@ -1,4 +1,4 @@
-import { getToken, whenKeycloakInit } from '@/auth/keycloak'
+import { getToken, whenTokenReadyForApi } from '@/auth/keycloak'
 import appConfig from '@root/app.config.js'
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
@@ -19,11 +19,11 @@ const api = axios.create({
   timeout: 10000,
 })
 
-// Request-Interceptor: immer erst Keycloak-Init abwarten, dann Token (api.ts 76 nie vor keycloak.ts 147)
+// Request-Interceptor: warten bis Token von AuthGuard geholt wurde, dann erst Request (kein ai/apikey/summarize vor Token)
 api.interceptors.request.use(
   async (config) => {
     try {
-      await whenKeycloakInit
+      await whenTokenReadyForApi
       const token = await getToken()
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
@@ -54,7 +54,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       debugLog('Token abgelaufen, versuche Erneuerung...')
       try {
-        await whenKeycloakInit
+        await whenTokenReadyForApi
         const token = await getToken()
         if (token && error.config) {
           // Request mit neuem Token wiederholen

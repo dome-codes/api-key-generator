@@ -64,11 +64,23 @@ const keycloak = new Keycloak(keycloakConfig)
 
 let keycloakInitialized = false
 
-/** Wird aufgelöst, sobald initKeycloak() einmal durchgelaufen ist – api.ts wartet darauf vor getToken(). */
+/** Wird aufgelöst, sobald initKeycloak() einmal durchgelaufen ist. */
 let _resolveWhenKeycloakInit: () => void
 export const whenKeycloakInit = new Promise<void>((resolve) => {
   _resolveWhenKeycloakInit = resolve
 })
+
+/**
+ * Wird erst aufgelöst, wenn die App den Token geholt und gespeichert hat (AuthGuard nach getToken()).
+ * api.ts wartet darauf – so laufen ai/apikey/summarize-Calls nie vor dem Token.
+ */
+let _resolveTokenReadyForApi: () => void
+export const whenTokenReadyForApi = new Promise<void>((resolve) => {
+  _resolveTokenReadyForApi = resolve
+})
+export function setTokenReadyForApi(): void {
+  _resolveTokenReadyForApi?.()
+}
 
 // URL nach Authentifizierung bereinigen
 const cleanupUrl = () => {
@@ -151,12 +163,18 @@ export const initKeycloak = async (): Promise<boolean> => {
   }
 
   try {
-    const authenticated = await keycloak.init({
+    const initOptions: Parameters<typeof keycloak.init>[0] = {
       onLoad: 'login-required',
       checkLoginIframe: false,
       enableLogging: true,
       pkceMethod: 'S256',
-    })
+    }
+    const scope = (appConfig as { keycloakScope?: string }).keycloakScope
+    if (scope) {
+      initOptions.scope = scope
+      debugLog('Keycloak Scope angefordert:', scope)
+    }
+    const authenticated = await keycloak.init(initOptions)
 
     keycloakInitialized = true
     debugLog('Keycloak initialisiert!', authenticated)

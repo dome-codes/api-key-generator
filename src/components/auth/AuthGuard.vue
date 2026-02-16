@@ -57,6 +57,7 @@ import {
   hasPermission,
   hasValidAppUser,
   redirectToKeycloakLogin,
+  setTokenReadyForApi,
 } from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
 import { useRoute, useRouter, RouterView } from 'vue-router'
@@ -134,6 +135,7 @@ const initializeAuth = async () => {
         isAuthenticated.value = false
       } else {
         tokenReady.value = true
+        setTokenReadyForApi() // API-Requests dürfen erst jetzt laufen (ai/apikey/summarize)
       }
     } else {
       // Nicht eingeloggt → Keycloak-Login-Oberfläche anzeigen (Redirect)
@@ -145,6 +147,7 @@ const initializeAuth = async () => {
     debugLog('Fehler bei der Authentifizierung:', err)
   } finally {
     isLoading.value = false
+    setTokenReadyForApi() // Auch bei Fehler/Redirect: Wartende Requests nicht ewig blockieren
   }
 }
 
