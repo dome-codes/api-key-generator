@@ -20,6 +20,7 @@
         <select
           v-model="localModelType"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
         >
           <option value="">Alle Modelltypen</option>
           <option value="CompletionModelUsage">Chat Completions</option>
@@ -37,6 +38,7 @@
           placeholder="z.B. gpt-4o"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
           @keyup.enter="handleFilterChange"
+          @blur="handleFilterChange"
         />
       </div>
     </template>
@@ -48,6 +50,7 @@
         <select
           v-model="localSelectedUser"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
         >
           <option value="">Alle Benutzer</option>
           <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
@@ -61,6 +64,7 @@
         <select
           v-model="localSelectedUserGroup"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
         >
           <option value="">Alle Gruppen</option>
           <option v-for="group in availableGroups" :key="group.id" :value="group.id">
