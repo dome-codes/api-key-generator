@@ -290,9 +290,12 @@
         </tr>
       </thead>
       <tbody>
-        <template v-for="group in paginatedKeys" :key="isAdmin ? group.userId : group.id">
+        <template
+          v-for="group in paginatedKeys"
+          :key="isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id"
+        >
           <ApiKeyRow
-            :key="(isAdmin ? group.userId : group.id) + '-row'"
+            :key="(isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id) + '-row'"
             :keyData="isAdmin ? createGroupedKeyData(group) : group"
             :editing="editingKey === (isAdmin ? group.userId : group.id)"
             :editingName="editingName"
@@ -324,6 +327,7 @@
               expandedUserId === (group as { userId?: string }).userId &&
               (group as { keys?: ApiKeyDisplay[] }).keys?.length
             "
+            :key="(group as { userId: string }).userId + '-expanded'"
           >
             <ApiKeyRow
               v-for="k in (group as { keys: ApiKeyDisplay[] }).keys"
