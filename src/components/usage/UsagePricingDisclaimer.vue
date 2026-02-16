@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+  <div class="bg-primary-100 border border-primary-200 rounded-lg p-3 mb-4">
     <div class="flex items-start">
       <svg
         class="w-4 h-4 text-primary mr-2 mt-0.5 flex-shrink-0"
@@ -113,7 +113,7 @@
           </button>
 
           <!-- Erweiterte Details -->
-          <div v-if="showDetails" class="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <div v-if="showDetails" class="mt-3 p-3 bg-primary-100 rounded-lg border border-primary-200">
             <div class="text-xs text-primary space-y-2">
               <!-- AI Usage Details -->
               <div v-if="variant === 'ai'">

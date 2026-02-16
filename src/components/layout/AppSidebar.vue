@@ -21,7 +21,7 @@ defineEmits<Emits>()
       <button
         @click="$emit('update:activeSidebar', 'api')"
         :class="
-          activeSidebar === 'api' ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-700'
+          activeSidebar === 'api' ? 'bg-primary-100 text-primary font-semibold' : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >
@@ -34,7 +34,7 @@ defineEmits<Emits>()
         v-if="canViewUsage"
         @click="$emit('update:activeSidebar', 'usage')"
         :class="
-          activeSidebar === 'usage' ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-700'
+          activeSidebar === 'usage' ? 'bg-primary-100 text-primary font-semibold' : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >
