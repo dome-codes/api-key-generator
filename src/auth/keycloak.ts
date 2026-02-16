@@ -64,6 +64,12 @@ const keycloak = new Keycloak(keycloakConfig)
 
 let keycloakInitialized = false
 
+/** Wird aufgelöst, sobald initKeycloak() einmal durchgelaufen ist – api.ts wartet darauf vor getToken(). */
+let _resolveWhenKeycloakInit: () => void
+export const whenKeycloakInit = new Promise<void>((resolve) => {
+  _resolveWhenKeycloakInit = resolve
+})
+
 // URL nach Authentifizierung bereinigen
 const cleanupUrl = () => {
   if (window.location.hash || window.location.search) {
@@ -117,6 +123,7 @@ export const initKeycloak = async (): Promise<boolean> => {
   debugLog('Starte Keycloak-Initialisierung...')
 
   if (keycloakInitialized) {
+    _resolveWhenKeycloakInit?.()
     return true
   }
 
@@ -139,7 +146,7 @@ export const initKeycloak = async (): Promise<boolean> => {
       preferred_username: tokenPayload.preferred_username,
       groups: tokenPayload.groups,
     })
-
+    _resolveWhenKeycloakInit?.()
     return true
   }
 
@@ -157,10 +164,11 @@ export const initKeycloak = async (): Promise<boolean> => {
     if (authenticated) {
       cleanupUrl()
     }
-
+    _resolveWhenKeycloakInit?.()
     return authenticated
   } catch (error) {
     console.error('Fehler bei Keycloak-Initialisierung!', error)
+    _resolveWhenKeycloakInit?.()
     return false
   }
 }

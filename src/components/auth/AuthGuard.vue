@@ -25,8 +25,8 @@
       </div>
     </div>
 
-    <!-- App-Inhalt nur bei gültiger Auth (Kinder-Route über RouterView) -->
-    <template v-else-if="isAuthenticated">
+    <!-- App-Inhalt erst, wenn Token bereit (verhindert 403 durch vorzeitige API-Calls) -->
+    <template v-else-if="isAuthenticated && tokenReady">
       <RouterView />
     </template>
     <!-- Nicht eingeloggt: Weiterleitung zur Keycloak-Login-Oberfläche -->
@@ -78,12 +78,14 @@ const router = useRouter()
 const { userProfile, highestRole, isAdmin } = useAuth()
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
+const tokenReady = ref(false) // erst true, wenn getToken() erfolgreich – verhindert API-Calls vor Token
 const error = ref('')
 const redirectingToLogin = ref(false)
 
 const retryAuth = async () => {
   isLoading.value = true
   error.value = ''
+  tokenReady.value = false
   redirectingToLogin.value = false
   await initializeAuth()
 }
@@ -125,8 +127,14 @@ const initializeAuth = async () => {
         }
       }
 
-      // Token einmal laden, bevor die App (und erste API-Calls) angezeigt werden – verhindert 403-Timing
-      await getToken()
+      // Token zwingend vor Anzeige der App laden; RouterView erst bei tokenReady
+      const token = await getToken()
+      if (!token) {
+        error.value = 'Token konnte nicht geladen werden.'
+        isAuthenticated.value = false
+      } else {
+        tokenReady.value = true
+      }
     } else {
       // Nicht eingeloggt → Keycloak-Login-Oberfläche anzeigen (Redirect)
       redirectToKeycloakLogin()
