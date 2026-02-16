@@ -15,9 +15,24 @@ const debugLog = (...args: unknown[]) => {
 const rawBase = appConfig.apiBaseUrl || ''
 const baseURL = rawBase.endsWith('/v1') ? rawBase : rawBase.replace(/\/?$/, '') + '/v1'
 
+/** Query-Params: Arrays als kommagetrennt (by=apikey statt by[]=apikey), OpenAPI „Comma separated“. */
+function serializeParams(params: Record<string, unknown>): string {
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return
+    if (Array.isArray(value)) {
+      searchParams.append(key, value.join(','))
+    } else {
+      searchParams.append(key, String(value))
+    }
+  })
+  return searchParams.toString()
+}
+
 const api = axios.create({
   baseURL,
   timeout: 10000,
+  paramsSerializer: (params) => serializeParams(params ?? {}),
 })
 
 // Request-Interceptor: warten bis Token von AuthGuard geholt wurde, dann erst Request (kein ai/apikey/summarize vor Token)
@@ -46,27 +61,39 @@ api.interceptors.request.use(
   },
 )
 
-// Response-Interceptor für Token-Erneuerung
+// Response-Interceptor: 401 Token erneuern; 403 einmal mit frischem Token wiederholen (Race mit erstem Request)
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const config = error.config
+    const isRetry = config?.__retry403 === true
+
+    if (status === 401) {
       debugLog('Token abgelaufen, versuche Erneuerung...')
       try {
         await whenTokenReadyForApi
         const token = await getToken()
-        if (token && error.config) {
-          // Request mit neuem Token wiederholen
-          const originalRequest = error.config
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
+        if (token && config) {
+          config.headers.Authorization = `Bearer ${token}`
+          return api(config)
         }
       } catch (refreshError) {
         debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
       }
+    } else if (status === 403 && config && !isRetry) {
+      debugLog('403 Forbidden – ein Retry mit frischem Token')
+      try {
+        await whenTokenReadyForApi
+        const token = await getToken()
+        if (token) {
+          config.__retry403 = true
+          config.headers.Authorization = `Bearer ${token}`
+          return api(config)
+        }
+      } catch (_) {}
     }
+
     return Promise.reject(error)
   },
 )
