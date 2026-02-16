@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import {
+  getToken,
   initKeycloak,
   hasPermission,
   hasValidAppUser,
@@ -123,6 +124,9 @@ const initializeAuth = async () => {
           return
         }
       }
+
+      // Token einmal laden, bevor die App (und erste API-Calls) angezeigt werden – verhindert 403-Timing
+      await getToken()
     } else {
       // Nicht eingeloggt → Keycloak-Login-Oberfläche anzeigen (Redirect)
       redirectToKeycloakLogin()

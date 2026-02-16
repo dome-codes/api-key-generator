@@ -165,7 +165,37 @@ export const initKeycloak = async (): Promise<boolean> => {
   }
 }
 
-// Token-Handling
+// Token-Cache in sessionStorage (nur bei Ablauf refreshen)
+const TOKEN_STORAGE_KEY = 'keycloak_token'
+const TOKEN_VALIDITY_BUFFER_SEC = 30 // Refresh, wenn weniger als 30s Restlaufzeit
+
+const getTokenFromStorage = (): { token: string; exp: number } | null => {
+  try {
+    const raw = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw) as { token: string; exp: number }
+    if (!data.token || typeof data.exp !== 'number') return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+const setTokenInStorage = (token: string, exp: number): void => {
+  try {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ token, exp }))
+  } catch (_) {
+    // Quota oder private mode
+  }
+}
+
+export const clearTokenStorage = (): void => {
+  try {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch (_) {}
+}
+
+// Token-Handling: zuerst aus Storage, nur bei Ablauf Keycloak-Refresh
 export const getToken = async (): Promise<string | null> => {
   // Bypass für Development
   if (shouldBypassKeycloak()) {
@@ -173,12 +203,25 @@ export const getToken = async (): Promise<string | null> => {
   }
 
   try {
-    debugLog('Token wird erneuert (min 30s gültig)...')
-    await keycloak.updateToken(30)
-    debugLog('Aktuelles Token:', keycloak.token)
-    return keycloak.token || null
+    const cached = getTokenFromStorage()
+    const nowSec = Math.floor(Date.now() / 1000)
+    if (cached && cached.exp > nowSec + TOKEN_VALIDITY_BUFFER_SEC) {
+      debugLog('Token aus sessionStorage (noch gültig)')
+      return cached.token
+    }
+
+    debugLog('Token abgelaufen oder nicht im Storage, erneuere...')
+    await keycloak.updateToken(TOKEN_VALIDITY_BUFFER_SEC)
+    const token = keycloak.token || null
+    const exp = keycloak.tokenParsed?.exp
+    if (token && typeof exp === 'number') {
+      setTokenInStorage(token, exp)
+    }
+    debugLog('Aktuelles Token:', token ? '(gespeichert)' : null)
+    return token
   } catch (error) {
     console.error('Fehler beim Token-Update:', error)
+    clearTokenStorage()
     return null
   }
 }
