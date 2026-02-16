@@ -18,7 +18,7 @@
           <option value="custom">Benutzerdefiniert</option>
         </select>
 
-        <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
+        <!-- Custom Date Range -->
         <div v-if="timeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
           <div>
             <label class="block text-xs text-gray-600 mb-1">Von</label>
@@ -26,7 +26,7 @@
               v-model="fromDate"
               type="date"
               class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleFilterChange"
+              @change="handleDateChange"
             />
           </div>
           <div>
@@ -35,37 +35,42 @@
               v-model="toDate"
               type="date"
               class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleFilterChange"
+              @change="handleDateChange"
             />
           </div>
         </div>
       </div>
 
-      <!-- Model Type Filter -->
+      <!-- Provider Filter -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Provider</label>
         <select
-          v-model="modelType"
+          v-model="provider"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
           @change="handleFilterChange"
         >
-          <option value="">Alle Modelltypen</option>
-          <option value="CompletionModelUsage">Chat Completions</option>
-          <option value="EmbeddingModelUsage">Embeddings</option>
-          <option value="ImageModelUsage">Bilder</option>
+          <option value="">Alle Provider</option>
+          <option value="azure-form-recognizer">Azure Form Recognizer</option>
+          <option value="aws-textract">AWS Textract</option>
+          <option value="google-document-ai">Google Document AI</option>
         </select>
       </div>
 
-      <!-- Model Filter -->
+      <!-- Status Filter -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
-        <input
-          v-model="model"
-          type="text"
-          placeholder="z.B. gpt-4o"
+        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+        <select
+          v-model="status"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
-        />
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Status</option>
+          <option value="processing">In Bearbeitung</option>
+          <option value="completed">Abgeschlossen</option>
+          <option value="failed">Fehlgeschlagen</option>
+          <option value="canceled">Abgebrochen</option>
+          <option value="skipped">Übersprungen</option>
+        </select>
       </div>
 
       <!-- Tag Filter -->
@@ -75,18 +80,6 @@
           v-model="tag"
           type="text"
           placeholder="z.B. production"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
-        />
-      </div>
-
-      <!-- API Key Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-        <input
-          v-model="apiKeyId"
-          type="text"
-          placeholder="API Key ID"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
           @input="handleFilterChange"
         />
@@ -127,14 +120,14 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import type { ExtractionOperationStatus } from '@/api/types/extraction'
 
 // Props
 interface Props {
   timeRange: string
-  modelType: string
-  model?: string
+  provider?: string
+  status?: ExtractionOperationStatus | ''
   tag?: string
-  apiKeyId?: string
   fromDate?: string
   toDate?: string
   selectedUser?: string
@@ -151,10 +144,9 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   'update:timeRange': [value: string]
-  'update:modelType': [value: string]
-  'update:model': [value: string]
+  'update:provider': [value: string]
+  'update:status': [value: ExtractionOperationStatus | '']
   'update:tag': [value: string]
-  'update:apiKeyId': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
@@ -168,9 +160,19 @@ const timeRange = computed({
   set: (value) => emit('update:timeRange', value),
 })
 
-const modelType = computed({
-  get: () => props.modelType,
-  set: (value) => emit('update:modelType', value),
+const provider = computed({
+  get: () => props.provider || '',
+  set: (value) => emit('update:provider', value),
+})
+
+const status = computed({
+  get: () => props.status || '',
+  set: (value) => emit('update:status', value as ExtractionOperationStatus | ''),
+})
+
+const tag = computed({
+  get: () => props.tag || '',
+  set: (value) => emit('update:tag', value),
 })
 
 const fromDate = computed({
@@ -193,19 +195,43 @@ const selectedUserGroup = computed({
   set: (value) => emit('update:selectedUserGroup', value),
 })
 
-const model = computed({
-  get: () => props.model || '',
-  set: (value) => emit('update:model', value),
+// Gruppierungslogik
+const getUserGroup = (userId: string): string => {
+  if (userId.startsWith('SVC_ADMIN')) {
+    return 'ADMIN'
+  } else if (userId.startsWith('SVC_')) {
+    return 'TECHNICAL'
+  } else if (userId.startsWith('e') || userId.startsWith('b')) {
+    return 'DEVELOPMENT'
+  } else {
+    return 'DEFAULT'
+  }
+}
+
+const availableGroups = computed(() => {
+  const groups: Record<string, { id: string; name: string; count: number }> = {
+    DEVELOPMENT: { id: 'DEVELOPMENT', name: 'Entwicklung', count: 0 },
+    TECHNICAL: { id: 'TECHNICAL', name: 'Technische Nutzer', count: 0 },
+    ADMIN: { id: 'ADMIN', name: 'ADMIN', count: 0 },
+    DEFAULT: { id: 'DEFAULT', name: 'Default', count: 0 },
+  }
+
+  props.users.forEach((user) => {
+    const group = getUserGroup(user.id)
+    if (groups[group]) {
+      groups[group].count++
+    }
+  })
+
+  return Object.values(groups).filter((group) => group.count > 0)
 })
 
-const tag = computed({
-  get: () => props.tag || '',
-  set: (value) => emit('update:tag', value),
-})
+const filteredUsers = computed(() => {
+  if (!selectedUserGroup.value) {
+    return props.users
+  }
 
-const apiKeyId = computed({
-  get: () => props.apiKeyId || '',
-  set: (value) => emit('update:apiKeyId', value),
+  return props.users.filter((user) => getUserGroup(user.id) === selectedUserGroup.value)
 })
 
 // Handler
@@ -243,63 +269,22 @@ const handleTimeRangeChange = () => {
   handleFilterChange()
 }
 
+const handleDateChange = () => {
+  handleFilterChange()
+}
+
 const handleFilterChange = () => {
   emit('filter-changed')
 }
 
-// Gruppierungslogik
-const getUserGroup = (userId: string): string => {
-  if (userId.startsWith('SVC_ADMIN')) {
-    return 'ADMIN'
-  } else if (userId.startsWith('SVC_')) {
-    return 'TECHNICAL'
-  } else if (userId.startsWith('e') || userId.startsWith('b')) {
-    return 'DEVELOPMENT'
-  } else {
-    return 'DEFAULT'
-  }
-}
-
-const availableGroups = computed(() => {
-  const groups: Record<string, { id: string; name: string; count: number }> = {
-    DEVELOPMENT: { id: 'DEVELOPMENT', name: 'Entwicklung', count: 0 },
-    TECHNICAL: { id: 'TECHNICAL', name: 'Technische Nutzer', count: 0 },
-    ADMIN: { id: 'ADMIN', name: 'ADMIN', count: 0 },
-    DEFAULT: { id: 'DEFAULT', name: 'Default', count: 0 },
-  }
-
-  // Zähle Nutzer pro Gruppe
-  props.users.forEach((user) => {
-    const group = getUserGroup(user.id)
-    if (groups[group]) {
-      groups[group].count++
-    }
-  })
-
-  // Nur Gruppen mit Nutzern zurückgeben
-  return Object.values(groups).filter((group) => group.count > 0)
-})
-
-// Gefilterte Nutzer basierend auf ausgewählter Gruppe
-const filteredUsers = computed(() => {
-  if (!selectedUserGroup.value) {
-    return props.users
-  }
-
-  return props.users.filter((user) => getUserGroup(user.id) === selectedUserGroup.value)
-})
-
 // Watcher für Gruppenänderungen
 watch(selectedUserGroup, (newGroup) => {
-  // Wenn eine Gruppe ausgewählt wird, lösche die individuelle Nutzerauswahl
   if (newGroup) {
     selectedUser.value = ''
   }
 })
 
-// Watcher für Einzelner Nutzeränderungen
 watch(selectedUser, (newUser) => {
-  // Wenn ein Einzelner Nutzer ausgewählt wird, lösche die Gruppenauswahl
   if (newUser) {
     selectedUserGroup.value = ''
   }

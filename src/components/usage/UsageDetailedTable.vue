@@ -3,7 +3,10 @@
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500">{{ sortedData.length }} Einträge</span>
+        <span v-if="pagination" class="text-sm text-gray-500">
+          {{ pagination.total }} Einträge (Seite {{ pagination.page }} von {{ pagination.totalPages }})
+        </span>
+        <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
         <button
           @click="exportTableData"
           class="text-sm text-blue-600 hover:text-blue-800"
@@ -35,7 +38,7 @@
     </div>
 
     <!-- Data Table -->
-    <div v-else-if="sortedData.length > 0" class="overflow-x-auto">
+    <div v-else-if="displayData.length > 0" class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -317,8 +320,41 @@
         </tbody>
       </table>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+      <!-- Pagination: Backend-Pagination hat Priorität, sonst Client-seitige Pagination -->
+      <!-- Backend-Pagination -->
+      <div v-if="pagination && pagination.totalPages > 1" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
+        <div class="text-sm text-gray-700">
+          Seite {{ pagination.page }} von {{ pagination.totalPages }} ({{ pagination.total }} Einträge)
+        </div>
+        <div class="flex space-x-2">
+          <button
+            @click="$emit('page-change', pagination.page - 1)"
+            :disabled="pagination.page <= 1"
+            :class="[
+              'px-3 py-2 text-sm font-medium rounded-md',
+              pagination.page <= 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+            ]"
+          >
+            Zurück
+          </button>
+          <button
+            @click="$emit('page-change', pagination.page + 1)"
+            :disabled="pagination.page >= pagination.totalPages"
+            :class="[
+              'px-3 py-2 text-sm font-medium rounded-md',
+              pagination.page >= pagination.totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+            ]"
+          >
+            Weiter
+          </button>
+        </div>
+      </div>
+      <!-- Client-seitige Pagination (Fallback wenn keine Backend-Pagination) -->
+      <div v-else-if="!pagination && totalPages > 1" class="flex items-center justify-between mt-4">
         <div class="flex items-center text-sm text-gray-700">
           <span>
             Zeige {{ (currentPage - 1) * pageSize + 1 }} bis
@@ -342,24 +378,6 @@
           >
             Weiter
           </button>
-        </div>
-      </div>
-
-      <!-- Page Size Selector -->
-      <div class="flex items-center justify-end mt-4">
-        <div class="flex items-center space-x-2">
-          <label class="text-sm text-gray-700">Einträge pro Seite:</label>
-          <select
-            v-model="pageSize"
-            @change="handlePageSizeChange"
-            class="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-          >
-            <option :value="10">10</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-            <option :value="200">200</option>
-          </select>
         </div>
       </div>
     </div>
@@ -397,12 +415,23 @@ interface Props {
   data: EnhancedUsageRecord[]
   isLoading?: boolean
   error?: string | null
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   error: null,
+  pagination: undefined,
 })
+
+const emit = defineEmits<{
+  'page-change': [page: number]
+}>()
 
 // Local state
 const currentPage = ref(1)
@@ -468,9 +497,21 @@ const sortedData = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.ceil(sortedData.value.length / pageSize.value))
+// Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
+const totalPages = computed(() => {
+  if (props.pagination) {
+    return props.pagination.totalPages
+  }
+  return Math.ceil(sortedData.value.length / pageSize.value)
+})
 
-const paginatedData = computed(() => {
+// Display data - nutze Backend-Pagination wenn vorhanden, sonst Client-seitige
+const displayData = computed(() => {
+  // Wenn Backend-Pagination vorhanden ist, zeige alle Daten (bereits paginiert)
+  if (props.pagination) {
+    return sortedData.value
+  }
+  // Sonst nutze Client-seitige Pagination
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   return sortedData.value.slice(start, end)
