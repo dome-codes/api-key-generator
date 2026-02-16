@@ -73,15 +73,14 @@
         </select>
       </div>
 
-      <!-- Tag Filter -->
+      <!-- Tag Filter (Debounced) -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
         <input
-          v-model="tag"
+          v-model="localTagInput"
           type="text"
           placeholder="z.B. production"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
         />
       </div>
 
@@ -119,7 +118,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { useDebounce } from '@/composables/useDebounce'
+import { computed, ref, watch } from 'vue'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
 
 // Props
@@ -170,10 +170,25 @@ const status = computed({
   set: (value) => emit('update:status', value as ExtractionOperationStatus | ''),
 })
 
-const tag = computed({
-  get: () => props.tag || '',
-  set: (value) => emit('update:tag', value),
+// Debounced Tag Input (400ms Delay)
+const localTagInput = ref(props.tag || '')
+const debouncedTag = useDebounce(localTagInput, 400)
+
+// Watch debounced tag und emitte Updates
+watch(debouncedTag, (newValue) => {
+  emit('update:tag', newValue)
+  emit('filter-changed')
 })
+
+// Sync props changes back to local input
+watch(
+  () => props.tag,
+  (newValue) => {
+    if (newValue !== localTagInput.value) {
+      localTagInput.value = newValue || ''
+    }
+  },
+)
 
 const fromDate = computed({
   get: () => props.fromDate || '',

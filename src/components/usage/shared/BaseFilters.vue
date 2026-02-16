@@ -44,27 +44,25 @@
       <!-- Slot für spezifische Filter (z.B. Model Type, Provider, Status) -->
       <slot name="specific-filters" />
 
-      <!-- Tag Filter -->
+      <!-- Tag Filter (Debounced) -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
         <input
-          v-model="localTag"
+          v-model="localTagInput"
           type="text"
           placeholder="z.B. production"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
         />
       </div>
 
-      <!-- API Key Filter -->
+      <!-- API Key Filter (Debounced) -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
         <input
-          v-model="localApiKeyId"
+          v-model="localApiKeyIdInput"
           type="text"
           placeholder="API Key ID"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
         />
       </div>
 
@@ -75,7 +73,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { useDebounce } from '@/composables/useDebounce'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   timeRange: string
@@ -102,15 +101,42 @@ const localTimeRange = computed({
   set: (value) => emit('update:timeRange', value),
 })
 
-const localTag = computed({
-  get: () => props.tag || '',
-  set: (value) => emit('update:tag', value),
+// Debounced Text-Inputs für Tag und API Key (400ms Delay)
+const localTagInput = ref(props.tag || '')
+const localApiKeyIdInput = ref(props.apiKeyId || '')
+
+const debouncedTag = useDebounce(localTagInput, 400)
+const debouncedApiKeyId = useDebounce(localApiKeyIdInput, 400)
+
+// Watch debounced values und emitte Updates
+watch(debouncedTag, (newValue) => {
+  emit('update:tag', newValue)
+  emit('filter-changed')
 })
 
-const localApiKeyId = computed({
-  get: () => props.apiKeyId || '',
-  set: (value) => emit('update:apiKeyId', value),
+watch(debouncedApiKeyId, (newValue) => {
+  emit('update:apiKeyId', newValue)
+  emit('filter-changed')
 })
+
+// Sync props changes back to local inputs
+watch(
+  () => props.tag,
+  (newValue) => {
+    if (newValue !== localTagInput.value) {
+      localTagInput.value = newValue || ''
+    }
+  },
+)
+
+watch(
+  () => props.apiKeyId,
+  (newValue) => {
+    if (newValue !== localApiKeyIdInput.value) {
+      localApiKeyIdInput.value = newValue || ''
+    }
+  },
+)
 
 const localFromDate = computed({
   get: () => props.fromDate || '',

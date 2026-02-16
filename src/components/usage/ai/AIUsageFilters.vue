@@ -29,15 +29,14 @@
         </select>
       </div>
 
-      <!-- Model Filter -->
+      <!-- Model Filter (Debounced) -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
         <input
-          v-model="localModel"
+          v-model="localModelInput"
           type="text"
           placeholder="z.B. gpt-4o"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
         />
       </div>
     </template>
@@ -76,7 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { useDebounce } from '@/composables/useDebounce'
+import { computed, ref, watch } from 'vue'
 import BaseFilters from '../shared/BaseFilters.vue'
 
 interface Props {
@@ -116,10 +116,25 @@ const localModelType = computed({
   set: (value) => emit('update:modelType', value),
 })
 
-const localModel = computed({
-  get: () => props.model || '',
-  set: (value) => emit('update:model', value),
+// Debounced Model Input (400ms Delay)
+const localModelInput = ref(props.model || '')
+const debouncedModel = useDebounce(localModelInput, 400)
+
+// Watch debounced model und emitte Updates
+watch(debouncedModel, (newValue) => {
+  emit('update:model', newValue)
+  emit('filter-changed')
 })
+
+// Sync props changes back to local input
+watch(
+  () => props.model,
+  (newValue) => {
+    if (newValue !== localModelInput.value) {
+      localModelInput.value = newValue || ''
+    }
+  },
+)
 
 const localSelectedUser = computed({
   get: () => props.selectedUser || '',
