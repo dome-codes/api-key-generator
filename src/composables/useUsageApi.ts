@@ -297,12 +297,13 @@ export function useUsageApi() {
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
       console.error('Error loading usage summary:', err)
-      usageData.value = []
+      // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
+      summaryData.value = []
       pagination.value = {
         page: currentFilter.value.page || 1,
         limit: currentFilter.value.limit || 20,
-        total: 0,
-        totalPages: 0,
+        total: pagination.value.total ?? 0,
+        totalPages: pagination.value.totalPages ?? 0,
       }
     } finally {
       isLoading.value = false

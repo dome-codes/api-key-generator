@@ -229,13 +229,22 @@ const adminToDate = ref('')
 // Unique users for admin filter
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 
-// Initialize default dates - Standardmäßig KEINE Datumsfilterung (leer = alle Daten)
+// Standard-Zeitraum: letzte 90 Tage, nur wenn noch keine Daten aus URL gesetzt sind
 const setDefaultDates = () => {
-  // Leer lassen = keine Datumsfilterung, zeigt alle verfügbaren Daten
-  ownFromDate.value = ''
-  ownToDate.value = ''
-  adminFromDate.value = ''
-  adminToDate.value = ''
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - 90)
+  const fromStr = startDate.toISOString().split('T')[0]
+  const toStr = today.toISOString().split('T')[0]
+
+  if (!ownFromDate.value && !ownToDate.value) {
+    ownFromDate.value = fromStr
+    ownToDate.value = toStr
+  }
+  if (!adminFromDate.value && !adminToDate.value) {
+    adminFromDate.value = fromStr
+    adminToDate.value = toStr
+  }
 }
 
 // Load filters from URL
