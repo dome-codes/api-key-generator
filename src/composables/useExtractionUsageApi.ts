@@ -50,6 +50,108 @@ export function useExtractionUsageApi() {
     return pagination.value.page > 1
   })
 
+  // Chart data computed - generiert aus den gruppierten Daten vom Backend
+  const chartData = computed(() => {
+    const data = usageData.value
+
+    if (data.length === 0) {
+      return {
+        labels: [],
+        operations: [],
+        pages: [],
+        cost: [],
+        confidence: [],
+      }
+    }
+
+    // Gruppiere nach Datum (wenn day/month/year vorhanden)
+    const dateMap = new Map<
+      string,
+      { operations: number; pages: number; cost: number; confidence: number }
+    >()
+
+    data.forEach((item) => {
+      let dateKey = ''
+      if (item.day && item.month && item.year) {
+        dateKey = `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
+      } else if (item.createDate) {
+        const date = new Date(item.createDate)
+        dateKey = date.toISOString().split('T')[0]
+      } else {
+        dateKey = 'unknown'
+      }
+
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0, confidence: 0 })
+      }
+
+      const entry = dateMap.get(dateKey)!
+      entry.operations += 1
+      entry.pages += item.pages
+      entry.cost += item.cost
+      entry.confidence += item.confidenceScore
+    })
+
+    // Sortiere nach Datum
+    const sortedEntries = Array.from(dateMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+
+    return {
+      labels: sortedEntries.map(([date]) => {
+        // Format: DD.MM.YYYY
+        const [year, month, day] = date.split('-')
+        return `${day}.${month}.${year}`
+      }),
+      operations: sortedEntries.map(([, data]) => data.operations),
+      pages: sortedEntries.map(([, data]) => data.pages),
+      cost: sortedEntries.map(([, data]) => data.cost),
+      confidence: sortedEntries.map(([, data]) => data.confidence / data.operations || 0),
+    }
+  })
+
+  // Chart data für Provider-Verteilung (Pie Chart)
+  const providerDistributionChartData = computed(() => {
+    const data = usageData.value
+
+    if (data.length === 0) {
+      return { labels: [], data: [] }
+    }
+
+    const providerMap = new Map<string, number>()
+
+    data.forEach((item) => {
+      const provider = item.provider || 'Unknown'
+      const currentCount = providerMap.get(provider) || 0
+      providerMap.set(provider, currentCount + 1)
+    })
+
+    return {
+      labels: Array.from(providerMap.keys()),
+      data: Array.from(providerMap.values()),
+    }
+  })
+
+  // Chart data für Status-Verteilung (Pie Chart)
+  const statusDistributionChartData = computed(() => {
+    const data = usageData.value
+
+    if (data.length === 0) {
+      return { labels: [], data: [] }
+    }
+
+    const statusMap = new Map<string, number>()
+
+    data.forEach((item) => {
+      const status = item.status || 'Unknown'
+      const currentCount = statusMap.get(status) || 0
+      statusMap.set(status, currentCount + 1)
+    })
+
+    return {
+      labels: Array.from(statusMap.keys()),
+      data: Array.from(statusMap.values()),
+    }
+  })
+
   const usageAggregation = computed<ExtractionUsageAggregation>(() => {
     const data = usageData.value
 
@@ -222,6 +324,9 @@ export function useExtractionUsageApi() {
     hasMorePages,
     hasPreviousPage,
     usageAggregation,
+    chartData,
+    providerDistributionChartData,
+    statusDistributionChartData,
 
     // Actions
     loadUsageData,

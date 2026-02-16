@@ -96,6 +96,17 @@
         :error="error"
       />
 
+      <!-- Charts -->
+      <div v-if="ownView === 'overview'" class="space-y-6">
+        <ExtractionUsageCharts
+          line-chart-title="Extraction-Nutzungsverlauf"
+          selected-period="daily"
+          :line-chart-data="chartData"
+          :provider-distribution-data="providerDistributionChartData"
+          :status-distribution-data="statusDistributionChartData"
+        />
+      </div>
+
       <!-- Detailed Table -->
       <ExtractionUsageDetailedTable
         v-if="ownView === 'detailed'"
@@ -165,6 +176,17 @@
         :show-status-breakdown="true"
       />
 
+      <!-- Charts -->
+      <div v-if="adminView === 'overview'" class="space-y-6">
+        <ExtractionUsageCharts
+          line-chart-title="Admin Extraction-Nutzungsverlauf"
+          selected-period="daily"
+          :line-chart-data="chartData"
+          :provider-distribution-data="providerDistributionChartData"
+          :status-distribution-data="statusDistributionChartData"
+        />
+      </div>
+
       <!-- Detailed Table -->
       <ExtractionUsageDetailedTable
         v-if="adminView === 'detailed'"
@@ -183,6 +205,7 @@ import { hasPermission } from '@/auth/keycloak'
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
 import ExtractionUsageFilters from './ExtractionUsageFilters.vue'
 import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
 import ExtractionUsageDetailedTable from './ExtractionUsageDetailedTable.vue'
@@ -197,6 +220,9 @@ const {
   usageData,
   pagination,
   usageAggregation,
+  chartData,
+  providerDistributionChartData,
+  statusDistributionChartData,
   loadUsageData,
   loadUsageSummary,
   updateFilter,
