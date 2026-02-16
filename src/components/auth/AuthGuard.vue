@@ -25,9 +25,9 @@
       </div>
     </div>
 
-    <!-- App-Inhalt nur bei gültiger Auth (kein Token = nichts anzeigen) -->
+    <!-- App-Inhalt nur bei gültiger Auth (Kinder-Route über RouterView) -->
     <template v-else-if="isAuthenticated">
-      <slot />
+      <RouterView />
     </template>
     <!-- Nicht eingeloggt: Weiterleitung zur Keycloak-Login-Oberfläche -->
     <div v-else class="flex items-center justify-center min-h-screen">
@@ -58,7 +58,7 @@ import {
   redirectToKeycloakLogin,
 } from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterView } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
