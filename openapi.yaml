@@ -1,0 +1,820 @@
+openapi: 3.0.3
+info:
+  title: MobaRAG API Key Management API
+  version: 1.0.0
+  description: API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development server
+  - url: https://api.example.com/v1
+    description: Production server
+
+paths:
+  # ============================================
+  # AI USAGE ENDPOINTS (User)
+  # ============================================
+  
+  /usage/ai:
+    get:
+      tags:
+        - usage
+      summary: Tracks the usage of the AI service
+      description: Returns the usage in terms of tokens per model per time period with server-side filtering and pagination.
+      operationId: Usage_AI_Get_v1
+      security:
+        - resourceOwnerAuth: [default]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/AI.RequestParams.Model'
+        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIUsagePage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /usage/ai/summarize:
+    get:
+      tags:
+        - usage
+      summary: Returns the usage summary by type, user and cost factors
+      description: Returns the usage summary grouped by specified parameters with server-side filtering and pagination.
+      operationId: Usage_AI_Summary_Get_v1
+      security:
+        - resourceOwnerAuth: [default]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/AI.RequestParams.Model'
+        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.GroupBy'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIUsageSummaryPage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  # ============================================
+  # AI USAGE ENDPOINTS (Admin)
+  # ============================================
+
+  /admin/usage/ai:
+    get:
+      tags:
+        - admin
+      summary: Tracks the usage of the AI service (Admin)
+      description: Returns all AI usage data with server-side filtering and pagination. Admin only.
+      operationId: Admin_Usage_AI_Get_v1
+      security:
+        - resourceOwnerAuth: [admin]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/AI.RequestParams.Model'
+        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIUsagePage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Admin permission required
+        '500':
+          description: Internal server error
+
+  /admin/usage/ai/summarize:
+    get:
+      tags:
+        - admin
+      summary: Returns the usage summary by type, user and cost factors (Admin)
+      description: Returns the usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
+      operationId: Admin_Usage_AI_Summary_Get_v1
+      security:
+        - resourceOwnerAuth: [admin]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/AI.RequestParams.Model'
+        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.GroupBy'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIUsageSummaryPage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Admin permission required
+        '500':
+          description: Internal server error
+
+  # ============================================
+  # EXTRACTION USAGE ENDPOINTS (User)
+  # ============================================
+
+  /usage/extraction:
+    get:
+      tags:
+        - usage
+      summary: Tracks the usage of the Extraction service
+      description: Returns the usage of the extraction service with server-side filtering and pagination.
+      operationId: Usage_Extraction_Get_v1
+      security:
+        - resourceOwnerAuth: [default]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Provider'
+        - $ref: '#/components/parameters/Extraction.RequestParams.ModelId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Status'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractionUsagePage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /usage/extraction/summarize:
+    get:
+      tags:
+        - usage
+      summary: Returns the extraction usage summary
+      description: Returns the extraction usage summary grouped by specified parameters with server-side filtering and pagination.
+      operationId: Usage_Extraction_Summary_Get_v1
+      security:
+        - resourceOwnerAuth: [default]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Provider'
+        - $ref: '#/components/parameters/Extraction.RequestParams.ModelId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Status'
+        - $ref: '#/components/parameters/Extraction.RequestParams.GroupBy'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractionUsageSummaryPage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  # ============================================
+  # EXTRACTION USAGE ENDPOINTS (Admin)
+  # ============================================
+
+  /admin/usage/extraction:
+    get:
+      tags:
+        - admin
+      summary: Tracks the usage of the Extraction service (Admin)
+      description: Returns all extraction usage data with server-side filtering and pagination. Admin only.
+      operationId: Admin_Usage_Extraction_Get_v1
+      security:
+        - resourceOwnerAuth: [admin]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Provider'
+        - $ref: '#/components/parameters/Extraction.RequestParams.ModelId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Status'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractionUsagePage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Admin permission required
+        '500':
+          description: Internal server error
+
+  /admin/usage/extraction/summarize:
+    get:
+      tags:
+        - admin
+      summary: Returns the extraction usage summary (Admin)
+      description: Returns the extraction usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
+      operationId: Admin_Usage_Extraction_Summary_Get_v1
+      security:
+        - resourceOwnerAuth: [admin]
+      parameters:
+        - $ref: '#/components/parameters/Common.RequestParams.FromDate'
+        - $ref: '#/components/parameters/Common.RequestParams.ToDate'
+        - $ref: '#/components/parameters/Common.RequestParams.Page'
+        - $ref: '#/components/parameters/Common.RequestParams.Limit'
+        - $ref: '#/components/parameters/Common.RequestParams.UserId'
+        - $ref: '#/components/parameters/Common.RequestParams.Tag'
+        - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Provider'
+        - $ref: '#/components/parameters/Extraction.RequestParams.ModelId'
+        - $ref: '#/components/parameters/Extraction.RequestParams.Status'
+        - $ref: '#/components/parameters/Extraction.RequestParams.GroupBy'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractionUsageSummaryPage'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - Admin permission required
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    resourceOwnerAuth:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: /auth/token
+          scopes:
+            default: Default user access
+            admin: Admin access
+
+  parameters:
+    # ============================================
+    # COMMON REQUEST PARAMETERS
+    # ============================================
+    
+    Common.RequestParams.FromDate:
+      name: from_date
+      in: query
+      description: Start date of the time interval (UTC). If left empty it uses the earliest known date.
+      required: false
+      schema:
+        type: string
+        format: date-time
+        example: '2025-01-01T00:00:00Z'
+
+    Common.RequestParams.ToDate:
+      name: to_date
+      in: query
+      description: End date of the time interval (UTC). If left empty it uses the latest known date.
+      required: false
+      schema:
+        type: string
+        format: date-time
+        example: '2025-12-31T23:59:59Z'
+
+    Common.RequestParams.Page:
+      name: page
+      in: query
+      description: Page number for pagination (1-based).
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+
+    Common.RequestParams.Limit:
+      name: limit
+      in: query
+      description: The number of items to return per page.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
+    Common.RequestParams.UserId:
+      name: userId
+      in: query
+      description: Filter by user ID.
+      required: false
+      schema:
+        type: string
+        example: 'user-123'
+
+    Common.RequestParams.Tag:
+      name: tag
+      in: query
+      description: Filter by tag.
+      required: false
+      schema:
+        type: string
+        example: 'production'
+
+    Common.RequestParams.ApiKeyId:
+      name: apiKeyId
+      in: query
+      description: Filter by API key ID.
+      required: false
+      schema:
+        type: string
+        example: 'api-key-123'
+
+    # ============================================
+    # AI REQUEST PARAMETERS
+    # ============================================
+
+    AI.RequestParams.Model:
+      name: model
+      in: query
+      description: Filter by model name.
+      required: false
+      schema:
+        type: string
+        example: 'gpt-4o'
+
+    AI.RequestParams.ModelType:
+      name: modelType
+      in: query
+      description: Filter by model type.
+      required: false
+      schema:
+        type: string
+        enum:
+          - CompletionModelUsage
+          - EmbeddingModelUsage
+          - ImageModelUsage
+        example: 'CompletionModelUsage'
+
+    AI.RequestParams.GroupBy:
+      name: by
+      in: query
+      description: Comma separated list of parameters to group by: day|month|year|[tag|apiKey|model|user]
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - day
+            - month
+            - year
+            - tag
+            - apiKey
+            - model
+            - user
+        example: ['day', 'month', 'year']
+
+    # ============================================
+    # EXTRACTION REQUEST PARAMETERS
+    # ============================================
+
+    Extraction.RequestParams.Provider:
+      name: provider
+      in: query
+      description: Filter by extraction provider.
+      required: false
+      schema:
+        type: string
+        example: 'azure-form-recognizer'
+
+    Extraction.RequestParams.ModelId:
+      name: modelId
+      in: query
+      description: Filter by extraction model ID.
+      required: false
+      schema:
+        type: string
+        example: 'prebuilt-invoice'
+
+    Extraction.RequestParams.Status:
+      name: status
+      in: query
+      description: Filter by extraction operation status.
+      required: false
+      schema:
+        $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+
+    Extraction.RequestParams.GroupBy:
+      name: by
+      in: query
+      description: Comma separated list of parameters to group by: day|month|year|[tag|apiKey|provider|modelId|user]
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - day
+            - month
+            - year
+            - tag
+            - apiKey
+            - provider
+            - modelId
+            - user
+        example: ['day', 'month', 'year']
+
+  schemas:
+    # ============================================
+    # COMMON SCHEMAS
+    # ============================================
+
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          example: 150
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 8
+
+    # ============================================
+    # AI USAGE SCHEMAS
+    # ============================================
+
+    ModelUsageType:
+      type: string
+      enum:
+        - CompletionModelUsage
+        - EmbeddingModelUsage
+        - ImageModelUsage
+
+    AIUsageRecord:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ModelUsageType'
+        tag:
+          type: string
+          example: 'production'
+        model:
+          type: string
+          example: 'gpt-4o'
+        modelName:
+          type: string
+          example: 'gpt-4o'
+        createDate:
+          type: string
+          format: date-time
+          example: '2025-07-15T10:30:00Z'
+        day:
+          type: integer
+          example: 15
+        month:
+          type: integer
+          example: 7
+        year:
+          type: integer
+          example: 2025
+        technicalUserId:
+          type: string
+          example: 'user-123'
+        apiKeyId:
+          type: string
+          example: 'api-key-123'
+        requests:
+          type: integer
+          example: 100
+        tokensIn:
+          type: integer
+          example: 5000
+        tokensOut:
+          type: integer
+          example: 2000
+        totalTokens:
+          type: integer
+          example: 7000
+        cost:
+          type: number
+          format: float
+          example: 0.15
+        sizeWidth:
+          type: integer
+          description: Image width (only for ImageModelUsage)
+          example: 1024
+        sizeHeight:
+          type: integer
+          description: Image height (only for ImageModelUsage)
+          example: 1024
+        quality:
+          type: string
+          enum:
+            - standard
+            - hd
+          description: Image quality (only for ImageModelUsage)
+          example: 'standard'
+
+    AIUsagePage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIUsageRecord'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    AIUsageSummaryRecord:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ModelUsageType'
+        tag:
+          type: string
+          example: 'production'
+        model:
+          type: string
+          example: 'gpt-4o'
+        technicalUserId:
+          type: string
+          example: 'user-123'
+        apiKeyId:
+          type: string
+          example: 'api-key-123'
+        day:
+          type: integer
+          example: 15
+        month:
+          type: integer
+          example: 7
+        year:
+          type: integer
+          example: 2025
+        requests:
+          type: integer
+          example: 100
+        requestTokens:
+          type: integer
+          example: 5000
+        responseTokens:
+          type: integer
+          example: 2000
+        totalTokens:
+          type: integer
+          example: 7000
+        cost:
+          type: number
+          format: float
+          example: 0.15
+
+    AIUsageSummaryPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIUsageSummaryRecord'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    # ============================================
+    # EXTRACTION USAGE SCHEMAS
+    # ============================================
+
+    DocumentIntelligenceOperationStatus:
+      type: string
+      enum:
+        - processing
+        - completed
+        - failed
+        - canceled
+        - skipped
+      description: Operation status for Document Intelligence extraction
+
+    ExtractionUsageRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the extraction operation
+          example: 'extraction-123'
+        operationId:
+          type: string
+          description: Operation ID for tracking
+          example: 'op-123'
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        createDate:
+          type: string
+          format: date-time
+          example: '2025-07-15T10:30:00Z'
+        completedDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2025-07-15T10:35:00Z'
+        day:
+          type: integer
+          example: 15
+        month:
+          type: integer
+          example: 7
+        year:
+          type: integer
+          example: 2025
+        technicalUserId:
+          type: string
+          example: 'user-123'
+        apiKeyId:
+          type: string
+          example: 'api-key-123'
+        tag:
+          type: string
+          example: 'production'
+        provider:
+          type: string
+          example: 'azure-form-recognizer'
+        modelId:
+          type: string
+          example: 'prebuilt-invoice'
+        documentType:
+          type: string
+          example: 'invoice'
+        pages:
+          type: integer
+          example: 1
+        extractedFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtractedField'
+        confidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall confidence score for the extraction
+          example: 0.95
+        cost:
+          type: number
+          format: float
+          example: 0.05
+
+    ExtractedField:
+      type: object
+      properties:
+        fieldName:
+          type: string
+          description: Name of the extracted field (e.g., "Rechnungsnummer", "Datum", "Betrag")
+          example: 'Rechnungsnummer'
+        value:
+          type: string
+          description: Extracted value
+          example: 'INV-2025-001'
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for this specific field
+          example: 0.98
+
+    ExtractionUsagePage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtractionUsageRecord'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+
+    ExtractionUsageSummaryRecord:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/DocumentIntelligenceOperationStatus'
+        tag:
+          type: string
+          example: 'production'
+        provider:
+          type: string
+          example: 'azure-form-recognizer'
+        modelId:
+          type: string
+          example: 'prebuilt-invoice'
+        technicalUserId:
+          type: string
+          example: 'user-123'
+        apiKeyId:
+          type: string
+          example: 'api-key-123'
+        day:
+          type: integer
+          example: 15
+        month:
+          type: integer
+          example: 7
+        year:
+          type: integer
+          example: 2025
+        operations:
+          type: integer
+          description: Number of extraction operations
+          example: 50
+        totalPages:
+          type: integer
+          description: Total number of pages processed
+          example: 150
+        averageConfidence:
+          type: number
+          format: float
+          description: Average confidence score
+          example: 0.92
+        cost:
+          type: number
+          format: float
+          example: 2.50
+
+    ExtractionUsageSummaryPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtractionUsageSummaryRecord'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'

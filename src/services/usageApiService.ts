@@ -59,6 +59,8 @@ export const usageApiService = {
         apiKeyId: filter.apiKeyId,
         model: filter.model,
         modelType: filter.modelType,
+        sort: filter.sort,
+        order: filter.order,
       }
 
       let response: UsagePageResponse

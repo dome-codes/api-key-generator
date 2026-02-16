@@ -51,8 +51,8 @@
                 <svg
                   class="w-3 h-3"
                   :class="
-                    sortField === 'technicalUserName'
-                      ? sortOrder === 'asc'
+                    currentSortField === 'technicalUserName'
+                      ? currentSortOrder === 'asc'
                         ? 'rotate-180'
                         : ''
                       : 'opacity-30'
@@ -77,9 +77,9 @@
               <div class="flex items-center gap-1">
                 Modell
                 <svg
-                  v-if="sortField === 'modelName'"
+                  v-if="currentSortField === 'modelName'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -102,8 +102,8 @@
                 <svg
                   class="w-3 h-3"
                   :class="
-                    sortField === 'modelType'
-                      ? sortOrder === 'asc'
+                    currentSortField === 'modelType'
+                      ? currentSortOrder === 'asc'
                         ? 'rotate-180'
                         : ''
                       : 'opacity-30'
@@ -128,9 +128,9 @@
               <div class="flex items-center gap-1">
                 Anfragen
                 <svg
-                  v-if="sortField === 'requests'"
+                  v-if="currentSortField === 'requests'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -151,9 +151,9 @@
               <div class="flex items-center gap-1">
                 Tokens In
                 <svg
-                  v-if="sortField === 'tokensIn'"
+                  v-if="currentSortField === 'tokensIn'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -174,9 +174,9 @@
               <div class="flex items-center gap-1">
                 Tokens Out
                 <svg
-                  v-if="sortField === 'tokensOut'"
+                  v-if="currentSortField === 'tokensOut'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -197,9 +197,9 @@
               <div class="flex items-center gap-1">
                 Gesamt Tokens
                 <svg
-                  v-if="sortField === 'totalTokens'"
+                  v-if="currentSortField === 'totalTokens'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -220,9 +220,9 @@
               <div class="flex items-center gap-1">
                 Kosten (€)
                 <svg
-                  v-if="sortField === 'cost'"
+                  v-if="currentSortField === 'cost'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -248,9 +248,9 @@
               <div class="flex items-center gap-1">
                 Datum
                 <svg
-                  v-if="sortField === 'date'"
+                  v-if="currentSortField === 'date'"
                   class="w-3 h-3"
-                  :class="sortOrder === 'asc' ? 'rotate-180' : ''"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -410,27 +410,10 @@ import type { EnhancedUsageRecord, ModelUsageType } from '@/api/types/types'
 import { formatCost } from '@/config/pricing'
 import { computed, ref } from 'vue'
 
-// Props
-interface Props {
-  data: EnhancedUsageRecord[]
-  isLoading?: boolean
-  error?: string | null
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  isLoading: false,
-  error: null,
-  pagination: undefined,
-})
 
 const emit = defineEmits<{
   'page-change': [page: number]
+  'sort-change': [field: string, order: 'asc' | 'desc']
 }>()
 
 // Local state
@@ -443,14 +426,47 @@ const handlePageSizeChange = () => {
   pageSize.value = Number(pageSize.value)
 }
 
-// Sortierung state
+// Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
 const sortField = ref('date')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+
+// Props für Backend-Sortierung (optional)
+interface Props {
+  data: EnhancedUsageRecord[]
+  isLoading?: boolean
+  error?: string | null
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  sortField?: string // Aktuelles Sortierfeld vom Backend
+  sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
+  useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false,
+  error: null,
+  pagination: undefined,
+  sortField: undefined,
+  sortOrder: undefined,
+  useBackendSorting: false,
+})
 
 // Computed
 const filteredData = computed(() => props.data)
 
+// Wenn Backend-Sortierung aktiv ist, nutze Daten direkt (bereits sortiert)
+// Sonst client-seitige Sortierung als Fallback
 const sortedData = computed(() => {
+  if (props.useBackendSorting) {
+    // Daten sind bereits vom Backend sortiert
+    return filteredData.value
+  }
+
+  // Fallback: Client-seitige Sortierung
   const data = [...filteredData.value]
 
   return data.sort((a, b) => {
@@ -495,6 +511,15 @@ const sortedData = computed(() => {
 
     return sortOrder.value === 'asc' ? comparison : -comparison
   })
+})
+
+// Aktuelles Sortierfeld für Anzeige
+const currentSortField = computed(() => {
+  return props.useBackendSorting && props.sortField ? props.sortField : sortField.value
+})
+
+const currentSortOrder = computed(() => {
+  return props.useBackendSorting && props.sortOrder ? props.sortOrder : sortOrder.value
 })
 
 // Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
@@ -564,15 +589,23 @@ const formatDate = (day?: number, month?: number, year?: number): string => {
 
 // Methods
 const sortBy = (field: string) => {
-  if (sortField.value === field) {
-    // Toggle sort order if same field
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  if (props.useBackendSorting) {
+    // Backend-Sortierung: Emitte Event an Parent-Komponente
+    const newOrder =
+      currentSortField.value === field && currentSortOrder.value === 'desc' ? 'asc' : 'desc'
+    emit('sort-change', field, newOrder)
   } else {
-    // Set new field and default to desc
-    sortField.value = field
-    sortOrder.value = 'desc'
+    // Client-seitige Sortierung (Fallback)
+    if (sortField.value === field) {
+      // Toggle sort order if same field
+      sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+      // Set new field and default to desc
+      sortField.value = field
+      sortOrder.value = 'desc'
+    }
+    currentPage.value = 1 // Reset to first page when sorting changes
   }
-  currentPage.value = 1 // Reset to first page when sorting changes
 }
 
 const exportTableData = async () => {

@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface ChartData {
   labels: string[]

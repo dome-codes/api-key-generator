@@ -148,3 +148,21 @@ Die alten Komponenten (`UsageTabs.vue`, `UsageChart.vue`, etc.) wurden refactore
 1. **Extraction Komponenten refactoren**: Nutze die gleichen Basis-Komponenten wie AI Usage
 2. **Sortierung**: Client-seitige Sortierung in `UsageDetailedTable.vue` auf Backend verschieben
 3. **Weitere Chart-Typen**: Bei Bedarf weitere Chart-Komponenten hinzufügen
+
+---
+
+## 🔮 Mögliche Verbesserungen (nach API-Umstellung)
+
+Diese Punkte passen zur neuen API-Logik und würden UX/Performance weiter verbessern:
+
+| Thema | Beschreibung |
+|-------|--------------|
+| **Server-seitige Sortierung** | `UsageDetailedTable.vue` sortiert aktuell client-seitig (`sortBy`, `sortField`, `sortOrder`). API um Parameter `sort`, `order` erweitern und Tabelle nur noch anzeigen – weniger Datenübertragung, konsistent mit Filter/Pagination. |
+| **Debouncing bei Textfiltern** | Tag- und Modell-Inputs bei jedem Tastendruck → sofort API-Call. Mit z. B. 300–500 ms Debounce weniger Requests und bessere Performance. |
+| **Filter in URL (Query-Params)** | Zeitraum, Tag, Modell, Seite etc. in `?from=...&to=...&tag=...` speichern. Ermöglicht teilen/bookmarken und „Zurück“-Verhalten. |
+| **Extraction-Charts** | `useExtractionUsageApi` um `chartData` / Verteilungsdaten (z. B. nach Provider, Status) erweitern und gleiche Chart-Komponenten wie bei AI Usage nutzen. |
+| **Einheitlicher Empty State** | Wenn API 0 Treffer liefert: gemeinsame „Keine Daten zu den gewählten Filtern“-Komponente mit optionalem „Filter zurücksetzen“. |
+| **Fehlerbehandlung & Retry** | Bei API-Fehler: „Erneut versuchen“-Button oder Toast mit Retry, statt nur statischer Fehlermeldung. |
+| **Alte Komponenten aufräumen** | `UsageChart.vue`, `UsageAdditionalCharts.vue`, `UsageFilters.vue`, `UsageSummary.vue` werden nicht mehr von `UsageTabs` genutzt (ersetzt durch `ai/`). Entweder löschen oder klar als deprecated kennzeichnen. |
+| **Skeleton statt Spinner** | Beim Laden von Cards/Tabelle Skeleton-Placeholder statt nur Spinner – wirkt ruhiger und konsistenter. |
+| **Chart-Perioden-Refetch** | Wenn Nutzer „Täglich / Wöchentlich / Monatlich“ wechselt: prüfen ob mit aktuellem `groupBy` bereits die richtige Granularität kommt oder ob ein Refetch mit anderem `groupBy` nötig ist. |

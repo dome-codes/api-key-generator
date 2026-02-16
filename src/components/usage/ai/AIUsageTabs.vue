@@ -93,7 +93,11 @@
         :is-loading="isLoading"
         :error="error"
         :pagination="pagination"
+        :sort-field="currentFilter.sort"
+        :sort-order="currentFilter.order"
+        :use-backend-sorting="true"
         @page-change="handlePageChange"
+        @sort-change="handleSortChange"
       />
     </div>
 
@@ -148,7 +152,11 @@
         :is-loading="isLoading"
         :error="error"
         :pagination="pagination"
+        :sort-field="currentFilter.sort"
+        :sort-order="currentFilter.order"
+        :use-backend-sorting="true"
         @page-change="handlePageChange"
+        @sort-change="handleSortChange"
       />
     </div>
   </div>
@@ -182,6 +190,8 @@ const {
   loadUsageSummary,
   updateFilter,
   goToPage,
+  updateSort,
+  currentFilter,
 } = useUsageApi()
 
 // Filter State - Own
@@ -297,6 +307,12 @@ const handleAdminFilterChange = async () => {
 const handlePageChange = async (page: number) => {
   const useAdminApi = activeTab.value === 'admin'
   await goToPage(page, useAdminApi)
+}
+
+// Handle sort change
+const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
+  const useAdminApi = activeTab.value === 'admin'
+  await updateSort(field, order, useAdminApi)
 }
 
 const handleChartPeriodChange = (period: string) => {

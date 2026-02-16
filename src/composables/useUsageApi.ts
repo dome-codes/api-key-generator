@@ -333,5 +333,6 @@ export function useUsageApi() {
     goToPage,
     updateFilter,
     resetFilter,
+    updateSort,
   }
 }

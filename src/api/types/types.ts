@@ -116,21 +116,72 @@ export interface UsageAISummaryGetV1Params {
   apiKeyId?: string
 }
 
-export interface UsageAISummaryGetV1Params {
-  from_date?: string
-  to_date?: string
-  by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
-  model?: string
-  technicalUserId?: string
-  apiKeyId?: string
-}
-
 export interface AdminUsageAISummaryGetV1Params {
   from_date?: string
   to_date?: string
   by?: 'day' | 'week' | 'month' | 'user' | 'model' | 'apikey' | 'tag' // Neue Gruppierung
   model?: string
   technicalUserId?: string
+}
+
+// Erweiterte API Parameters mit Pagination und Server-side Filtering
+export interface UsageAIGetV1ParamsExtended {
+  from_date?: string
+  to_date?: string
+  page?: number
+  limit?: number
+  userId?: string
+  tag?: string
+  apiKeyId?: string
+  model?: string
+  modelType?: ModelUsageType
+  sort?: string // Feld nach dem sortiert werden soll (z.B. 'date', 'cost', 'requests')
+  order?: 'asc' | 'desc' // Sortierreihenfolge
+}
+
+export interface UsageAISummaryGetV1ParamsExtended {
+  from_date?: string
+  to_date?: string
+  page?: number
+  limit?: number
+  userId?: string
+  tag?: string
+  apiKeyId?: string
+  model?: string
+  modelType?: ModelUsageType
+  by?: ('day' | 'month' | 'year' | 'tag' | 'apiKey' | 'model' | 'user')[]
+}
+
+export interface AdminUsageAISummaryGetV1ParamsExtended {
+  from_date?: string
+  to_date?: string
+  page?: number
+  limit?: number
+  userId?: string
+  tag?: string
+  apiKeyId?: string
+  model?: string
+  modelType?: ModelUsageType
+  by?: ('day' | 'month' | 'year' | 'tag' | 'apiKey' | 'model' | 'user')[]
+}
+
+// Pagination Info
+export interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+// Paginated Response Types
+export interface UsagePageResponse {
+  data: ModelUsage[]
+  pagination: PaginationInfo
+}
+
+export interface SummaryUsagePageResponse {
+  data: SummaryUsage[]
+  pagination: PaginationInfo
 }
 
 // API Response Types
@@ -193,6 +244,22 @@ export interface UsageFilter {
   modelType?: ModelUsageType
   technicalUserIds?: string[]
   groupBy?: 'day' | 'week' | 'month' | 'user' | 'model'
+}
+
+// Erweiterte Filter für API-basierte Filterung
+export interface UsageFilterApi {
+  fromDate?: string
+  toDate?: string
+  page?: number
+  limit?: number
+  userId?: string
+  tag?: string
+  apiKeyId?: string
+  model?: string
+  modelType?: ModelUsageType
+  groupBy?: ('day' | 'month' | 'year' | 'tag' | 'apiKey' | 'model' | 'user')[]
+  sort?: string // Feld nach dem sortiert werden soll
+  order?: 'asc' | 'desc' // Sortierreihenfolge
 }
 
 export interface UsageAggregation {
