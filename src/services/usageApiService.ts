@@ -100,13 +100,11 @@ export const usageApiService = {
         (response.data || []).map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
           const fromItem = readTokensFromItem(item as Record<string, unknown>)
           const requestTokens =
-            fromItem.requestTokens ||
-            (item as AIUsageSummaryRecord).requestTokens ??
+            (fromItem.requestTokens || (item as AIUsageSummaryRecord).requestTokens) ??
             (item as AIUsageRecord).tokensIn ??
             0
           const responseTokens =
-            fromItem.responseTokens ||
-            (item as AIUsageSummaryRecord).responseTokens ??
+            (fromItem.responseTokens || (item as AIUsageSummaryRecord).responseTokens) ??
             (item as AIUsageRecord).tokensOut ??
             0
 
