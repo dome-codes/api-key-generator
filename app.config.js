@@ -1,24 +1,25 @@
 /**
  * App Configuration
- * This file exports environment variables that work both for:
- * - Local development (via .env.local and import.meta.env)
- * - Docker deployment (via runtime replacement of placeholders)
+ * Funktioniert in Vite (import.meta.env) und in Node (z. B. Orval-Generierung via process.env).
  */
+function env(key, fallback = '') {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env[key] !== 'undefined') {
+      return import.meta.env[key]
+    }
+  } catch (_) {}
+  if (typeof process !== 'undefined' && process.env && process.env[key] !== undefined) {
+    return process.env[key]
+  }
+  return fallback
+}
 
 export default {
-  // Application Base Path
-  appBasePath: import.meta.env.VITE_APP_BASE_PATH || '__VITE_APP_BASE_PATH__' || '/admin-console',
-
-  // API Configuration
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '__VITE_API_BASE_URL__',
-
-  // Keycloak Configuration
-  keycloakUrl: import.meta.env.VITE_KEYCLOAK_URL || '__VITE_KEYCLOAK_URL__',
-  keycloakRealm: import.meta.env.VITE_KEYCLOAK_REALM || '__VITE_KEYCLOAK_REALM__',
-  keycloakClientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || '__VITE_KEYCLOAK_CLIENT_ID__',
-  /** Scopes für Access-Token (z. B. "openid default admin"). Bei insufficient_scope vom Backend anpassen. */
-  keycloakScope: import.meta.env.VITE_KEYCLOAK_SCOPE || undefined,
-
-  // Debug Configuration
-  showDebug: import.meta.env.VITE_SHOW_DEBUG === 'true' || '__VITE_SHOW_DEBUG__' === 'true',
+  appBasePath: env('VITE_APP_BASE_PATH') || '__VITE_APP_BASE_PATH__' || '/admin-console',
+  apiBaseUrl: env('VITE_API_BASE_URL') || '__VITE_API_BASE_URL__',
+  keycloakUrl: env('VITE_KEYCLOAK_URL') || '__VITE_KEYCLOAK_URL__',
+  keycloakRealm: env('VITE_KEYCLOAK_REALM') || '__VITE_KEYCLOAK_REALM__',
+  keycloakClientId: env('VITE_KEYCLOAK_CLIENT_ID') || '__VITE_KEYCLOAK_CLIENT_ID__',
+  keycloakScope: env('VITE_KEYCLOAK_SCOPE') || undefined,
+  showDebug: env('VITE_SHOW_DEBUG') === 'true' || '__VITE_SHOW_DEBUG__' === 'true',
 }

@@ -2,15 +2,13 @@ import { getToken, whenTokenReadyForApi } from '@/auth/keycloak'
 import appConfig from '@root/app.config.js'
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
-// Debug-Log-Funktion (nur im Debug-Modus)
+// Debug-Log (nur im Debug-Modus); kein import.meta hier, damit Orval in Node laufen kann
 const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log(...args)
-  }
+  try {
+    const showDebug = (appConfig as { showDebug?: boolean }).showDebug
+    const fromStorage = typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
+    if (showDebug || fromStorage) console.log(...args)
+  } catch (_) {}
 }
 
 // Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
