@@ -221,6 +221,16 @@ export const hasPermission = (
   return permitted
 }
 
+/**
+ * True, wenn der Nutzer eine gültige App-Identität hat (Token + bekannte Rolle).
+ * „Unbekannter Nutzer“ / keine Rolle → false → Weiterleitung zu Nicht autorisiert.
+ */
+export const hasValidAppUser = (): boolean => {
+  if (shouldBypassKeycloak()) return true
+  if (!keycloak.tokenParsed) return false
+  return getHighestRole() !== UserRole.NONE
+}
+
 // Restliche Hilfsfunktionen (z.B. userid, userEmail, debugToken)
 export const getUserId = (): string | null => keycloak.tokenParsed?.sub || null
 export const getUserEmail = (): string | null => keycloak.tokenParsed?.email || null
@@ -237,6 +247,19 @@ export const debugToken = () => {
   debugLog('sub:', keycloak.tokenParsed.sub)
   debugLog('email:', keycloak.tokenParsed.email)
   debugLog('groups:', keycloak.tokenParsed.groups)
+}
+
+/** Leitet den Browser zur Keycloak-Login-Oberfläche weiter (kein Redirect im Bypass-Modus). */
+export const redirectToKeycloakLogin = (): void => {
+  if (shouldBypassKeycloak()) return
+  try {
+    const k = keycloak as { login?: () => void }
+    if (k != null && typeof k.login === 'function') {
+      k.login()
+    }
+  } catch (_) {
+    console.error('Redirect zu Keycloak Login fehlgeschlagen')
+  }
 }
 
 // Keycloak Instanz (default) exportieren

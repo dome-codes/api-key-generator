@@ -23,7 +23,27 @@ const routes: RouteRecordRaw[] = [
     // route level code-splitting
     component: () => import('../views/AboutView.vue'),
   },
-  // Geschützter Bereich - Admin Console
+  // Root – AuthGuard (Keycloak + gültiger Nutzer), „Nicht autorisiert“ zentral hier
+  {
+    path: '/',
+    component: AuthGuard,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'home',
+        component: HomeView,
+        meta: { requiresAuth: true },
+      },
+      {
+        path: 'nicht-autorisiert',
+        name: 'NichtAutorisiert',
+        component: () => import('../views/NichtAutorisiert.vue'),
+        meta: { requiresAuth: false },
+      },
+    ],
+  },
+  // Admin-Console – gleicher AuthGuard, Redirect „nicht autorisiert“ → /
   {
     path: '/admin-console',
     component: AuthGuard,
@@ -33,26 +53,13 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'AdminHome',
         component: HomeView,
-        meta: {
-          requiresAuth: true,
-        },
+        meta: { requiresAuth: true },
       },
       {
         path: 'nicht-autorisiert',
-        name: 'NichtAutorisiert',
-        component: () => import('../views/NichtAutorisiert.vue'),
-        meta: {
-          requiresAuth: false, // Diese Seite selbst benötigt keine Auth
-        },
+        redirect: { name: 'NichtAutorisiert' },
       },
     ],
-  },
-  // Root Route - wird durch AuthGuard in App.vue geschützt
-  {
-    path: '/',
-    name: 'home',
-    component: HomeView,
-    meta: { requiresAuth: true },
   },
 ]
 

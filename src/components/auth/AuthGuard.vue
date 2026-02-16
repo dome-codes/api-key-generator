@@ -25,13 +25,38 @@
       </div>
     </div>
 
-    <!-- App-Inhalt nach erfolgreicher Authentifizierung -->
-    <slot v-else />
+    <!-- App-Inhalt nur bei gültiger Auth (kein Token = nichts anzeigen) -->
+    <template v-else-if="isAuthenticated">
+      <slot />
+    </template>
+    <!-- Nicht eingeloggt: Weiterleitung zur Keycloak-Login-Oberfläche -->
+    <div v-else class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div
+          class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"
+        ></div>
+        <p class="text-gray-600">
+          {{ redirectingToLogin ? 'Weiterleitung zur Anmeldung…' : 'Nicht angemeldet.' }}
+        </p>
+        <button
+          v-if="!redirectingToLogin"
+          @click="retryAuth"
+          class="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
+        >
+          Anmelden
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { initKeycloak, hasPermission } from '@/auth/keycloak'
+import {
+  initKeycloak,
+  hasPermission,
+  hasValidAppUser,
+  redirectToKeycloakLogin,
+} from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
@@ -53,10 +78,12 @@ const { userProfile, highestRole, isAdmin } = useAuth()
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
 const error = ref('')
+const redirectingToLogin = ref(false)
 
 const retryAuth = async () => {
   isLoading.value = true
   error.value = ''
+  redirectingToLogin.value = false
   await initializeAuth()
 }
 
@@ -66,8 +93,15 @@ const initializeAuth = async () => {
     isAuthenticated.value = authenticated
     
     if (authenticated) {
+      // Kein gültiger Nutzer (Unbekannter Nutzer / keine Rolle) → Nicht autorisiert
+      if (!hasValidAppUser()) {
+        isAuthenticated.value = false
+        router.push({ name: 'NichtAutorisiert' })
+        return
+      }
       debugLog('Benutzer erfolgreich authentifiziert')
-      
+      isAuthenticated.value = true
+
       // Prüfe Route-basierte Berechtigungen
       if (route.meta.requiredPermissions && route.meta.requiredPermissions.length > 0) {
         const { hasPermission } = await import('@/auth/keycloak')
@@ -90,8 +124,9 @@ const initializeAuth = async () => {
         }
       }
     } else {
-      error.value = 'Authentifizierung fehlgeschlagen'
-      // Redirect zu Keycloak Login wird durch initKeycloak mit onLoad: 'login-required' gemacht
+      // Nicht eingeloggt → Keycloak-Login-Oberfläche anzeigen (Redirect)
+      redirectToKeycloakLogin()
+      redirectingToLogin.value = true
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unbekannter Authentifizierungsfehler'

@@ -28,12 +28,9 @@ export function useAuth() {
   const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
   const canSeeOwnUsage = computed(() => hasPermission('canSeeOwnUsage'))
 
-  // Logout-Funktion (abgesichert: keycloak kann bei Bypass/Reihenfolge noch undefined sein)
+  // Logout-Funktion: wirft nie – bei fehlendem Keycloak/Token immer Fallback (Session leeren, Reload)
   const handleLogout = () => {
-    if (keycloak?.logout && typeof keycloak.logout === 'function') {
-      keycloak.logout()
-    } else {
-      // Fallback: Session bereinigen und Seite neu laden (z. B. bei Bypass oder vor Init)
+    const doFallback = () => {
       try {
         sessionStorage.clear()
         localStorage.removeItem('bypassKeycloak')
@@ -41,6 +38,16 @@ export function useAuth() {
       window.location.href = window.location.pathname || '/'
       window.location.reload()
     }
+    try {
+      const k = keycloak
+      if (k != null && typeof (k as { logout?: () => void }).logout === 'function') {
+        ;(k as { logout: () => void }).logout()
+        return
+      }
+    } catch (_) {
+      // z. B. keycloak oder logout undefined → Fallback
+    }
+    doFallback()
   }
 
   return {
