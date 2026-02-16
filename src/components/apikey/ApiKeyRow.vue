@@ -166,37 +166,17 @@
 </template>
 
 <script setup lang="ts">
+import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
 import CostProgressBarTable from '@/components/usage/CostProgressBarTable.vue'
 import { computed, ref } from 'vue'
 
 const showRevokedUsage = ref(false)
 
-// Legacy interface for backward compatibility
-interface LegacyApiKey {
-  id: string
-  apiKey: string
-  name: string
-  permissions: string
-  createdAt: string
-  createdBy: string
-  validUntil: string
-  lastUsed: string
-  status: string
-  userId?: string
-  userName?: string
-}
-
-interface UsageData {
-  cost: number
-  tokensIn: number
-  tokensOut: number
-}
-
 const props = defineProps<{
-  keyData: LegacyApiKey
+  keyData: ApiKeyDisplay
   editing: boolean
   editingName: string
-  usageData: UsageData
+  usageData: ApiKeyUsageData
   budgetLimit: number
   isAdmin: boolean
   isEntwicklung: boolean
@@ -206,11 +186,11 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
-  edit: [key: LegacyApiKey]
+  edit: [key: ApiKeyDisplay]
   save: [apiKey: string]
   cancel: []
   revoke: [keyId: string]
-  rotate: [key: LegacyApiKey]
+  rotate: [key: ApiKeyDisplay]
   'name-input': [value: string]
 }>()
 

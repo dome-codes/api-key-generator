@@ -32,7 +32,7 @@ paths:
         - $ref: '#/components/parameters/Common.RequestParams.Tag'
         - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
         - $ref: '#/components/parameters/AI.RequestParams.Model'
-        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.UsageType'
       responses:
         '200':
           description: OK
@@ -65,7 +65,7 @@ paths:
         - $ref: '#/components/parameters/Common.RequestParams.Tag'
         - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
         - $ref: '#/components/parameters/AI.RequestParams.Model'
-        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.UsageType'
         - $ref: '#/components/parameters/AI.RequestParams.GroupBy'
       responses:
         '200':
@@ -103,7 +103,7 @@ paths:
         - $ref: '#/components/parameters/Common.RequestParams.Tag'
         - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
         - $ref: '#/components/parameters/AI.RequestParams.Model'
-        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.UsageType'
       responses:
         '200':
           description: OK
@@ -138,7 +138,7 @@ paths:
         - $ref: '#/components/parameters/Common.RequestParams.Tag'
         - $ref: '#/components/parameters/Common.RequestParams.ApiKeyId'
         - $ref: '#/components/parameters/AI.RequestParams.Model'
-        - $ref: '#/components/parameters/AI.RequestParams.ModelType'
+        - $ref: '#/components/parameters/AI.RequestParams.UsageType'
         - $ref: '#/components/parameters/AI.RequestParams.GroupBy'
       responses:
         '200':
@@ -408,7 +408,7 @@ components:
     AI.RequestParams.ModelType:
       name: modelType
       in: query
-      description: Filter by model type.
+      description: '(Deprecated) Use usageType instead. Filter by model type (PascalCase).'
       required: false
       schema:
         type: string
@@ -417,6 +417,19 @@ components:
           - EmbeddingModelUsage
           - ImageModelUsage
         example: 'CompletionModelUsage'
+
+    AI.RequestParams.UsageType:
+      name: usageType
+      in: query
+      description: Filter by usage type (backend enum).
+      required: false
+      schema:
+        type: string
+        enum:
+          - COMPLETION_USAGE
+          - EMBEDDING_USAGE
+          - IMAGE_USAGE
+        example: 'COMPLETION_USAGE'
 
     AI.RequestParams.GroupBy:
       name: by

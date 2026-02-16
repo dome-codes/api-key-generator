@@ -103,7 +103,7 @@ await loadUsageData(
 - `tag`: Filter nach Tag
 - `apiKeyId`: Filter nach API-Key-ID
 - `model`: Filter nach Modell-Name
-- `modelType`: Filter nach Modell-Typ (`CompletionModelUsage`, `EmbeddingModelUsage`, `ImageModelUsage`)
+- `usageType`: Filter nach Nutzungstyp in der API (`COMPLETION_USAGE`, `EMBEDDING_USAGE`, `IMAGE_USAGE`). Die UI verwendet weiterhin Modelltyp-Labels (z. B. CompletionModelUsage), die vor dem API-Call gemappt werden.
 - `groupBy`: Array von Gruppierungsfeldern (`['day', 'month', 'year', 'tag', 'apiKey', 'model', 'user']`)
 
 ## Migration

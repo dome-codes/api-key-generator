@@ -13,7 +13,7 @@ import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUs
 import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter';
 import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter';
 import type { AIRequestParamsModelParameter } from './aIRequestParamsModelParameter';
-import type { AIRequestParamsModelTypeParameter } from './aIRequestParamsModelTypeParameter';
+import type { AIRequestParamsUsageTypeParameter } from './aIRequestParamsUsageTypeParameter';
 import type { AIRequestParamsGroupByParameter } from './aIRequestParamsGroupByParameter';
 
 export type AdminUsageAISummaryGetV1Params = {
@@ -50,9 +50,9 @@ apiKeyId?: CommonRequestParamsApiKeyIdParameter;
  */
 model?: AIRequestParamsModelParameter;
 /**
- * Filter by model type.
+ * Filter by usage type (COMPLETION_USAGE, EMBEDDING_USAGE, IMAGE_USAGE).
  */
-modelType?: AIRequestParamsModelTypeParameter;
+usageType?: AIRequestParamsUsageTypeParameter;
 /**
  * Comma separated list of parameters to group by: day|month|year|[tag|apiKey|model|user]
  */

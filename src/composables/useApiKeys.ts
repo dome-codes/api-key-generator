@@ -1,22 +1,6 @@
-// TODO: Nach Orval-Generierung hier die generierten Types importieren
-// import type { ApiKey } from '@/api/generated'
+import type { ApiKeyDisplay } from '@/api/types/frontend'
 import { apiKeyService } from '@/services/apiService'
 import { computed, ref } from 'vue'
-
-// Legacy interface für Kompatibilität mit bestehenden Komponenten
-interface LegacyApiKey {
-  id: string
-  apiKey: string
-  name: string
-  permissions: string
-  createdAt: string
-  createdBy: string
-  validUntil: string
-  lastUsed: string
-  status: string
-  userId?: string
-  userName?: string
-}
 
 interface UserProfile {
   value?: {
@@ -41,15 +25,13 @@ export function useApiKeys(userProfile: UserProfile) {
   const editingName = ref('')
   const showRevokeSuccessMessage = ref(false)
 
-  // Legacy-Kompatibilität für bestehende Komponenten
-  const legacyKeys = computed(() => {
+  const apiKeys = computed<ApiKeyDisplay[]>(() => {
     return keys.value.map((key: any) => ({
       id: key.id,
       apiKey: key.id,
       name: key.name,
       permissions: 'api-access',
       createdAt: key.createdAt,
-      // TODO: createdBy can be retrieved from Keycloak later
       createdBy: userProfile.value?.name || 'Unknown',
       validUntil: key.expiresAt || 'Never',
       lastUsed: 'Never',
@@ -130,7 +112,7 @@ export function useApiKeys(userProfile: UserProfile) {
     editingKey,
     editingName,
     showRevokeSuccessMessage,
-    legacyKeys,
+    apiKeys,
     loadKeys,
     createKey,
     revokeKey,

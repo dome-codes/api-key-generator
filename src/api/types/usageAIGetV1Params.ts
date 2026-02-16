@@ -13,7 +13,7 @@ import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUs
 import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter';
 import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter';
 import type { AIRequestParamsModelParameter } from './aIRequestParamsModelParameter';
-import type { AIRequestParamsModelTypeParameter } from './aIRequestParamsModelTypeParameter';
+import type { AIRequestParamsUsageTypeParameter } from './aIRequestParamsUsageTypeParameter';
 
 export type UsageAIGetV1Params = {
 /**
@@ -49,7 +49,7 @@ apiKeyId?: CommonRequestParamsApiKeyIdParameter;
  */
 model?: AIRequestParamsModelParameter;
 /**
- * Filter by model type.
+ * Filter by usage type (COMPLETION_USAGE, EMBEDDING_USAGE, IMAGE_USAGE).
  */
-modelType?: AIRequestParamsModelTypeParameter;
+usageType?: AIRequestParamsUsageTypeParameter;
 };

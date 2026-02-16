@@ -166,7 +166,7 @@ export const usageApiService = {
     try {
       debugLog('Loading usage data with filter:', filter)
 
-      // List-API erwartet modelType (PascalCase: CompletionModelUsage, EmbeddingModelUsage, ImageModelUsage), nicht usageType
+      const usageTypeValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -176,7 +176,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        modelType: filter.modelType || undefined,
+        usageType: usageTypeValue,
       } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
@@ -297,7 +297,7 @@ export const usageApiService = {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
-      // Summarize-API unterstützt nur from_date und to_date (kein usageType/modelType)
+      const usageTypeValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -307,6 +307,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
+        usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       } as import('@/api/types').UsageAISummaryGetV1Params
 

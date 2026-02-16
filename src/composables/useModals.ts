@@ -1,37 +1,23 @@
-// TODO: Nach Orval-Generierung hier die generierten Types importieren
-// import type { ApiKey } from '@/api/generated'
+import type { ApiKeyDisplay } from '@/api/types/frontend'
 import { ref } from 'vue'
-
-// Legacy interface für Kompatibilität mit bestehenden Komponenten
-interface LegacyApiKey {
-  id: string
-  apiKey: string
-  name: string
-  permissions: string
-  createdAt: string
-  createdBy: string
-  validUntil: string
-  lastUsed: string
-  status: string
-}
 
 export function useModals() {
   const showEditModal = ref(false)
   const editModalName = ref('')
   const editModalPermissions = ref<string[]>([])
-  const editModalKey = ref<any | null>(null)
+  const editModalKey = ref<ApiKeyDisplay | null>(null)
   const showEditSuccessMessage = ref(false)
   const showCreateSuccessMessage = ref(false)
   const showCreateModal = ref(false)
   const showKeyDisplayModal = ref(false)
   const showSuccessMessage = ref(false)
 
-  function startEditing(key: LegacyApiKey, keys: any[]) {
-    const newKey = keys.find((k: any) => k.id === key.id)
+  function startEditing(key: ApiKeyDisplay, keys: ApiKeyDisplay[]) {
+    const newKey = keys.find((k) => k.id === key.id)
     if (!newKey) return
 
     editModalName.value = newKey.name
-    editModalPermissions.value = [...newKey.permissions]
+    editModalPermissions.value = (newKey.permissions || 'api-access').split(',').map((p) => p.trim()).filter(Boolean)
     editModalKey.value = newKey
     showEditModal.value = true
   }

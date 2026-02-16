@@ -300,39 +300,19 @@
 </template>
 
 <script setup lang="ts">
+import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
 import { UserRole } from '@/auth/keycloak'
 import Pagination from '@/components/ui/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'
 import { computed, ref } from 'vue'
 import ApiKeyRow from './ApiKeyRow.vue'
 
-// Legacy interface for backward compatibility
-interface LegacyApiKey {
-  id: string
-  apiKey: string
-  name: string
-  permissions: string
-  createdAt: string
-  createdBy: string
-  validUntil: string
-  lastUsed: string
-  status: string
-  userId?: string
-  userName?: string
-}
-
-interface UsageData {
-  cost: number
-  tokensIn: number
-  tokensOut: number
-}
-
 const props = defineProps<{
-  keys: LegacyApiKey[]
+  keys: ApiKeyDisplay[]
   editingKey: string | null
   editingName: string
   budgetLimit: number
-  usageData?: { [keyId: string]: UsageData }
+  usageData?: Record<string, ApiKeyUsageData>
 }>()
 
 // Auth composable verwenden
@@ -344,7 +324,7 @@ const isEntwicklung = computed(() => {
 })
 
 const emits = defineEmits<{
-  edit: [key: LegacyApiKey]
+  edit: [key: ApiKeyDisplay]
   save: [apiKey: string]
   cancel: []
   revoke: [keyId: string]
@@ -607,7 +587,7 @@ const handleUserBlur = () => {
 }
 
 // Erstelle KeyData für gruppierte Benutzer
-const createGroupedKeyData = (groupedKey: any): LegacyApiKey => {
+const createGroupedKeyData = (groupedKey: any): ApiKeyDisplay => {
   const latestKey = groupedKey.keys.reduce((latest: any, key: any) =>
     new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
   )
@@ -628,7 +608,7 @@ const createGroupedKeyData = (groupedKey: any): LegacyApiKey => {
 }
 
 // Get usage data for a specific key or user group
-const getUsageDataForKey = (keyId: string): UsageData => {
+const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
   // Für Admins: Wenn es ein gruppierter Key ist, verwende die gruppierten Daten
   if (isAdmin.value) {
     const groupedKey = adminGroupedKeys.value.find((group) => group.userId === keyId)
@@ -641,13 +621,8 @@ const getUsageDataForKey = (keyId: string): UsageData => {
     }
   }
 
-  // Fallback für normale Keys
   if (!props.usageData || !props.usageData[keyId]) {
-    return {
-      cost: 0,
-      tokensIn: 0,
-      tokensOut: 0,
-    }
+    return { cost: 0, tokensIn: 0, tokensOut: 0 }
   }
 
   return props.usageData[keyId]

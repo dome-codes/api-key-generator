@@ -650,10 +650,11 @@ function applyFilters(data, filters) {
     )
   }
 
-  // ModelType filter
-  if (filters.modelType) {
+  // usageType (COMPLETION_USAGE etc.) oder modelType (CompletionModelUsage etc.) Filter
+  const typeFilter = filters.modelType
+  if (typeFilter) {
     filtered = filtered.filter(
-      (item) => item.type === filters.modelType || item.modelType === filters.modelType,
+      (item) => item.type === typeFilter || item.modelType === typeFilter,
     )
   }
 
@@ -772,6 +773,12 @@ function applyPagination(data, page = 1, limit = 20) {
   }
 }
 
+// usageType (COMPLETION_USAGE) -> modelType (CompletionModelUsage) für Filter/DB
+function usageTypeToModelType(usageType) {
+  const map = { COMPLETION_USAGE: 'CompletionModelUsage', EMBEDDING_USAGE: 'EmbeddingModelUsage', IMAGE_USAGE: 'ImageModelUsage' }
+  return map[usageType] || usageType
+}
+
 // GET /v1/usage/ai - Get AI usage data (mit Pagination, Sortierung, Filter)
 app.get('/v1/usage/ai', validateToken, (req, res) => {
   const {
@@ -781,12 +788,14 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
     limit,
     tag,
     model,
-    modelType,
+    modelType: queryModelType,
+    usageType: queryUsageType,
     apiKeyId,
     userId,
     sort,
     order,
   } = req.query
+  const modelType = usageTypeToModelType(queryUsageType) || queryModelType
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Getting AI usage data with filters:`, req.query)
@@ -883,10 +892,12 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     limit,
     tag,
     model,
-    modelType,
+    modelType: queryModelType,
+    usageType: queryUsageType,
     apiKeyId,
     userId,
   } = req.query
+  const modelType = usageTypeToModelType(queryUsageType) || queryModelType
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Getting AI usage summary with filters:`, req.query)
@@ -956,12 +967,14 @@ app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, r
     limit,
     tag,
     model,
-    modelType,
+    modelType: queryModelType,
+    usageType: queryUsageType,
     apiKeyId,
     userId,
     sort,
     order,
   } = req.query
+  const modelType = usageTypeToModelType(queryUsageType) || queryModelType
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Admin: Getting all AI usage data with filters:`, req.query)
@@ -1009,11 +1022,13 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     limit,
     tag,
     model,
-    modelType,
+    modelType: queryModelType,
+    usageType: queryUsageType,
     apiKeyId,
     userId,
     technicalUserId,
   } = req.query
+  const modelType = usageTypeToModelType(queryUsageType) || queryModelType
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Admin: Getting AI usage summary with filters:`, req.query)

@@ -128,6 +128,35 @@ export interface UsageAggregation {
   totalImages?: number
 }
 
+/**
+ * Verbrauch pro API-Key für die API-Key-Liste (Progress/Tokens).
+ * Entspricht der Aggregation von AIUsageSummaryRecord/EnhancedUsageRecord pro apiKeyId:
+ * requestTokens → tokensIn, responseTokens → tokensOut, cost (optional von API oder berechnet).
+ */
+export interface ApiKeyUsageData {
+  cost: number
+  tokensIn: number
+  tokensOut: number
+}
+
+/**
+ * API-Key für die Anzeige in der Liste (Keys-Seite).
+ * Wird aus der API-Response gemappt (z. B. id, name, createdAt, expiresAt, userId, active → diese Felder).
+ */
+export interface ApiKeyDisplay {
+  id: string
+  apiKey: string
+  name: string
+  permissions: string
+  createdAt: string
+  createdBy: string
+  validUntil: string
+  lastUsed: string
+  status: string
+  userId?: string
+  userName?: string
+}
+
 export interface ModelUsageSummary {
   modelName: string
   modelType: ModelUsageType

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// TODO: Nach Orval-Generierung hier die generierten Types importieren
-// import type { ApiKey } from '@/api/generated'
+import type { ApiKeyDisplay } from '@/api/types/frontend'
 import ApiKeyCreateModal from '@/components/apikey/ApiKeyCreateModal.vue'
 import ApiKeyEditModal from '@/components/apikey/ApiKeyEditModal.vue'
 import ApiKeyTable from '@/components/apikey/ApiKeyTable.vue'
@@ -15,21 +14,9 @@ import { useBudget } from '@/composables/useBudget'
 import { useDebug } from '@/composables/useDebug'
 import { useModals } from '@/composables/useModals'
 import { useUsage } from '@/composables/useUsage'
+import { buildApiKeyUsageMap } from '@/services/apiKeyUsageMapping'
 import { apiKeyService } from '@/services/apiService'
 import { computed, onMounted, ref } from 'vue'
-
-// Legacy interface for backward compatibility
-interface LegacyApiKey {
-  id: string
-  apiKey: string
-  name: string
-  permissions: string
-  createdAt: string
-  createdBy: string
-  validUntil: string
-  lastUsed: string
-  status: string // 'active' oder 'revoked' basierend auf is_active
-}
 
 // Composables verwenden
 const {
@@ -57,7 +44,7 @@ const {
   editingKey,
   editingName,
   showRevokeSuccessMessage,
-  legacyKeys,
+  apiKeys,
   loadKeys,
   createKey,
   revokeKey,
@@ -90,69 +77,10 @@ const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 // Usage data for detailed breakdown
 const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
 
-// Vergleicht Key-ID mit Usage apiKeyId (Backend kann unterschiedliche Formate liefern)
-function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefined): boolean {
-  if (!usageApiKeyId) return false
-  const a = String(keyId).trim()
-  const b = String(usageApiKeyId).trim()
-  if (a === b) return true
-  return a.toLowerCase() === b.toLowerCase()
-}
-
-// API Key Usage Data from Summarize API (grouped by apiKey)
+// API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
 const apiKeyUsageData = computed(() => {
-  const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
-  const safeUsageData = detailedUsageData.value.filter((item) => item != null)
-
-  console.log('🔍 [HOMEVIEW] Computing apiKeyUsageData from summarize API...')
-  console.log(
-    '🔍 [HOMEVIEW] API Keys:',
-    legacyKeys.value.map((k) => ({ id: k.id, name: k.name, status: k.status })),
-  )
-  console.log('🔍 [HOMEVIEW] Usage Summary Data length:', safeUsageData.length)
-
-  legacyKeys.value.forEach((key) => {
-    const keyUsage = safeUsageData.filter((item) =>
-      keyIdMatchesUsage(key.id, item.apiKeyId),
-    )
-
-    console.log(
-      `🔍 [HOMEVIEW] API Key ${key.name} (${key.id}): Found ${keyUsage.length} usage records`,
-    )
-    if (safeUsageData.length > 0 && keyUsage.length === 0) {
-      console.log(
-        '🔍 [HOMEVIEW] Available apiKeyIds in detailedUsageData:',
-        safeUsageData.map((item) => item.apiKeyId),
-      )
-    }
-
-    if (keyUsage.length > 0) {
-      const totalCost = keyUsage.reduce((sum, u) => sum + (u.cost || 0), 0)
-      const totalTokensIn = keyUsage.reduce((sum, u) => sum + (u.tokensIn || 0), 0)
-      const totalTokensOut = keyUsage.reduce((sum, u) => sum + (u.tokensOut || 0), 0)
-
-      usageMap[key.id] = {
-        cost: totalCost,
-        tokensIn: totalTokensIn,
-        tokensOut: totalTokensOut,
-      }
-
-      console.log(
-        `🔍 [HOMEVIEW]   → Total: Cost=${totalCost}, Tokens=${totalTokensIn}/${totalTokensOut}`,
-      )
-    } else {
-      // Fallback: Verwende 0-Werte wenn keine Daten vorhanden
-      usageMap[key.id] = {
-        cost: 0,
-        tokensIn: 0,
-        tokensOut: 0,
-      }
-
-      console.log(`🔍 [HOMEVIEW]   → No usage data found, using 0 values`)
-    }
-  })
-
-  return usageMap
+  const keyIds = apiKeys.value.map((k) => k.id)
+  return buildApiKeyUsageMap(detailedUsageData.value, keyIds)
 })
 
 // Sidebar state
@@ -211,12 +139,12 @@ const cancelEdit = () => {
 }
 
 // Rotate key function
-const startRotating = (key: LegacyApiKey, keys: any[]) => {
-  const foundKey = keys.find((k: any) => k.id === key.id)
+const startRotating = (key: ApiKeyDisplay, keys: ApiKeyDisplay[]) => {
+  const foundKey = keys.find((k) => k.id === key.id)
   if (foundKey) {
     editModalKey.value = foundKey
     editModalName.value = foundKey.name
-    editModalPermissions.value = foundKey.permissions
+    editModalPermissions.value = (foundKey.permissions || 'api-access').split(',').map((p) => p.trim()).filter(Boolean)
     showEditModal.value = true
   }
 }
@@ -304,16 +232,16 @@ onMounted(() => {
           </div>
           <div class="overflow-x-auto">
             <ApiKeyTable
-              :keys="legacyKeys"
+              :keys="apiKeys"
               :editingKey="editingKey"
               :editingName="editingName"
               :budget-limit="budgetConfig.monthlyLimit"
               :usage-data="apiKeyUsageData"
-              @edit="(key: LegacyApiKey) => startEditing(key, keys)"
+              @edit="(key: ApiKeyDisplay) => startEditing(key, apiKeys)"
               @save="saveEdit"
               @cancel="cancelEdit"
               @revoke="revokeKey"
-              @rotate="(key: LegacyApiKey) => startRotating(key, keys)"
+              @rotate="(key: ApiKeyDisplay) => startRotating(key, apiKeys)"
               @name-input="(val) => (editingName = val)"
             />
           </div>

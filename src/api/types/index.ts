@@ -10,6 +10,7 @@ export * from './aIRequestParamsGroupByParameter';
 export * from './aIRequestParamsGroupByParameterItem';
 export * from './aIRequestParamsModelParameter';
 export * from './aIRequestParamsModelTypeParameter';
+export * from './aIRequestParamsUsageTypeParameter';
 export * from './aIUsagePage';
 export * from './aIUsageRecord';
 export * from './aIUsageRecordQuality';
