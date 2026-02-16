@@ -117,6 +117,24 @@ export function buildApiKeyUsageMap(
         tokensOut: (existing?.tokensOut ?? 0) + fallback.tokensOut,
       }
     }
+    // Fallback wenn Keys kein userId haben (z. B. eigene Keys): Verbrauch dem ersten Key zuordnen
+    const userIdsWithUsage = Object.keys(usageByUserId)
+    if (userIdsWithUsage.length > 0 && userIdAlreadyAssigned.size === 0 && keys.length > 0) {
+      const firstKey = keys[0]
+      const total: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
+      for (const uid of userIdsWithUsage) {
+        const u = usageByUserId[uid]
+        total.cost += u.cost
+        total.tokensIn += u.tokensIn
+        total.tokensOut += u.tokensOut
+      }
+      const existing = map[firstKey.id]
+      map[firstKey.id] = {
+        cost: (existing?.cost ?? 0) + total.cost,
+        tokensIn: (existing?.tokensIn ?? 0) + total.tokensIn,
+        tokensOut: (existing?.tokensOut ?? 0) + total.tokensOut,
+      }
+    }
   }
 
   return map
