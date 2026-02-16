@@ -155,9 +155,22 @@ export const initKeycloak = async (): Promise<boolean> => {
     debugLog('🔓 Keycloak-Bypass aktiviert für Development')
     // Setze Mock-Token
     const mockToken = createMockToken()
+    const tokenPayload = JSON.parse(atob(mockToken.split('.')[1]))
+    
     keycloak.token = mockToken
-    keycloak.tokenParsed = JSON.parse(atob(mockToken.split('.')[1]))
+    keycloak.tokenParsed = tokenPayload
     keycloak.authenticated = true
+    keycloak.idToken = mockToken
+    keycloak.idTokenParsed = tokenPayload
+    
+    // Stelle sicher, dass userInfo verfügbar ist
+    debugLog('🔓 Mock-Token gesetzt:', {
+      name: tokenPayload.name,
+      email: tokenPayload.email,
+      preferred_username: tokenPayload.preferred_username,
+      groups: tokenPayload.groups,
+    })
+    
     return true
   }
 
@@ -201,7 +214,29 @@ export const getToken = async (): Promise<string | null> => {
 
 // Benutzerinformationen abrufen
 export const getUserInfo = () => {
-  return keycloak.tokenParsed
+  // Prüfe zuerst tokenParsed
+  if (keycloak.tokenParsed) {
+    debugLog('🔍 getUserInfo() from tokenParsed:', keycloak.tokenParsed)
+    return keycloak.tokenParsed
+  }
+  
+  // Fallback: Prüfe idTokenParsed
+  if (keycloak.idTokenParsed) {
+    debugLog('🔍 getUserInfo() from idTokenParsed:', keycloak.idTokenParsed)
+    return keycloak.idTokenParsed
+  }
+  
+  // Wenn Bypass aktiv ist, aber kein Token gesetzt wurde, erstelle Mock-Daten
+  if (shouldBypassKeycloak()) {
+    debugLog('🔍 getUserInfo() - Bypass aktiv, aber kein Token gefunden, erstelle Mock-Daten')
+    const mockToken = createMockToken()
+    const tokenPayload = JSON.parse(atob(mockToken.split('.')[1]))
+    keycloak.tokenParsed = tokenPayload
+    return tokenPayload
+  }
+  
+  debugLog('🔍 getUserInfo() - Keine Benutzerinformationen gefunden')
+  return null
 }
 
 // Hilfsfunktion: Gruppennamen case-insensitiv prüfen (Keycloak kann API-Admin oder api-admin liefern)
