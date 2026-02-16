@@ -28,9 +28,19 @@ export function useAuth() {
   const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
   const canSeeOwnUsage = computed(() => hasPermission('canSeeOwnUsage'))
 
-  // Logout-Funktion
+  // Logout-Funktion (abgesichert: keycloak kann bei Bypass/Reihenfolge noch undefined sein)
   const handleLogout = () => {
-    keycloak.logout()
+    if (keycloak?.logout && typeof keycloak.logout === 'function') {
+      keycloak.logout()
+    } else {
+      // Fallback: Session bereinigen und Seite neu laden (z. B. bei Bypass oder vor Init)
+      try {
+        sessionStorage.clear()
+        localStorage.removeItem('bypassKeycloak')
+      } catch (_) {}
+      window.location.href = window.location.pathname || '/'
+      window.location.reload()
+    }
   }
 
   return {
