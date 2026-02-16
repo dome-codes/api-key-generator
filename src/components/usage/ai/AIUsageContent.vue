@@ -264,6 +264,15 @@ watch(ownView, async () => {
   await handleOwnFilterChange()
 })
 
+// Ticket: Context-Switch User/Admin – beim Wechsel sofort API mit neuem Kontext auslösen
+watch(
+  () => props.useAdminApi,
+  async () => {
+    await handleOwnFilterChange()
+  },
+  { flush: 'post' },
+)
+
 // Initialize
 onMounted(async () => {
   try {

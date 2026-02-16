@@ -173,6 +173,7 @@
         <tr
           class="text-gray-800 border-b border-gray-200 text-xs uppercase tracking-wider bg-gray-50"
         >
+          <th v-if="isAdmin" class="py-3 px-2 w-10 text-center font-semibold text-gray-500"> </th>
           <th
             class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
             @click="sortBy('name')"
@@ -289,23 +290,64 @@
         </tr>
       </thead>
       <tbody>
-        <ApiKeyRow
-          v-for="key in paginatedKeys"
-          :key="isAdmin ? key.userId : key.id"
-          :keyData="isAdmin ? createGroupedKeyData(key) : key"
-          :editing="editingKey === (isAdmin ? key.userId : key.id)"
-          :editingName="editingName"
-          :usageData="getUsageDataForKey(isAdmin ? key.userId : key.id)"
-          :budgetLimit="budgetLimit"
-          :isAdmin="isAdmin"
-          :isEntwicklung="isEntwicklung"
-          :adminUsageByUser="adminUsageByUser"
-          @edit="$emit('edit', $event)"
-          @save="$emit('save', $event)"
-          @cancel="$emit('cancel')"
-          @revoke="$emit('revoke', $event)"
-          @name-input="$emit('name-input', $event)"
-        />
+        <template v-for="group in paginatedKeys" :key="isAdmin ? group.userId : group.id">
+          <ApiKeyRow
+            :key="(isAdmin ? group.userId : group.id) + '-row'"
+            :keyData="isAdmin ? createGroupedKeyData(group) : group"
+            :editing="editingKey === (isAdmin ? group.userId : group.id)"
+            :editingName="editingName"
+            :usageData="getUsageDataForKey(isAdmin ? group.userId : group.id)"
+            :budgetLimit="budgetLimit"
+            :isAdmin="isAdmin"
+            :isEntwicklung="isEntwicklung"
+            :adminUsageByUser="adminUsageByUser"
+            :expandable="isAdmin && !!(group as { keys?: unknown[] }).keys?.length"
+            :expanded="isAdmin && expandedUserId === (group as { userId?: string }).userId"
+            :child-count="isAdmin ? (group as { keys?: unknown[] }).keys?.length ?? 0 : 0"
+            :is-child-row="false"
+            @toggle-expand="
+              isAdmin &&
+                (expandedUserId =
+                  expandedUserId === (group as { userId?: string }).userId
+                    ? null
+                    : (group as { userId: string }).userId)
+            "
+            @edit="$emit('edit', $event)"
+            @save="$emit('save', $event)"
+            @cancel="$emit('cancel')"
+            @revoke="$emit('revoke', $event)"
+            @name-input="$emit('name-input', $event)"
+          />
+          <template
+            v-if="
+              isAdmin &&
+              expandedUserId === (group as { userId?: string }).userId &&
+              (group as { keys?: ApiKeyDisplay[] }).keys?.length
+            "
+          >
+            <ApiKeyRow
+              v-for="k in (group as { keys: ApiKeyDisplay[] }).keys"
+              :key="k.id"
+              :keyData="k"
+              :editing="editingKey === k.id"
+              :editingName="editingName"
+              :usageData="getUsageDataForKey(k.id)"
+              :budgetLimit="budgetLimit"
+              :isAdmin="isAdmin"
+              :isEntwicklung="isEntwicklung"
+              :adminUsageByUser="adminUsageByUser"
+              :expandable="false"
+              :expanded="false"
+              :child-count="0"
+              :is-child-row="true"
+              @edit="$emit('edit', $event)"
+              @save="$emit('save', $event)"
+              @cancel="$emit('cancel')"
+              @revoke="$emit('revoke', $event)"
+              @name-input="$emit('name-input', $event)"
+            />
+          </template>
+        </template>
       </tbody>
     </table>
     <div v-else class="text-center text-gray-600 py-8">Keine API-Schlüssel verfügbar.</div>
@@ -356,6 +398,9 @@ const emits = defineEmits<{
 // Pagination state
 const currentPage = ref(1)
 const itemsPerPage = 8 // Zeige 8 API Keys pro Seite
+
+// Admin: Aufklappbare Zeilen pro User (Ticket 2)
+const expandedUserId = ref<string | null>(null)
 
 // Sortierung state
 const sortField = ref('status')
@@ -629,7 +674,8 @@ const createGroupedKeyData = (groupedKey: any): ApiKeyDisplay => {
   }
 }
 
-// Get usage data for a specific key or user group
+// Get usage data for a specific key or user group.
+// usageData ist nach key.id (API-Key-ID) indexiert; pro Zeile getUsageDataForKey(key.id) bzw. bei Admin-Gruppe userId (Ticket 4).
 const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
   // Für Admins: Wenn es ein gruppierter Key ist, verwende die gruppierten Daten
   if (isAdmin.value) {

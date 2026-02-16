@@ -142,8 +142,15 @@ export interface ApiKeyUsageData {
 /**
  * API-Key für die Anzeige in der Liste (Keys-Seite).
  * Wird aus der API-Response gemappt (z. B. id, name, createdAt, expiresAt, userId, active → diese Felder).
+ *
+ * Datenmodell (Ticket 3):
+ * - **id**: Eindeutige Kennung des API-Keys (Primary Key des Schlüssels). Wird für Verbrauch pro Key
+ *   und für usageData-Map (key.id → ApiKeyUsageData) verwendet.
+ * - **userId**: ID des Benutzers, dem dieser Key gehört. Ermöglicht Verbrauch pro User (über alle
+ *   seine Keys) und Admin-Zuordnung (Keys nach User gruppieren).
  */
 export interface ApiKeyDisplay {
+  /** Eindeutige API-Key-ID (PK). Index für usageData[key.id]. */
   id: string
   apiKey: string
   name: string
@@ -153,6 +160,7 @@ export interface ApiKeyDisplay {
   validUntil: string
   lastUsed: string
   status: string
+  /** Benutzer-ID des Key-Besitzers. Für Admin-Gruppierung und kumulierten Verbrauch pro User. */
   userId?: string
   userName?: string
 }

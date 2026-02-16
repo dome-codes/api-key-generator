@@ -3,9 +3,26 @@
     :class="[
       'border-b border-gray-200 last:border-0 group',
       keyData.status === 'revoked' ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50',
+      isChildRow ? 'bg-gray-50/70' : '',
     ]"
   >
-    <td class="py-3 px-4 text-sm">
+    <td v-if="isAdmin" class="py-3 px-2 w-10 text-center align-middle">
+      <button
+        v-if="expandable"
+        type="button"
+        @click="$emit('toggleExpand')"
+        class="p-1 rounded hover:bg-gray-200 text-gray-600 transition-transform"
+        :class="expanded ? 'rotate-90' : ''"
+        :aria-expanded="expanded"
+        :title="expanded ? 'Zuklappen' : 'Aufklappen'"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      <span v-else-if="isChildRow" class="inline-block w-4">&nbsp;</span>
+    </td>
+    <td class="py-3 px-4 text-sm" :class="isChildRow ? 'pl-10' : ''">
       <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
         <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
         <span
@@ -172,18 +189,34 @@ import { computed, ref } from 'vue'
 
 const showRevokedUsage = ref(false)
 
-const props = defineProps<{
-  keyData: ApiKeyDisplay
-  editing: boolean
-  editingName: string
-  usageData: ApiKeyUsageData
-  budgetLimit: number
-  isAdmin: boolean
-  isEntwicklung: boolean
-  adminUsageByUser?: {
-    [userId: string]: { cost: number; tokensIn: number; tokensOut: number; keys: string[] }
-  }
-}>()
+const props = withDefaults(
+  defineProps<{
+    keyData: ApiKeyDisplay
+    editing: boolean
+    editingName: string
+    usageData: ApiKeyUsageData
+    budgetLimit: number
+    isAdmin: boolean
+    isEntwicklung: boolean
+    adminUsageByUser?: {
+      [userId: string]: { cost: number; tokensIn: number; tokensOut: number; keys: string[] }
+    }
+    /** Admin: Zeile ist aufklappbar (Gruppenzeile) */
+    expandable?: boolean
+    /** Admin: Gruppe ist aufgeklappt */
+    expanded?: boolean
+    /** Admin: Anzahl Keys in der Gruppe */
+    childCount?: number
+    /** Admin: Zeile ist eine Unterzeile (einzelner Key unter Gruppe) */
+    isChildRow?: boolean
+  }>(),
+  {
+    expandable: false,
+    expanded: false,
+    childCount: 0,
+    isChildRow: false,
+  },
+)
 
 const emits = defineEmits<{
   edit: [key: ApiKeyDisplay]
@@ -192,6 +225,7 @@ const emits = defineEmits<{
   revoke: [keyId: string]
   rotate: [key: ApiKeyDisplay]
   'name-input': [value: string]
+  toggleExpand: []
 }>()
 
 // Check if key expires within 30 days to show rotate button
