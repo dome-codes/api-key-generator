@@ -126,8 +126,10 @@ export function getDataArray<T>(response: unknown): T[] {
   if (!response || typeof response !== 'object') return []
   const o = response as Record<string, unknown>
   for (const key of ['data', 'items', 'usage'] as const) {
-    const arr = o[key]
-    if (Array.isArray(arr)) return arr
+    const val = o[key]
+    if (Array.isArray(val)) return val
+    // Backend kann ein einzelnes Objekt statt Array liefern (z. B. bei API-Key-Filter)
+    if (val != null && typeof val === 'object') return [val as T]
   }
   return []
 }

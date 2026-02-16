@@ -111,15 +111,13 @@ const ownChartPeriod = ref('daily')
 const ownFromDate = ref('')
 const ownToDate = ref('')
 
-// Initialize default dates - Standardmäßig KEINE Datumsfilterung
+// Default-Zeitraum: aktueller Monat (1. bis heute), damit der erste API-Call Filter im Query hat
 const setDefaultDates = () => {
-  // Setze Standard-Zeitraum auf 90 Tage, wenn keine URL-Parameter vorhanden sind
-  if (!ownFromDate.value && !ownToDate.value) {
-    const today = new Date()
-    const startDate = new Date(today)
-    startDate.setDate(startDate.getDate() - 90)
-    ownFromDate.value = startDate.toISOString().split('T')[0]
-    ownToDate.value = today.toISOString().split('T')[0]
+  if (!ownFromDate.value || !ownToDate.value) {
+    const now = new Date()
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    if (!ownFromDate.value) ownFromDate.value = firstOfMonth.toISOString().split('T')[0]
+    if (!ownToDate.value) ownToDate.value = now.toISOString().split('T')[0]
   }
 }
 

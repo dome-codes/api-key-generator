@@ -129,21 +129,43 @@
       </div>
     </div>
 
-    <!-- API-Key-Suche (für User-Ansicht) -->
+    <!-- Filter für User-Ansicht: Status + API-Key-Suche -->
     <div
       v-if="!isAdmin && props.keys.length > 0"
-      class="p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2"
+      class="p-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-3"
     >
-      <label for="apikey-search-user" class="text-sm font-medium text-gray-700"
-        >API Key suchen:</label
+      <div class="flex items-center gap-2">
+        <label for="status-filter-user" class="text-sm font-medium text-gray-700">Status:</label>
+        <select
+          id="status-filter-user"
+          v-model="selectedStatusFilter"
+          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">Alle</option>
+          <option value="active">Aktiv</option>
+          <option value="revoked">Inaktiv</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="apikey-search-user" class="text-sm font-medium text-gray-700"
+          >API Key suchen:</label
+        >
+        <input
+          id="apikey-search-user"
+          v-model="apiKeySearchQuery"
+          type="text"
+          placeholder="Name oder Key-Endung (z. B. …abcd)"
+          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
+        />
+      </div>
+      <button
+        v-if="selectedStatusFilter || apiKeySearchQuery"
+        type="button"
+        @click="clearFilters"
+        class="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
       >
-      <input
-        id="apikey-search-user"
-        v-model="apiKeySearchQuery"
-        type="text"
-        placeholder="Name oder Key-Endung (z. B. …abcd)"
-        class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
-      />
+        Filter zurücksetzen
+      </button>
     </div>
 
     <table v-if="paginatedKeys.length" class="w-full text-left border-collapse">
