@@ -325,22 +325,22 @@ components:
     Common.RequestParams.FromDate:
       name: from_date
       in: query
-      description: Start date of the time interval (UTC). If left empty it uses the earliest known date.
+      description: Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
       required: false
       schema:
         type: string
         format: date-time
-        example: '2025-01-01T00:00:00Z'
+        example: '2026-01-31T00:00:00.000Z'
 
     Common.RequestParams.ToDate:
       name: to_date
       in: query
-      description: End date of the time interval (UTC). If left empty it uses the latest known date.
+      description: End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
       required: false
       schema:
         type: string
         format: date-time
-        example: '2025-12-31T23:59:59Z'
+        example: '2026-12-31T23:59:59.000Z'
 
     Common.RequestParams.Page:
       name: page

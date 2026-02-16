@@ -10,11 +10,12 @@ import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
 
-/** Datum für API auf date-time (OpenAPI format) bringen: YYYY-MM-DD → YYYY-MM-DDTHH:mm:ss.sssZ */
+/** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
-  if (!dateStr) return undefined
-  if (dateStr.includes('T')) return dateStr
-  return `${dateStr}T00:00:00.000Z`
+  if (!dateStr?.trim()) return undefined
+  const s = dateStr.trim()
+  if (s.includes('T')) return new Date(s).toISOString()
+  return `${s}T00:00:00.000Z`
 }
 
 // API-Service für API-Keys

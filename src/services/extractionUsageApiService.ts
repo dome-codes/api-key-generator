@@ -27,11 +27,12 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
-/** API erwartet date-time (OpenAPI): 2026-01-31T00:00:00.000Z */
+/** Request-Format für Usage/Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
-  if (!dateStr) return undefined
-  if (dateStr.includes('T')) return dateStr
-  return `${dateStr}T00:00:00.000Z`
+  if (!dateStr?.trim()) return undefined
+  const s = dateStr.trim()
+  if (s.includes('T')) return new Date(s).toISOString()
+  return `${s}T00:00:00.000Z`
 }
 
 export const extractionUsageApiService = {

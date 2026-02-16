@@ -15,18 +15,16 @@ const debugLog = (...args: unknown[]) => {
 const rawBase = appConfig.apiBaseUrl || ''
 const baseURL = rawBase.endsWith('/v1') ? rawBase : rawBase.replace(/\/?$/, '') + '/v1'
 
-/** Query-Params: Arrays als kommagetrennt (by=apikey statt by[]=apikey), OpenAPI „Comma separated“. */
+/** Query-Params: Nur & und = escapen, damit usage/ai und summarize so aussehen: .../usage/ai?from_date=2026-01-31T00:00:00.000Z (kein %3A). */
 function serializeParams(params: Record<string, unknown>): string {
-  const searchParams = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null) return
-    if (Array.isArray(value)) {
-      searchParams.append(key, value.join(','))
-    } else {
-      searchParams.append(key, String(value))
-    }
-  })
-  return searchParams.toString()
+  return Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([key, value]) => {
+      const str = Array.isArray(value) ? value.join(',') : String(value)
+      const safeValue = str.replace(/&/g, '%26').replace(/=/g, '%3D')
+      return `${encodeURIComponent(key)}=${safeValue}`
+    })
+    .join('&')
 }
 
 const api = axios.create({
