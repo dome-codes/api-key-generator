@@ -105,6 +105,7 @@ export const extractionUsageApiService = {
         apiKeyId: filter.apiKeyId,
       }
 
+      // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionGetV1(params)
         : await getUsage().usageExtractionGetV1(params)
@@ -155,8 +156,15 @@ export const extractionUsageApiService = {
           totalPages: 1,
         },
       }
-    } catch (error) {
-      console.error('Error loading extraction usage data via API:', error)
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (useAdminApi && status === 403) {
+        console.warn('403 bei admin/usage/extraction – Backend verweigert Admin-Extraction. Rolle/Scope prüfen.')
+        throw new Error(
+          'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
+        )
+      }
+      console.error('Error loading extraction usage data via API:', err)
       return {
         data: [],
         pagination: {
@@ -193,9 +201,8 @@ export const extractionUsageApiService = {
         by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
       }
 
-      const apiResponse = useAdminApi
-        ? await getAdmin().adminUsageExtractionSummaryGetV1(params)
-        : await getUsage().usageExtractionSummaryGetV1(params)
+      // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
+      const apiResponse = await getUsage().usageExtractionSummaryGetV1(params)
       const response = apiResponse.data as
         | ExtractionUsageSummaryPageResponse
         | import('@/api/types').ExtractionUsageSummaryRecord[]
@@ -247,8 +254,15 @@ export const extractionUsageApiService = {
           totalPages: 1,
         },
       }
-    } catch (error) {
-      console.error('Error loading extraction usage summary via API:', error)
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (useAdminApi && status === 403) {
+        console.warn('403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.')
+        throw new Error(
+          'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
+        )
+      }
+      console.error('Error loading extraction usage summary via API:', err)
       return {
         data: [],
         pagination: {
