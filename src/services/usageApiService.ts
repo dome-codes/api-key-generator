@@ -40,6 +40,13 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
+/** API erwartet date-time (OpenAPI): 2026-01-31T00:00:00.000Z */
+function toIsoDateTime(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined
+  if (dateStr.includes('T')) return dateStr
+  return `${dateStr}T00:00:00.000Z`
+}
+
 export const usageApiService = {
   /**
    * Lädt Usage-Daten mit server-seitiger Filterung und Pagination
@@ -52,8 +59,8 @@ export const usageApiService = {
       debugLog('Loading usage data with filter:', filter)
 
       const params = {
-        from_date: filter.fromDate,
-        to_date: filter.toDate,
+        from_date: toIsoDateTime(filter.fromDate),
+        to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
         limit: filter.limit || 20,
         userId: filter.userId,
@@ -146,8 +153,8 @@ export const usageApiService = {
       debugLog('Loading usage summary with filter:', filter)
 
       const params = {
-        from_date: filter.fromDate,
-        to_date: filter.toDate,
+        from_date: toIsoDateTime(filter.fromDate),
+        to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
         limit: filter.limit || 20,
         userId: filter.userId,
