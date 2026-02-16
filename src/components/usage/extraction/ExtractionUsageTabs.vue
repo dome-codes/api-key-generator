@@ -94,6 +94,7 @@
         :summary="ownAggregation"
         :is-loading="isLoading"
         :error="error"
+        @retry="handleRetry"
       />
 
       <!-- Charts -->
@@ -174,6 +175,7 @@
         :show-unique-providers="true"
         :show-unique-models="true"
         :show-status-breakdown="true"
+        @retry="handleRetry"
       />
 
       <!-- Charts -->
@@ -320,6 +322,15 @@ const handleAdminFilterChange = async () => {
 const handlePageChange = async (page: number) => {
   const useAdminApi = activeTab.value === 'admin'
   await goToPage(page, useAdminApi)
+}
+
+// Handle retry
+const handleRetry = async () => {
+  if (activeTab.value === 'own') {
+    await handleOwnFilterChange()
+  } else if (activeTab.value === 'admin') {
+    await handleAdminFilterChange()
+  }
 }
 
 // Watch for tab changes

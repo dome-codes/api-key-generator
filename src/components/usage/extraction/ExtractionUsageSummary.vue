@@ -3,13 +3,12 @@
     <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ title }}</h2>
     <p class="text-gray-600 mb-4">{{ description }}</p>
 
-    <div v-if="isLoading" class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-2 text-gray-600">Lade Daten...</p>
+    <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <SkeletonLoader v-for="i in 4" :key="i" type="card" />
     </div>
 
-    <div v-else-if="error" class="text-center py-8">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error">
+      <ErrorState :error="error" @retry="$emit('retry')" />
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -83,6 +82,8 @@
 
 <script setup lang="ts">
 import type { ExtractionUsageAggregation } from '@/api/types/extraction'
+import ErrorState from '../shared/ErrorState.vue'
+import SkeletonLoader from '../shared/SkeletonLoader.vue'
 
 interface Props {
   title: string
@@ -123,4 +124,8 @@ const getStatusLabel = (status: string): string => {
   }
   return labels[status] || status
 }
+
+defineEmits<{
+  retry: []
+}>()
 </script>
