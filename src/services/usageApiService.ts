@@ -110,12 +110,14 @@ function readTokensFromItem(item: Record<string, unknown>): { requestTokens: num
   }
 }
 
-/** Nimmt Backend-Response: entweder { data: [], pagination } oder direkt Array []. */
+/** Nimmt Backend-Response: Array direkt, oder Objekt mit data/items/usage (andere OpenAPI nutzen items oder usage). */
 function getDataArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response
-  if (response && typeof response === 'object' && 'data' in response) {
-    const d = (response as { data?: T[] }).data
-    return Array.isArray(d) ? d : []
+  if (!response || typeof response !== 'object') return []
+  const o = response as Record<string, unknown>
+  for (const key of ['data', 'items', 'usage'] as const) {
+    const arr = o[key]
+    if (Array.isArray(arr)) return arr
   }
   return []
 }
