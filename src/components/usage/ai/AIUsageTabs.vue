@@ -87,7 +87,7 @@
         />
       </div>
 
-      <!-- Detailed Table -->
+      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
       <UsageDetailedTable
         v-if="showOwnDetails"
         :data="usageData"
@@ -97,6 +97,7 @@
         :sort-field="currentFilter.sort"
         :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
         :use-backend-sorting="true"
+        :model-type-filter="ownModelType"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
         @retry="handleRetry"
@@ -148,7 +149,7 @@
         />
       </div>
 
-      <!-- Detailed Table -->
+      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
       <UsageDetailedTable
         v-if="showAdminDetails"
         :data="usageData"
@@ -158,6 +159,7 @@
         :sort-field="currentFilter.sort"
         :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
         :use-backend-sorting="true"
+        :model-type-filter="adminModelType"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
         @retry="handleRetry"

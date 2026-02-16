@@ -98,7 +98,7 @@
         </template>
       </div>
     </td>
-    <td v-if="isEntwicklung && !isAdmin" class="py-3 px-4 text-xs">
+    <td v-if="!isAdmin" class="py-3 px-4 text-xs">
       <div v-if="keyData.status === 'active'" class="text-center">
         <div class="text-sm text-gray-700">
           {{ formatNumber(usageData.tokensIn) }} In / {{ formatNumber(usageData.tokensOut) }} Out

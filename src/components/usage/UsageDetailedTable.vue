@@ -209,11 +209,13 @@
               Tag
             </th>
             <th
+              v-if="showImageColumns"
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Größe
             </th>
             <th
+              v-if="showImageColumns"
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
               Qualität
@@ -310,10 +312,10 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ item.tag }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+            <td v-if="showImageColumns" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
               {{ formatImageSize(item.sizeWidth, item.sizeHeight) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+            <td v-if="showImageColumns" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
               {{ item.quality || '–' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
@@ -455,6 +457,8 @@ interface Props {
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
+  /** Wenn gesetzt: Spalten Größe/Qualität nur bei IMAGE_USAGE anzeigen (sonst ausblenden) */
+  modelTypeFilter?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -464,6 +468,14 @@ const props = withDefaults(defineProps<Props>(), {
   sortField: undefined,
   sortOrder: undefined,
   useBackendSorting: false,
+  modelTypeFilter: undefined,
+})
+
+// Größe/Qualität nur bei Image-Nutzung oder wenn kein Filter gesetzt
+const showImageColumns = computed(() => {
+  const f = (props.modelTypeFilter || '').toLowerCase()
+  if (!f) return true
+  return f.includes('image') || f === 'image_model_usage' || f === 'imageusage'
 })
 
 // Computed

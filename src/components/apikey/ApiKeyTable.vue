@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <!-- Akkumulierte Verbrauchsansicht für Entwicklung-Nutzer -->
-    <div v-if="isEntwicklung && !isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
+    <!-- Akkumulierte Verbrauchsansicht für Nicht-Admin (Cost + Token-Spalte nutzen dieselben Daten) -->
+    <div v-if="!isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-sm font-medium text-gray-900">Gesamtverbrauch (Aktueller Monat)</h3>
@@ -258,7 +258,7 @@
               </svg>
             </div>
           </th>
-          <th v-if="isEntwicklung && !isAdmin" class="py-3 px-4 font-semibold">
+          <th v-if="!isAdmin" class="py-3 px-4 font-semibold">
             Token-Verbrauch<br /><span class="text-xs text-gray-500 font-normal"
               >(Aktueller Monat)</span
             >
