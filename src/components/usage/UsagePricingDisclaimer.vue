@@ -20,22 +20,74 @@
 
         <!-- Kompakter Disclaimer (Standard) -->
         <div v-else class="text-sm text-blue-700">
-          <p class="mb-1">
-            <strong>Preisberechnung:</strong> Basierend auf
-            <a
-              href="https://azure.microsoft.com/de-de/pricing/details/cognitive-services/openai-service/#pricing"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-blue-600 hover:text-blue-800 underline"
-            >
-              Azure OpenAI Preisen (2025)
-            </a>
-            plus 9% Service-Aufschlag.
-          </p>
-          <p class="text-xs italic">
-            Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
-            abweichen.
-          </p>
+          <!-- AI Usage Disclaimer -->
+          <div v-if="variant === 'ai'">
+            <p class="mb-1">
+              <strong>Preisberechnung:</strong> Basierend auf
+              <a
+                href="https://azure.microsoft.com/de-de/pricing/details/cognitive-services/openai-service/#pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 hover:text-blue-800 underline"
+              >
+                Azure OpenAI Preisen (2025)
+              </a>
+              plus 9% Service-Aufschlag.
+            </p>
+            <p class="text-xs italic">
+              Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
+              abweichen.
+            </p>
+          </div>
+
+          <!-- Extraction/Document Intelligence Disclaimer -->
+          <div v-else-if="variant === 'extraction'">
+            <p class="mb-1">
+              <strong>Preisberechnung:</strong> Basierend auf den Preisen der jeweiligen Provider:
+            </p>
+            <ul class="text-xs mb-1 ml-4 space-y-0.5">
+              <li>
+                • <strong>Azure Form Recognizer:</strong>
+                <a
+                  href="https://azure.microsoft.com/de-de/pricing/details/form-recognizer/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 underline"
+                >
+                  Azure Preise
+                </a>
+                plus 9% Service-Aufschlag
+              </li>
+              <li>
+                • <strong>AWS Textract:</strong>
+                <a
+                  href="https://aws.amazon.com/de/textract/pricing/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 underline"
+                >
+                  AWS Preise
+                </a>
+                plus 9% Service-Aufschlag
+              </li>
+              <li>
+                • <strong>Google Document AI:</strong>
+                <a
+                  href="https://cloud.google.com/document-ai/pricing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 underline"
+                >
+                  Google Cloud Preise
+                </a>
+                plus 9% Service-Aufschlag
+              </li>
+            </ul>
+            <p class="text-xs italic">
+              Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
+              abweichen.
+            </p>
+          </div>
         </div>
 
         <!-- Erweiterbare Details (nur im kompakten Modus) -->
@@ -63,34 +115,75 @@
           <!-- Erweiterte Details -->
           <div v-if="showDetails" class="mt-3 p-3 bg-blue-100 rounded-lg border border-blue-200">
             <div class="text-xs text-blue-800 space-y-2">
-              <div>
-                <strong>Wichtige Hinweise:</strong>
-                <ul class="mt-1 ml-4 space-y-1">
-                  <li>
-                    • <strong>Completion Models:</strong> Preise sind pro 1 Million Tokens berechnet
-                  </li>
-                  <li>
-                    • <strong>Embedding Models:</strong> Preise sind pro 1000 Tokens berechnet
-                  </li>
-                  <li>
-                    • <strong>Image Models:</strong> Preise sind pro 100 Bilder berechnet (Standard:
-                    1024x1024, HD: 1024x1024, Large: 1024x1792/1792x1024)
-                  </li>
-                  <li>• Zwischengespeicherte Eingaben können günstiger sein</li>
-                  <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
-                </ul>
+              <!-- AI Usage Details -->
+              <div v-if="variant === 'ai'">
+                <div>
+                  <strong>Wichtige Hinweise:</strong>
+                  <ul class="mt-1 ml-4 space-y-1">
+                    <li>
+                      • <strong>Completion Models:</strong> Preise sind pro 1 Million Tokens berechnet
+                    </li>
+                    <li>
+                      • <strong>Embedding Models:</strong> Preise sind pro 1000 Tokens berechnet
+                    </li>
+                    <li>
+                      • <strong>Image Models:</strong> Preise sind pro 100 Bilder berechnet (Standard:
+                      1024x1024, HD: 1024x1024, Large: 1024x1792/1792x1024)
+                    </li>
+                    <li>• Zwischengespeicherte Eingaben können günstiger sein</li>
+                    <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <strong>Preisbeispiele:</strong>
+                  <ul class="mt-1 ml-4 space-y-1">
+                    <li>
+                      • <strong>GPT-4o-mini:</strong> Eingabe €0,94 / Ausgabe €3,76 (pro 1M Tokens)
+                    </li>
+                    <li>• <strong>GPT-4o:</strong> Eingabe €2,17 / Ausgabe €8,68 (pro 1M Tokens)</li>
+                    <li>• <strong>DALL-E-3:</strong> Standard €3,47 / HD €6,94 (pro 100 Bilder)</li>
+                    <li>• <strong>text-embedding-3-small:</strong> €0,000018 (pro 1000 Tokens)</li>
+                  </ul>
+                </div>
               </div>
 
-              <div>
-                <strong>Preisbeispiele:</strong>
-                <ul class="mt-1 ml-4 space-y-1">
-                  <li>
-                    • <strong>GPT-4o-mini:</strong> Eingabe €0,94 / Ausgabe €3,76 (pro 1M Tokens)
-                  </li>
-                  <li>• <strong>GPT-4o:</strong> Eingabe €2,17 / Ausgabe €8,68 (pro 1M Tokens)</li>
-                  <li>• <strong>DALL-E-3:</strong> Standard €3,47 / HD €6,94 (pro 100 Bilder)</li>
-                  <li>• <strong>text-embedding-3-small:</strong> €0,000018 (pro 1000 Tokens)</li>
-                </ul>
+              <!-- Extraction Details -->
+              <div v-else-if="variant === 'extraction'">
+                <div>
+                  <strong>Wichtige Hinweise:</strong>
+                  <ul class="mt-1 ml-4 space-y-1">
+                    <li>
+                      • <strong>Azure Form Recognizer:</strong> Preise basieren auf der Anzahl der
+                      verarbeiteten Seiten/Dokumente
+                    </li>
+                    <li>
+                      • <strong>AWS Textract:</strong> Preise basieren auf der Anzahl der analysierten
+                      Seiten
+                    </li>
+                    <li>
+                      • <strong>Google Document AI:</strong> Preise basieren auf der Anzahl der
+                      verarbeiteten Seiten
+                    </li>
+                    <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
+                    <li>
+                      • Die tatsächlichen Kosten können je nach Dokumenttyp und Komplexität variieren
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <strong>Preisbeispiele (pro 1000 Seiten):</strong>
+                  <ul class="mt-1 ml-4 space-y-1">
+                    <li>
+                      • <strong>Azure Form Recognizer:</strong> Standard €1,50 / Custom Model €2,00
+                    </li>
+                    <li>• <strong>AWS Textract:</strong> Standard €1,50 / Analyze Document €15,00</li>
+                    <li>
+                      • <strong>Google Document AI:</strong> Standard €1,50 / Custom Model €2,00
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -106,10 +199,12 @@ import { computed, ref } from 'vue'
 
 interface Props {
   useFullDisclaimer?: boolean // Optional: Verwende den vollständigen Disclaimer aus pricing.ts
+  variant?: 'ai' | 'extraction' // Variante: 'ai' für AI Usage, 'extraction' für Document Intelligence
 }
 
 const props = withDefaults(defineProps<Props>(), {
   useFullDisclaimer: false,
+  variant: 'ai',
 })
 
 const showDetails = ref(false)

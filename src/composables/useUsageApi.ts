@@ -135,10 +135,10 @@ export function useUsageApi() {
       }
 
       const entry = dateMap.get(dateKey)!
-      entry.tokensIn += item.tokensIn
-      entry.tokensOut += item.tokensOut
-      entry.requests += item.requests
-      entry.cost += item.cost
+      entry.tokensIn += item.tokensIn || 0
+      entry.tokensOut += item.tokensOut || 0
+      entry.requests += item.requests || 0
+      entry.cost += item.cost || 0
     })
 
     // Sortiere nach Datum
@@ -259,7 +259,9 @@ export function useUsageApi() {
       debugLog('Usage summary loaded:', {
         count: result.data.length,
         pagination: result.pagination,
+        firstItem: result.data[0],
       })
+      console.log('[useUsageApi] Usage summary loaded - usageData.value:', usageData.value)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
       console.error('Error loading usage summary:', err)
@@ -306,6 +308,35 @@ export function useUsageApi() {
       page: 1,
       limit: 20,
     }
+    await loadUsageData({}, useAdminApi)
+  }
+
+  const updateSort = async (
+    sortField: string,
+    sortOrder: 'asc' | 'desc',
+    useAdminApi: boolean = false,
+  ) => {
+    // Map frontend field names to backend field names
+    const fieldMapping: Record<string, string> = {
+      date: 'date',
+      cost: 'cost',
+      requests: 'requests',
+      tokensIn: 'tokensIn',
+      tokensOut: 'tokensOut',
+      totalTokens: 'totalTokens',
+      model: 'model',
+      user: 'user',
+    }
+
+    const backendField = fieldMapping[sortField] || sortField
+
+    currentFilter.value = {
+      ...currentFilter.value,
+      sort: backendField,
+      order: sortOrder,
+      page: 1, // Reset to first page when sorting changes
+    }
+
     await loadUsageData({}, useAdminApi)
   }
 

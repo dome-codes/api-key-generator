@@ -67,7 +67,7 @@ export function useExtractionUsageApi() {
     // Gruppiere nach Datum (wenn day/month/year vorhanden)
     const dateMap = new Map<
       string,
-      { operations: number; pages: number; cost: number; confidence: number }
+      { operations: number; pages: number; cost: number; confidence: number; confidenceSum: number }
     >()
 
     data.forEach((item) => {
@@ -82,14 +82,16 @@ export function useExtractionUsageApi() {
       }
 
       if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0, confidence: 0 })
+        dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0, confidence: 0, confidenceSum: 0 })
       }
 
       const entry = dateMap.get(dateKey)!
-      entry.operations += 1
-      entry.pages += item.pages
-      entry.cost += item.cost
-      entry.confidence += item.confidenceScore
+      // Wenn die Daten bereits gruppiert sind (day/month/year vorhanden), verwende die Werte direkt
+      // Ansonsten zähle jeden Eintrag als 1 Operation
+      entry.operations += 1 // Jeder Eintrag repräsentiert eine Gruppierung
+      entry.pages += item.pages || 0
+      entry.cost += item.cost || 0
+      entry.confidenceSum += item.confidenceScore || 0
     })
 
     // Sortiere nach Datum
@@ -104,7 +106,7 @@ export function useExtractionUsageApi() {
       operations: sortedEntries.map(([, data]) => data.operations),
       pages: sortedEntries.map(([, data]) => data.pages),
       cost: sortedEntries.map(([, data]) => data.cost),
-      confidence: sortedEntries.map(([, data]) => data.confidence / data.operations || 0),
+      confidence: sortedEntries.map(([, data]) => data.confidenceSum / data.operations || 0),
     }
   })
 

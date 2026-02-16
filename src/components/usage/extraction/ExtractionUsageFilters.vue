@@ -279,9 +279,13 @@ const handleTimeRangeChange = () => {
   if (timeRange.value !== 'custom') {
     fromDate.value = startDate.toISOString().split('T')[0]
     toDate.value = today.toISOString().split('T')[0]
+    // Warte kurz, damit die v-model Updates durchlaufen können
+    setTimeout(() => {
+      handleFilterChange()
+    }, 0)
+  } else {
+    handleFilterChange()
   }
-
-  handleFilterChange()
 }
 
 const handleDateChange = () => {

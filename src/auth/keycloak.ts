@@ -80,8 +80,46 @@ const cleanupUrl = () => {
   }
 }
 
+// Keycloak-Bypass für Development (über Environment Variable)
+const shouldBypassKeycloak = (): boolean => {
+  const bypassFromEnv = import.meta.env.VITE_BYPASS_KEYCLOAK === 'true'
+  const bypassFromLocalStorage = localStorage.getItem('bypassKeycloak') === 'true'
+  return import.meta.env.DEV && (bypassFromEnv || bypassFromLocalStorage)
+}
+
+// Mock-Token für Development-Bypass
+const createMockToken = () => {
+  const mockTokenData = {
+    sub: 'mock-user-123',
+    email: 'mock-admin@example.com',
+    name: 'Mock Admin User',
+    family_name: 'User',
+    given_name: 'Mock Admin',
+    preferred_username: 'mock-admin',
+    groups: ['API-Admin'],
+    exp: Math.floor(Date.now() / 1000) + 3600, // 1 Stunde gültig
+  }
+  
+  // Erstelle Mock-Token (nur für Frontend, Backend akzeptiert auch ohne echten Token)
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+  const payload = btoa(JSON.stringify(mockTokenData))
+  const signature = 'mock-signature'
+  return `${header}.${payload}.${signature}`
+}
+
 // Keycloak initialisieren
 export const initKeycloak = async (): Promise<boolean> => {
+  // Bypass für Development
+  if (shouldBypassKeycloak()) {
+    debugLog('🔓 Keycloak-Bypass aktiviert für Development')
+    // Setze Mock-Token
+    const mockToken = createMockToken()
+    keycloak.token = mockToken
+    keycloak.tokenParsed = JSON.parse(atob(mockToken.split('.')[1]))
+    keycloak.authenticated = true
+    return true
+  }
+
   try {
     const authenticated = await keycloak.init({
       onLoad: 'login-required',
@@ -106,6 +144,11 @@ export const initKeycloak = async (): Promise<boolean> => {
 
 // Token für API-Requests abrufen
 export const getToken = async (): Promise<string | null> => {
+  // Bypass für Development
+  if (shouldBypassKeycloak()) {
+    return keycloak.token || createMockToken()
+  }
+
   try {
     await keycloak.updateToken(30)
     return keycloak.token || null
@@ -120,20 +163,30 @@ export const getUserInfo = () => {
   return keycloak.tokenParsed
 }
 
+// Hilfsfunktion: Gruppennamen case-insensitiv prüfen (Keycloak kann API-Admin oder api-admin liefern)
+function groupMatches(groups: string[], name: string): boolean {
+  const lower = name.toLowerCase()
+  return groups.some(
+    (g) => typeof g === 'string' && (g.toLowerCase() === lower || g.toLowerCase() === `/${lower}`),
+  )
+}
+
 // Benutzer-Rollen abrufen (aus groups)
 export const getUserRoles = (): UserRole[] => {
   if (!keycloak.tokenParsed) return []
 
-  const groups = keycloak.tokenParsed.groups || []
+  const groups: string[] = Array.isArray(keycloak.tokenParsed.groups)
+    ? keycloak.tokenParsed.groups
+    : []
   const roles: UserRole[] = []
 
-  if (groups.includes('api-admin') || groups.includes('/api-admin')) {
+  if (groupMatches(groups, 'api-admin')) {
     roles.push(UserRole.API_ADMIN)
-  } else if (groups.includes('api-stream') || groups.includes('/api-stream')) {
+  } else if (groupMatches(groups, 'api-stream')) {
     roles.push(UserRole.API_STREAM)
-  } else if (groups.includes('api-entwicklung') || groups.includes('/api-entwicklung')) {
+  } else if (groupMatches(groups, 'api-entwicklung')) {
     roles.push(UserRole.ENTWICKLUNG)
-  } else if (groups.includes('api-default') || groups.includes('/api-default')) {
+  } else if (groupMatches(groups, 'api-default')) {
     roles.push(UserRole.API_DEFAULT)
   }
 

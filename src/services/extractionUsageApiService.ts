@@ -133,7 +133,7 @@ export const extractionUsageApiService = {
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
-        by: filter.groupBy,
+        by: filter.groupBy, // Die API-Funktion konvertiert das Array automatisch zu einem String
       }
 
       let response: ExtractionUsageSummaryPageResponse

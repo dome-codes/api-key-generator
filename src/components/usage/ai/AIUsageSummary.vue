@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import BaseSummary from '../shared/BaseSummary.vue'
+import { watch } from 'vue'
 
 interface UsageSummary {
   tokensIn: number
@@ -66,7 +67,16 @@ interface Props {
   showUniqueUsers?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// Debug: Log summary changes
+watch(
+  () => props.summary,
+  (newSummary) => {
+    console.log('[AIUsageSummary] Summary changed:', newSummary)
+  },
+  { immediate: true, deep: true },
+)
 
 defineEmits<{
   retry: []

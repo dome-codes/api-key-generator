@@ -3,11 +3,9 @@
     <!-- Main Line Chart -->
     <LineChart
       :title="lineChartTitle"
-      :selected-period="selectedPeriod"
       :chart-data="lineChartData"
       :datasets="lineChartDatasets"
       placeholder="Extraction-Nutzungsdiagramm wird hier angezeigt"
-      @update:selected-period="$emit('update:selectedPeriod', $event)"
     />
 
     <!-- Additional Charts Grid -->
@@ -39,7 +37,6 @@ import PieChart from '../charts/PieChart.vue'
 
 interface Props {
   lineChartTitle: string
-  selectedPeriod: string
   lineChartData?: {
     labels: string[]
     operations?: number[]
@@ -58,10 +55,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  'update:selectedPeriod': [value: string]
-}>()
 
 // Line Chart Datasets für Extraction
 const lineChartDatasets = computed(() => {

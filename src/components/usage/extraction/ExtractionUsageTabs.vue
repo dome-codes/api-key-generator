@@ -101,7 +101,6 @@
       <div v-if="ownView === 'overview'" class="space-y-6">
         <ExtractionUsageCharts
           line-chart-title="Extraction-Nutzungsverlauf"
-          selected-period="daily"
           :line-chart-data="chartData"
           :provider-distribution-data="providerDistributionChartData"
           :status-distribution-data="statusDistributionChartData"
@@ -182,7 +181,6 @@
       <div v-if="adminView === 'overview'" class="space-y-6">
         <ExtractionUsageCharts
           line-chart-title="Admin Extraction-Nutzungsverlauf"
-          selected-period="daily"
           :line-chart-data="chartData"
           :provider-distribution-data="providerDistributionChartData"
           :status-distribution-data="statusDistributionChartData"
@@ -254,15 +252,13 @@ const adminToDate = ref('')
 // Unique users for admin filter (would come from API in real implementation)
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 
-// Initialize default dates
+// Initialize default dates - Standardmäßig KEINE Datumsfilterung (leer = alle Daten)
 const setDefaultDates = () => {
-  const today = new Date()
-  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  ownFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  ownToDate.value = today.toISOString().split('T')[0]
-  adminFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  adminToDate.value = today.toISOString().split('T')[0]
+  // Leer lassen = keine Datumsfilterung, zeigt alle verfügbaren Daten
+  ownFromDate.value = ''
+  ownToDate.value = ''
+  adminFromDate.value = ''
+  adminToDate.value = ''
 }
 
 // Computed aggregations
@@ -270,8 +266,8 @@ const ownAggregation = computed(() => usageAggregation.value)
 const adminAggregation = computed(() => usageAggregation.value)
 
 // Convert date string to ISO format
-const toIsoDate = (dateStr: string): string => {
-  if (!dateStr) return ''
+const toIsoDate = (dateStr: string): string | undefined => {
+  if (!dateStr || dateStr.trim() === '') return undefined
   return new Date(dateStr + 'T00:00:00Z').toISOString()
 }
 

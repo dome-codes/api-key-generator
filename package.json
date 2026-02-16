@@ -17,11 +17,15 @@
     "dev:all:debug": "SHOW_DEBUG=true npm-run-all2 --parallel dev frontend:dev",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "db:init": "node scripts/init-database.js",
+    "db:generate": "node scripts/generate-mock-data.js",
+    "db:setup": "npm run db:init && npm run db:generate"
   },
   "dependencies": {
     "@types/axios": "^0.9.36",
     "axios": "^1.10.0",
+    "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",

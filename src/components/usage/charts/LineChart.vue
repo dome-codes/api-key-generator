@@ -2,21 +2,6 @@
   <div class="bg-white rounded-xl shadow p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
-      <div class="flex items-center gap-2">
-        <button
-          v-for="period in periods"
-          :key="period.value"
-          @click="$emit('update:selectedPeriod', period.value)"
-          :class="[
-            'px-3 py-1 text-sm rounded-lg transition-colors',
-            selectedPeriod === period.value
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-          ]"
-        >
-          {{ period.label }}
-        </button>
-      </div>
     </div>
 
     <div class="h-64">
@@ -61,7 +46,6 @@ interface ChartData {
 
 interface Props {
   title: string
-  selectedPeriod: string
   placeholder?: string
   chartData?: ChartData
   datasets?: Array<{
@@ -78,20 +62,9 @@ const props = withDefaults(defineProps<Props>(), {
   chartData: undefined,
 })
 
-const emit = defineEmits<{
-  'update:selectedPeriod': [value: string]
-}>()
-
 const chartCanvas = ref<HTMLCanvasElement>()
 const chartLoaded = ref(false)
 let chartInstance: Chart | null = null
-
-const periods = [
-  { value: 'daily', label: 'Täglich' },
-  { value: 'hourly', label: 'Tagesansicht' },
-  { value: 'weekly', label: 'Wöchentlich' },
-  { value: 'monthly', label: 'Monatlich' },
-]
 
 // Standard-Datasets für AI Usage
 const defaultDatasets = computed(() => {
@@ -127,14 +100,6 @@ const defaultDatasets = computed(() => {
   ]
 })
 
-watch(
-  () => props.selectedPeriod,
-  () => {
-    if (chartInstance) {
-      createChart()
-    }
-  },
-)
 
 watch(
   () => props.chartData,

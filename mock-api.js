@@ -2,6 +2,12 @@ import cors from 'cors'
 import express from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import * as mockData from './mock-data.js'
+import {
+  getAIUsageSummaryByDay,
+  getAIUsageSummaryByApiKey,
+  getExtractionUsageSummaryByDay,
+  closeDatabase,
+} from './scripts/db-helper.js'
 
 // Mock usage data functions
 const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days = 30) => {
@@ -181,9 +187,21 @@ app.use(express.json())
 
 // JWT Token Validierung (Mock)
 function validateToken(req, res, next) {
+  // Bypass für Development (wenn kein Token vorhanden)
+  const bypassKeycloak = process.env.BYPASS_KEYCLOAK === 'true' || process.env.NODE_ENV === 'development'
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (bypassKeycloak) {
+      console.log(`[${new Date().toISOString()}] 🔓 Keycloak-Bypass aktiviert - Mock-Token verwendet`)
+      req.user = {
+        sub: 'mock-user-123',
+        email: 'mock-admin@example.com',
+        name: 'Mock Admin User',
+        groups: ['API-Admin'],
+      }
+      return next()
+    }
     console.log(`[${new Date().toISOString()}] ❌ Kein Bearer Token gefunden`)
     return res.status(401).json({ error: 'Kein gültiger Bearer Token' })
   }
@@ -573,163 +591,393 @@ app.put('/v1/apikeys/:id/deactivate', validateToken, (req, res) => {
   res.status(204).send()
 })
 
-// GET /v1/usage/ai - Get AI usage data
-app.get('/v1/usage/ai', validateToken, (req, res) => {
-  const { from_date, to_date } = req.query
-  const userId = req.user.sub
-  const timestamp = new Date().toISOString()
+// Helper-Funktionen für Filterung, Sortierung und Pagination
+function applyFilters(data, filters) {
+  let filtered = [...data]
 
-  console.log(`[${timestamp}] Getting AI usage data for user: ${userId}`)
-
-  // Verwende hardcodierte Usage-Daten für den aktuellen Nutzer
-  let mockUsage = [...mockData.MOCK_USAGE_DATA]
-
-  // Filter by date range if provided
-  let filteredUsage = mockUsage
-  if (from_date || to_date) {
-    filteredUsage = mockUsage.filter((usage) => {
-      // Use createDate if available, otherwise use day/month/year
-      const usageDate = usage.createDate
-        ? new Date(usage.createDate)
-        : usage.day && usage.month && usage.year
-          ? new Date(usage.year, usage.month - 1, usage.day)
-          : new Date() // Fallback to current date if no date info
-
-      const from = from_date ? new Date(from_date) : new Date(0)
-      const to = to_date ? new Date(to_date) : new Date()
-      return usageDate >= from && usageDate <= to
+  // Date range filter
+  if (filters.from_date || filters.to_date) {
+    const beforeFilter = filtered.length
+    filtered = filtered.filter((item) => {
+      let itemDate
+      if (item.createDate) {
+        itemDate = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        // Verwende day/month/year falls vorhanden
+        itemDate = new Date(item.year, item.month - 1, item.day)
+      } else {
+        // Fallback auf aktuelles Datum
+        itemDate = new Date()
+      }
+      
+      const from = filters.from_date ? new Date(filters.from_date) : new Date(0)
+      const to = filters.to_date ? new Date(filters.to_date) : new Date(8640000000000000) // Max date
+      
+      // Normalisiere auf Tagesebene (ignoriere Zeit) - UTC verwenden um Zeitzonen-Probleme zu vermeiden
+      const itemDateOnly = new Date(Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()))
+      const fromDateOnly = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()))
+      const toDateOnly = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
+      
+      const isInRange = itemDateOnly >= fromDateOnly && itemDateOnly <= toDateOnly
+      
+      // Debug-Logging für erste paar Items
+      if (beforeFilter - filtered.length < 5) {
+        console.log(`[applyFilters] Date check:`, {
+          itemDate: itemDateOnly.toISOString().split('T')[0],
+          fromDate: fromDateOnly.toISOString().split('T')[0],
+          toDate: toDateOnly.toISOString().split('T')[0],
+          isInRange,
+          itemYear: itemDate.getUTCFullYear(),
+          itemMonth: itemDate.getUTCMonth() + 1,
+          itemDay: itemDate.getUTCDate(),
+        })
+      }
+      
+      return isInRange
     })
+    console.log(`[applyFilters] Date filter: ${beforeFilter} -> ${filtered.length} items`)
   }
 
-  console.log(`[${timestamp}] Returning ${filteredUsage.length} usage records`)
+  // Tag filter
+  if (filters.tag) {
+    filtered = filtered.filter((item) => item.tag === filters.tag)
+  }
+
+  // Model filter
+  if (filters.model) {
+    filtered = filtered.filter(
+      (item) => item.model === filters.model || item.modelName === filters.model,
+    )
+  }
+
+  // ModelType filter
+  if (filters.modelType) {
+    filtered = filtered.filter(
+      (item) => item.type === filters.modelType || item.modelType === filters.modelType,
+    )
+  }
+
+  // API Key filter
+  if (filters.apiKeyId) {
+    filtered = filtered.filter((item) => item.apiKeyId === filters.apiKeyId)
+  }
+
+  // User filter
+  if (filters.userId) {
+    filtered = filtered.filter(
+      (item) => item.technicalUserId === filters.userId || item.userId === filters.userId,
+    )
+  }
+
+  return filtered
+}
+
+function applySorting(data, sort, order) {
+  if (!sort) return data
+
+  const sorted = [...data].sort((a, b) => {
+    let comparison = 0
+
+    switch (sort) {
+      case 'date':
+        const dateA = a.createDate
+          ? new Date(a.createDate)
+          : a.day && a.month && a.year
+            ? new Date(a.year, a.month - 1, a.day)
+            : new Date(0)
+        const dateB = b.createDate
+          ? new Date(b.createDate)
+          : b.day && b.month && b.year
+            ? new Date(b.year, b.month - 1, b.day)
+            : new Date(0)
+        comparison = dateA.getTime() - dateB.getTime()
+        break
+      case 'cost':
+        comparison = (a.cost || 0) - (b.cost || 0)
+        break
+      case 'requests':
+        comparison = (a.requests || 0) - (b.requests || 0)
+        break
+      case 'tokensIn':
+        comparison = (a.tokensIn || 0) - (b.tokensIn || 0)
+        break
+      case 'tokensOut':
+        comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
+        break
+      case 'totalTokens':
+        comparison = ((a.tokensIn || 0) + (a.tokensOut || 0)) - ((b.tokensIn || 0) + (b.tokensOut || 0))
+        break
+      case 'model':
+        comparison = (a.modelName || a.model || '').localeCompare(b.modelName || b.model || '')
+        break
+      case 'user':
+        comparison = (a.technicalUserName || a.technicalUserId || '').localeCompare(
+          b.technicalUserName || b.technicalUserId || '',
+        )
+        break
+      default:
+        comparison = 0
+    }
+
+    return order === 'asc' ? comparison : -comparison
+  })
+
+  return sorted
+}
+
+function applyPagination(data, page = 1, limit = 20) {
+  const pageNum = parseInt(page, 10) || 1
+  const limitNum = parseInt(limit, 10) || 20
+  const start = (pageNum - 1) * limitNum
+  const end = start + limitNum
+
+  return {
+    data: data.slice(start, end),
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total: data.length,
+      totalPages: Math.ceil(data.length / limitNum),
+    },
+  }
+}
+
+// GET /v1/usage/ai - Get AI usage data (mit Pagination, Sortierung, Filter)
+app.get('/v1/usage/ai', validateToken, (req, res) => {
+  const {
+    from_date,
+    to_date,
+    page,
+    limit,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+    sort,
+    order,
+  } = req.query
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Getting AI usage data with filters:`, req.query)
+  console.log(`[${timestamp}] MOCK_USAGE_DATA length:`, mockData.MOCK_USAGE_DATA?.length || 0)
+
+  // Verwende hardcodierte Usage-Daten
+  let mockUsage = [...mockData.MOCK_USAGE_DATA]
+
+  // Filter anwenden
+  const filters = {
+    from_date,
+    to_date,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+  }
+  console.log(`[${timestamp}] Applying filters:`, filters)
+  let filteredUsage = applyFilters(mockUsage, filters)
+  console.log(`[${timestamp}] After filtering:`, filteredUsage.length, 'records')
+
+  // Sortierung anwenden
+  if (sort) {
+    filteredUsage = applySorting(filteredUsage, sort, order || 'desc')
+  }
+
+  // Pagination anwenden
+  const result = applyPagination(filteredUsage, page, limit)
+
+  console.log(
+    `[${timestamp}] Returning ${result.data.length} usage records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
 
   res.status(200).json({
-    usage: filteredUsage,
+    data: result.data,
+    pagination: result.pagination,
   })
 })
 
-// GET /v1/usage/ai/summarize - Get usage summary
+// GET /v1/usage/ai/summarize - Get usage summary (mit Pagination, Sortierung, Filter)
 app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
-  const { from_date, to_date, by } = req.query
-  const userId = req.user.sub
+  const {
+    from_date,
+    to_date,
+    by,
+    page,
+    limit,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+  } = req.query
   const timestamp = new Date().toISOString()
 
-  console.log(`[${timestamp}] Getting AI usage summary for user: ${userId}`)
+  console.log(`[${timestamp}] Getting AI usage summary with filters:`, req.query)
 
-  // Verwende hardcodierte gruppierte Usage-Daten
+  // Verwende SQLite für bessere Performance
   let mockUsage = []
 
-  if (by === 'apikey') {
-    // Gruppiert nach API Key (für Progress Bar)
-    mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
-    console.log(
-      `[${timestamp}] Returning usage summary grouped by API Key: ${mockUsage.length} records`,
-    )
+  // Gruppierung nach 'by' Parameter
+  const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
+  console.log(`[${timestamp}] GroupBy parameter:`, by, 'parsed:', groupBy)
+  
+  // Filter für SQLite-Abfrage
+  const filters = {
+    from_date,
+    to_date,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+  }
+  
+  if (groupBy.includes('apikey') || by === 'apikey') {
+    // Verwende SQLite für API Key Gruppierung
+    mockUsage = getAIUsageSummaryByApiKey(filters)
+    console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_apikey), length:`, mockUsage.length)
+  } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
+    // Verwende SQLite für Tag/Monat/Jahr Gruppierung
+    mockUsage = getAIUsageSummaryByDay(filters)
+    console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_day), length:`, mockUsage.length)
+    if (mockUsage.length > 0) {
+      console.log(`[${timestamp}] First item date:`, mockUsage[0].createDate, 'day:', mockUsage[0].day, 'month:', mockUsage[0].month, 'year:', mockUsage[0].year)
+      console.log(`[${timestamp}] Last item date:`, mockUsage[mockUsage.length - 1].createDate, 'day:', mockUsage[mockUsage.length - 1].day, 'month:', mockUsage[mockUsage.length - 1].month, 'year:', mockUsage[mockUsage.length - 1].year)
+    }
   } else {
-    // Standard: Alle detaillierten Daten
+    // Fallback auf statische Daten für nicht-gruppierte Abfragen
     mockUsage = [...mockData.MOCK_USAGE_DATA]
-    console.log(`[${timestamp}] Returning detailed usage data: ${mockUsage.length} records`)
+    console.log(`[${timestamp}] Using MOCK_USAGE_DATA (fallback), length:`, mockUsage.length)
+    // Filter anwenden für Fallback-Daten
+    let filteredUsage = applyFilters(mockUsage, filters)
+    mockUsage = filteredUsage
   }
 
-  console.log(`[${timestamp}] Summary data - Total records: ${mockUsage.length}`)
+  console.log(`[${timestamp}] After filtering:`, mockUsage.length, 'records')
+
+  // Pagination anwenden
+  const result = applyPagination(mockUsage, page, limit)
+
+  console.log(
+    `[${timestamp}] Returning ${result.data.length} summary records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
 
   res.status(200).json({
-    usage: mockUsage,
+    data: result.data,
+    pagination: result.pagination,
   })
 })
 
 // Admin Endpunkte
 
-// GET /v1/admin/usage/ai - Get all usage data (Admin only)
+// GET /v1/admin/usage/ai - Get all usage data (Admin only) (mit Pagination, Sortierung, Filter)
 app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const { from_date, to_date } = req.query
+  const {
+    from_date,
+    to_date,
+    page,
+    limit,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+    sort,
+    order,
+  } = req.query
   const timestamp = new Date().toISOString()
 
-  console.log(`[${timestamp}] Admin: Getting all AI usage data`)
+  console.log(`[${timestamp}] Admin: Getting all AI usage data with filters:`, req.query)
 
   // Verwende hardcodierte Usage-Daten für Admin
-  const mockUsage = [...mockData.MOCK_USAGE_DATA]
+  let mockUsage = [...mockData.MOCK_USAGE_DATA]
 
-  // Filter by date range if provided
-  let filteredUsage = mockUsage
-  if (from_date || to_date) {
-    filteredUsage = mockUsage.filter((usage) => {
-      // Use createDate if available, otherwise use day/month/year
-      const usageDate = usage.createDate
-        ? new Date(usage.createDate)
-        : usage.day && usage.month && usage.year
-          ? new Date(usage.year, usage.month - 1, usage.day)
-          : new Date() // Fallback to current date if no date info
+  // Filter anwenden
+  const filters = {
+    from_date,
+    to_date,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+  }
+  let filteredUsage = applyFilters(mockUsage, filters)
 
-      const from = from_date ? new Date(from_date) : new Date(0)
-      const to = to_date ? new Date(to_date) : new Date()
-      return usageDate >= from && usageDate <= to
-    })
+  // Sortierung anwenden
+  if (sort) {
+    filteredUsage = applySorting(filteredUsage, sort, order || 'desc')
   }
 
+  // Pagination anwenden
+  const result = applyPagination(filteredUsage, page, limit)
+
+  console.log(
+    `[${timestamp}] Admin: Returning ${result.data.length} usage records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
+
   res.status(200).json({
-    usage: filteredUsage,
+    data: result.data,
+    pagination: result.pagination,
   })
 })
 
-// GET /v1/admin/usage/ai/summarize - Get usage summary for all users (Admin only)
+// GET /v1/admin/usage/ai/summarize - Get usage summary for all users (Admin only) (mit Pagination, Sortierung, Filter)
 app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']), (req, res) => {
-  const { from_date, to_date, by, model, technicalUserId } = req.query
+  const {
+    from_date,
+    to_date,
+    by,
+    page,
+    limit,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId,
+    technicalUserId,
+  } = req.query
   const timestamp = new Date().toISOString()
 
-  console.log(`[${timestamp}] Admin: Getting AI usage summary`)
+  console.log(`[${timestamp}] Admin: Getting AI usage summary with filters:`, req.query)
 
   // Verwende hardcodierte gruppierte Usage-Daten für Admin
   let mockUsage = []
 
-  if (by === 'apikey') {
-    // Gruppiert nach API Key (für Progress Bar)
+  // Gruppierung nach 'by' Parameter
+  const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
+  
+  if (groupBy.includes('apikey') || by === 'apikey') {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
-    console.log(
-      `[${timestamp}] Admin: Returning usage summary grouped by API Key: ${mockUsage.length} records`,
-    )
-  } else if (by === 'day' || by === 'day,month' || by === 'day,month,year') {
-    // Gruppiert nach Tag/Monat/Jahr (für Charts)
+  } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_DAY]
-    console.log(
-      `[${timestamp}] Admin: Returning usage summary grouped by day: ${mockUsage.length} records`,
-    )
   } else {
-    // Standard: Alle detaillierten Daten
     mockUsage = [...mockData.MOCK_USAGE_DATA]
-    console.log(`[${timestamp}] Admin: Returning detailed usage data: ${mockUsage.length} records`)
   }
 
-  // Filter by technicalUserId if specified
-  if (technicalUserId) {
-    mockUsage = mockUsage.filter((item) => item.technicalUserId === technicalUserId)
+  // Filter anwenden (technicalUserId wird zu userId gemappt)
+  const filters = {
+    from_date,
+    to_date,
+    tag,
+    model,
+    modelType,
+    apiKeyId,
+    userId: userId || technicalUserId,
   }
+  let filteredUsage = applyFilters(mockUsage, filters)
 
-  // Filter by model if specified
-  if (model) {
-    mockUsage = mockUsage.filter((item) => item.model === model)
-  }
+  // Pagination anwenden
+  const result = applyPagination(filteredUsage, page, limit)
 
-  // Filter by date range if provided - DEBUG: Deaktiviere Datumsfilterung
-  if (false && (from_date || to_date)) {
-    mockUsage = mockUsage.filter((usage) => {
-      // Use createDate if available, otherwise use day/month/year
-      const usageDate = usage.createDate
-        ? new Date(usage.createDate)
-        : usage.day && usage.month && usage.year
-          ? new Date(usage.year, usage.month - 1, usage.day)
-          : new Date() // Fallback to current date if no date info
-
-      const from = from_date ? new Date(from_date) : new Date(0)
-      const to = to_date ? new Date(to_date) : new Date()
-      return usageDate >= from && usageDate <= to
-    })
-  }
-
-  console.log(`[${timestamp}] Admin summary data - Total records: ${mockUsage.length}`)
+  console.log(
+    `[${timestamp}] Admin: Returning ${result.data.length} summary records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
 
   res.status(200).json({
-    usage: mockUsage,
+    data: result.data,
+    pagination: result.pagination,
   })
 })
 
@@ -757,11 +1005,25 @@ app.get('/v1/admin/users', validateToken, requireRole(['API-Admin']), (req, res)
 })
 
 // Server starten
+// Cleanup beim Beenden
+process.on('SIGINT', () => {
+  console.log('\n[Shutdown] Schließe Datenbank...')
+  closeDatabase()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  console.log('\n[Shutdown] Schließe Datenbank...')
+  closeDatabase()
+  process.exit(0)
+})
+
 app.listen(port, () => {
   const timestamp = new Date().toISOString()
   console.log(`[${timestamp}] ========================================`)
   console.log(`[${timestamp}] Mock API Server gestartet`)
   console.log(`[${timestamp}] Server läuft auf http://localhost:${port}`)
+  console.log(`[${timestamp}] SQLite Datenbank: mock-data.db`)
   console.log(`[${timestamp}] ========================================`)
   console.log(`[${timestamp}] Verfügbare Endpunkte:`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys - List API keys`)
@@ -787,5 +1049,349 @@ app.listen(port, () => {
     `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/ai/summarize - Admin usage summary`,
   )
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/admin/users - Get all users`)
+  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/usage/extraction - Get extraction usage`)
+  console.log(
+    `[${timestamp}]   GET  http://localhost:${port}/v1/usage/extraction/summarize - Get extraction summary`,
+  )
+  console.log(
+    `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/extraction - Admin extraction usage`,
+  )
+  console.log(
+    `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/extraction/summarize - Admin extraction summary`,
+  )
   console.log(`[${timestamp}] ========================================`)
 })
+
+// ============================================
+// EXTRACTION USAGE ENDPOINTS
+// ============================================
+
+// Helper für Extraction-Filter
+function applyExtractionFilters(data, filters) {
+  let filtered = [...data]
+  const beforeFilter = filtered.length
+
+  // Date range filter
+  if (filters.from_date || filters.to_date) {
+    filtered = filtered.filter((item) => {
+      let itemDate
+      if (item.createDate) {
+        itemDate = new Date(item.createDate)
+      } else if (item.day && item.month && item.year) {
+        // Verwende day/month/year falls vorhanden
+        itemDate = new Date(item.year, item.month - 1, item.day)
+      } else {
+        // Fallback auf aktuelles Datum
+        itemDate = new Date()
+      }
+      
+      const from = filters.from_date ? new Date(filters.from_date) : new Date(0)
+      const to = filters.to_date ? new Date(filters.to_date) : new Date(8640000000000000) // Max date
+      
+      // Normalisiere auf Tagesebene (ignoriere Zeit) - UTC verwenden um Zeitzonen-Probleme zu vermeiden
+      const itemDateOnly = new Date(Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()))
+      const fromDateOnly = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()))
+      const toDateOnly = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
+      
+      const isInRange = itemDateOnly >= fromDateOnly && itemDateOnly <= toDateOnly
+      
+      // Debug-Logging für erste paar Items
+      if (beforeFilter - filtered.length < 5) {
+        console.log(`[applyExtractionFilters] Date check:`, {
+          itemDate: itemDateOnly.toISOString().split('T')[0],
+          fromDate: fromDateOnly.toISOString().split('T')[0],
+          toDate: toDateOnly.toISOString().split('T')[0],
+          isInRange,
+          itemYear: itemDate.getFullYear(),
+          itemMonth: itemDate.getMonth() + 1,
+          itemDay: itemDate.getDate(),
+          hasDayMonthYear: !!(item.day && item.month && item.year),
+        })
+      }
+      
+      return isInRange
+    })
+    console.log(`[applyExtractionFilters] Date filter: ${beforeFilter} -> ${filtered.length} items`)
+  }
+
+  // Provider filter
+  if (filters.provider) {
+    filtered = filtered.filter((item) => item.provider === filters.provider)
+  }
+
+  // ModelId filter
+  if (filters.modelId) {
+    filtered = filtered.filter((item) => item.modelId === filters.modelId)
+  }
+
+  // Status filter
+  if (filters.status) {
+    filtered = filtered.filter((item) => item.status === filters.status)
+  }
+
+  // Tag filter
+  if (filters.tag) {
+    filtered = filtered.filter((item) => item.tag === filters.tag)
+  }
+
+  // API Key filter
+  if (filters.apiKeyId) {
+    filtered = filtered.filter((item) => item.apiKeyId === filters.apiKeyId)
+  }
+
+  // User filter
+  if (filters.userId) {
+    filtered = filtered.filter(
+      (item) => item.technicalUserId === filters.userId || item.userId === filters.userId,
+    )
+  }
+
+  return filtered
+}
+
+// GET /v1/usage/extraction - Get extraction usage data
+app.get('/v1/usage/extraction', validateToken, (req, res) => {
+  const {
+    from_date,
+    to_date,
+    page,
+    limit,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+    sort,
+    order,
+  } = req.query
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Getting extraction usage data with filters:`, req.query)
+
+  let mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+
+  // Filter anwenden
+  const filters = {
+    from_date,
+    to_date,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+  }
+  let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+
+  // Sortierung anwenden (ähnlich wie AI Usage)
+  if (sort) {
+    filteredExtraction = applySorting(filteredExtraction, sort, order || 'desc')
+  }
+
+  // Pagination anwenden
+  const result = applyPagination(filteredExtraction, page, limit)
+
+  console.log(
+    `[${timestamp}] Returning ${result.data.length} extraction records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
+
+  res.status(200).json({
+    data: result.data,
+    pagination: result.pagination,
+  })
+})
+
+// GET /v1/usage/extraction/summarize - Get extraction usage summary
+app.get('/v1/usage/extraction/summarize', validateToken, (req, res) => {
+  const {
+    from_date,
+    to_date,
+    by,
+    page,
+    limit,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+  } = req.query
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Getting extraction usage summary with filters:`, req.query)
+  console.log(`[${timestamp}] GroupBy parameter:`, by, typeof by)
+
+  let mockExtraction = []
+
+  // Gruppierung nach 'by' Parameter
+  const groupBy = by ? (Array.isArray(by) ? by : typeof by === 'string' ? by.split(',') : [by]) : []
+  console.log(`[${timestamp}] Parsed groupBy:`, groupBy)
+
+  // Filter für SQLite-Abfrage
+  const filters = {
+    from_date,
+    to_date,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+  }
+
+  if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
+    // Verwende SQLite für Tag/Monat/Jahr Gruppierung
+    mockExtraction = getExtractionUsageSummaryByDay(filters)
+    console.log(`[${timestamp}] Using SQLite (extraction_usage_summary_by_day), length:`, mockExtraction.length)
+  } else {
+    // Fallback auf statische Daten für nicht-gruppierte Abfragen
+    mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+    console.log(`[${timestamp}] Using MOCK_EXTRACTION_DATA (fallback), length:`, mockExtraction.length)
+    // Filter anwenden für Fallback-Daten
+    let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+    mockExtraction = filteredExtraction
+  }
+
+  if (mockExtraction.length > 0) {
+    console.log(`[${timestamp}] First item:`, {
+      day: mockExtraction[0].day,
+      month: mockExtraction[0].month,
+      year: mockExtraction[0].year,
+      createDate: mockExtraction[0].createDate,
+    })
+  }
+  console.log(`[${timestamp}] After filtering:`, mockExtraction.length, 'records')
+
+  // Pagination anwenden
+  const result = applyPagination(mockExtraction, page, limit)
+
+  console.log(
+    `[${timestamp}] Returning ${result.data.length} extraction summary records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
+  console.log(`[${timestamp}] Filter details:`, {
+    from_date,
+    to_date,
+    fromDateParsed: from_date ? new Date(from_date).toISOString() : 'none',
+    toDateParsed: to_date ? new Date(to_date).toISOString() : 'none',
+  })
+
+  res.status(200).json({
+    data: result.data,
+    pagination: result.pagination,
+  })
+})
+
+// GET /v1/admin/usage/extraction - Get all extraction usage data (Admin only)
+app.get('/v1/admin/usage/extraction', validateToken, requireRole(['API-Admin']), (req, res) => {
+  const {
+    from_date,
+    to_date,
+    page,
+    limit,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+    sort,
+    order,
+  } = req.query
+  const timestamp = new Date().toISOString()
+
+  console.log(`[${timestamp}] Admin: Getting all extraction usage data with filters:`, req.query)
+
+  let mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+
+  // Filter anwenden
+  const filters = {
+    from_date,
+    to_date,
+    provider,
+    modelId,
+    status,
+    tag,
+    apiKeyId,
+    userId,
+  }
+  let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+
+  // Sortierung anwenden
+  if (sort) {
+    filteredExtraction = applySorting(filteredExtraction, sort, order || 'desc')
+  }
+
+  // Pagination anwenden
+  const result = applyPagination(filteredExtraction, page, limit)
+
+  console.log(
+    `[${timestamp}] Admin: Returning ${result.data.length} extraction records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+  )
+
+  res.status(200).json({
+    data: result.data,
+    pagination: result.pagination,
+  })
+})
+
+// GET /v1/admin/usage/extraction/summarize - Get extraction usage summary (Admin only)
+app.get(
+  '/v1/admin/usage/extraction/summarize',
+  validateToken,
+  requireRole(['API-Admin']),
+  (req, res) => {
+    const {
+      from_date,
+      to_date,
+      by,
+      page,
+      limit,
+      provider,
+      modelId,
+      status,
+      tag,
+      apiKeyId,
+      userId,
+    } = req.query
+    const timestamp = new Date().toISOString()
+
+    console.log(`[${timestamp}] Admin: Getting extraction usage summary with filters:`, req.query)
+
+    let mockExtraction = []
+
+    // Gruppierung nach 'by' Parameter
+    const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
+
+    if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
+      mockExtraction = [...mockData.MOCK_EXTRACTION_SUMMARY_BY_DAY]
+    } else {
+      mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+    }
+
+    // Filter anwenden
+    const filters = {
+      from_date,
+      to_date,
+      provider,
+      modelId,
+      status,
+      tag,
+      apiKeyId,
+      userId,
+    }
+    let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+
+    // Pagination anwenden
+    const result = applyPagination(filteredExtraction, page, limit)
+
+    console.log(
+      `[${timestamp}] Admin: Returning ${result.data.length} extraction summary records (page ${result.pagination.page} of ${result.pagination.totalPages})`,
+    )
+
+    res.status(200).json({
+      data: result.data,
+      pagination: result.pagination,
+    })
+  },
+)

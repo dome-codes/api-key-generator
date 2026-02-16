@@ -233,6 +233,29 @@
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('apiKeyId')"
+            >
+              <div class="flex items-center gap-1">
+                API Key ID
+                <svg
+                  v-if="currentSortField === 'apiKeyId'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
               @click="sortBy('date')"
             >
               <div class="flex items-center gap-1">
@@ -302,6 +325,9 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ item.tag }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+              {{ item.apiKeyId || '-' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ formatDate(item.day, item.month, item.year) }}
@@ -499,6 +525,9 @@ const sortedData = computed(() => {
         const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
         comparison = dateA.getTime() - dateB.getTime()
         break
+      case 'apiKeyId':
+        comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
+        break
       default:
         comparison = 0
     }
@@ -615,6 +644,7 @@ const exportTableData = async () => {
       'Gesamt Tokens',
       'Kosten (€)',
       'Tag',
+      'API Key ID',
       'Tag',
       'Monat',
       'Jahr',
@@ -634,6 +664,7 @@ const exportTableData = async () => {
           item.totalTokens,
           item.cost.toFixed(4),
           item.tag,
+          item.apiKeyId || '',
           item.day || '',
           item.month || '',
           item.year || '',

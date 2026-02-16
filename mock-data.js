@@ -1,6 +1,8 @@
 // Mock-Daten für API Keys und Usage-Daten
 // Diese Daten werden als Grundlage für die Mock API verwendet
 
+import { v4 as uuidv4 } from 'uuid'
+
 // Hardcodierte API Keys - Erweitert mit mehr Nutzern und verschiedenen Szenarien
 const MOCK_API_KEYS = [
   // ADMIN Gruppe (1 Nutzer)
@@ -758,374 +760,173 @@ const MOCK_USAGE_DATA = [
   },
 ]
 
-// Gruppierte Usage-Daten nach Tag (für Admin Charts)
-const MOCK_USAGE_SUMMARY_BY_DAY = [
-  // Beispiel-Daten für Charts - Alle Nutzer mit verschiedenen Daten
-  {
-    type: 'CompletionModelUsage',
-    tag: 'admin-production',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-001',
-    requestTokens: 150000,
-    responseTokens: 75000,
-    technicalUserId: 'SVC_ADMIN',
-    createDate: '2025-09-15T10:00:00.000Z',
-    requests: 450,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'frontend-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-002',
-    requestTokens: 30000,
-    responseTokens: 15000,
-    technicalUserId: 'e12345',
-    createDate: '2025-09-15T09:00:00.000Z',
-    requests: 120,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'backend-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-003',
-    requestTokens: 45000,
-    responseTokens: 22500,
-    technicalUserId: 'e54321',
-    createDate: '2025-09-15T10:30:00.000Z',
-    requests: 180,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'mobile-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-004',
-    requestTokens: 25000,
-    responseTokens: 10000,
-    technicalUserId: 'e11111',
-    createDate: '2025-09-15T11:00:00.000Z',
-    requests: 90,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'devops-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-005',
-    requestTokens: 35000,
-    responseTokens: 17500,
-    technicalUserId: 'e33333',
-    createDate: '2025-09-15T13:00:00.000Z',
-    requests: 140,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'qa-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-006',
-    requestTokens: 20000,
-    responseTokens: 12500,
-    technicalUserId: 'e77777',
-    createDate: '2025-09-15T12:30:00.000Z',
-    requests: 100,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'ui-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-007',
-    requestTokens: 15000,
-    responseTokens: 0,
-    technicalUserId: 'e88888',
-    createDate: '2025-09-15T16:00:00.000Z',
-    requests: 40,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'data-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-008',
-    requestTokens: 50000,
-    responseTokens: 30000,
-    technicalUserId: 'e99999',
-    createDate: '2025-09-15T14:30:00.000Z',
-    requests: 200,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'security-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-009',
-    requestTokens: 30000,
-    responseTokens: 15000,
-    technicalUserId: 'e00000',
-    createDate: '2025-09-15T15:00:00.000Z',
-    requests: 110,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-010',
-    requestTokens: 40000,
-    responseTokens: 20000,
-    technicalUserId: 'b67890',
-    createDate: '2025-09-15T08:00:00.000Z',
-    requests: 160,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-011',
-    requestTokens: 35000,
-    responseTokens: 17500,
-    technicalUserId: 'b98765',
-    createDate: '2025-09-15T09:30:00.000Z',
-    requests: 130,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-012',
-    requestTokens: 25000,
-    responseTokens: 12500,
-    technicalUserId: 'b22222',
-    createDate: '2025-09-15T11:15:00.000Z',
-    requests: 95,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-013',
-    requestTokens: 50000,
-    responseTokens: 25000,
-    technicalUserId: 'b44444',
-    createDate: '2025-09-15T13:45:00.000Z',
-    requests: 170,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-014',
-    requestTokens: 45000,
-    responseTokens: 22500,
-    technicalUserId: 'b55555',
-    createDate: '2025-09-15T10:15:00.000Z',
-    requests: 150,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'business-dev',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-015',
-    requestTokens: 30000,
-    responseTokens: 15000,
-    technicalUserId: 'b66666',
-    createDate: '2025-09-15T14:15:00.000Z',
-    requests: 120,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'monitoring-service',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-016',
-    requestTokens: 20000,
-    responseTokens: 10000,
-    technicalUserId: 'SVC_MONITOR',
-    createDate: '2025-09-15T00:00:00.000Z',
-    requests: 80,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'analytics-service',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-017',
-    requestTokens: 80000,
-    responseTokens: 40000,
-    technicalUserId: 'SVC_ANALYTICS',
-    createDate: '2025-09-15T01:00:00.000Z',
-    requests: 300,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'data-service',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-018',
-    requestTokens: 100000,
-    responseTokens: 50000,
-    technicalUserId: 'SVC_DATA',
-    createDate: '2025-09-15T03:00:00.000Z',
-    requests: 400,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'translation-service',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-019',
-    requestTokens: 120000,
-    responseTokens: 60000,
-    technicalUserId: 'SVC_TRANSLATE',
-    createDate: '2025-09-15T04:00:00.000Z',
-    requests: 500,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'notification-service',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-020',
-    requestTokens: 30000,
-    responseTokens: 15000,
-    technicalUserId: 'SVC_NOTIFY',
-    createDate: '2025-09-15T05:00:00.000Z',
-    requests: 100,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'backup-service',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-021',
-    requestTokens: 15000,
-    responseTokens: 7500,
-    technicalUserId: 'SVC_BACKUP',
-    createDate: '2025-09-15T06:00:00.000Z',
-    requests: 60,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'marketing-manager',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-022',
-    requestTokens: 35000,
-    responseTokens: 17500,
-    technicalUserId: 'john.doe',
-    createDate: '2025-09-15T08:30:00.000Z',
-    requests: 140,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'sales-manager',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-023',
-    requestTokens: 25000,
-    responseTokens: 12500,
-    technicalUserId: 'jane.smith',
-    createDate: '2025-09-15T09:00:00.000Z',
-    requests: 100,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'hr-manager',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-024',
-    requestTokens: 30000,
-    responseTokens: 15000,
-    technicalUserId: 'sarah.jones',
-    createDate: '2025-09-15T11:30:00.000Z',
-    requests: 120,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'finance-manager',
-    model: 'gpt-4o-mini',
-    apiKeyId: 'api-key-025',
-    requestTokens: 15000,
-    responseTokens: 7500,
-    technicalUserId: 'tom.brown',
-    createDate: '2025-08-30T14:00:00.000Z',
-    requests: 60,
-    day: 30,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'CompletionModelUsage',
-    tag: 'customer-success',
-    model: 'gpt-4o',
-    apiKeyId: 'api-key-026',
-    requestTokens: 20000,
-    responseTokens: 10000,
-    technicalUserId: 'mike.wilson',
-    createDate: '2025-09-15T12:00:00.000Z',
-    requests: 80,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-]
+// Funktion zum Generieren von gruppierten Usage-Daten für mehrere Tage
+const generateMockUsageSummaryByDay = (days = 90) => {
+  const summaryData = []
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - days)
+
+  const models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
+  const tags = ['production', 'development', 'testing', 'staging']
+  const userIds = ['SVC_ADMIN', 'e12345', 'e54321', 'e11111', 'e33333', 'e77777', 'e88888']
+  const apiKeys = ['api-key-001', 'api-key-002', 'api-key-003', 'api-key-004', 'api-key-005']
+
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
+    
+    const day = currentDate.getDate()
+    const month = currentDate.getMonth() + 1
+    const year = currentDate.getFullYear()
+    const dayOfWeek = currentDate.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    
+    // Generiere 3-8 Einträge pro Tag
+    const entriesPerDay = Math.floor(Math.random() * 6) + 3
+    
+    for (let j = 0; j < entriesPerDay; j++) {
+      const baseMultiplier = isWeekend ? 0.6 : 1.2
+      const requests = Math.floor((Math.random() * 200 + 50) * baseMultiplier)
+      const requestTokens = Math.floor(requests * (Math.random() * 200 + 150))
+      const responseTokens = Math.floor(requestTokens * (Math.random() * 0.4 + 0.3))
+      const cost = requestTokens * 0.000001 + responseTokens * 0.000003
+      
+      summaryData.push({
+        type: 'CompletionModelUsage',
+        tag: tags[Math.floor(Math.random() * tags.length)],
+        model: models[Math.floor(Math.random() * models.length)],
+        apiKeyId: apiKeys[Math.floor(Math.random() * apiKeys.length)],
+        requestTokens,
+        responseTokens,
+        tokensIn: requestTokens,
+        tokensOut: responseTokens,
+        technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
+        createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+        requests,
+        cost,
+        day,
+        month,
+        year,
+      })
+    }
+  }
+  
+  return summaryData
+}
+
+// Gruppierte Usage-Daten nach Tag (für Admin Charts) - Generiert für die letzten 90 Tage
+const MOCK_USAGE_SUMMARY_BY_DAY = generateMockUsageSummaryByDay(90)
+
+// Funktion zum Generieren von Extraction-Daten für mehrere Tage
+const generateMockExtractionData = (days = 90) => {
+  const extractionData = []
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - days)
+
+  const providers = ['azure', 'aws', 'google']
+  const modelIds = ['model-001', 'model-002', 'model-003']
+  const statuses = ['completed', 'processing', 'failed']
+  const tags = ['invoice', 'contract', 'receipt', 'form', 'report']
+  const userIds = ['SVC_ADMIN', 'e12345', 'e54321', 'e11111', 'e33333']
+  const apiKeys = ['api-key-001', 'api-key-002', 'api-key-003', 'api-key-004', 'api-key-005']
+
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
+    
+    const day = currentDate.getDate()
+    const month = currentDate.getMonth() + 1
+    const year = currentDate.getFullYear()
+    const dayOfWeek = currentDate.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    
+    // Generiere 5-15 Einträge pro Tag
+    const entriesPerDay = Math.floor(Math.random() * 11) + 5
+    
+    for (let j = 0; j < entriesPerDay; j++) {
+      const baseMultiplier = isWeekend ? 0.6 : 1.2
+      const operations = Math.floor((Math.random() * 50 + 10) * baseMultiplier)
+      const pages = Math.floor(operations * (Math.random() * 3 + 1))
+      const confidence = Math.random() * 0.3 + 0.7 // 70-100%
+      const cost = operations * (Math.random() * 0.1 + 0.05)
+      
+      extractionData.push({
+        id: uuidv4(),
+        provider: providers[Math.floor(Math.random() * providers.length)],
+        modelId: modelIds[Math.floor(Math.random() * modelIds.length)],
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+        tag: tags[Math.floor(Math.random() * tags.length)],
+        operations,
+        pages,
+        confidence,
+        cost,
+        technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
+        apiKeyId: apiKeys[Math.floor(Math.random() * apiKeys.length)],
+        createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+        day,
+        month,
+        year,
+      })
+    }
+  }
+  
+  return extractionData
+}
+
+// Funktion zum Generieren von gruppierten Extraction-Daten für mehrere Tage
+const generateExtendedExtractionSummaryByDay = (days = 90) => {
+  const summaryData = []
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - days)
+
+  const providers = ['azure', 'aws', 'google']
+  const tags = ['invoice', 'contract', 'receipt', 'form', 'report']
+  const userIds = ['SVC_ADMIN', 'e12345', 'e54321', 'e11111', 'e33333']
+  const apiKeys = ['api-key-001', 'api-key-002', 'api-key-003', 'api-key-004', 'api-key-005']
+
+  for (let i = 0; i < days; i++) {
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
+    
+    const day = currentDate.getDate()
+    const month = currentDate.getMonth() + 1
+    const year = currentDate.getFullYear()
+    const dayOfWeek = currentDate.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    
+    const baseMultiplier = isWeekend ? 0.6 : 1.2
+    const operations = Math.floor((Math.random() * 200 + 50) * baseMultiplier)
+    const totalPages = Math.floor(operations * (Math.random() * 3 + 1))
+    const averageConfidence = Math.random() * 0.2 + 0.75 // 75-95%
+    const cost = operations * (Math.random() * 0.1 + 0.05)
+    
+    summaryData.push({
+      provider: providers[Math.floor(Math.random() * providers.length)],
+      tag: tags[Math.floor(Math.random() * tags.length)],
+      operations,
+      totalPages,
+      averageConfidence,
+      cost,
+      technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
+      apiKeyId: apiKeys[Math.floor(Math.random() * apiKeys.length)],
+      createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+      day,
+      month,
+      year,
+    })
+  }
+  
+  return summaryData
+}
+
+// Extraction Mock-Daten - Generiert für die letzten 90 Tage
+const MOCK_EXTRACTION_DATA = generateMockExtractionData(90)
+
+// Gruppierte Extraction-Daten nach Tag - Generiert für die letzten 90 Tage
+const MOCK_EXTRACTION_SUMMARY_BY_DAY = generateExtendedExtractionSummaryByDay(90)
 
 // Gruppierte Usage-Daten nach API Key (für Summarize API)
 const MOCK_USAGE_SUMMARY_BY_APIKEY = [
@@ -1341,176 +1142,6 @@ const MOCK_USAGE_SUMMARY_BY_APIKEY = [
     month: 9,
     year: 2025,
   },
-  // EmbeddingModelUsage Daten für Admin-Modellfilter
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'admin-analytics',
-    model: 'text-embedding-3-large',
-    apiKeyId: 'api-key-001',
-    requestTokens: 50000,
-    responseTokens: 0,
-    technicalUserId: 'SVC_ADMIN',
-    createDate: '2025-09-15T11:00:00.000Z',
-    requests: 200,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'search-dev',
-    model: 'text-embedding-3-small',
-    apiKeyId: 'api-key-002',
-    requestTokens: 25000,
-    responseTokens: 0,
-    technicalUserId: 'e12345',
-    createDate: '2025-09-15T12:00:00.000Z',
-    requests: 150,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'recommendation-engine',
-    model: 'text-embedding-3-large',
-    apiKeyId: 'api-key-003',
-    requestTokens: 75000,
-    responseTokens: 0,
-    technicalUserId: 'e54321',
-    createDate: '2025-09-15T13:00:00.000Z',
-    requests: 300,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'content-analysis',
-    model: 'text-embedding-3-small',
-    apiKeyId: 'api-key-004',
-    requestTokens: 40000,
-    responseTokens: 0,
-    technicalUserId: 'e67890',
-    createDate: '2025-09-15T14:00:00.000Z',
-    requests: 180,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'document-processing',
-    model: 'text-embedding-3-large',
-    apiKeyId: 'api-key-005',
-    requestTokens: 60000,
-    responseTokens: 0,
-    technicalUserId: 'e09876',
-    createDate: '2025-09-15T15:00:00.000Z',
-    requests: 250,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'EmbeddingModelUsage',
-    tag: 'semantic-search',
-    model: 'text-embedding-3-small',
-    apiKeyId: 'api-key-006',
-    requestTokens: 35000,
-    responseTokens: 0,
-    technicalUserId: 'e11223',
-    createDate: '2025-09-15T16:00:00.000Z',
-    requests: 220,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  // ImageModelUsage Daten für Admin-Modellfilter
-  {
-    type: 'ImageModelUsage',
-    tag: 'image-generation',
-    model: 'dall-e-3',
-    apiKeyId: 'api-key-007',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'e12345',
-    createDate: '2025-09-15T17:00:00.000Z',
-    requests: 50,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'ImageModelUsage',
-    tag: 'logo-design',
-    model: 'dall-e-2',
-    apiKeyId: 'api-key-008',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'e54321',
-    createDate: '2025-09-15T18:00:00.000Z',
-    requests: 30,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'ImageModelUsage',
-    tag: 'illustration-creation',
-    model: 'dall-e-3',
-    apiKeyId: 'api-key-009',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'e67890',
-    createDate: '2025-09-15T19:00:00.000Z',
-    requests: 40,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'ImageModelUsage',
-    tag: 'product-visuals',
-    model: 'dall-e-2',
-    apiKeyId: 'api-key-010',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'e09876',
-    createDate: '2025-09-15T20:00:00.000Z',
-    requests: 25,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'ImageModelUsage',
-    tag: 'marketing-assets',
-    model: 'dall-e-3',
-    apiKeyId: 'api-key-011',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'e11223',
-    createDate: '2025-09-15T21:00:00.000Z',
-    requests: 35,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
-  {
-    type: 'ImageModelUsage',
-    tag: 'ui-mockups',
-    model: 'dall-e-2',
-    apiKeyId: 'api-key-012',
-    requestTokens: 0,
-    responseTokens: 0,
-    technicalUserId: 'SVC_ADMIN',
-    createDate: '2025-09-15T22:00:00.000Z',
-    requests: 20,
-    day: 15,
-    month: 9,
-    year: 2025,
-  },
 ]
 
 // Helper-Funktionen
@@ -1544,6 +1175,8 @@ export {
   MOCK_USAGE_DATA,
   MOCK_USAGE_SUMMARY_BY_APIKEY,
   MOCK_USAGE_SUMMARY_BY_DAY,
+  MOCK_EXTRACTION_DATA,
+  MOCK_EXTRACTION_SUMMARY_BY_DAY,
   getAllApiKeys,
   getAllUsageData,
   getAllUsageSummaryByApiKey,

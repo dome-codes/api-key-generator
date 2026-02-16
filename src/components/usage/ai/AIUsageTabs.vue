@@ -229,34 +229,34 @@ const adminToDate = ref('')
 // Unique users for admin filter
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 
-// Initialize default dates
+// Initialize default dates - Standardmäßig KEINE Datumsfilterung (leer = alle Daten)
 const setDefaultDates = () => {
-  const today = new Date()
-  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-  ownFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  ownToDate.value = today.toISOString().split('T')[0]
-  adminFromDate.value = thirtyDaysAgo.toISOString().split('T')[0]
-  adminToDate.value = today.toISOString().split('T')[0]
+  // Leer lassen = keine Datumsfilterung, zeigt alle verfügbaren Daten
+  ownFromDate.value = ''
+  ownToDate.value = ''
+  adminFromDate.value = ''
+  adminToDate.value = ''
 }
 
 // Load filters from URL
 const loadFiltersFromUrl = () => {
-  const tab = getQueryParam('tab') || 'own'
-  activeTab.value = tab as 'own' | 'admin'
+  const tabParam = getQueryParam('tab') || 'own'
+  activeTab.value = tabParam === 'admin' ? 'admin' : 'own'
 
-  if (tab === 'own') {
-    ownTimeRange.value = getQueryParam('timeRange') || '30d'
+  if (activeTab.value === 'own') {
+    ownTimeRange.value = getQueryParam('timeRange') || ''
     ownModelType.value = getQueryParam('modelType') || ''
     ownModel.value = getQueryParam('model') || ''
     ownTag.value = getQueryParam('tag') || ''
     ownApiKeyId.value = getQueryParam('apiKeyId') || ''
     ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
     ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
+    // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
     ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
-  } else {
-    adminTimeRange.value = getQueryParam('timeRange') || '30d'
+  }
+  if (activeTab.value === 'admin') {
+    adminTimeRange.value = getQueryParam('timeRange') || ''
     adminModelType.value = getQueryParam('modelType') || ''
     adminModel.value = getQueryParam('model') || ''
     adminTag.value = getQueryParam('tag') || ''
@@ -264,6 +264,7 @@ const loadFiltersFromUrl = () => {
     adminUser.value = getQueryParam('userId') || ''
     adminUserGroup.value = getQueryParam('userGroup') || ''
     adminView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
+    // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
     adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
   }
@@ -307,8 +308,8 @@ const saveFiltersToUrl = () => {
 }
 
 // Convert date string to ISO format
-const toIsoDate = (dateStr: string): string => {
-  if (!dateStr) return ''
+const toIsoDate = (dateStr: string): string | undefined => {
+  if (!dateStr || dateStr.trim() === '') return undefined
   return new Date(dateStr + 'T00:00:00Z').toISOString()
 }
 
@@ -318,12 +319,19 @@ const showOwnDetails = computed(() => ownView.value === 'detailed')
 const showAdminChart = computed(() => adminView.value === 'overview')
 const showAdminDetails = computed(() => adminView.value === 'detailed')
 
-const ownSummary = computed(() => ({
-  tokensIn: usageAggregation.value.totalTokensIn,
-  tokensOut: usageAggregation.value.totalTokensOut,
-  requests: usageAggregation.value.totalRequests,
-  cost: usageAggregation.value.totalCost,
-}))
+const ownSummary = computed(() => {
+  const agg = usageAggregation.value
+  console.log('[AIUsageTabs] ownSummary computed:', {
+    usageDataLength: usageData.value.length,
+    aggregation: agg,
+  })
+  return {
+    tokensIn: agg.totalTokensIn,
+    tokensOut: agg.totalTokensOut,
+    requests: agg.totalRequests,
+    cost: agg.totalCost,
+  }
+})
 
 const adminSummary = computed(() => ({
   tokensIn: usageAggregation.value.totalTokensIn,
@@ -335,51 +343,67 @@ const adminSummary = computed(() => ({
 
 // Handle filter changes - Own
 const handleOwnFilterChange = async () => {
-  await updateFilter(
-    {
-      fromDate: toIsoDate(ownFromDate.value),
-      toDate: toIsoDate(ownToDate.value),
-      modelType: ownModelType.value || undefined,
-      model: ownModel.value || undefined,
-      tag: ownTag.value || undefined,
-      apiKeyId: ownApiKeyId.value || undefined,
-      groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-    },
-    false, // useAdminApi = false
-  )
+  try {
+    console.log('[AIUsageTabs] handleOwnFilterChange - Own tab')
+    await updateFilter(
+      {
+        fromDate: toIsoDate(ownFromDate.value),
+        toDate: toIsoDate(ownToDate.value),
+        modelType: ownModelType.value || undefined,
+        model: ownModel.value || undefined,
+        tag: ownTag.value || undefined,
+        apiKeyId: ownApiKeyId.value || undefined,
+        groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+      },
+      false, // useAdminApi = false
+    )
 
-  if (ownView.value === 'overview') {
-    await loadUsageSummary({}, false)
-  } else {
-    await loadUsageData({}, false)
+    if (ownView.value === 'overview') {
+      console.log('[AIUsageTabs] Loading usage summary...')
+      await loadUsageSummary({}, false)
+    } else {
+      console.log('[AIUsageTabs] Loading usage data...')
+      await loadUsageData({}, false)
+    }
+
+    saveFiltersToUrl()
+  } catch (err) {
+    console.error('[AIUsageTabs] Error in handleOwnFilterChange:', err)
+    error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Daten'
   }
-
-  saveFiltersToUrl()
 }
 
 // Handle filter changes - Admin
 const handleAdminFilterChange = async () => {
-  await updateFilter(
-    {
-      fromDate: toIsoDate(adminFromDate.value),
-      toDate: toIsoDate(adminToDate.value),
-      modelType: adminModelType.value || undefined,
-      model: adminModel.value || undefined,
-      tag: adminTag.value || undefined,
-      apiKeyId: adminApiKeyId.value || undefined,
-      userId: adminUser.value || undefined,
-      groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-    },
-    true, // useAdminApi = true
-  )
+  try {
+    console.log('[AIUsageTabs] handleAdminFilterChange - Admin tab')
+    await updateFilter(
+      {
+        fromDate: toIsoDate(adminFromDate.value),
+        toDate: toIsoDate(adminToDate.value),
+        modelType: adminModelType.value || undefined,
+        model: adminModel.value || undefined,
+        tag: adminTag.value || undefined,
+        apiKeyId: adminApiKeyId.value || undefined,
+        userId: adminUser.value || undefined,
+        groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+      },
+      true, // useAdminApi = true
+    )
 
-  if (adminView.value === 'overview') {
-    await loadUsageSummary({}, true)
-  } else {
-    await loadUsageData({}, true)
+    if (adminView.value === 'overview') {
+      console.log('[AIUsageTabs] Loading admin usage summary...')
+      await loadUsageSummary({}, true)
+    } else {
+      console.log('[AIUsageTabs] Loading admin usage data...')
+      await loadUsageData({}, true)
+    }
+
+    saveFiltersToUrl()
+  } catch (err) {
+    console.error('[AIUsageTabs] Error in handleAdminFilterChange:', err)
+    error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Daten'
   }
-
-  saveFiltersToUrl()
 }
 
 // Handle page change
@@ -463,16 +487,21 @@ watch(adminView, async () => {
 })
 
 // Initialize
-onMounted(() => {
-  // Load from URL first, then set defaults for missing values
-  loadFiltersFromUrl()
-  setDefaultDates()
+onMounted(async () => {
+  try {
+    // Load from URL first, then set defaults for missing values
+    loadFiltersFromUrl()
+    setDefaultDates()
 
-  // Apply loaded filters
-  if (activeTab.value === 'own') {
-    handleOwnFilterChange()
-  } else if (activeTab.value === 'admin') {
-    handleAdminFilterChange()
+    // Apply loaded filters
+    if (activeTab.value === 'own') {
+      await handleOwnFilterChange()
+    } else if (activeTab.value === 'admin') {
+      await handleAdminFilterChange()
+    }
+  } catch (err) {
+    console.error('Error initializing AIUsageTabs:', err)
+    error.value = err instanceof Error ? err.message : 'Fehler beim Initialisieren'
   }
 })
 </script>

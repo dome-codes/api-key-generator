@@ -401,8 +401,11 @@ onMounted(() => {
         </div>
 
         <!-- Usage Section -->
-        <div v-else-if="activeSidebar === 'usage' && canViewUsage">
-          <UsageTabs />
+        <div v-else-if="activeSidebar === 'usage'">
+          <div v-if="!canViewUsage" class="rounded-lg border border-amber-200 bg-amber-50 p-6">
+            <p class="text-amber-800">Sie haben keine Berechtigung, die Nutzungsdaten anzuzeigen.</p>
+          </div>
+          <UsageTabs v-else />
         </div>
       </main>
     </div>

@@ -29,6 +29,11 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
+                Technischer Nutzer
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Operation ID
               </th>
               <th
@@ -71,10 +76,28 @@
               >
                 Tag
               </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                API Key ID
+              </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="item in data" :key="item.id" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium text-blue-800">
+                      {{ getInitials(item.technicalUserName) }}
+                    </span>
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">{{ item.technicalUserName }}</div>
+                    <div class="text-sm text-gray-500">{{ item.technicalUserId }}</div>
+                  </div>
+                </div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                 {{ item.operationId.substring(0, 12) }}...
               </td>
@@ -112,6 +135,9 @@
                 >
                   {{ item.tag }}
                 </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                {{ item.apiKeyId || '-' }}
               </td>
             </tr>
           </tbody>
@@ -222,5 +248,15 @@ const formatDate = (dateStr: string): string => {
   } catch {
     return dateStr
   }
+}
+
+const getInitials = (name?: string): string => {
+  if (!name) return '--'
+  return name
+    .split(' ')
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 }
 </script>
