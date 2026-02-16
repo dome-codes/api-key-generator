@@ -85,7 +85,7 @@ export function buildApiKeyUsageMap(
     }
   }
 
-  // 2) Fallback: Records mit apiKeyId null/undefined aber technicalUserId → Verbrauch allen Keys dieses Users zuordnen
+  // 2) Fallback: Records mit apiKeyId null/undefined aber technicalUserId → Verbrauch nur dem ersten Key dieses Users zuordnen (keine dreifache Anzeige)
   const recordsWithoutKeyId = safeRecords.filter((r) => {
     const id = r.apiKeyId ?? r.api_key_id
     return (id == null || id === '') && r.technicalUserId
@@ -103,9 +103,12 @@ export function buildApiKeyUsageMap(
       usageByUserId[uid].tokensIn += t.tokensIn
       usageByUserId[uid].tokensOut += t.tokensOut
     }
+    // Pro User nur einen Key befüllen (erster in der Liste), damit nicht alle Keys dieselbe Zahl zeigen
+    const userIdAlreadyAssigned = new Set<string>()
     for (const key of keys) {
       const uid = key.userId?.trim()
-      if (!uid || !usageByUserId[uid]) continue
+      if (!uid || !usageByUserId[uid] || userIdAlreadyAssigned.has(uid)) continue
+      userIdAlreadyAssigned.add(uid)
       const existing = map[key.id]
       const fallback = usageByUserId[uid]
       map[key.id] = {
