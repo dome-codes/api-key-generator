@@ -1,4 +1,5 @@
-import type { MobaRagApiKey } from '@/api/types/types'
+// TODO: Nach Orval-Generierung hier die generierten Types importieren
+// import type { ApiKey } from '@/api/generated'
 import { apiKeyService } from '@/services/apiService'
 import { computed, ref } from 'vue'
 
@@ -24,7 +25,7 @@ interface UserProfile {
 }
 
 export function useApiKeys(userProfile: UserProfile) {
-  const keys = ref<MobaRagApiKey[]>([])
+  const keys = ref<any[]>([])
   const isLoading = ref(false)
   const error = ref('')
   const isCreating = ref(false)
@@ -42,7 +43,7 @@ export function useApiKeys(userProfile: UserProfile) {
 
   // Legacy-Kompatibilität für bestehende Komponenten
   const legacyKeys = computed(() => {
-    return keys.value.map((key: MobaRagApiKey) => ({
+    return keys.value.map((key: any) => ({
       id: key.id,
       apiKey: key.id,
       name: key.name,

@@ -20,10 +20,12 @@
     "format": "prettier --write src/",
     "db:init": "node scripts/init-database.js",
     "db:generate": "node scripts/generate-mock-data.js",
-    "db:setup": "npm run db:init && npm run db:generate"
+    "db:setup": "npm run db:init && npm run db:generate",
+    "api:generate": "orval"
   },
   "dependencies": {
     "@types/axios": "^0.9.36",
+    "ajv": "^8.18.0",
     "axios": "^1.10.0",
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.0",
@@ -50,6 +52,7 @@
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.17.0",
     "npm-run-all2": "^6.1.1",
+    "orval": "^7.9.0",
     "postcss": "^8.4.32",
     "prettier": "^3.0.3",
     "tailwindcss": "^3.4.0",

@@ -68,19 +68,22 @@ api.interceptors.response.use(
   },
 )
 
-// Orval Mutator-Funktion (Named Export für Orval-generierte Clients)
+// Orval Mutator-Funktion (Default Export für Orval)
 // Diese Funktion wird von Orval verwendet, um API-Calls zu machen
-export const orvalMutator = async <T = any, D = any>(
+const orvalMutator = async <T = any, D = any>(
   config: AxiosRequestConfig<D>,
 ): Promise<AxiosResponse<T>> => {
   return api.request<T, AxiosResponse<T>, D>(config)
 }
 
-// Default-Export: Axios-Instanz für direkte Nutzung in API-Clients
-export default api
+// Default-Export: Orval Mutator (wird von Orval verwendet)
+export default orvalMutator
 
-// Named Export für direkte Axios-Nutzung (für Kompatibilität)
+// Named Export: Axios-Instanz für direkte Nutzung
 export { api }
+
+// Named Export: Orval Mutator (für Kompatibilität)
+export { orvalMutator }
 
 // TypeScript-Typen exportieren
 export type { AxiosRequestConfig, AxiosResponse }

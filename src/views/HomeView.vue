@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { MobaRagApiKey } from '@/api/types/types'
+// TODO: Nach Orval-Generierung hier die generierten Types importieren
+// import type { ApiKey } from '@/api/generated'
 import ApiKeyCreateModal from '@/components/apikey/ApiKeyCreateModal.vue'
 import ApiKeyEditModal from '@/components/apikey/ApiKeyEditModal.vue'
 import ApiKeyTable from '@/components/apikey/ApiKeyTable.vue'
@@ -211,8 +212,8 @@ const cancelEdit = () => {
 }
 
 // Rotate key function
-const startRotating = (key: LegacyApiKey, keys: MobaRagApiKey[]) => {
-  const foundKey = keys.find((k: MobaRagApiKey) => k.id === key.id)
+const startRotating = (key: LegacyApiKey, keys: any[]) => {
+  const foundKey = keys.find((k: any) => k.id === key.id)
   if (foundKey) {
     editModalKey.value = foundKey
     editModalName.value = foundKey.name

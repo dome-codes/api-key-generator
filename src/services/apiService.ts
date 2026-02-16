@@ -1,8 +1,7 @@
 import apikeysApi from '@/api/apikeys/apikeys'
+// TODO: Nach Orval-Generierung hier die generierten Types importieren
+// import type { ApiKey, ApiKeyRequest, ApiKeyWithSecret } from '@/api/generated'
 import type {
-  MobaRagApiKey,
-  MobaRagApiKeyRequest,
-  MobaRagApiKeyWithSecret,
   SummaryUsageResponse,
   UsageResponse,
 } from '@/api/types/types'
@@ -19,7 +18,7 @@ import { hasPermission } from '@/auth/keycloak'
 // API-Service für API-Keys
 export const apiKeyService = {
   // Alle API-Keys abrufen (rollenbasiert)
-  async getApiKeys(): Promise<MobaRagApiKey[]> {
+  async getApiKeys(): Promise<any[]> {
     // Prüfe Berechtigung
     if (!hasPermission('canViewOwnKeys')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
@@ -36,13 +35,13 @@ export const apiKeyService = {
   },
 
   // Neuen API-Key erstellen (rollenbasiert)
-  async createApiKey(name: string, permissions: string[]): Promise<MobaRagApiKeyWithSecret> {
+  async createApiKey(name: string, permissions: string[]): Promise<any> {
     // Prüfe Berechtigung
     if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Erstellen von API-Keys')
     }
 
-    const request: MobaRagApiKeyRequest = { name, permissions }
+    const request = { name, permissions }
     const response = await apikeysApi.createApiKeyV1(request)
     return response.data
   },
@@ -62,19 +61,19 @@ export const apiKeyService = {
     keyId: string,
     name: string,
     permissions: string[],
-  ): Promise<MobaRagApiKeyWithSecret> {
+  ): Promise<any> {
     // Prüfe Berechtigung
     if (!hasPermission('canEditOwnKeys')) {
       throw new Error('Keine Berechtigung zum Bearbeiten von API-Keys')
     }
 
-    const request: MobaRagApiKeyRequest = { name, permissions }
+    const request = { name, permissions }
     const response = await apikeysApi.rotateKeyV1(keyId, request)
     return response.data
   },
 
   // Einzelnen API-Key abrufen
-  async getApiKey(keyId: string): Promise<MobaRagApiKey> {
+  async getApiKey(keyId: string): Promise<any> {
     // Prüfe Berechtigung
     if (!hasPermission('canViewOwnKeys')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
@@ -85,7 +84,7 @@ export const apiKeyService = {
   },
 
   // Admin: Alle API-Keys aller Benutzer abrufen (gleiche Funktion wie getApiKeys, da alle Benutzer alle Keys sehen)
-  async getAllApiKeys(): Promise<MobaRagApiKey[]> {
+  async getAllApiKeys(): Promise<any[]> {
     // Prüfe Admin-Berechtigung
     if (!hasPermission('canViewAdminUsage')) {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller API-Keys')

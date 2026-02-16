@@ -1,4 +1,5 @@
-import type { MobaRagApiKey } from '@/api/types/types'
+// TODO: Nach Orval-Generierung hier die generierten Types importieren
+// import type { ApiKey } from '@/api/generated'
 import { ref } from 'vue'
 
 // Legacy interface für Kompatibilität mit bestehenden Komponenten
@@ -18,15 +19,15 @@ export function useModals() {
   const showEditModal = ref(false)
   const editModalName = ref('')
   const editModalPermissions = ref<string[]>([])
-  const editModalKey = ref<MobaRagApiKey | null>(null)
+  const editModalKey = ref<any | null>(null)
   const showEditSuccessMessage = ref(false)
   const showCreateSuccessMessage = ref(false)
   const showCreateModal = ref(false)
   const showKeyDisplayModal = ref(false)
   const showSuccessMessage = ref(false)
 
-  function startEditing(key: LegacyApiKey, keys: MobaRagApiKey[]) {
-    const newKey = keys.find((k: MobaRagApiKey) => k.id === key.id)
+  function startEditing(key: LegacyApiKey, keys: any[]) {
+    const newKey = keys.find((k: any) => k.id === key.id)
     if (!newKey) return
 
     editModalName.value = newKey.name
