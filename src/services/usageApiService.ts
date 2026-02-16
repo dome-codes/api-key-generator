@@ -82,6 +82,20 @@ function diagLog(
   })
 }
 
+/** Backend erwartet usageType/modelType in CAPITAL mit Unterstrich, z. B. COMPLETION_USAGE */
+function toBackendUsageType(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined
+  const map: Record<string, string> = {
+    CompletionModelUsage: 'COMPLETION_USAGE',
+    EmbeddingModelUsage: 'EMBEDDING_USAGE',
+    ImageModelUsage: 'IMAGE_USAGE',
+    COMPLETION_USAGE: 'COMPLETION_USAGE',
+    EMBEDDING_USAGE: 'EMBEDDING_USAGE',
+    IMAGE_USAGE: 'IMAGE_USAGE',
+  }
+  return map[value] ?? undefined
+}
+
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
@@ -133,8 +147,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage data with filter:', filter)
 
-      // User-Endpoint (usage/ai) erwartet usageType, Admin (admin/usage/ai) ggf. modelType – je nach Backend den passenden Param mitsenden
-      const modelTypeParam = filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined
+      // Backend erwartet Werte in CAPITAL (z. B. COMPLETION_USAGE); User usageType, Admin modelType
+      const backendValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -144,7 +158,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        ...(useAdminApi ? { modelType: modelTypeParam } : { usageType: modelTypeParam }),
+        ...(useAdminApi ? { modelType: backendValue } : { usageType: backendValue }),
       } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
@@ -256,8 +270,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
-      // User-Endpoint erwartet usageType, Admin ggf. modelType
-      const modelTypeParam = filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined
+      // Backend erwartet CAPITAL (z. B. COMPLETION_USAGE); User usageType, Admin modelType
+      const backendValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -267,7 +281,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        ...(useAdminApi ? { modelType: modelTypeParam } : { usageType: modelTypeParam }),
+        ...(useAdminApi ? { modelType: backendValue } : { usageType: backendValue }),
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       } as import('@/api/types').UsageAISummaryGetV1Params
 
