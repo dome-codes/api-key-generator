@@ -421,7 +421,7 @@ components:
     AI.RequestParams.GroupBy:
       name: by
       in: query
-      description: 'Comma separated list of parameters to group by: day|month|year|[tag|apiKey|model|user]'
+      description: 'Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]'
       required: false
       schema:
         type: array
@@ -432,7 +432,7 @@ components:
             - month
             - year
             - tag
-            - apiKey
+            - apikey
             - model
             - user
         example: ['day', 'month', 'year']
@@ -470,7 +470,7 @@ components:
     Extraction.RequestParams.GroupBy:
       name: by
       in: query
-      description: 'Comma separated list of parameters to group by: day|month|year|[tag|apiKey|provider|modelId|user]'
+      description: 'Comma separated list of parameters to group by: day|month|year|[tag|apikey|provider|modelId|user]'
       required: false
       schema:
         type: array
@@ -481,7 +481,7 @@ components:
             - month
             - year
             - tag
-            - apiKey
+            - apikey
             - provider
             - modelId
             - user

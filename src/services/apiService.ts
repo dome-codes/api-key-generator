@@ -10,6 +10,13 @@ import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
 
+/** Datum für API auf date-time (OpenAPI format) bringen: YYYY-MM-DD → YYYY-MM-DDTHH:mm:ss.sssZ */
+function toIsoDateTime(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined
+  if (dateStr.includes('T')) return dateStr
+  return `${dateStr}T00:00:00.000Z`
+}
+
 // API-Service für API-Keys
 export const apiKeyService = {
   // Alle API-Keys abrufen (rollenbasiert)
@@ -48,7 +55,7 @@ export const apiKeyService = {
       throw new Error('Keine Berechtigung zum Deaktivieren von API-Keys')
     }
 
-    await api.delete(`/apikeys/${keyId}/deactivate`)
+    await api.put(`/apikeys/${keyId}/deactivate`)
   },
 
   // API-Key rotieren (rollenbasiert)
@@ -103,8 +110,8 @@ export const usageService = {
       }
 
       const params: UsageAIGetV1Params = {}
-      if (fromDate) params.from_date = fromDate
-      if (toDate) params.to_date = toDate
+      if (fromDate) params.from_date = toIsoDateTime(fromDate)
+      if (toDate) params.to_date = toIsoDateTime(toDate)
 
       console.log('🔍 [API-SERVICE] Calling usageAIGetV1 with params:', params)
       const response = await getUsage().usageAIGetV1(params)
@@ -128,8 +135,8 @@ export const usageService = {
       }
 
       const params: UsageAISummaryGetV1Params = {}
-      if (fromDate) params.from_date = fromDate
-      if (toDate) params.to_date = toDate
+      if (fromDate) params.from_date = toIsoDateTime(fromDate)
+      if (toDate) params.to_date = toIsoDateTime(toDate)
 
       console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
@@ -152,11 +159,14 @@ export const usageService = {
         return { data: [], pagination: undefined }
       }
 
-      const params: UsageAISummaryGetV1Params = { by: ['apiKey'] }
-      if (fromDate) params.from_date = fromDate
-      if (toDate) params.to_date = toDate
+      // Backend: by=apikey (lowercase), from_date/to_date als date-time (ISO)
+      const params = {
+        by: ['apikey'],
+        from_date: toIsoDateTime(fromDate),
+        to_date: toIsoDateTime(toDate),
+      } as unknown as UsageAISummaryGetV1Params
 
-      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apiKey params:', params)
+      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
       console.log('🔍 [API-SERVICE] API response (grouped by apiKey):', response.data)
 
@@ -176,8 +186,8 @@ export const usageService = {
       }
 
       const params: AdminUsageAISummaryGetV1Params = {}
-      if (fromDate) params.from_date = fromDate
-      if (toDate) params.to_date = toDate
+      if (fromDate) params.from_date = toIsoDateTime(fromDate)
+      if (toDate) params.to_date = toIsoDateTime(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       return response.data ?? { data: [], pagination: undefined }
@@ -196,8 +206,8 @@ export const usageService = {
       }
 
       const params: AdminUsageAISummaryGetV1Params = {}
-      if (fromDate) params.from_date = fromDate
-      if (toDate) params.to_date = toDate
+      if (fromDate) params.from_date = toIsoDateTime(fromDate)
+      if (toDate) params.to_date = toIsoDateTime(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       return response.data ?? { data: [], pagination: undefined }

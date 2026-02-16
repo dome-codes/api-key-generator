@@ -13,9 +13,12 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
-// Axios-Instanz erstellen
+// Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
+const rawBase = appConfig.apiBaseUrl || ''
+const baseURL = rawBase.endsWith('/v1') ? rawBase : rawBase.replace(/\/?$/, '') + '/v1'
+
 const api = axios.create({
-  baseURL: appConfig.apiBaseUrl,
+  baseURL,
   timeout: 10000,
 })
 
