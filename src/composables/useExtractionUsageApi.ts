@@ -29,7 +29,8 @@ export function useExtractionUsageApi() {
   // State
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const usageData = ref<EnhancedExtractionUsageRecord[]>([])
+  const usageData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
+  const summaryData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
   const pagination = ref<PaginationInfo>({
     page: 1,
     limit: 20,
@@ -52,7 +53,8 @@ export function useExtractionUsageApi() {
 
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
   const chartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar (Overview-Modus), sonst usageData (Detailed-Modus)
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return {
@@ -112,7 +114,8 @@ export function useExtractionUsageApi() {
 
   // Chart data für Provider-Verteilung (Pie Chart)
   const providerDistributionChartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
@@ -134,7 +137,8 @@ export function useExtractionUsageApi() {
 
   // Chart data für Status-Verteilung (Pie Chart)
   const statusDistributionChartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
@@ -155,7 +159,8 @@ export function useExtractionUsageApi() {
   })
 
   const usageAggregation = computed<ExtractionUsageAggregation>(() => {
-    const data = usageData.value
+    // Verwende summaryData für die Aggregation, nicht usageData (das ist paginiert)
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return {
@@ -209,7 +214,8 @@ export function useExtractionUsageApi() {
     error.value = null
 
     try {
-      if (filter) {
+      // Nur aktualisieren wenn Filter-Objekt nicht leer ist und tatsächlich Properties hat
+      if (filter && Object.keys(filter).length > 0) {
         currentFilter.value = { ...currentFilter.value, ...filter }
       }
 
@@ -253,14 +259,40 @@ export function useExtractionUsageApi() {
 
       debugLog('Loading extraction usage summary with filter:', currentFilter.value)
 
-      const result = await extractionUsageApiService.getUsageSummary(currentFilter.value, useAdminApi)
+      // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
+      // Verwende einen sehr hohen limit, um alle Daten zu erhalten
+      const summaryFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
+      }
 
-      usageData.value = result.data
-      pagination.value = result.pagination
+      const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
+
+      // Wenn es mehr Daten gibt, lade alle Seiten
+      let allData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination.totalPages
+
+      while (currentPage < totalPages && allData.length < result.pagination.total) {
+        currentPage++
+        const pageResult = await extractionUsageApiService.getUsageSummary(
+          { ...summaryFilter, page: currentPage },
+          useAdminApi,
+        )
+        allData = [...allData, ...pageResult.data]
+      }
+
+      // Speichere Summary-Daten separat, damit sie nicht von loadUsageData überschrieben werden
+      summaryData.value = allData
+      pagination.value = {
+        ...result.pagination,
+        total: allData.length,
+      }
 
       debugLog('Extraction usage summary loaded:', {
-        count: result.data.length,
-        pagination: result.pagination,
+        count: allData.length,
+        pagination: pagination.value,
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Extraction-Nutzungszusammenfassung'
@@ -316,7 +348,33 @@ export function useExtractionUsageApi() {
     sortOrder: 'asc' | 'desc',
     useAdminApi: boolean = false,
   ) => {
-    await updateFilter({ sort: sortField, order: sortOrder }, useAdminApi)
+    // Map frontend field names to backend field names
+    const fieldMapping: Record<string, string> = {
+      technicalUserId: 'technicalUserId',
+      status: 'status',
+      provider: 'provider',
+      pages: 'pages',
+      confidenceScore: 'confidenceScore',
+      cost: 'cost',
+      createDate: 'createDate',
+      apiKeyId: 'apiKeyId',
+      modelId: 'modelId',
+      documentType: 'documentType',
+    }
+
+    const backendField = fieldMapping[sortField] || sortField
+
+    debugLog('Updating sort:', { sortField, backendField, sortOrder })
+
+    // Aktualisiere Filter und lade Daten neu
+    currentFilter.value = {
+      ...currentFilter.value,
+      sort: backendField,
+      order: sortOrder,
+      page: 1, // Reset to first page when sorting changes
+    }
+
+    await loadUsageData({}, useAdminApi)
   }
 
   const resetFilter = async (useAdminApi: boolean = false) => {

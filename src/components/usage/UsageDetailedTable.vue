@@ -281,7 +281,7 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr
-            v-for="item in paginatedData"
+            v-for="item in displayData"
             :key="`${item.technicalUserId}-${item.modelName}-${item.day}-${item.month}-${item.year}`"
           >
             <td class="px-6 py-4 whitespace-nowrap">

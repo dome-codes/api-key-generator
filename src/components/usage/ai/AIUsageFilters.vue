@@ -20,7 +20,6 @@
         <select
           v-model="localModelType"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Modelltypen</option>
           <option value="CompletionModelUsage">Chat Completions</option>
@@ -29,7 +28,7 @@
         </select>
       </div>
 
-      <!-- Model Filter (Debounced) -->
+      <!-- Model Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
         <input
@@ -37,6 +36,7 @@
           type="text"
           placeholder="z.B. gpt-4o"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
         />
       </div>
     </template>
@@ -48,7 +48,6 @@
         <select
           v-model="localSelectedUser"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Benutzer</option>
           <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
@@ -62,7 +61,6 @@
         <select
           v-model="localSelectedUserGroup"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Gruppen</option>
           <option v-for="group in availableGroups" :key="group.id" :value="group.id">
@@ -75,7 +73,6 @@
 </template>
 
 <script setup lang="ts">
-import { useDebounce } from '@/composables/useDebounce'
 import { computed, ref, watch } from 'vue'
 import BaseFilters from '../shared/BaseFilters.vue'
 
@@ -116,15 +113,8 @@ const localModelType = computed({
   set: (value) => emit('update:modelType', value),
 })
 
-// Debounced Model Input (400ms Delay)
+// Local Model Input (wird erst beim Button-Klick oder Enter aktualisiert)
 const localModelInput = ref(props.model || '')
-const debouncedModel = useDebounce(localModelInput, 400)
-
-// Watch debounced model und emitte Updates
-watch(debouncedModel, (newValue) => {
-  emit('update:model', newValue)
-  emit('filter-changed')
-})
 
 // Sync props changes back to local input
 watch(
@@ -147,6 +137,11 @@ const localSelectedUserGroup = computed({
 })
 
 const handleFilterChange = () => {
+  // Aktualisiere alle Werte bevor der Filter ausgelöst wird
+  emit('update:modelType', localModelType.value)
+  emit('update:model', localModelInput.value)
+  emit('update:selectedUser', localSelectedUser.value)
+  emit('update:selectedUserGroup', localSelectedUserGroup.value)
   emit('filter-changed')
 }
 

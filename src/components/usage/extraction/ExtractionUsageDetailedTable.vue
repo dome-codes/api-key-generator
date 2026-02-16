@@ -243,7 +243,7 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                {{ item.operationId.substring(0, 12) }}...
+                {{ item.operationId ? `${item.operationId.substring(0, 12)}...` : '-' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
@@ -369,14 +369,20 @@ const currentSortOrder = ref<'asc' | 'desc'>(props.sortOrder || 'desc')
 watch(
   () => props.sortField,
   (newValue: string | undefined) => {
-    if (newValue) currentSortField.value = newValue
+    if (newValue !== undefined) {
+      currentSortField.value = newValue || 'createDate'
+    }
   },
+  { immediate: true },
 )
 watch(
   () => props.sortOrder,
   (newValue: 'asc' | 'desc' | undefined) => {
-    if (newValue) currentSortOrder.value = newValue
+    if (newValue !== undefined) {
+      currentSortOrder.value = newValue || 'desc'
+    }
   },
+  { immediate: true },
 )
 
 // Sort-Funktion

@@ -40,7 +40,8 @@ export function useUsageApi() {
   // State
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const usageData = ref<EnhancedUsageRecord[]>([])
+  const usageData = ref<EnhancedUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
+  const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
   const pagination = ref<PaginationInfo>({
     page: 1,
     limit: 20,
@@ -62,7 +63,8 @@ export function useUsageApi() {
   })
 
   const usageAggregation = computed<UsageAggregation>(() => {
-    const data = usageData.value
+    // Verwende summaryData für die Aggregation, nicht usageData (das ist paginiert)
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return {
@@ -104,7 +106,8 @@ export function useUsageApi() {
 
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
   const chartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar (Overview-Modus), sonst usageData (Detailed-Modus)
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return {
@@ -159,7 +162,8 @@ export function useUsageApi() {
 
   // Chart data für Model-Verteilung (Pie Chart)
   const modelDistributionChartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
@@ -181,7 +185,8 @@ export function useUsageApi() {
 
   // Chart data für Tag-Verwendung (Bar Chart)
   const tagUsageChartData = computed(() => {
-    const data = usageData.value
+    // Verwende summaryData für Charts, wenn verfügbar
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
@@ -251,17 +256,43 @@ export function useUsageApi() {
 
       debugLog('Loading usage summary with filter:', currentFilter.value)
 
-      const result = await usageApiService.getUsageSummary(currentFilter.value, useAdminApi)
+      // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
+      // Verwende einen sehr hohen limit, um alle Daten zu erhalten
+      const summaryFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
+      }
 
-      usageData.value = result.data
-      pagination.value = result.pagination
+      const result = await usageApiService.getUsageSummary(summaryFilter, useAdminApi)
+
+      // Wenn es mehr Daten gibt, lade alle Seiten
+      let allData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination.totalPages
+
+      while (currentPage < totalPages && allData.length < result.pagination.total) {
+        currentPage++
+        const pageResult = await usageApiService.getUsageSummary(
+          { ...summaryFilter, page: currentPage },
+          useAdminApi,
+        )
+        allData = [...allData, ...pageResult.data]
+      }
+
+      // Speichere Summary-Daten separat, damit sie nicht von loadUsageData überschrieben werden
+      summaryData.value = allData
+      pagination.value = {
+        ...result.pagination,
+        total: allData.length,
+      }
 
       debugLog('Usage summary loaded:', {
-        count: result.data.length,
-        pagination: result.pagination,
-        firstItem: result.data[0],
+        count: allData.length,
+        pagination: pagination.value,
+        firstItem: allData[0],
       })
-      console.log('[useUsageApi] Usage summary loaded - usageData.value:', usageData.value)
+      console.log('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
       console.error('Error loading usage summary:', err)

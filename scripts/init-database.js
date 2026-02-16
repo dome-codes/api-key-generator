@@ -64,6 +64,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS extraction_usage_summary_by_day (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     provider TEXT,
+    modelId TEXT,
     tag TEXT,
     operations INTEGER,
     totalPages INTEGER,

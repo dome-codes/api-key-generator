@@ -48,6 +48,11 @@ export function getAIUsageSummaryByDay(filters = {}) {
     params.push(filters.model)
   }
 
+  if (filters.modelType) {
+    query += ' AND type = ?'
+    params.push(filters.modelType)
+  }
+
   if (filters.apiKeyId) {
     query += ' AND apiKeyId = ?'
     params.push(filters.apiKeyId)
@@ -90,6 +95,11 @@ export function getAIUsageSummaryByApiKey(filters = {}) {
     params.push(filters.model)
   }
 
+  if (filters.modelType) {
+    query += ' AND type = ?'
+    params.push(filters.modelType)
+  }
+
   if (filters.apiKeyId) {
     query += ' AND apiKeyId = ?'
     params.push(filters.apiKeyId)
@@ -125,6 +135,11 @@ export function getExtractionUsageSummaryByDay(filters = {}) {
   if (filters.provider) {
     query += ' AND provider = ?'
     params.push(filters.provider)
+  }
+
+  if (filters.modelId) {
+    query += ' AND modelId = ?'
+    params.push(filters.modelId)
   }
 
   if (filters.tag) {

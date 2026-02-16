@@ -16,8 +16,23 @@ const models = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo']
 const tags = ['production', 'development', 'testing', 'staging']
 const userIds = ['SVC_ADMIN', 'e12345', 'e54321', 'e11111', 'e33333', 'e77777', 'e88888']
 const apiKeys = ['api-key-001', 'api-key-002', 'api-key-003', 'api-key-004', 'api-key-005']
-const providers = ['azure', 'aws', 'google']
+const providers = ['azure-form-recognizer', 'aws-textract', 'google-document-ai']
 const extractionTags = ['invoice', 'contract', 'receipt', 'form', 'report']
+// Model IDs für verschiedene Provider
+const modelIds = [
+  'prebuilt-layout',           // Azure Form Recognizer
+  'prebuilt-document',         // Azure Form Recognizer
+  'prebuilt-invoice',          // Azure Form Recognizer
+  'prebuilt-receipt',          // Azure Form Recognizer
+  'prebuilt-businessCard',     // Azure Form Recognizer
+  'document-intelligence',     // Azure Document Intelligence
+  'textract-general',          // AWS Textract
+  'textract-forms',            // AWS Textract
+  'textract-tables',           // AWS Textract
+  'document-ai-general',       // Google Document AI
+  'document-ai-form-parser',   // Google Document AI
+  'document-ai-ocr',           // Google Document AI
+]
 
 // Beginne Transaktion für bessere Performance
 const insertAIByDay = db.prepare(`
@@ -36,9 +51,9 @@ const insertAIByApiKey = db.prepare(`
 
 const insertExtractionByDay = db.prepare(`
   INSERT INTO extraction_usage_summary_by_day 
-  (provider, tag, operations, totalPages, averageConfidence, cost, 
+  (provider, modelId, tag, operations, totalPages, averageConfidence, cost, 
    technicalUserId, apiKeyId, createDate, day, month, year)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 
 const insertManyAIByDay = db.transaction((items) => {
@@ -89,6 +104,7 @@ const insertManyExtractionByDay = db.transaction((items) => {
   for (const item of items) {
     insertExtractionByDay.run(
       item.provider,
+      item.modelId,
       item.tag,
       item.operations,
       item.totalPages,
@@ -142,13 +158,36 @@ while (currentDate <= today) {
 
   for (let j = 0; j < entriesPerDay; j++) {
     const requests = Math.floor((Math.random() * 200 + 50) * baseMultiplier)
-    const requestTokens = Math.floor(requests * (Math.random() * 200 + 150))
-    const responseTokens = Math.floor(requestTokens * (Math.random() * 0.4 + 0.3))
-    const cost = requestTokens * 0.000001 + responseTokens * 0.000003
     const apiKeyId = apiKeys[Math.floor(Math.random() * apiKeys.length)]
-    const model = models[Math.floor(Math.random() * models.length)]
     const tag = tags[Math.floor(Math.random() * tags.length)]
     const userId = userIds[Math.floor(Math.random() * userIds.length)]
+
+    // Zufälliger Typ: 60% Completion, 25% Embedding, 15% Image
+    const typeRoll = Math.random()
+    let type, model, requestTokens, responseTokens, cost
+
+    if (typeRoll < 0.6) {
+      // CompletionModelUsage
+      type = 'CompletionModelUsage'
+      model = models[Math.floor(Math.random() * models.length)]
+      requestTokens = Math.floor(requests * (Math.random() * 200 + 150))
+      responseTokens = Math.floor(requestTokens * (Math.random() * 0.4 + 0.3))
+      cost = requestTokens * 0.000001 + responseTokens * 0.000003
+    } else if (typeRoll < 0.85) {
+      // EmbeddingModelUsage
+      type = 'EmbeddingModelUsage'
+      model = 'text-embedding-3-large'
+      requestTokens = Math.floor(requests * (Math.random() * 100 + 50))
+      responseTokens = 0 // Embeddings haben keine Response-Tokens
+      cost = requestTokens * 0.0000001
+    } else {
+      // ImageModelUsage
+      type = 'ImageModelUsage'
+      model = 'dall-e-3'
+      requestTokens = Math.floor(requests * 10) // Images haben weniger Tokens
+      responseTokens = 0
+      cost = requests * 0.04 // Images kosten mehr pro Request
+    }
 
     const createDate = new Date(
       year,
@@ -159,7 +198,7 @@ while (currentDate <= today) {
     ).toISOString()
 
     aiByDayData.push({
-      type: 'CompletionModelUsage',
+      type,
       tag,
       model,
       apiKeyId,
@@ -190,9 +229,9 @@ while (currentDate <= today) {
       existingApiKeyEntry.cost += cost
     } else {
       aiByApiKeyData.push({
-        type: 'CompletionModelUsage',
+        type,
         tag: 'aggregated',
-        model: 'mixed',
+        model: type === 'CompletionModelUsage' ? 'mixed' : model,
         apiKeyId,
         requestTokens,
         responseTokens,
@@ -215,6 +254,7 @@ while (currentDate <= today) {
   const averageConfidence = Math.random() * 0.2 + 0.75 // 75-95%
   const cost = operations * (Math.random() * 0.1 + 0.05)
   const provider = providers[Math.floor(Math.random() * providers.length)]
+  const modelId = modelIds[Math.floor(Math.random() * modelIds.length)]
   const tag = extractionTags[Math.floor(Math.random() * extractionTags.length)]
   const userId = userIds[Math.floor(Math.random() * userIds.length)]
   const apiKeyId = apiKeys[Math.floor(Math.random() * apiKeys.length)]
@@ -229,6 +269,7 @@ while (currentDate <= today) {
 
   extractionByDayData.push({
     provider,
+    modelId,
     tag,
     operations,
     totalPages,

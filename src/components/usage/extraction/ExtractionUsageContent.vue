@@ -6,7 +6,7 @@
     <!-- Filter Section -->
     <ExtractionUsageFilters
       v-model:time-range="ownTimeRange"
-      v-model:provider="ownProvider"
+      v-model:model-id="ownModelId"
       v-model:status="ownStatus"
       v-model:tag="ownTag"
       v-model:from-date="ownFromDate"
@@ -109,7 +109,7 @@ const {
 
 // Filter State
 const ownTimeRange = ref('')
-const ownProvider = ref('')
+const ownModelId = ref('')
 const ownStatus = ref<ExtractionOperationStatus | ''>('')
 const ownTag = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
@@ -136,7 +136,7 @@ const setDefaultDates = () => {
 // Load filters from URL
 const loadFiltersFromUrl = () => {
   ownTimeRange.value = getQueryParam('timeRange') || ''
-  ownProvider.value = getQueryParam('provider') || ''
+  ownModelId.value = getQueryParam('modelId') || ''
   ownStatus.value = (getQueryParam('status') as ExtractionOperationStatus | '') || ''
   ownTag.value = getQueryParam('tag') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
@@ -152,7 +152,7 @@ const loadFiltersFromUrl = () => {
 const saveFiltersToUrl = () => {
   const params: Record<string, string | number | undefined> = {}
   if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-  if (ownProvider.value) params.provider = ownProvider.value
+  if (ownModelId.value) params.modelId = ownModelId.value
   if (ownStatus.value) params.status = ownStatus.value
   if (ownTag.value) params.tag = ownTag.value
   if (ownView.value) params.view = ownView.value
@@ -176,22 +176,33 @@ const toIsoDate = (dateStr: string): string | undefined => {
 const ownAggregation = computed(() => usageAggregation.value)
 
 // Handle filter changes
+// Flag um doppelte Calls zu vermeiden
+let isHandlingFilterChange = false
+
 const handleOwnFilterChange = async () => {
+  // Verhindere gleichzeitige Aufrufe
+  if (isHandlingFilterChange) {
+    console.log('[ExtractionUsageContent] handleOwnFilterChange already in progress, skipping...')
+    return
+  }
+
   try {
+    isHandlingFilterChange = true
     console.log('[ExtractionUsageContent] handleOwnFilterChange called with:', {
       timeRange: ownTimeRange.value,
       fromDate: ownFromDate.value,
       toDate: ownToDate.value,
-      provider: ownProvider.value,
+      modelId: ownModelId.value,
       status: ownStatus.value,
       tag: ownTag.value,
     })
 
+    // updateFilter ruft bereits loadUsageData auf, daher müssen wir nicht nochmal explizit laden
     await updateFilter(
       {
         fromDate: toIsoDate(ownFromDate.value),
         toDate: toIsoDate(ownToDate.value),
-        provider: ownProvider.value || undefined,
+        modelId: ownModelId.value || undefined,
         status: ownStatus.value || undefined,
         tag: ownTag.value || undefined,
         userId: props.useAdminApi ? adminUser.value || undefined : undefined,
@@ -200,16 +211,18 @@ const handleOwnFilterChange = async () => {
       props.useAdminApi,
     )
 
+    // Nur Summary laden wenn im Overview-Modus (updateFilter lädt bereits die detaillierten Daten)
     if (ownView.value === 'overview') {
       await loadUsageSummary({}, props.useAdminApi)
-    } else {
-      await loadUsageData({}, props.useAdminApi)
     }
+    // else: loadUsageData wird bereits von updateFilter aufgerufen
 
     saveFiltersToUrl()
   } catch (err) {
     console.error('[ExtractionUsageContent] Error in handleOwnFilterChange:', err)
     error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Daten'
+  } finally {
+    isHandlingFilterChange = false
   }
 }
 
@@ -236,19 +249,20 @@ watch(ownView, async () => {
 })
 
 // Watch for date changes (wenn timeRange die Daten setzt)
-watch([ownFromDate, ownToDate], async (newValues, oldValues) => {
-  // Nur neu laden wenn sich die Werte wirklich geändert haben
-  if (newValues[0] !== oldValues?.[0] || newValues[1] !== oldValues?.[1]) {
-    console.log('[ExtractionUsageContent] Dates changed, reloading data:', {
-      fromDate: ownFromDate.value,
-      toDate: ownToDate.value,
-    })
-    // Kleine Verzögerung, damit timeRange-Änderungen vollständig durchlaufen
-    setTimeout(async () => {
-      await handleOwnFilterChange()
-    }, 100)
-  }
-})
+// DEAKTIVIERT: Dies führt zu doppelten Calls, da handleTimeRangeChange bereits filter-changed emittet
+// watch([ownFromDate, ownToDate], async (newValues, oldValues) => {
+//   // Nur neu laden wenn sich die Werte wirklich geändert haben
+//   if (newValues[0] !== oldValues?.[0] || newValues[1] !== oldValues?.[1]) {
+//     console.log('[ExtractionUsageContent] Dates changed, reloading data:', {
+//       fromDate: ownFromDate.value,
+//       toDate: ownToDate.value,
+//     })
+//     // Kleine Verzögerung, damit timeRange-Änderungen vollständig durchlaufen
+//     setTimeout(async () => {
+//       await handleOwnFilterChange()
+//     }, 100)
+//   }
+// })
 
 // Initialize
 onMounted(async () => {

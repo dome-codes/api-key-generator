@@ -715,6 +715,36 @@ function applySorting(data, sort, order) {
           b.technicalUserName || b.technicalUserId || '',
         )
         break
+      // Extraction-spezifische Felder
+      case 'technicalUserId':
+        comparison = (a.technicalUserId || '').localeCompare(b.technicalUserId || '')
+        break
+      case 'status':
+        comparison = (a.status || '').localeCompare(b.status || '')
+        break
+      case 'provider':
+        comparison = (a.provider || '').localeCompare(b.provider || '')
+        break
+      case 'pages':
+        comparison = (a.pages || 0) - (b.pages || 0)
+        break
+      case 'confidenceScore':
+        comparison = (a.confidenceScore || 0) - (b.confidenceScore || 0)
+        break
+      case 'createDate':
+        const createDateA = a.createDate ? new Date(a.createDate) : new Date(0)
+        const createDateB = b.createDate ? new Date(b.createDate) : new Date(0)
+        comparison = createDateA.getTime() - createDateB.getTime()
+        break
+      case 'apiKeyId':
+        comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
+        break
+      case 'modelId':
+        comparison = (a.modelId || '').localeCompare(b.modelId || '')
+        break
+      case 'documentType':
+        comparison = (a.documentType || '').localeCompare(b.documentType || '')
+        break
       default:
         comparison = 0
     }
@@ -762,22 +792,68 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
   console.log(`[${timestamp}] Getting AI usage data with filters:`, req.query)
   console.log(`[${timestamp}] MOCK_USAGE_DATA length:`, mockData.MOCK_USAGE_DATA?.length || 0)
 
-  // Verwende hardcodierte Usage-Daten
-  let mockUsage = [...mockData.MOCK_USAGE_DATA]
-
-  // Filter anwenden
-  const filters = {
-    from_date,
-    to_date,
-    tag,
-    model,
-    modelType,
-    apiKeyId,
-    userId,
+  // Verwende SQLite-Daten für bessere Performance und mehr Daten
+  // Konvertiere Summary-Daten zu detaillierten Usage-Daten
+  let mockUsage = []
+  let filteredUsage = []
+  
+  try {
+    // Verwende SQLite Summary-Daten und konvertiere sie zu detaillierten Records
+    const summaryData = getAIUsageSummaryByDay({
+      from_date,
+      to_date,
+      tag,
+      model,
+      modelType,
+      apiKeyId,
+      userId,
+    })
+    
+    console.log(`[${timestamp}] SQLite returned ${summaryData.length} summary records`)
+    
+    // Konvertiere Summary zu detaillierten Records (ein Record pro Summary-Eintrag)
+    mockUsage = summaryData.map((summary, index) => ({
+      id: `usage-${summary.id || index}`,
+      type: summary.type || 'CompletionModelUsage',
+      tag: summary.tag || '',
+      model: summary.model || '',
+      modelName: summary.model || '',
+      modelType: summary.type || 'CompletionModelUsage',
+      apiKeyId: summary.apiKeyId || '',
+      requestTokens: summary.requestTokens || summary.tokensIn || 0,
+      responseTokens: summary.responseTokens || summary.tokensOut || 0,
+      tokensIn: summary.tokensIn || summary.requestTokens || 0,
+      tokensOut: summary.tokensOut || summary.responseTokens || 0,
+      technicalUserId: summary.technicalUserId || '',
+      technicalUserName: `User ${summary.technicalUserId || ''}`,
+      createDate: summary.createDate || new Date().toISOString(),
+      requests: summary.requests || 0,
+      cost: summary.cost || 0,
+      day: summary.day,
+      month: summary.month,
+      year: summary.year,
+    }))
+    
+    console.log(`[${timestamp}] Using SQLite data, converted ${summaryData.length} summary records to ${mockUsage.length} detailed records`)
+    // Daten sind bereits durch SQLite gefiltert, keine weitere Filterung nötig
+    filteredUsage = mockUsage
+  } catch (error) {
+    console.error(`[${timestamp}] Error loading from SQLite, falling back to MOCK_USAGE_DATA:`, error)
+    // Fallback auf hardcodierte Daten - hier Filterung anwenden
+    mockUsage = [...mockData.MOCK_USAGE_DATA]
+    const filters = {
+      from_date,
+      to_date,
+      tag,
+      model,
+      modelType,
+      apiKeyId,
+      userId,
+    }
+    console.log(`[${timestamp}] Applying filters to fallback data:`, filters)
+    filteredUsage = applyFilters(mockUsage, filters)
+    console.log(`[${timestamp}] After filtering:`, filteredUsage.length, 'records')
   }
-  console.log(`[${timestamp}] Applying filters:`, filters)
-  let filteredUsage = applyFilters(mockUsage, filters)
-  console.log(`[${timestamp}] After filtering:`, filteredUsage.length, 'records')
 
   // Sortierung anwenden
   if (sort) {

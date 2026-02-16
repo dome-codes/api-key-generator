@@ -44,7 +44,7 @@
       <!-- Slot für spezifische Filter (z.B. Model Type, Provider, Status) -->
       <slot name="specific-filters" />
 
-      <!-- Tag Filter (Debounced) -->
+      <!-- Tag Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
         <input
@@ -52,10 +52,11 @@
           type="text"
           placeholder="z.B. production"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
         />
       </div>
 
-      <!-- API Key Filter (Debounced) -->
+      <!-- API Key Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
         <input
@@ -63,17 +64,27 @@
           type="text"
           placeholder="API Key ID"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
         />
       </div>
 
       <!-- Slot für Admin-Filter (User, User Group) -->
       <slot name="admin-filters" />
     </div>
+
+    <!-- Filter anwenden Button -->
+    <div class="mt-4 flex justify-end">
+      <button
+        @click="handleFilterChange"
+        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium text-sm"
+      >
+        Filter anwenden
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useDebounce } from '@/composables/useDebounce'
 import { computed, ref, watch } from 'vue'
 
 interface Props {
@@ -101,23 +112,9 @@ const localTimeRange = computed({
   set: (value) => emit('update:timeRange', value),
 })
 
-// Debounced Text-Inputs für Tag und API Key (400ms Delay)
+// Local Text-Inputs für Tag und API Key (werden erst beim Button-Klick oder Enter aktualisiert)
 const localTagInput = ref(props.tag || '')
 const localApiKeyIdInput = ref(props.apiKeyId || '')
-
-const debouncedTag = useDebounce(localTagInput, 400)
-const debouncedApiKeyId = useDebounce(localApiKeyIdInput, 400)
-
-// Watch debounced values und emitte Updates
-watch(debouncedTag, (newValue) => {
-  emit('update:tag', newValue)
-  emit('filter-changed')
-})
-
-watch(debouncedApiKeyId, (newValue) => {
-  emit('update:apiKeyId', newValue)
-  emit('filter-changed')
-})
 
 // Sync props changes back to local inputs
 watch(
@@ -188,6 +185,9 @@ const handleDateChange = () => {
 }
 
 const handleFilterChange = () => {
+  // Aktualisiere alle Werte bevor der Filter ausgelöst wird
+  emit('update:tag', localTagInput.value)
+  emit('update:apiKeyId', localApiKeyIdInput.value)
   emit('filter-changed')
 }
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <!-- Pricing Disclaimer nur bei AI Usage -->
+    <!-- Pricing Disclaimer für AI Usage -->
     <UsagePricingDisclaimer />
 
     <!-- Filter Section -->
@@ -173,8 +173,20 @@ const ownSummary = computed(() => {
 })
 
 // Handle filter changes
+// Flag um doppelte Calls zu vermeiden
+let isHandlingFilterChange = false
+
 const handleOwnFilterChange = async () => {
+  // Verhindere gleichzeitige Aufrufe
+  if (isHandlingFilterChange) {
+    console.log('[AIUsageContent] handleOwnFilterChange already in progress, skipping...')
+    return
+  }
+
   try {
+    isHandlingFilterChange = true
+    
+    // updateFilter ruft bereits loadUsageData auf, daher müssen wir nicht nochmal explizit laden
     await updateFilter(
       {
         fromDate: toIsoDate(ownFromDate.value),
@@ -188,16 +200,18 @@ const handleOwnFilterChange = async () => {
       props.useAdminApi,
     )
 
+    // Nur Summary laden wenn im Overview-Modus (updateFilter lädt bereits die detaillierten Daten)
     if (ownView.value === 'overview') {
       await loadUsageSummary({}, props.useAdminApi)
-    } else {
-      await loadUsageData({}, props.useAdminApi)
     }
+    // else: loadUsageData wird bereits von updateFilter aufgerufen
 
     saveFiltersToUrl()
   } catch (err) {
     console.error('[AIUsageContent] Error in handleOwnFilterChange:', err)
     error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Daten'
+  } finally {
+    isHandlingFilterChange = false
   }
 }
 

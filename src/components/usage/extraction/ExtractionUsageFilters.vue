@@ -41,18 +41,20 @@
         </div>
       </div>
 
-      <!-- Provider Filter -->
+      <!-- Model ID Filter -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Provider</label>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Modell-ID</label>
         <select
-          v-model="provider"
+          v-model="modelId"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
-          <option value="">Alle Provider</option>
-          <option value="azure-form-recognizer">Azure Form Recognizer</option>
-          <option value="aws-textract">AWS Textract</option>
-          <option value="google-document-ai">Google Document AI</option>
+          <option value="">Alle Modelle</option>
+          <option value="prebuilt-layout">Prebuilt Layout</option>
+          <option value="prebuilt-document">Prebuilt Document</option>
+          <option value="prebuilt-invoice">Prebuilt Invoice</option>
+          <option value="prebuilt-receipt">Prebuilt Receipt</option>
+          <option value="prebuilt-businessCard">Prebuilt Business Card</option>
+          <option value="document-intelligence">Document Intelligence</option>
         </select>
       </div>
 
@@ -62,7 +64,6 @@
         <select
           v-model="status"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Status</option>
           <option value="processing">In Bearbeitung</option>
@@ -73,7 +74,7 @@
         </select>
       </div>
 
-      <!-- Tag Filter (Debounced) -->
+      <!-- Tag Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
         <input
@@ -81,6 +82,7 @@
           type="text"
           placeholder="z.B. production"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
         />
       </div>
 
@@ -90,7 +92,6 @@
         <select
           v-model="selectedUser"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Benutzer</option>
           <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
@@ -105,7 +106,6 @@
         <select
           v-model="selectedUserGroup"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
         >
           <option value="">Alle Gruppen</option>
           <option v-for="group in availableGroups" :key="group.id" :value="group.id">
@@ -114,18 +114,27 @@
         </select>
       </div>
     </div>
+
+    <!-- Filter anwenden Button -->
+    <div class="mt-4 flex justify-end">
+      <button
+        @click="handleFilterChange"
+        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium text-sm"
+      >
+        Filter anwenden
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useDebounce } from '@/composables/useDebounce'
 import { computed, ref, watch } from 'vue'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
 
 // Props
 interface Props {
   timeRange: string
-  provider?: string
+  modelId?: string
   status?: ExtractionOperationStatus | ''
   tag?: string
   fromDate?: string
@@ -144,7 +153,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   'update:timeRange': [value: string]
-  'update:provider': [value: string]
+  'update:modelId': [value: string]
   'update:status': [value: ExtractionOperationStatus | '']
   'update:tag': [value: string]
   'update:fromDate': [value: string]
@@ -160,9 +169,9 @@ const timeRange = computed({
   set: (value) => emit('update:timeRange', value),
 })
 
-const provider = computed({
-  get: () => props.provider || '',
-  set: (value) => emit('update:provider', value),
+const modelId = computed({
+  get: () => props.modelId || '',
+  set: (value) => emit('update:modelId', value),
 })
 
 const status = computed({
@@ -170,15 +179,8 @@ const status = computed({
   set: (value) => emit('update:status', value as ExtractionOperationStatus | ''),
 })
 
-// Debounced Tag Input (400ms Delay)
+// Local Tag Input (wird erst beim Button-Klick oder Enter aktualisiert)
 const localTagInput = ref(props.tag || '')
-const debouncedTag = useDebounce(localTagInput, 400)
-
-// Watch debounced tag und emitte Updates
-watch(debouncedTag, (newValue) => {
-  emit('update:tag', newValue)
-  emit('filter-changed')
-})
 
 // Sync props changes back to local input
 watch(
@@ -279,20 +281,19 @@ const handleTimeRangeChange = () => {
   if (timeRange.value !== 'custom') {
     fromDate.value = startDate.toISOString().split('T')[0]
     toDate.value = today.toISOString().split('T')[0]
-    // Warte kurz, damit die v-model Updates durchlaufen können
-    setTimeout(() => {
-      handleFilterChange()
-    }, 0)
-  } else {
-    handleFilterChange()
   }
+  // Zeitraum-Änderungen werden sofort angewendet
+  handleFilterChange()
 }
 
 const handleDateChange = () => {
+  // Datumsänderungen werden sofort angewendet
   handleFilterChange()
 }
 
 const handleFilterChange = () => {
+  // Aktualisiere alle Werte bevor der Filter ausgelöst wird
+  emit('update:tag', localTagInput.value)
   emit('filter-changed')
 }
 

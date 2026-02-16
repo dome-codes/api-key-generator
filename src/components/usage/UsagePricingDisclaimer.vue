@@ -43,46 +43,17 @@
           <!-- Extraction/Document Intelligence Disclaimer -->
           <div v-else-if="variant === 'extraction'">
             <p class="mb-1">
-              <strong>Preisberechnung:</strong> Basierend auf den Preisen der jeweiligen Provider:
+              <strong>Preisberechnung:</strong> Basierend auf
+              <a
+                href="https://azure.microsoft.com/de-de/pricing/details/form-recognizer/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-link hover:text-primary-hover underline"
+              >
+                Azure Form Recognizer Preisen
+              </a>
+              plus 9% Service-Aufschlag.
             </p>
-            <ul class="text-xs mb-1 ml-4 space-y-0.5">
-              <li>
-                • <strong>Azure Form Recognizer:</strong>
-                <a
-                  href="https://azure.microsoft.com/de-de/pricing/details/form-recognizer/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-link hover:text-primary-hover underline"
-                >
-                  Azure Preise
-                </a>
-                plus 9% Service-Aufschlag
-              </li>
-              <li>
-                • <strong>AWS Textract:</strong>
-                <a
-                  href="https://aws.amazon.com/de/textract/pricing/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-link hover:text-primary-hover underline"
-                >
-                  AWS Preise
-                </a>
-                plus 9% Service-Aufschlag
-              </li>
-              <li>
-                • <strong>Google Document AI:</strong>
-                <a
-                  href="https://cloud.google.com/document-ai/pricing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-link hover:text-primary-hover underline"
-                >
-                  Google Cloud Preise
-                </a>
-                plus 9% Service-Aufschlag
-              </li>
-            </ul>
             <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
               abweichen.
@@ -90,7 +61,7 @@
           </div>
         </div>
 
-        <!-- Erweiterbare Details (nur im kompakten Modus) -->
+        <!-- Erweiterbare Details (für beide Varianten) -->
         <div v-if="!useFullDisclaimer" class="mt-2">
           <button
             @click="showDetails = !showDetails"
@@ -135,7 +106,7 @@
                   </ul>
                 </div>
 
-                <div>
+                <div class="mt-3">
                   <strong>Preisbeispiele:</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
@@ -155,34 +126,34 @@
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
                       • <strong>Azure Form Recognizer:</strong> Preise basieren auf der Anzahl der
-                      verarbeiteten Seiten/Dokumente
-                    </li>
-                    <li>
-                      • <strong>AWS Textract:</strong> Preise basieren auf der Anzahl der analysierten
-                      Seiten
-                    </li>
-                    <li>
-                      • <strong>Google Document AI:</strong> Preise basieren auf der Anzahl der
-                      verarbeiteten Seiten
+                      verarbeiteten Seiten/Dokumente. Der Service-Aufschlag von 9% wird auf die Azure
+                      Preise aufgeschlagen.
                     </li>
                     <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
                     <li>
-                      • Die tatsächlichen Kosten können je nach Dokumenttyp und Komplexität variieren
+                      • Die tatsächlichen Kosten können je nach Dokumenttyp, Modell (Prebuilt vs. Custom)
+                      und Komplexität variieren
+                    </li>
+                    <li>
+                      • Für aktuelle Preise konsultieren Sie bitte die offiziellen Pricing-Seiten von
+                      Azure Form Recognizer
                     </li>
                   </ul>
                 </div>
 
-                <div>
-                  <strong>Preisbeispiele (pro 1000 Seiten):</strong>
+                <div class="mt-3">
+                  <strong>Preisbeispiele (pro 1000 Seiten, inkl. 9% Service-Aufschlag):</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
-                      • <strong>Azure Form Recognizer:</strong> Standard €1,50 / Custom Model €2,00
-                    </li>
-                    <li>• <strong>AWS Textract:</strong> Standard €1,50 / Analyze Document €15,00</li>
-                    <li>
-                      • <strong>Google Document AI:</strong> Standard €1,50 / Custom Model €2,00
+                      • <strong>Azure Form Recognizer:</strong> Standard-Modelle (Prebuilt) ab ca. €1,64
+                      / Custom Modelle ab ca. €2,18
                     </li>
                   </ul>
+                  <p class="text-xs text-gray-600 italic mt-2">
+                    Hinweis: Die genannten Preise sind Richtwerte basierend auf öffentlich verfügbaren
+                    Informationen und können sich ändern. Bitte konsultieren Sie die offiziellen
+                    Pricing-Seiten für aktuelle Preise.
+                  </p>
                 </div>
               </div>
             </div>

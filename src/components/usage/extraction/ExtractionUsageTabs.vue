@@ -51,7 +51,7 @@
       <!-- Filter Section -->
       <ExtractionUsageFilters
         v-model:time-range="ownTimeRange"
-        v-model:provider="ownProvider"
+        v-model:model-id="ownModelId"
         v-model:status="ownStatus"
         v-model:tag="ownTag"
         v-model:from-date="ownFromDate"
@@ -123,7 +123,7 @@
       <!-- Filter Section -->
       <ExtractionUsageFilters
         v-model:time-range="adminTimeRange"
-        v-model:provider="adminProvider"
+        v-model:model-id="adminModelId"
         v-model:status="adminStatus"
         v-model:tag="adminTag"
         v-model:from-date="adminFromDate"
@@ -231,7 +231,7 @@ const {
 
 // Filter State - Own
 const ownTimeRange = ref('30d')
-const ownProvider = ref('')
+const ownModelId = ref('')
 const ownStatus = ref<ExtractionOperationStatus | ''>('')
 const ownTag = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
@@ -240,7 +240,7 @@ const ownToDate = ref('')
 
 // Filter State - Admin
 const adminTimeRange = ref('30d')
-const adminProvider = ref('')
+const adminModelId = ref('')
 const adminStatus = ref<ExtractionOperationStatus | ''>('')
 const adminTag = ref('')
 const adminUser = ref('')
@@ -277,7 +277,7 @@ const handleOwnFilterChange = async () => {
     {
       fromDate: toIsoDate(ownFromDate.value),
       toDate: toIsoDate(ownToDate.value),
-      provider: ownProvider.value || undefined,
+      modelId: ownModelId.value || undefined,
       status: ownStatus.value || undefined,
       tag: ownTag.value || undefined,
       groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
@@ -298,7 +298,7 @@ const handleAdminFilterChange = async () => {
     {
       fromDate: toIsoDate(adminFromDate.value),
       toDate: toIsoDate(adminToDate.value),
-      provider: adminProvider.value || undefined,
+      modelId: adminModelId.value || undefined,
       status: adminStatus.value || undefined,
       tag: adminTag.value || undefined,
       userId: adminUser.value || undefined,
