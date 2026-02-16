@@ -10,10 +10,12 @@ import type { ApiKeyUsageData } from '@/api/types/frontend'
  * Record mit API-Key-ID und Verbrauchsfeldern.
  * Entspricht EnhancedUsageRecord / AIUsageSummaryRecord (OpenAPI):
  * apiKeyId (oder api_key_id), requestTokens/responseTokens oder tokensIn/tokensOut, cost optional.
+ * technicalUserId für Fallback, wenn Backend apiKeyId: null liefert (z. B. bei Aggregation).
  */
 export interface UsageRecordForApiKey {
-  apiKeyId?: string
-  api_key_id?: string
+  apiKeyId?: string | null
+  api_key_id?: string | null
+  technicalUserId?: string
   cost?: number
   tokensIn?: number
   tokensOut?: number
@@ -51,18 +53,20 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
- * @param keyIds Liste der API-Key-IDs, für die Einträge erzeugt werden (z. B. apiKeys.map(k => k.id))
+ * @param keys Liste der Keys mit id und optional userId (für Fallback bei apiKeyId: null)
  */
 export function buildApiKeyUsageMap(
   records: UsageRecordForApiKey[],
-  keyIds: string[],
+  keys: { id: string; userId?: string }[],
 ): Record<string, ApiKeyUsageData> {
   const safeRecords = records.filter((r) => r != null && typeof r === 'object')
   const map: Record<string, ApiKeyUsageData> = {}
 
-  for (const keyId of keyIds) {
+  for (const key of keys) {
+    const keyId = key.id
+    // 1) Direktes Matching über apiKeyId / api_key_id
     const keyUsage = safeRecords.filter((r) =>
-      keyIdMatchesUsage(keyId, r.apiKeyId ?? r.api_key_id),
+      keyIdMatchesUsage(keyId, r.apiKeyId ?? r.api_key_id ?? undefined),
     )
 
     if (keyUsage.length > 0) {
@@ -78,6 +82,37 @@ export function buildApiKeyUsageMap(
       map[keyId] = { cost, tokensIn, tokensOut }
     } else {
       map[keyId] = { cost: 0, tokensIn: 0, tokensOut: 0 }
+    }
+  }
+
+  // 2) Fallback: Records mit apiKeyId null/undefined aber technicalUserId → Verbrauch allen Keys dieses Users zuordnen
+  const recordsWithoutKeyId = safeRecords.filter((r) => {
+    const id = r.apiKeyId ?? r.api_key_id
+    return (id == null || id === '') && r.technicalUserId
+  })
+  if (recordsWithoutKeyId.length > 0) {
+    const usageByUserId: Record<string, ApiKeyUsageData> = {}
+    for (const r of recordsWithoutKeyId) {
+      const uid = String(r.technicalUserId).trim()
+      if (!uid) continue
+      const t = getTokensFromRecord(r)
+      if (!usageByUserId[uid]) {
+        usageByUserId[uid] = { cost: 0, tokensIn: 0, tokensOut: 0 }
+      }
+      usageByUserId[uid].cost += Number(r.cost) || 0
+      usageByUserId[uid].tokensIn += t.tokensIn
+      usageByUserId[uid].tokensOut += t.tokensOut
+    }
+    for (const key of keys) {
+      const uid = key.userId?.trim()
+      if (!uid || !usageByUserId[uid]) continue
+      const existing = map[key.id]
+      const fallback = usageByUserId[uid]
+      map[key.id] = {
+        cost: (existing?.cost ?? 0) + fallback.cost,
+        tokensIn: (existing?.tokensIn ?? 0) + fallback.tokensIn,
+        tokensOut: (existing?.tokensOut ?? 0) + fallback.tokensOut,
+      }
     }
   }
 

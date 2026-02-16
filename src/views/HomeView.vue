@@ -78,9 +78,10 @@ const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
 
 // API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
+// Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert
 const apiKeyUsageData = computed(() => {
-  const keyIds = apiKeys.value.map((k) => k.id)
-  return buildApiKeyUsageMap(detailedUsageData.value, keyIds)
+  const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId }))
+  return buildApiKeyUsageMap(detailedUsageData.value, keys)
 })
 
 // Sidebar state
