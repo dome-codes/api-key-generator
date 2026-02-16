@@ -1,5 +1,7 @@
 # Migration Status - Übersicht
 
+> **Hinweis**: Für detaillierte Prioritäten und Empfehlungen siehe [MIGRATION_PRIORITIES.md](./MIGRATION_PRIORITIES.md)
+
 ## Abgeschlossene Tickets ✅
 
 ### Phase 1 (Kritisch - Basis-Funktionalität)
