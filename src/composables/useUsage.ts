@@ -1,3 +1,15 @@
+/**
+ * @deprecated Dieser Composable wird durch useUsageApi.ts ersetzt.
+ * Bitte verwende useUsageApi.ts für neue Features.
+ * 
+ * Migration:
+ * - useUsageApi.ts verwendet server-seitige Filterung und Gruppierung
+ * - Alle Filterung erfolgt über API-Parameter
+ * - Bessere Performance durch server-seitige Verarbeitung
+ * 
+ * Dieser Composable bleibt für Rückwärtskompatibilität erhalten.
+ */
+
 import type {
   EnhancedUsageRecord,
   ModelUsageSummary,
