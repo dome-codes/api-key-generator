@@ -559,10 +559,13 @@ const getInitials = (name?: string): string => {
 const getModelTypeLabel = (type: ModelUsageType | string): string => {
   switch (type) {
     case 'CompletionModelUsage':
+    case 'COMPLETION_USAGE':
       return 'Chat'
     case 'EmbeddingModelUsage':
+    case 'EMBEDDING_USAGE':
       return 'Embedding'
     case 'ImageModelUsage':
+    case 'IMAGE_USAGE':
       return 'Bild'
     default:
       return type || 'Chat'
@@ -572,10 +575,13 @@ const getModelTypeLabel = (type: ModelUsageType | string): string => {
 const getModelTypeBadgeClass = (type: ModelUsageType | string): string => {
   switch (type) {
     case 'CompletionModelUsage':
+    case 'COMPLETION_USAGE':
       return 'bg-blue-100 text-blue-800'
     case 'EmbeddingModelUsage':
+    case 'EMBEDDING_USAGE':
       return 'bg-green-100 text-green-800'
     case 'ImageModelUsage':
+    case 'IMAGE_USAGE':
       return 'bg-purple-100 text-purple-800'
     default:
       return 'bg-gray-100 text-gray-800'

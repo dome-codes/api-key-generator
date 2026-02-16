@@ -169,6 +169,7 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
+import { fromBackendUsageType, toBackendUsageType } from '@/services/usageApiService'
 import { useUrlFilters } from '@/composables/useUrlFilters'
 import { computed, onMounted, ref, watch } from 'vue'
 import AIUsageCharts from './AIUsageCharts.vue'
@@ -254,7 +255,7 @@ const loadFiltersFromUrl = () => {
 
   if (activeTab.value === 'own') {
     ownTimeRange.value = getQueryParam('timeRange') || ''
-    ownModelType.value = getQueryParam('modelType') || ''
+    ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     ownModel.value = getQueryParam('model') || ''
     ownTag.value = getQueryParam('tag') || ''
     ownApiKeyId.value = getQueryParam('apiKeyId') || ''
@@ -266,7 +267,7 @@ const loadFiltersFromUrl = () => {
   }
   if (activeTab.value === 'admin') {
     adminTimeRange.value = getQueryParam('timeRange') || ''
-    adminModelType.value = getQueryParam('modelType') || ''
+    adminModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     adminModel.value = getQueryParam('model') || ''
     adminTag.value = getQueryParam('tag') || ''
     adminApiKeyId.value = getQueryParam('apiKeyId') || ''
@@ -287,7 +288,7 @@ const saveFiltersToUrl = () => {
 
   if (activeTab.value === 'own') {
     if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-    if (ownModelType.value) params.modelType = ownModelType.value
+    if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
     if (ownModel.value) params.model = ownModel.value
     if (ownTag.value) params.tag = ownTag.value
     if (ownApiKeyId.value) params.apiKeyId = ownApiKeyId.value
@@ -297,7 +298,7 @@ const saveFiltersToUrl = () => {
     if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
   } else {
     if (adminTimeRange.value) params.timeRange = adminTimeRange.value
-    if (adminModelType.value) params.modelType = adminModelType.value
+    if (adminModelType.value) params.usageType = toBackendUsageType(adminModelType.value) || adminModelType.value
     if (adminModel.value) params.model = adminModel.value
     if (adminTag.value) params.tag = adminTag.value
     if (adminApiKeyId.value) params.apiKeyId = adminApiKeyId.value

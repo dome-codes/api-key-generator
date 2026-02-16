@@ -82,8 +82,8 @@ function diagLog(
   })
 }
 
-/** Backend erwartet usageType/modelType in CAPITAL mit Unterstrich, z. B. COMPLETION_USAGE */
-function toBackendUsageType(value: string | undefined): string | undefined {
+/** Backend-Standard: usageType mit CAPITAL, z. B. COMPLETION_USAGE. Überall im Projekt für API-Parameter verwenden. */
+export function toBackendUsageType(value: string | undefined): string | undefined {
   if (!value?.trim()) return undefined
   const map: Record<string, string> = {
     CompletionModelUsage: 'COMPLETION_USAGE',
@@ -92,6 +92,20 @@ function toBackendUsageType(value: string | undefined): string | undefined {
     COMPLETION_USAGE: 'COMPLETION_USAGE',
     EMBEDDING_USAGE: 'EMBEDDING_USAGE',
     IMAGE_USAGE: 'IMAGE_USAGE',
+  }
+  return map[value] ?? undefined
+}
+
+/** Von Backend/URL (COMPLETION_USAGE) zurück zu Anzeige (CompletionModelUsage). */
+export function fromBackendUsageType(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined
+  const map: Record<string, string> = {
+    COMPLETION_USAGE: 'CompletionModelUsage',
+    EMBEDDING_USAGE: 'EmbeddingModelUsage',
+    IMAGE_USAGE: 'ImageModelUsage',
+    CompletionModelUsage: 'CompletionModelUsage',
+    EmbeddingModelUsage: 'EmbeddingModelUsage',
+    ImageModelUsage: 'ImageModelUsage',
   }
   return map[value] ?? undefined
 }
@@ -147,8 +161,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage data with filter:', filter)
 
-      // Backend erwartet Werte in CAPITAL (z. B. COMPLETION_USAGE); User usageType, Admin modelType
-      const backendValue = toBackendUsageType(filter.modelType)
+      // Überall usageType mit CAPITAL (COMPLETION_USAGE etc.) – einheitlich für User und Admin
+      const usageTypeValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -158,7 +172,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        ...(useAdminApi ? { modelType: backendValue } : { usageType: backendValue }),
+        usageType: usageTypeValue,
       } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
@@ -184,12 +198,13 @@ export const usageApiService = {
             (item as AIUsageRecord).tokensOut ??
             0
 
+          const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const costResult = calculateCost(
             requestTokens,
             responseTokens,
             item.model || 'gpt-4o',
             false,
-            item.type || 'CompletionModelUsage',
+            displayType as ModelUsageType,
           )
 
           return {
@@ -203,8 +218,8 @@ export const usageApiService = {
               'unknown'
             }`,
             modelName: item.model || 'unknown',
-            modelType: (item.type || 'CompletionModelUsage') as ModelUsageType,
-            type: item.type,
+            modelType: displayType as ModelUsageType,
+            type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
             tokensIn: requestTokens,
             tokensOut: responseTokens,
@@ -270,8 +285,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
-      // Backend erwartet CAPITAL (z. B. COMPLETION_USAGE); User usageType, Admin modelType
-      const backendValue = toBackendUsageType(filter.modelType)
+      // Überall usageType mit CAPITAL (COMPLETION_USAGE etc.) – einheitlich für User und Admin
+      const usageTypeValue = toBackendUsageType(filter.modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -281,7 +296,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        ...(useAdminApi ? { modelType: backendValue } : { usageType: backendValue }),
+        usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       } as import('@/api/types').UsageAISummaryGetV1Params
 
@@ -302,20 +317,21 @@ export const usageApiService = {
           const requestTokens = fromItem.requestTokens || item.requestTokens || 0
           const responseTokens = fromItem.responseTokens || item.responseTokens || 0
 
+          const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const costResult = calculateCost(
             requestTokens,
             responseTokens,
             item.model || 'gpt-4o',
             false,
-            item.type || 'CompletionModelUsage',
+            displayType as ModelUsageType,
           )
 
           return {
             technicalUserId: item.technicalUserId || 'unknown',
             technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
             modelName: item.model || 'unknown',
-            modelType: (item.type || 'CompletionModelUsage') as ModelUsageType,
-            type: item.type,
+            modelType: displayType as ModelUsageType,
+            type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
             tokensIn: requestTokens,
             tokensOut: responseTokens,

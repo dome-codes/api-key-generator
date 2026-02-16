@@ -75,6 +75,7 @@ export function useUrlFilters() {
         'timeRange',
         'fromDate',
         'toDate',
+        'usageType',
         'modelType',
         'model',
         'tag',

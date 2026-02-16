@@ -60,6 +60,7 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
+import { fromBackendUsageType, toBackendUsageType } from '@/services/usageApiService'
 import { useUrlFilters } from '@/composables/useUrlFilters'
 import { computed, onMounted, ref, watch } from 'vue'
 import AIUsageCharts from './AIUsageCharts.vue'
@@ -121,10 +122,10 @@ const setDefaultDates = () => {
   }
 }
 
-// Load filters from URL
+// Load filters from URL (usageType = COMPLETION_USAGE etc.)
 const loadFiltersFromUrl = () => {
   ownTimeRange.value = getQueryParam('timeRange') || ''
-  ownModelType.value = getQueryParam('modelType') || ''
+  ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
   ownModel.value = getQueryParam('model') || ''
   ownTag.value = getQueryParam('tag') || ''
   ownApiKeyId.value = getQueryParam('apiKeyId') || ''
@@ -138,7 +139,7 @@ const loadFiltersFromUrl = () => {
 const saveFiltersToUrl = () => {
   const params: Record<string, string | number | undefined> = {}
   if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-  if (ownModelType.value) params.modelType = ownModelType.value
+  if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
   if (ownModel.value) params.model = ownModel.value
   if (ownTag.value) params.tag = ownTag.value
   if (ownApiKeyId.value) params.apiKeyId = ownApiKeyId.value
