@@ -19,6 +19,7 @@ import type {
   UserUsageSummary,
 } from '@/api/types/frontend'
 import { usageService } from '@/services/apiService'
+import { readTokensFromItem } from '@/services/usageApiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
@@ -119,11 +120,11 @@ export function useUsage() {
         // Berechne Aggregation aus den API-Key-Daten
         const totalRequests = summaryData.data.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
         const totalTokensIn = summaryData.data.reduce(
-          (sum: number, item: any) => sum + (item.requestTokens || 0),
+          (sum: number, item: any) => sum + readTokensFromItem(item).requestTokens,
           0,
         )
         const totalTokensOut = summaryData.data.reduce(
-          (sum: number, item: any) => sum + (item.responseTokens || 0),
+          (sum: number, item: any) => sum + readTokensFromItem(item).responseTokens,
           0,
         )
         const totalTokens = totalTokensIn + totalTokensOut
@@ -132,9 +133,10 @@ export function useUsage() {
         const costs = await Promise.all(
           summaryData.data.map(async (item: any) => {
             const { calculateCost } = await import('@/config/pricing')
+            const { requestTokens, responseTokens } = readTokensFromItem(item)
             return calculateCost(
-              item.requestTokens || 0,
-              item.responseTokens || 0,
+              requestTokens,
+              responseTokens,
               item.model || 'gpt-4o',
               false,
               item.type || 'CompletionModelUsage',
@@ -163,9 +165,12 @@ export function useUsage() {
         const enhancedData = await Promise.all(
           summaryData.data.map(async (item: SummaryUsage) => {
             const { calculateCost } = await import('@/config/pricing')
+            const { requestTokens, responseTokens } = readTokensFromItem(
+              item as unknown as Record<string, unknown>,
+            )
             const costResult = calculateCost(
-              item.requestTokens || 0,
-              item.responseTokens || 0,
+              requestTokens,
+              responseTokens,
               item.model || 'gpt-4o',
               false,
               item.type || 'CompletionModelUsage',
@@ -178,9 +183,9 @@ export function useUsage() {
               modelType: item.type || 'CompletionModelUsage',
               type: item.type,
               requests: item.requests || 0,
-              tokensIn: item.requestTokens || 0,
-              tokensOut: item.responseTokens || 0,
-              totalTokens: item.totalTokens || 0,
+              tokensIn: requestTokens,
+              tokensOut: responseTokens,
+              totalTokens: item.totalTokens ?? requestTokens + responseTokens,
               cost: costResult.finalCost,
               tag: item.tag || 'production',
               day: item.day,

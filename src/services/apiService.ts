@@ -3,12 +3,15 @@ import type {
   AdminUsageAISummaryGetV1Params,
   AIUsagePage,
   AIUsageSummaryPage,
+  AIUsageSummaryRecord,
+  PaginationInfo,
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
+import { getDataArray } from '@/services/usageApiService'
 
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
@@ -169,9 +172,15 @@ export const usageService = {
 
       console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
-      console.log('🔍 [API-SERVICE] API response (grouped by apiKey):', response.data)
-
-      return response.data ?? { data: [], pagination: undefined }
+      const body = response.data
+      console.log('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
+      // Backend kann data, items oder usage liefern
+      const data = getDataArray<AIUsageSummaryRecord>(body)
+      const pagination: PaginationInfo | undefined =
+        body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
+          ? (body as { pagination?: PaginationInfo }).pagination
+          : undefined
+      return { data, pagination }
     } catch (error) {
       console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
       return { data: [], pagination: undefined }

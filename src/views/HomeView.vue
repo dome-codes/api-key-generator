@@ -101,20 +101,8 @@ const apiKeyUsageData = computed(() => {
   )
   console.log('🔍 [HOMEVIEW] Usage Summary Data:', detailedUsageData.value)
 
-  // Verwende gruppierte Daten aus der Summarize API
+  // Verwende gruppierte Daten aus der Summarize API (auch für deaktivierte Keys, für „Verbrauch anzeigen“)
   legacyKeys.value.forEach((key) => {
-    // Für deaktivierte API-Keys keine Usage-Daten anzeigen
-    if (key.status === 'revoked') {
-      usageMap[key.id] = {
-        cost: 0,
-        tokensIn: 0,
-        tokensOut: 0,
-      }
-      console.log(`🔍 [HOMEVIEW] API Key ${key.name} (${key.id}): Deactivated - no usage data`)
-      return
-    }
-
-    // Suche nach Usage-Daten für diesen API Key in den gruppierten Daten
     const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
 
     console.log(
@@ -126,11 +114,9 @@ const apiKeyUsageData = computed(() => {
     )
 
     if (keyUsage.length > 0) {
-      // Verwende die ersten gruppierten Daten (da bereits nach API Key gruppiert)
-      const usage = keyUsage[0]
-      const totalCost = usage.cost || 0 // Kosten werden bereits in useUsage berechnet
-      const totalTokensIn = usage.tokensIn || 0
-      const totalTokensOut = usage.tokensOut || 0
+      const totalCost = keyUsage.reduce((sum, u) => sum + (u.cost || 0), 0)
+      const totalTokensIn = keyUsage.reduce((sum, u) => sum + (u.tokensIn || 0), 0)
+      const totalTokensOut = keyUsage.reduce((sum, u) => sum + (u.tokensOut || 0), 0)
 
       usageMap[key.id] = {
         cost: totalCost,

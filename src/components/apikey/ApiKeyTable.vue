@@ -99,6 +99,19 @@
               <option value="revoked">Deaktiviert</option>
             </select>
           </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="apikey-search" class="text-sm font-medium text-gray-700"
+              >API Key suchen:</label
+            >
+            <input
+              id="apikey-search"
+              v-model="apiKeySearchQuery"
+              type="text"
+              placeholder="Name oder Key-Endung..."
+              class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
+            />
+          </div>
         </div>
 
         <div class="flex items-center space-x-2">
@@ -114,6 +127,23 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- API-Key-Suche (für User-Ansicht) -->
+    <div
+      v-if="!isAdmin && props.keys.length > 0"
+      class="p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2"
+    >
+      <label for="apikey-search-user" class="text-sm font-medium text-gray-700"
+        >API Key suchen:</label
+      >
+      <input
+        id="apikey-search-user"
+        v-model="apiKeySearchQuery"
+        type="text"
+        placeholder="Name oder Key-Endung (z. B. …abcd)"
+        class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
+      />
     </div>
 
     <table v-if="paginatedKeys.length" class="w-full text-left border-collapse">
@@ -334,6 +364,7 @@ const selectedUserFilter = ref('')
 const selectedStatusFilter = ref('')
 const userSearchQuery = ref('Alle Benutzer')
 const showUserDropdown = ref(false)
+const apiKeySearchQuery = ref('')
 
 // Computed properties
 // Eindeutige Benutzer für Filter
@@ -368,7 +399,7 @@ const filteredUserOptions = computed(() => {
   )
 })
 
-// Gefilterte Keys basierend auf Benutzer- und Status-Filter
+// Gefilterte Keys basierend auf Benutzer-, Status- und API-Key-Suche
 const filteredKeys = computed(() => {
   let keys = [...props.keys]
 
@@ -380,6 +411,17 @@ const filteredKeys = computed(() => {
   // Status-Filter
   if (selectedStatusFilter.value) {
     keys = keys.filter((key) => key.status === selectedStatusFilter.value)
+  }
+
+  // API-Key-Suche (Name, Key-ID, letzte 4 Zeichen des Keys)
+  const q = apiKeySearchQuery.value?.trim().toLowerCase()
+  if (q) {
+    keys = keys.filter((key) => {
+      const name = (key.name || '').toLowerCase()
+      const id = (key.id || '').toLowerCase()
+      const suffix = (key.apiKey || '').slice(-4).toLowerCase()
+      return name.includes(q) || id.includes(q) || suffix.includes(q) || q === suffix
+    })
   }
 
   return keys
@@ -520,6 +562,7 @@ const clearFilters = () => {
   selectedUserFilter.value = ''
   selectedStatusFilter.value = ''
   userSearchQuery.value = 'Alle Benutzer'
+  apiKeySearchQuery.value = ''
   currentPage.value = 1
 }
 

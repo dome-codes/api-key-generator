@@ -10,7 +10,7 @@
     @update:api-key-id="$emit('update:apiKeyId', $event)"
     @update:from-date="$emit('update:fromDate', $event)"
     @update:to-date="$emit('update:toDate', $event)"
-    @filter-changed="$emit('filter-changed')"
+    @filter-changed="handleFilterChange"
   >
     <!-- AI-spezifische Filter -->
     <template #specific-filters>

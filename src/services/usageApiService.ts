@@ -118,8 +118,25 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
-/** Liest Token-Werte aus API-Item; toleriert Backend-Tippfehler (requestsTokens, reponseTokens, reisoningTokens). */
-function readTokensFromItem(item: Record<string, unknown>): { requestTokens: number; responseTokens: number } {
+
+/** Nimmt Backend-Response: Array direkt, oder Objekt mit data/items/usage (andere OpenAPI nutzen items oder usage). */
+/** Array aus Backend-Response extrahieren (data, items oder usage). Für getUsageSummaryByApiKey etc. */
+export function getDataArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response
+  if (!response || typeof response !== 'object') return []
+  const o = response as Record<string, unknown>
+  for (const key of ['data', 'items', 'usage'] as const) {
+    const arr = o[key]
+    if (Array.isArray(arr)) return arr
+  }
+  return []
+}
+
+/** Token-Werte aus API-Item lesen (Backend-Varianten: requestTokens/requestsTokens, responseTokens/reponseTokens). */
+export function readTokensFromItem(item: Record<string, unknown>): {
+  requestTokens: number
+  responseTokens: number
+} {
   const requestTokens =
     Number(item.requestTokens) ||
     Number((item as { requestsTokens?: number }).requestsTokens) ||
@@ -136,18 +153,6 @@ function readTokensFromItem(item: Record<string, unknown>): { requestTokens: num
     requestTokens,
     responseTokens: responseTokens + reasoning,
   }
-}
-
-/** Nimmt Backend-Response: Array direkt, oder Objekt mit data/items/usage (andere OpenAPI nutzen items oder usage). */
-function getDataArray<T>(response: unknown): T[] {
-  if (Array.isArray(response)) return response
-  if (!response || typeof response !== 'object') return []
-  const o = response as Record<string, unknown>
-  for (const key of ['data', 'items', 'usage'] as const) {
-    const arr = o[key]
-    if (Array.isArray(arr)) return arr
-  }
-  return []
 }
 
 export const usageApiService = {
@@ -285,8 +290,7 @@ export const usageApiService = {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
-      // Überall usageType mit CAPITAL (COMPLETION_USAGE etc.) – einheitlich für User und Admin
-      const usageTypeValue = toBackendUsageType(filter.modelType)
+      // Summarize-API unterstützt nur from_date und to_date (kein usageType/modelType)
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -296,7 +300,6 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       } as import('@/api/types').UsageAISummaryGetV1Params
 

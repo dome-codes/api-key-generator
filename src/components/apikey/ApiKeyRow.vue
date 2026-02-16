@@ -61,7 +61,6 @@
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
     <td v-if="isAdmin" class="py-3 px-4 text-xs">
-      <!-- Progress Bar nur für aktive API-Keys anzeigen -->
       <div v-if="keyData.status === 'active'">
         <CostProgressBarTable
           :current-cost="usageData.cost"
@@ -71,18 +70,63 @@
           :show-detailed-info="true"
         />
       </div>
-      <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
-      <div v-else class="text-gray-400 text-xs italic">Nicht in Gebrauch</div>
+      <!-- Deaktivierte Keys: Verbrauch optional anzeigbar -->
+      <div v-else>
+        <button
+          v-if="!showRevokedUsage"
+          type="button"
+          @click="showRevokedUsage = true"
+          class="text-blue-600 hover:text-blue-800 text-xs underline"
+        >
+          Verbrauch anzeigen
+        </button>
+        <template v-else>
+          <CostProgressBarTable
+            :current-cost="usageData.cost"
+            :budget-limit="budgetLimit"
+            :tokens-in="usageData.tokensIn"
+            :tokens-out="usageData.tokensOut"
+            :show-detailed-info="true"
+          />
+          <button
+            type="button"
+            @click="showRevokedUsage = false"
+            class="mt-1 text-gray-500 hover:text-gray-700 text-xs underline"
+          >
+            Ausblenden
+          </button>
+        </template>
+      </div>
     </td>
     <td v-if="isEntwicklung && !isAdmin" class="py-3 px-4 text-xs">
-      <!-- Token-Verbrauch nur für aktive API-Keys anzeigen -->
       <div v-if="keyData.status === 'active'" class="text-center">
         <div class="text-sm text-gray-700">
           {{ formatNumber(usageData.tokensIn) }} In / {{ formatNumber(usageData.tokensOut) }} Out
         </div>
       </div>
-      <!-- Für deaktivierte Keys: "Nicht in Gebrauch" anzeigen -->
-      <div v-else class="text-gray-400 text-xs italic text-center">Nicht in Gebrauch</div>
+      <!-- Deaktivierte Keys: Token-Verbrauch optional anzeigbar -->
+      <div v-else class="text-center">
+        <button
+          v-if="!showRevokedUsage"
+          type="button"
+          @click="showRevokedUsage = true"
+          class="text-blue-600 hover:text-blue-800 text-xs underline"
+        >
+          Verbrauch anzeigen
+        </button>
+        <template v-else>
+          <div class="text-sm text-gray-700">
+            {{ formatNumber(usageData.tokensIn) }} In / {{ formatNumber(usageData.tokensOut) }} Out
+          </div>
+          <button
+            type="button"
+            @click="showRevokedUsage = false"
+            class="mt-1 text-gray-500 hover:text-gray-700 text-xs underline"
+          >
+            Ausblenden
+          </button>
+        </template>
+      </div>
     </td>
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
@@ -123,7 +167,9 @@
 
 <script setup lang="ts">
 import CostProgressBarTable from '@/components/usage/CostProgressBarTable.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+
+const showRevokedUsage = ref(false)
 
 // Legacy interface for backward compatibility
 interface LegacyApiKey {
