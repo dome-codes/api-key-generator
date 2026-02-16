@@ -13,9 +13,8 @@
       </div>
     </div>
 
-    <div v-if="isLoading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-2 text-gray-600">Lade Daten...</p>
+    <div v-if="isLoading" class="p-6">
+      <SkeletonLoader type="table" :rows="5" :columns="6" />
     </div>
 
     <div v-else-if="error">
@@ -59,6 +58,7 @@ import type { PaginationInfo } from '@/api/types/types'
 import EmptyState from './EmptyState.vue'
 import ErrorState from './ErrorState.vue'
 import PaginationControls from './PaginationControls.vue'
+import SkeletonLoader from './SkeletonLoader.vue'
 
 interface Props {
   title: string

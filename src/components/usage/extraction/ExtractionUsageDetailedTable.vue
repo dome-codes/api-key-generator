@@ -4,9 +4,8 @@
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Extraction-Nutzung</h3>
     </div>
 
-    <div v-if="isLoading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-2 text-gray-600">Lade Daten...</p>
+    <div v-if="isLoading" class="p-6">
+      <SkeletonLoader type="table" :rows="10" :columns="8" />
     </div>
 
     <div v-else-if="error" class="text-center py-12">
@@ -160,6 +159,7 @@
 
 <script setup lang="ts">
 import EmptyState from '../shared/EmptyState.vue'
+import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import type { EnhancedExtractionUsageRecord, PaginationInfo } from '@/api/types/extraction'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
 

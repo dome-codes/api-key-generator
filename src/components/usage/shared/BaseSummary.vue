@@ -3,9 +3,8 @@
     <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ title }}</h2>
     <p class="text-gray-600 mb-4">{{ description }}</p>
 
-    <div v-if="isLoading" class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-2 text-gray-600">Lade Daten...</p>
+    <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <SkeletonLoader v-for="i in 4" :key="i" type="card" />
     </div>
 
     <div v-else-if="error">
@@ -21,6 +20,7 @@
 
 <script setup lang="ts">
 import ErrorState from './ErrorState.vue'
+import SkeletonLoader from './SkeletonLoader.vue'
 
 interface Props {
   title: string

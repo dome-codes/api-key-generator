@@ -18,9 +18,8 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="flex items-center justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <span class="ml-2 text-gray-600">Lade Nutzungsdaten...</span>
+    <div v-if="isLoading" class="p-6">
+      <SkeletonLoader type="table" :rows="10" :columns="9" />
     </div>
 
     <!-- Error State -->
@@ -401,6 +400,7 @@ import type { EnhancedUsageRecord, ModelUsageType } from '@/api/types/types'
 import { formatCost } from '@/config/pricing'
 import EmptyState from './shared/EmptyState.vue'
 import ErrorState from './shared/ErrorState.vue'
+import SkeletonLoader from './shared/SkeletonLoader.vue'
 import { computed, ref } from 'vue'
 
 
