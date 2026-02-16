@@ -19,6 +19,7 @@ export interface UsageRecordForApiKey {
   tokensOut?: number
   requestTokens?: number
   responseTokens?: number
+  reasoningTokens?: number
 }
 
 /**
@@ -35,13 +36,14 @@ export function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefin
 
 /**
  * Liest tokensIn/tokensOut aus einem Record (requestTokens/responseTokens oder tokensIn/tokensOut).
+ * reasoningTokens wird zu tokensOut addiert, falls vorhanden.
  */
 function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; tokensOut: number } {
-  const tokensIn =
-    r.tokensIn ?? r.requestTokens ?? 0
-  const tokensOut =
-    r.tokensOut ?? r.responseTokens ?? 0
-  return { tokensIn: Number(tokensIn) || 0, tokensOut: Number(tokensOut) || 0 }
+  const tokensIn = Number(r.tokensIn ?? r.requestTokens ?? 0) || 0
+  const response = Number(r.tokensOut ?? r.responseTokens ?? 0) || 0
+  const reasoning = Number(r.reasoningTokens ?? 0) || 0
+  const tokensOut = response + reasoning
+  return { tokensIn, tokensOut }
 }
 
 /**

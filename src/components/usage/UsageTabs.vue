@@ -119,9 +119,9 @@ const activeMainTab = ref<'own' | 'admin'>(
   (getQueryParam('tab') as 'own' | 'admin') || 'own',
 )
 
-// Unter-Tab: 'ai' oder 'extraction'
+// Unter-Tab: 'ai' (Standard) oder 'extraction' – AI-Nutzung ist beim Öffnen des Bereichs Nutzung vorausgewählt
 const activeUsageType = ref<'ai' | 'extraction'>(
-  (getQueryParam('usageType') as 'ai' | 'extraction') || 'ai',
+  getQueryParam('usageType') === 'extraction' ? 'extraction' : 'ai',
 )
 
 // URL aktualisieren wenn Haupt-Tab gewechselt wird

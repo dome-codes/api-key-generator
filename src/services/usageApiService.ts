@@ -132,26 +132,29 @@ export function getDataArray<T>(response: unknown): T[] {
   return []
 }
 
-/** Token-Werte aus API-Item lesen (Backend-Varianten: requestTokens/requestsTokens, responseTokens/reponseTokens). */
+/** Token-Werte aus API-Item lesen (Backend-Varianten: requestTokens/requestsTokens, responseTokens/reponseTokens, optional snake_case). */
 export function readTokensFromItem(item: Record<string, unknown>): {
   requestTokens: number
   responseTokens: number
 } {
   const requestTokens =
-    Number(item.requestTokens) ||
-    Number((item as { requestsTokens?: number }).requestsTokens) ||
+    Number(item.requestTokens) ??
+    Number((item as { requestsTokens?: number }).requestsTokens) ??
+    Number((item as { request_tokens?: number }).request_tokens) ??
     0
   const responseTokens =
-    Number(item.responseTokens) ||
-    Number((item as { reponseTokens?: number }).reponseTokens) ||
+    Number(item.responseTokens) ??
+    Number((item as { reponseTokens?: number }).reponseTokens) ??
+    Number((item as { response_tokens?: number }).response_tokens) ??
     0
   const reasoning =
-    Number((item as { reasoningTokens?: number }).reasoningTokens) ||
-    Number((item as { reisoningTokens?: number }).reisoningTokens) ||
+    Number((item as { reasoningTokens?: number }).reasoningTokens) ??
+    Number((item as { reisoningTokens?: number }).reisoningTokens) ??
+    Number((item as { reasoning_tokens?: number }).reasoning_tokens) ??
     0
   return {
-    requestTokens,
-    responseTokens: responseTokens + reasoning,
+    requestTokens: Number(requestTokens) || 0,
+    responseTokens: (Number(responseTokens) || 0) + (Number(reasoning) || 0),
   }
 }
 
