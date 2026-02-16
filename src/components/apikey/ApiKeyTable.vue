@@ -295,7 +295,6 @@
           :key="isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id"
         >
           <ApiKeyRow
-            :key="(isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id) + '-row'"
             :keyData="isAdmin ? createGroupedKeyData(group) : group"
             :editing="editingKey === (isAdmin ? group.userId : group.id)"
             :editingName="editingName"
