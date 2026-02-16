@@ -7,38 +7,38 @@
     @retry="$emit('retry')"
   >
     <template #summary-cards>
-      <div class="bg-primary-100 rounded-lg p-4">
-        <div class="text-sm text-primary font-medium">Tokens In</div>
-        <div class="text-2xl font-bold text-primary">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Tokens In</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.tokensIn.toLocaleString() }}
         </div>
       </div>
 
-      <div class="bg-green-50 rounded-lg p-4">
-        <div class="text-sm text-green-600 font-medium">Tokens Out</div>
-        <div class="text-2xl font-bold text-green-800">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Tokens Out</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.tokensOut.toLocaleString() }}
         </div>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-4">
-        <div class="text-sm text-purple-600 font-medium">Gesamte Anfragen</div>
-        <div class="text-2xl font-bold text-purple-800">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Gesamte Anfragen</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.requests.toLocaleString() }}
         </div>
       </div>
 
-      <div class="bg-orange-50 rounded-lg p-4">
-        <div class="text-sm text-orange-600 font-medium">Geschätzte Kosten</div>
-        <div class="text-2xl font-bold text-orange-800">
+      <div class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors">
+        <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
+        <div class="text-2xl font-bold text-primary">
           {{ formatCost(summary.cost) }}
         </div>
       </div>
 
       <!-- Additional card for unique users (Admin only) -->
-      <div v-if="showUniqueUsers" class="bg-indigo-50 rounded-lg p-4">
-        <div class="text-sm text-indigo-600 font-medium">Eindeutige Benutzer</div>
-        <div class="text-2xl font-bold text-indigo-800">
+      <div v-if="showUniqueUsers" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.uniqueUsers?.toLocaleString() || 0 }}
         </div>
       </div>

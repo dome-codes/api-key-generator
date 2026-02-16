@@ -19,7 +19,7 @@
         </div>
 
         <!-- Kompakter Disclaimer (Standard) -->
-        <div v-else class="text-sm text-primary">
+        <div v-else class="text-sm text-gray-700">
           <!-- AI Usage Disclaimer -->
           <div v-if="variant === 'ai'">
             <p class="mb-1">
@@ -34,7 +34,7 @@
               </a>
               plus 9% Service-Aufschlag.
             </p>
-            <p class="text-xs italic">
+            <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
               abweichen.
             </p>
@@ -83,7 +83,7 @@
                 plus 9% Service-Aufschlag
               </li>
             </ul>
-            <p class="text-xs italic">
+            <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
               abweichen.
             </p>
@@ -113,8 +113,8 @@
           </button>
 
           <!-- Erweiterte Details -->
-          <div v-if="showDetails" class="mt-3 p-3 bg-primary-100 rounded-lg border border-primary-200">
-            <div class="text-xs text-primary space-y-2">
+          <div v-if="showDetails" class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="text-xs text-gray-700 space-y-2">
               <!-- AI Usage Details -->
               <div v-if="variant === 'ai'">
                 <div>

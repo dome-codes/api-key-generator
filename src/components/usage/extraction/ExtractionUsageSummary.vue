@@ -12,52 +12,52 @@
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div class="bg-primary-100 rounded-lg p-4">
-        <div class="text-sm text-primary font-medium">Operationen</div>
-        <div class="text-2xl font-bold text-primary">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Operationen</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.totalOperations.toLocaleString() }}
         </div>
       </div>
 
-      <div class="bg-green-50 rounded-lg p-4">
-        <div class="text-sm text-green-600 font-medium">Seiten</div>
-        <div class="text-2xl font-bold text-green-800">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Seiten</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.totalPages.toLocaleString() }}
         </div>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-4">
-        <div class="text-sm text-purple-600 font-medium">Durchschnittliche Confidence</div>
-        <div class="text-2xl font-bold text-purple-800">
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Durchschnittliche Confidence</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ formatConfidence(summary.averageConfidence) }}%
         </div>
       </div>
 
-      <div class="bg-orange-50 rounded-lg p-4">
-        <div class="text-sm text-orange-600 font-medium">Gesamtkosten</div>
-        <div class="text-2xl font-bold text-orange-800">
+      <div class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors">
+        <div class="text-sm text-primary font-medium">Gesamtkosten</div>
+        <div class="text-2xl font-bold text-primary">
           {{ formatCost(summary.totalCost) }}
         </div>
       </div>
 
       <!-- Additional cards for Admin -->
-      <div v-if="showUniqueUsers" class="bg-indigo-50 rounded-lg p-4">
-        <div class="text-sm text-indigo-600 font-medium">Eindeutige Benutzer</div>
-        <div class="text-2xl font-bold text-indigo-800">
+      <div v-if="showUniqueUsers" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.uniqueUsers?.toLocaleString() || 0 }}
         </div>
       </div>
 
-      <div v-if="showUniqueProviders" class="bg-teal-50 rounded-lg p-4">
-        <div class="text-sm text-teal-600 font-medium">Provider</div>
-        <div class="text-2xl font-bold text-teal-800">
+      <div v-if="showUniqueProviders" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Provider</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.uniqueProviders?.toLocaleString() || 0 }}
         </div>
       </div>
 
-      <div v-if="showUniqueModels" class="bg-pink-50 rounded-lg p-4">
-        <div class="text-sm text-pink-600 font-medium">Modelle</div>
-        <div class="text-2xl font-bold text-pink-800">
+      <div v-if="showUniqueModels" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="text-sm text-gray-600 font-medium">Modelle</div>
+        <div class="text-2xl font-bold text-gray-900">
           {{ summary.uniqueModels?.toLocaleString() || 0 }}
         </div>
       </div>
