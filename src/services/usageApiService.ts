@@ -40,6 +40,48 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
+/** Diagnose-Log für andere OpenAPI/Backend: immer in DEV oder wenn localStorage.debug=true. Ausgabe hier kopieren und teilen. */
+function diagLog(
+  label: string,
+  rawResponse: unknown,
+  rawDataLength: number,
+  firstItem: unknown,
+  afterMap?: { length: number; firstTokens?: { tokensIn: number; tokensOut: number; requests: number } },
+) {
+  const show =
+    typeof localStorage !== 'undefined' && (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
+  if (!show) return
+
+  const responseShape = rawResponse === null
+    ? 'null'
+    : Array.isArray(rawResponse)
+      ? `Array(${rawResponse.length})`
+      : typeof rawResponse === 'object' && rawResponse !== null
+        ? `Object keys: ${Object.keys(rawResponse as object).join(', ')}`
+        : typeof rawResponse
+
+  const firstItemKeys =
+    firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)
+      ? Object.keys(firstItem as object).join(', ')
+      : '-'
+  const firstItemSample =
+    firstItem && typeof firstItem === 'object'
+      ? JSON.stringify(
+          Object.fromEntries(
+            Object.entries(firstItem as object).map(([k, v]) => [k, typeof v === 'object' ? '[object]' : v]),
+          ),
+        )
+      : '-'
+
+  console.log('[USAGE-API-DIAG]', label, {
+    responseShape,
+    rawDataLength,
+    firstItemKeys,
+    firstItemSample: firstItemSample.slice(0, 400),
+    ...(afterMap && { afterMap }),
+  })
+}
+
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
@@ -58,11 +100,24 @@ function readTokensFromItem(item: Record<string, unknown>): { requestTokens: num
     Number(item.responseTokens) ||
     Number((item as { reponseTokens?: number }).reponseTokens) ||
     0
-  const reasoning = Number((item as { reisoningTokens?: number }).reisoningTokens) || 0
+  const reasoning =
+    Number((item as { reasoningTokens?: number }).reasoningTokens) ||
+    Number((item as { reisoningTokens?: number }).reisoningTokens) ||
+    0
   return {
     requestTokens,
     responseTokens: responseTokens + reasoning,
   }
+}
+
+/** Nimmt Backend-Response: entweder { data: [], pagination } oder direkt Array []. */
+function getDataArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response
+  if (response && typeof response === 'object' && 'data' in response) {
+    const d = (response as { data?: T[] }).data
+    return Array.isArray(d) ? d : []
+  }
+  return []
 }
 
 export const usageApiService = {
@@ -91,13 +146,16 @@ export const usageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAIGetV1(params)
         : await getUsage().usageAIGetV1(params)
-      const response: UsagePageResponse = apiResponse.data
+      const response = apiResponse.data as UsagePageResponse | AIUsageRecord[]
+      const rawData = getDataArray<AIUsageRecord | AIUsageSummaryRecord>(response)
 
-      debugLog('API response received:', response)
+      debugLog('API response received:', response, 'rawData length:', rawData.length)
+
+      diagLog('getUsageData', response, rawData.length, rawData[0])
 
       // Konvertiere zu EnhancedUsageRecord (inkl. Backend-Tippfehler: requestsTokens, reponseTokens, reisoningTokens)
       const enhancedData = await Promise.all(
-        (response.data || []).map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
+        rawData.map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
           const fromItem = readTokensFromItem(item as Record<string, unknown>)
           const requestTokens =
             (fromItem.requestTokens || (item as AIUsageSummaryRecord).requestTokens) ??
@@ -144,9 +202,26 @@ export const usageApiService = {
         }),
       )
 
+      const pagination =
+        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+          ? (response as UsagePageResponse).pagination
+          : undefined
+
+      diagLog('getUsageData (after map)', response, rawData.length, rawData[0], {
+        length: enhancedData.length,
+        firstTokens:
+          enhancedData[0] != null
+            ? {
+                tokensIn: enhancedData[0].tokensIn ?? 0,
+                tokensOut: enhancedData[0].tokensOut ?? 0,
+                requests: enhancedData[0].requests ?? 0,
+              }
+            : undefined,
+      })
+
       return {
         data: enhancedData,
-        pagination: response.pagination || {
+        pagination: pagination || {
           page: filter.page || 1,
           limit: filter.limit || 20,
           total: enhancedData.length,
@@ -193,13 +268,16 @@ export const usageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAISummaryGetV1(params)
         : await getUsage().usageAISummaryGetV1(params)
-      const response: SummaryUsagePageResponse = apiResponse.data
+      const response = apiResponse.data as SummaryUsagePageResponse | SummaryUsage[]
+      const rawData = getDataArray<SummaryUsage>(response)
 
-      debugLog('API summary response received:', response)
+      debugLog('API summary response received:', response, 'rawData length:', rawData.length)
+
+      diagLog('getUsageSummary', response, rawData.length, rawData[0])
 
       // Konvertiere zu EnhancedUsageRecord (inkl. Backend-Tippfehler: requestsTokens, reponseTokens, reisoningTokens)
       const enhancedData = await Promise.all(
-        (response.data || []).map(async (item: SummaryUsage) => {
+        rawData.map(async (item: SummaryUsage) => {
           const fromItem = readTokensFromItem(item as Record<string, unknown>)
           const requestTokens = fromItem.requestTokens || item.requestTokens || 0
           const responseTokens = fromItem.responseTokens || item.responseTokens || 0
@@ -233,9 +311,26 @@ export const usageApiService = {
         }),
       )
 
+      const pagination =
+        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+          ? (response as SummaryUsagePageResponse).pagination
+          : undefined
+
+      diagLog('getUsageSummary (after map)', response, rawData.length, rawData[0], {
+        length: enhancedData.length,
+        firstTokens:
+          enhancedData[0] != null
+            ? {
+                tokensIn: enhancedData[0].tokensIn ?? 0,
+                tokensOut: enhancedData[0].tokensOut ?? 0,
+                requests: enhancedData[0].requests ?? 0,
+              }
+            : undefined,
+      })
+
       return {
         data: enhancedData,
-        pagination: response.pagination || {
+        pagination: pagination || {
           page: filter.page || 1,
           limit: filter.limit || 20,
           total: enhancedData.length,
