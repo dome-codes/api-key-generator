@@ -27,9 +27,27 @@
           <thead class="bg-gray-50">
             <tr>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('technicalUserId')"
               >
-                Technischer Nutzer
+                <div class="flex items-center gap-1">
+                  Technischer Nutzer
+                  <svg
+                    v-if="currentSortField === 'technicalUserId'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -37,14 +55,50 @@
                 Operation ID
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('status')"
               >
-                Status
+                <div class="flex items-center gap-1">
+                  Status
+                  <svg
+                    v-if="currentSortField === 'status'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('provider')"
               >
-                Provider
+                <div class="flex items-center gap-1">
+                  Provider
+                  <svg
+                    v-if="currentSortField === 'provider'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -52,24 +106,96 @@
                 Modell
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('pages')"
               >
-                Seiten
+                <div class="flex items-center gap-1">
+                  Seiten
+                  <svg
+                    v-if="currentSortField === 'pages'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('confidenceScore')"
               >
-                Confidence
+                <div class="flex items-center gap-1">
+                  Confidence
+                  <svg
+                    v-if="currentSortField === 'confidenceScore'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('cost')"
               >
-                Kosten
+                <div class="flex items-center gap-1">
+                  Kosten
+                  <svg
+                    v-if="currentSortField === 'cost'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('createDate')"
               >
-                Datum
+                <div class="flex items-center gap-1">
+                  Datum
+                  <svg
+                    v-if="currentSortField === 'createDate'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -77,9 +203,27 @@
                 Tag
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                @click="sortBy('apiKeyId')"
               >
-                API Key ID
+                <div class="flex items-center gap-1">
+                  API Key ID
+                  <svg
+                    v-if="currentSortField === 'apiKeyId'"
+                    class="w-3 h-3"
+                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 15l7-7 7 7"
+                    />
+                  </svg>
+                </div>
               </th>
             </tr>
           </thead>
@@ -186,21 +330,73 @@
 <script setup lang="ts">
 import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
+import ErrorState from '../shared/ErrorState.vue'
 import type { EnhancedExtractionUsageRecord, PaginationInfo } from '@/api/types/extraction'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import { ref, watch } from 'vue'
 
 interface Props {
   data: EnhancedExtractionUsageRecord[]
   isLoading: boolean
   error: string | null
   pagination?: PaginationInfo
+  sortField?: string // Aktuelles Sortierfeld vom Backend
+  sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
+  useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false,
+  error: null,
+  pagination: undefined,
+  sortField: undefined,
+  sortOrder: undefined,
+  useBackendSorting: false,
+})
 
 const emit = defineEmits<{
   'page-change': [page: number]
+  'sort-change': [field: string, order: 'asc' | 'desc']
+  retry: []
 }>()
+
+// Local sort state (nur wenn useBackendSorting false)
+const currentSortField = ref(props.sortField || 'createDate')
+const currentSortOrder = ref<'asc' | 'desc'>(props.sortOrder || 'desc')
+
+// Watch für Props-Änderungen
+watch(
+  () => props.sortField,
+  (newValue) => {
+    if (newValue) currentSortField.value = newValue
+  },
+)
+watch(
+  () => props.sortOrder,
+  (newValue) => {
+    if (newValue) currentSortOrder.value = newValue
+  },
+)
+
+// Sort-Funktion
+const sortBy = (field: string) => {
+  if (props.useBackendSorting) {
+    // Backend-Sortierung: Emit Event
+    const newOrder =
+      currentSortField.value === field && currentSortOrder.value === 'asc' ? 'desc' : 'asc'
+    currentSortField.value = field
+    currentSortOrder.value = newOrder
+    emit('sort-change', field, newOrder)
+  } else {
+    // Client-seitige Sortierung
+    if (currentSortField.value === field) {
+      currentSortOrder.value = currentSortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+      currentSortField.value = field
+      currentSortOrder.value = 'asc'
+    }
+  }
+}
 
 // Helper functions
 const getStatusLabel = (status: ExtractionOperationStatus): string => {

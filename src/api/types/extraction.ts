@@ -108,7 +108,7 @@ export interface ExtractionUsageSummaryGetV1Params {
   by?: ('day' | 'month' | 'year' | 'tag' | 'apiKey' | 'provider' | 'modelId' | 'user')[]
 }
 
-// Erweiterte API Parameters mit Pagination
+// Erweiterte API Parameters mit Pagination und Sortierung
 export interface ExtractionUsageGetV1ParamsExtended {
   from_date?: string
   to_date?: string
@@ -120,6 +120,8 @@ export interface ExtractionUsageGetV1ParamsExtended {
   userId?: string
   tag?: string
   apiKeyId?: string
+  sort?: string // Sortierfeld (z.B. 'createDate', 'cost', 'pages')
+  order?: 'asc' | 'desc' // Sortierreihenfolge
 }
 
 export interface ExtractionUsageSummaryGetV1ParamsExtended {
@@ -149,6 +151,8 @@ export interface ExtractionUsageFilterApi {
   tag?: string
   apiKeyId?: string
   groupBy?: ('day' | 'month' | 'year' | 'tag' | 'apiKey' | 'provider' | 'modelId' | 'user')[]
+  sort?: string // Sortierfeld
+  order?: 'asc' | 'desc' // Sortierreihenfolge
 }
 
 // Response Types

@@ -301,9 +301,22 @@ export function useExtractionUsageApi() {
     newFilter: Partial<ExtractionUsageFilterApi>,
     useAdminApi: boolean = false,
   ) => {
-    // Reset to page 1 when filter changes
-    currentFilter.value = { ...currentFilter.value, ...newFilter, page: 1 }
+    // Reset to page 1 when filter changes (außer wenn nur Sortierung geändert wird)
+    const isSortChange = 'sort' in newFilter || 'order' in newFilter
+    currentFilter.value = {
+      ...currentFilter.value,
+      ...newFilter,
+      page: isSortChange ? currentFilter.value.page : 1,
+    }
     await loadUsageData({}, useAdminApi)
+  }
+
+  const updateSort = async (
+    sortField: string,
+    sortOrder: 'asc' | 'desc',
+    useAdminApi: boolean = false,
+  ) => {
+    await updateFilter({ sort: sortField, order: sortOrder }, useAdminApi)
   }
 
   const resetFilter = async (useAdminApi: boolean = false) => {
@@ -337,6 +350,7 @@ export function useExtractionUsageApi() {
     previousPage,
     goToPage,
     updateFilter,
+    updateSort,
     resetFilter,
   }
 }

@@ -56,7 +56,12 @@
       :is-loading="isLoading"
       :error="error"
       :pagination="pagination"
+      :sort-field="currentFilter.sort"
+      :sort-order="currentFilter.order"
+      :use-backend-sorting="true"
       @page-change="handlePageChange"
+      @sort-change="handleSortChange"
+      @retry="handleRetry"
     />
   </div>
 </template>
@@ -97,7 +102,9 @@ const {
   loadUsageData,
   loadUsageSummary,
   updateFilter,
+  updateSort,
   goToPage,
+  currentFilter,
 } = useExtractionUsageApi()
 
 // Filter State
@@ -209,6 +216,12 @@ const handleOwnFilterChange = async () => {
 // Handle page changes
 const handlePageChange = async (page: number) => {
   await goToPage(page, props.useAdminApi)
+  saveFiltersToUrl()
+}
+
+// Handle sort changes
+const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
+  await updateSort(field, order, props.useAdminApi)
   saveFiltersToUrl()
 }
 

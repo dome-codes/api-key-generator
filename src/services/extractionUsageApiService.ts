@@ -52,6 +52,8 @@ export const extractionUsageApiService = {
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
+        sort: filter.sort,
+        order: filter.order,
       }
 
       let response: ExtractionUsagePageResponse
