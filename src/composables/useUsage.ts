@@ -53,6 +53,25 @@ const convertToIsoString = (dateString?: string): string | undefined => {
   }
 }
 
+/** Standard-Zeitraum für API-Key-Usage: aktueller Monat (damit Backend Daten liefert) */
+function defaultUsageDateRange(): { from: string; to: string } {
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), 1)
+  return { from: from.toISOString(), to: now.toISOString() }
+}
+
+/** Liest API-Key-ID aus Backend-Item (apiKeyId, api_key_id, api_key, key_id, keyId) */
+function getApiKeyIdFromItem(item: Record<string, unknown>): string | undefined {
+  const raw =
+    (item.apiKeyId as string) ??
+    (item.api_key_id as string) ??
+    (item.api_key as string) ??
+    (item.key_id as string) ??
+    (item.keyId as string)
+  if (raw == null || raw === '') return undefined
+  return String(raw).trim()
+}
+
 export function useUsage() {
   // State
   const isLoading = ref(false)
@@ -106,24 +125,28 @@ export function useUsage() {
       debugLog('Loading usage summary with filter:', currentFilter.value)
       console.log('🔍 [FRONTEND] Loading usage summary...')
 
-      // EINEN einzigen summarize Call mit by=apikey UND Zeitraum für alle Daten
-      const summaryData = await usageService.getUsageSummaryByApiKey(
-        convertToIsoString(currentFilter.value.fromDate),
-        convertToIsoString(currentFilter.value.toDate),
-      )
+      // Zeitraum: Filter oder Standard (aktueller Monat), damit Backend überhaupt Daten liefert
+      const fromIso =
+        convertToIsoString(currentFilter.value.fromDate) ?? defaultUsageDateRange().from
+      const toIso =
+        convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
+      const summaryData = await usageService.getUsageSummaryByApiKey(fromIso, toIso)
 
       console.log('🔍 [USE-USAGE] Summary data received:', summaryData)
       console.log('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
 
-      // Extrahiere Aggregation aus den API-Key-Daten
-      if (summaryData.data && summaryData.data.length > 0) {
+      // Extrahiere Aggregation aus den API-Key-Daten (ohne undefined-Einträge → verhindert Index-Fehler)
+      const validItems = (summaryData.data || []).filter(
+        (item: any) => item != null && typeof item === 'object',
+      )
+      if (validItems.length > 0) {
         // Berechne Aggregation aus den API-Key-Daten
-        const totalRequests = summaryData.data.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
-        const totalTokensIn = summaryData.data.reduce(
+        const totalRequests = validItems.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
+        const totalTokensIn = validItems.reduce(
           (sum: number, item: any) => sum + readTokensFromItem(item).requestTokens,
           0,
         )
-        const totalTokensOut = summaryData.data.reduce(
+        const totalTokensOut = validItems.reduce(
           (sum: number, item: any) => sum + readTokensFromItem(item).responseTokens,
           0,
         )
@@ -131,7 +154,7 @@ export function useUsage() {
 
         // Berechne Kosten für jedes Item
         const costs = await Promise.all(
-          summaryData.data.map(async (item: any) => {
+          validItems.map(async (item: any) => {
             const { calculateCost } = await import('@/config/pricing')
             const { requestTokens, responseTokens } = readTokensFromItem(item)
             return calculateCost(
@@ -152,22 +175,20 @@ export function useUsage() {
           totalTokensOut,
           totalTokens,
           totalCost,
-          uniqueUsers: new Set(summaryData.data.map((item: any) => item.technicalUserId)).size,
-          uniqueModels: new Set(summaryData.data.map((item: any) => item.model)).size,
+          uniqueUsers: new Set(validItems.map((item: any) => item.technicalUserId)).size,
+          uniqueModels: new Set(validItems.map((item: any) => item.model)).size,
           averageRequestsPerUser:
             totalRequests /
-            Math.max(new Set(summaryData.data.map((item: any) => item.technicalUserId)).size, 1),
+            Math.max(new Set(validItems.map((item: any) => item.technicalUserId)).size, 1),
           averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
           averageCostPerRequest: totalCost / Math.max(totalRequests, 1),
         }
 
-        // Konvertiere zu EnhancedUsageRecord für Progress Bars
+        // Konvertiere zu EnhancedUsageRecord für Progress Bars (apiKeyId aus allen Backend-Varianten)
         const enhancedData = await Promise.all(
-          summaryData.data.map(async (item: SummaryUsage) => {
+          validItems.map(async (item: SummaryUsage & Record<string, unknown>) => {
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(
-              item as unknown as Record<string, unknown>,
-            )
+            const { requestTokens, responseTokens } = readTokensFromItem(item)
             const costResult = calculateCost(
               requestTokens,
               responseTokens,
@@ -175,7 +196,7 @@ export function useUsage() {
               false,
               item.type || 'CompletionModelUsage',
             )
-
+            const apiKeyId = getApiKeyIdFromItem(item)
             return {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
@@ -192,16 +213,15 @@ export function useUsage() {
               month: item.month,
               year: item.year,
               createDate: undefined,
-              apiKeyId: item.apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
+              apiKeyId,
             }
           }),
         )
-
-        detailedUsageData.value = enhancedData
-        console.log('🔍 [FRONTEND] API Key data loaded:', enhancedData.length, 'records')
+        detailedUsageData.value = enhancedData.filter(Boolean)
+        console.log('🔍 [FRONTEND] API Key data loaded:', detailedUsageData.value.length, 'records')
         console.log(
           '🔍 [USE-USAGE] Enhanced data apiKeyIds:',
-          enhancedData.map((item) => item.apiKeyId),
+          detailedUsageData.value.map((item) => item.apiKeyId),
         )
       } else {
         // Fallback: Leere Daten

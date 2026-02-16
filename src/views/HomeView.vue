@@ -90,28 +90,41 @@ const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 // Usage data for detailed breakdown
 const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
 
+// Vergleicht Key-ID mit Usage apiKeyId (Backend kann unterschiedliche Formate liefern)
+function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefined): boolean {
+  if (!usageApiKeyId) return false
+  const a = String(keyId).trim()
+  const b = String(usageApiKeyId).trim()
+  if (a === b) return true
+  return a.toLowerCase() === b.toLowerCase()
+}
+
 // API Key Usage Data from Summarize API (grouped by apiKey)
 const apiKeyUsageData = computed(() => {
   const usageMap: { [keyId: string]: { cost: number; tokensIn: number; tokensOut: number } } = {}
+  const safeUsageData = detailedUsageData.value.filter((item) => item != null)
 
   console.log('🔍 [HOMEVIEW] Computing apiKeyUsageData from summarize API...')
   console.log(
     '🔍 [HOMEVIEW] API Keys:',
     legacyKeys.value.map((k) => ({ id: k.id, name: k.name, status: k.status })),
   )
-  console.log('🔍 [HOMEVIEW] Usage Summary Data:', detailedUsageData.value)
+  console.log('🔍 [HOMEVIEW] Usage Summary Data length:', safeUsageData.length)
 
-  // Verwende gruppierte Daten aus der Summarize API (auch für deaktivierte Keys, für „Verbrauch anzeigen“)
   legacyKeys.value.forEach((key) => {
-    const keyUsage = detailedUsageData.value.filter((item) => item.apiKeyId === key.id)
+    const keyUsage = safeUsageData.filter((item) =>
+      keyIdMatchesUsage(key.id, item.apiKeyId),
+    )
 
     console.log(
       `🔍 [HOMEVIEW] API Key ${key.name} (${key.id}): Found ${keyUsage.length} usage records`,
     )
-    console.log(
-      '🔍 [HOMEVIEW] Available apiKeyIds in detailedUsageData:',
-      detailedUsageData.value.map((item) => item.apiKeyId),
-    )
+    if (safeUsageData.length > 0 && keyUsage.length === 0) {
+      console.log(
+        '🔍 [HOMEVIEW] Available apiKeyIds in detailedUsageData:',
+        safeUsageData.map((item) => item.apiKeyId),
+      )
+    }
 
     if (keyUsage.length > 0) {
       const totalCost = keyUsage.reduce((sum, u) => sum + (u.cost || 0), 0)
