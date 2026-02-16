@@ -104,9 +104,25 @@ export function useUsageApi() {
     }
   })
 
+  // Hilfsfunktion: Datum aus Item; wenn createDate leer oder ungültig → 'unknown' (Chart zeigt dann "Gesamt")
+  const getDateKeyFromItem = (item: { day?: number; month?: number; year?: number; createDate?: string }): string => {
+    if (item.day != null && item.month != null && item.year != null) {
+      return `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
+    }
+    const raw = item.createDate != null ? String(item.createDate).trim() : ''
+    if (raw) {
+      try {
+        const date = new Date(item.createDate!)
+        if (!Number.isNaN(date.getTime())) return date.toISOString().split('T')[0]
+      } catch {
+        // ungültiges Datum → Fallback
+      }
+    }
+    return 'unknown'
+  }
+
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
   const chartData = computed(() => {
-    // Verwende summaryData für Charts, wenn verfügbar (Overview-Modus), sonst usageData (Detailed-Modus)
     const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
@@ -119,19 +135,10 @@ export function useUsageApi() {
       }
     }
 
-    // Gruppiere nach Datum (wenn day/month/year vorhanden)
     const dateMap = new Map<string, { tokensIn: number; tokensOut: number; requests: number; cost: number }>()
 
     data.forEach((item) => {
-      let dateKey = ''
-      if (item.day && item.month && item.year) {
-        dateKey = `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
-      } else if (item.createDate) {
-        const date = new Date(item.createDate)
-        dateKey = date.toISOString().split('T')[0]
-      } else {
-        dateKey = 'unknown'
-      }
+      const dateKey = getDateKeyFromItem(item)
 
       if (!dateMap.has(dateKey)) {
         dateMap.set(dateKey, { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 })
@@ -140,29 +147,39 @@ export function useUsageApi() {
       const entry = dateMap.get(dateKey)!
       entry.tokensIn += item.tokensIn || 0
       entry.tokensOut += item.tokensOut || 0
-      entry.requests += item.requests || 0
+      entry.requests += item.requests ?? (item.tokensIn || item.tokensOut ? 1 : 0)
       entry.cost += item.cost || 0
     })
 
-    // Sortiere nach Datum
-    const sortedEntries = Array.from(dateMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+    const sortedEntries = Array.from(dateMap.entries()).sort((a, b) => {
+      if (a[0] === 'unknown') return 1
+      if (b[0] === 'unknown') return -1
+      return a[0].localeCompare(b[0])
+    })
 
     return {
       labels: sortedEntries.map(([date]) => {
-        // Format: DD.MM.YYYY
-        const [year, month, day] = date.split('-')
-        return `${day}.${month}.${year}`
+        if (date === 'unknown') return 'Gesamt'
+        const parts = date.split('-')
+        if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`
+        return date
       }),
-      tokensIn: sortedEntries.map(([, data]) => data.tokensIn),
-      tokensOut: sortedEntries.map(([, data]) => data.tokensOut),
-      requests: sortedEntries.map(([, data]) => data.requests),
-      cost: sortedEntries.map(([, data]) => data.cost),
+      tokensIn: sortedEntries.map(([, d]) => d.tokensIn),
+      tokensOut: sortedEntries.map(([, d]) => d.tokensOut),
+      requests: sortedEntries.map(([, d]) => d.requests),
+      cost: sortedEntries.map(([, d]) => d.cost),
     }
   })
 
+  // Request-Zählung für Charts: Backend sendet oft keine "requests", dann 1 pro Eintrag mit Tokens
+  const getRequestCount = (item: { requests?: number; tokensIn?: number; tokensOut?: number }): number => {
+    const r = item.requests ?? 0
+    if (r > 0) return r
+    return item.tokensIn || item.tokensOut ? 1 : 0
+  }
+
   // Chart data für Model-Verteilung (Pie Chart)
   const modelDistributionChartData = computed(() => {
-    // Verwende summaryData für Charts, wenn verfügbar
     const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
@@ -172,9 +189,9 @@ export function useUsageApi() {
     const modelMap = new Map<string, number>()
 
     data.forEach((item) => {
-      const modelName = item.modelName || 'Unknown'
+      const modelName = item.modelName || item.model || 'Unknown'
       const currentCount = modelMap.get(modelName) || 0
-      modelMap.set(modelName, currentCount + (item.requests ?? 0))
+      modelMap.set(modelName, currentCount + getRequestCount(item))
     })
 
     return {
@@ -185,7 +202,6 @@ export function useUsageApi() {
 
   // Chart data für Tag-Verwendung (Bar Chart)
   const tagUsageChartData = computed(() => {
-    // Verwende summaryData für Charts, wenn verfügbar
     const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
     if (data.length === 0) {
@@ -195,9 +211,9 @@ export function useUsageApi() {
     const tagMap = new Map<string, number>()
 
     data.forEach((item) => {
-      const tag = item.tag || 'Unknown'
+      const tag = item.tag && String(item.tag).trim() ? item.tag : 'Ohne Tag'
       const currentCount = tagMap.get(tag) || 0
-      tagMap.set(tag, currentCount + (item.requests ?? 0))
+      tagMap.set(tag, currentCount + getRequestCount(item))
     })
 
     return {

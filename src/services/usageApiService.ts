@@ -48,6 +48,23 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
+/** Liest Token-Werte aus API-Item; toleriert Backend-Tippfehler (requestsTokens, reponseTokens, reisoningTokens). */
+function readTokensFromItem(item: Record<string, unknown>): { requestTokens: number; responseTokens: number } {
+  const requestTokens =
+    Number(item.requestTokens) ||
+    Number((item as { requestsTokens?: number }).requestsTokens) ||
+    0
+  const responseTokens =
+    Number(item.responseTokens) ||
+    Number((item as { reponseTokens?: number }).reponseTokens) ||
+    0
+  const reasoning = Number((item as { reisoningTokens?: number }).reisoningTokens) || 0
+  return {
+    requestTokens,
+    responseTokens: responseTokens + reasoning,
+  }
+}
+
 export const usageApiService = {
   /**
    * Lädt Usage-Daten mit server-seitiger Filterung und Pagination
@@ -78,11 +95,20 @@ export const usageApiService = {
 
       debugLog('API response received:', response)
 
-      // Konvertiere zu EnhancedUsageRecord
+      // Konvertiere zu EnhancedUsageRecord (inkl. Backend-Tippfehler: requestsTokens, reponseTokens, reisoningTokens)
       const enhancedData = await Promise.all(
         (response.data || []).map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
-          const requestTokens = (item as AIUsageSummaryRecord).requestTokens ?? (item as AIUsageRecord).tokensIn ?? 0
-          const responseTokens = (item as AIUsageSummaryRecord).responseTokens ?? (item as AIUsageRecord).tokensOut ?? 0
+          const fromItem = readTokensFromItem(item as Record<string, unknown>)
+          const requestTokens =
+            fromItem.requestTokens ||
+            (item as AIUsageSummaryRecord).requestTokens ??
+            (item as AIUsageRecord).tokensIn ??
+            0
+          const responseTokens =
+            fromItem.responseTokens ||
+            (item as AIUsageSummaryRecord).responseTokens ??
+            (item as AIUsageRecord).tokensOut ??
+            0
 
           const costResult = calculateCost(
             requestTokens,
@@ -173,11 +199,12 @@ export const usageApiService = {
 
       debugLog('API summary response received:', response)
 
-      // Konvertiere zu EnhancedUsageRecord
+      // Konvertiere zu EnhancedUsageRecord (inkl. Backend-Tippfehler: requestsTokens, reponseTokens, reisoningTokens)
       const enhancedData = await Promise.all(
         (response.data || []).map(async (item: SummaryUsage) => {
-          const requestTokens = item.requestTokens || 0
-          const responseTokens = item.responseTokens || 0
+          const fromItem = readTokensFromItem(item as Record<string, unknown>)
+          const requestTokens = fromItem.requestTokens || item.requestTokens || 0
+          const responseTokens = fromItem.responseTokens || item.responseTokens || 0
 
           const costResult = calculateCost(
             requestTokens,
