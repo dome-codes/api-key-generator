@@ -113,29 +113,6 @@
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-              @click="sortBy('requests')"
-            >
-              <div class="flex items-center gap-1">
-                Anfragen
-                <svg
-                  v-if="currentSortField === 'requests'"
-                  class="w-3 h-3"
-                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 15l7-7 7 7"
-                  />
-                </svg>
-              </div>
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
               @click="sortBy('tokensIn')"
             >
               <div class="flex items-center gap-1">
@@ -309,9 +286,6 @@
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ (item.requests ?? 0).toLocaleString() }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ (item.tokensIn ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -330,7 +304,7 @@
               {{ item.apiKeyId || '-' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatDate(item.day, item.month, item.year) }}
+              {{ formatDate(item.day, item.month, item.year, item.createDate) }}
             </td>
           </tr>
         </tbody>
@@ -608,11 +582,26 @@ const getModelTypeBadgeClass = (type: ModelUsageType | string): string => {
   }
 }
 
-const formatDate = (day?: number, month?: number, year?: number): string => {
-  if (day && month && year) {
+const formatDate = (
+  day?: number,
+  month?: number,
+  year?: number,
+  createDate?: string,
+): string => {
+  if (day != null && month != null && year != null) {
     return `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`
   }
-  return '-'
+  if (createDate && String(createDate).trim()) {
+    try {
+      const d = new Date(createDate)
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return '–'
 }
 
 // Methods

@@ -27,6 +27,52 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
+/** Response-Array aus Backend: data, items oder usage (andere OpenAPI wie bei AI). */
+function getDataArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response
+  if (!response || typeof response !== 'object') return []
+  const o = response as Record<string, unknown>
+  for (const key of ['data', 'items', 'usage'] as const) {
+    const arr = o[key]
+    if (Array.isArray(arr)) return arr
+  }
+  return []
+}
+
+/** Diagnose-Log für Extraction – in Konsole nach [EXTRACTION-API-DIAG] filtern und Ausgabe teilen. */
+function diagLog(
+  label: string,
+  rawResponse: unknown,
+  rawDataLength: number,
+  firstItem: unknown,
+  afterMap?: { length: number },
+) {
+  const show =
+    typeof localStorage !== 'undefined' && (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
+  if (!show) return
+
+  const responseShape =
+    rawResponse === null
+      ? 'null'
+      : Array.isArray(rawResponse)
+        ? `Array(${rawResponse.length})`
+        : typeof rawResponse === 'object' && rawResponse !== null
+          ? `Object keys: ${Object.keys(rawResponse as object).join(', ')}`
+          : typeof rawResponse
+
+  const firstItemKeys =
+    firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)
+      ? Object.keys(firstItem as object).join(', ')
+      : '-'
+
+  console.log('[EXTRACTION-API-DIAG]', label, {
+    responseShape,
+    rawDataLength,
+    firstItemKeys,
+    ...(afterMap && { afterMap }),
+  })
+}
+
 /** Request-Format für Usage/Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
@@ -62,12 +108,14 @@ export const extractionUsageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionGetV1(params)
         : await getUsage().usageExtractionGetV1(params)
-      const response: ExtractionUsagePageResponse = apiResponse.data
+      const response = apiResponse.data as ExtractionUsagePageResponse | import('@/api/types').ExtractionUsageRecord[]
+      const rawData = getDataArray<import('@/api/types').ExtractionUsageRecord>(response)
 
-      debugLog('API response received:', response)
+      debugLog('API response received:', response, 'rawData length:', rawData.length)
+      diagLog('getUsageData (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere zu EnhancedExtractionUsageRecord
-      const enhancedData = (response.data || []).map((item: import('@/api/types').ExtractionUsageRecord) => ({
+      const enhancedData = rawData.map((item: import('@/api/types').ExtractionUsageRecord) => ({
         id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
         operationId: item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
         status: item.status || 'completed',
@@ -89,9 +137,18 @@ export const extractionUsageApiService = {
         cost: item.cost || 0,
       }))
 
+      diagLog('getUsageData (extraction, after map)', response, rawData.length, rawData[0], {
+        length: enhancedData.length,
+      })
+
+      const pagination =
+        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+          ? (response as ExtractionUsagePageResponse).pagination
+          : undefined
+
       return {
         data: enhancedData,
-        pagination: response.pagination || {
+        pagination: pagination || {
           page: filter.page || 1,
           limit: filter.limit || 20,
           total: enhancedData.length,
@@ -139,12 +196,16 @@ export const extractionUsageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionSummaryGetV1(params)
         : await getUsage().usageExtractionSummaryGetV1(params)
-      const response: ExtractionUsageSummaryPageResponse = apiResponse.data
+      const response = apiResponse.data as
+        | ExtractionUsageSummaryPageResponse
+        | import('@/api/types').ExtractionUsageSummaryRecord[]
+      const rawData = getDataArray<import('@/api/types').ExtractionUsageSummaryRecord>(response)
 
-      debugLog('API summary response received:', response)
+      debugLog('API summary response received:', response, 'rawData length:', rawData.length)
+      diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere Summary zu EnhancedExtractionUsageRecord
-      const enhancedData = (response.data || []).map((item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
+      const enhancedData = rawData.map((item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
         id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
         operationId: `${item.provider}-${item.modelId}`,
         status: item.status || 'completed',
@@ -168,9 +229,18 @@ export const extractionUsageApiService = {
         cost: item.cost,
       }))
 
+      diagLog('getUsageSummary (extraction, after map)', response, rawData.length, rawData[0], {
+        length: enhancedData.length,
+      })
+
+      const pagination =
+        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+          ? (response as ExtractionUsageSummaryPageResponse).pagination
+          : undefined
+
       return {
         data: enhancedData,
-        pagination: response.pagination || {
+        pagination: pagination || {
           page: filter.page || 1,
           limit: filter.limit || 20,
           total: enhancedData.length,
