@@ -28,42 +28,83 @@ export enum UserRole {
 }
 
 // API-Berechtigungen pro Rolle
+// Konsistente Namensgebung: can* für alle Berechtigungen
 export const ROLE_PERMISSIONS = {
   [UserRole.API_DEFAULT]: {
+    // API Key Management
     canViewOwnKeys: true,
     canCreateKeys: true,
     canEditOwnKeys: true,
     canDeactivateOwnKeys: true,
+    canManageApiKeys: true, // Alias für canCreateKeys + canEditOwnKeys
+    // Usage Viewing
     canViewOwnUsage: true,
+    canSeeOwnUsage: true, // Alias für canViewOwnUsage
     canViewAdminUsage: false,
+    canUseAdminFeatures: false, // Alias für canViewAdminUsage
+    canViewExtractionUsage: true, // Neue Berechtigung für Extraction
+    // User Management
     canManageUsers: false,
+    // Analytics & Export
+    canViewAnalytics: true,
+    canExportData: true,
   },
   [UserRole.API_STREAM]: {
+    // API Key Management
     canViewOwnKeys: true,
     canCreateKeys: true,
     canEditOwnKeys: true,
     canDeactivateOwnKeys: true,
+    canManageApiKeys: true,
+    // Usage Viewing
     canViewOwnUsage: true,
+    canSeeOwnUsage: true,
     canViewAdminUsage: false,
+    canUseAdminFeatures: false,
+    canViewExtractionUsage: true,
+    // User Management
     canManageUsers: false,
+    // Analytics & Export
+    canViewAnalytics: true,
+    canExportData: true,
   },
   [UserRole.API_ADMIN]: {
+    // API Key Management
     canViewOwnKeys: true,
     canCreateKeys: true,
     canEditOwnKeys: true,
     canDeactivateOwnKeys: true,
+    canManageApiKeys: true,
+    // Usage Viewing
     canViewOwnUsage: true,
+    canSeeOwnUsage: true,
     canViewAdminUsage: true,
-    canManageUsers: false,
+    canUseAdminFeatures: true,
+    canViewExtractionUsage: true,
+    // User Management
+    canManageUsers: false, // Kann später erweitert werden
+    // Analytics & Export
+    canViewAnalytics: true,
+    canExportData: true,
   },
   [UserRole.ENTWICKLUNG]: {
+    // API Key Management
     canViewOwnKeys: true,
     canCreateKeys: true,
     canEditOwnKeys: true,
     canDeactivateOwnKeys: true,
+    canManageApiKeys: true,
+    // Usage Viewing
     canViewOwnUsage: true,
+    canSeeOwnUsage: true,
     canViewAdminUsage: false,
+    canUseAdminFeatures: false,
+    canViewExtractionUsage: true,
+    // User Management
     canManageUsers: false,
+    // Analytics & Export
+    canViewAnalytics: true,
+    canExportData: true,
   },
 }
 

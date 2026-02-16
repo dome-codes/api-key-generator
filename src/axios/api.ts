@@ -1,6 +1,6 @@
 import { getToken } from '@/auth/keycloak'
 import appConfig from '@root/app.config.js'
-import axios from 'axios'
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
 const debugLog = (...args: unknown[]) => {
@@ -31,9 +31,11 @@ api.interceptors.request.use(
           method: config.method,
           hasToken: !!token,
         })
+      } else {
+        debugLog('⚠️ Kein JWT Token verfügbar für Request:', config.url)
       }
     } catch (error) {
-      debugLog('Fehler beim Token-Abruf:', error)
+      debugLog('❌ Fehler beim Token-Abruf:', error)
     }
     return config
   },
@@ -52,18 +54,33 @@ api.interceptors.response.use(
       debugLog('Token abgelaufen, versuche Erneuerung...')
       try {
         const token = await getToken()
-        if (token) {
+        if (token && error.config) {
           // Request mit neuem Token wiederholen
           const originalRequest = error.config
           originalRequest.headers.Authorization = `Bearer ${token}`
           return api(originalRequest)
         }
       } catch (refreshError) {
-        debugLog('Token-Erneuerung fehlgeschlagen:', refreshError)
+        debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
       }
     }
     return Promise.reject(error)
   },
 )
 
-export default api
+// Orval Mutator-Funktion (Default-Export für Orval-generierte Clients)
+// Diese Funktion wird von Orval verwendet, um API-Calls zu machen
+const orvalMutator = async <T = any, D = any>(
+  config: AxiosRequestConfig<D>,
+): Promise<AxiosResponse<T>> => {
+  return api.request<T, AxiosResponse<T>, D>(config)
+}
+
+// Default-Export für Orval
+export default orvalMutator
+
+// Named Export für direkte Axios-Nutzung
+export { api }
+
+// TypeScript-Typen exportieren
+export type { AxiosRequestConfig, AxiosResponse }

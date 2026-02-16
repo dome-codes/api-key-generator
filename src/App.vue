@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import AuthGuard from '@/components/auth/AuthGuard.vue'
-import HomeView from '@/views/HomeView.vue'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <AuthGuard>
-    <HomeView />
-  </AuthGuard>
+  <RouterView />
 </template>
 
 <style scoped></style>

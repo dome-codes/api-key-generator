@@ -33,7 +33,8 @@
 <script setup lang="ts">
 import { initKeycloak } from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
-import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
 
 // Debug-Log-Funktion (nur im Debug-Modus)
 const debugLog = (...args: unknown[]) => {
@@ -46,6 +47,8 @@ const debugLog = (...args: unknown[]) => {
   }
 }
 
+const route = useRoute()
+const router = useRouter()
 const { userProfile, userRoles, highestRole, isApiAdmin } = useAuth()
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
@@ -61,10 +64,34 @@ const initializeAuth = async () => {
   try {
     const authenticated = await initKeycloak()
     isAuthenticated.value = authenticated
+    
     if (authenticated) {
       debugLog('Benutzer erfolgreich authentifiziert')
+      
+      // Prüfe Route-basierte Berechtigungen
+      if (route.meta.requiredPermissions && route.meta.requiredPermissions.length > 0) {
+        const { hasPermission } = await import('@/auth/keycloak')
+        const hasAllPermissions = route.meta.requiredPermissions.every((permission) =>
+          hasPermission(permission as any),
+        )
+        if (!hasAllPermissions) {
+          router.push({ name: 'NichtAutorisiert' })
+          return
+        }
+      }
+
+      // Prüfe spezifische Rolle
+      if (route.meta.requiredRole) {
+        const { getHighestRole } = await import('@/auth/keycloak')
+        const userRole = getHighestRole()
+        if (userRole !== route.meta.requiredRole) {
+          router.push({ name: 'NichtAutorisiert' })
+          return
+        }
+      }
     } else {
       error.value = 'Authentifizierung fehlgeschlagen'
+      // Redirect zu Keycloak Login wird durch initKeycloak mit onLoad: 'login-required' gemacht
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unbekannter Authentifizierungsfehler'
@@ -73,6 +100,22 @@ const initializeAuth = async () => {
     isLoading.value = false
   }
 }
+
+// Watch für Route-Änderungen (für nested routes)
+watch(
+  () => route.path,
+  () => {
+    if (isAuthenticated.value && route.meta.requiredPermissions) {
+      const { hasPermission } = require('@/auth/keycloak')
+      const hasAllPermissions = route.meta.requiredPermissions.every((permission) =>
+        hasPermission(permission as any),
+      )
+      if (!hasAllPermissions) {
+        router.push({ name: 'NichtAutorisiert' })
+      }
+    }
+  },
+)
 
 onMounted(() => {
   initializeAuth()
