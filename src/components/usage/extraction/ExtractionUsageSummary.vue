@@ -12,9 +12,9 @@
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div class="bg-blue-50 rounded-lg p-4">
-        <div class="text-sm text-blue-600 font-medium">Operationen</div>
-        <div class="text-2xl font-bold text-blue-800">
+      <div class="bg-primary-100 rounded-lg p-4">
+        <div class="text-sm text-primary font-medium">Operationen</div>
+        <div class="text-2xl font-bold text-primary">
           {{ summary.totalOperations.toLocaleString() }}
         </div>
       </div>

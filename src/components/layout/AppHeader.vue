@@ -20,11 +20,11 @@ defineEmits<Emits>()
 const getRoleColor = (role: string) => {
   switch (role) {
     case 'api-default':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-primary-100 text-primary'
     case 'api-stream':
-      return 'bg-green-100 text-green-800'
+      return 'bg-corporate-green/20 text-corporate-green'
     case 'api-admin':
-      return 'bg-purple-100 text-purple-800'
+      return 'bg-corporate-yellow/20 text-corporate-yellow'
     default:
       return 'bg-gray-100 text-gray-800'
   }
