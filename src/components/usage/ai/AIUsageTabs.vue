@@ -396,8 +396,42 @@ const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
   saveFiltersToUrl()
 }
 
-const handleChartPeriodChange = (period: string) => {
+// Map period to groupBy values
+const getGroupByForPeriod = (period: string): ('day' | 'month' | 'year' | 'hour' | 'week')[] => {
+  switch (period) {
+    case 'hourly':
+      // Für stündliche Ansicht: nach Stunde gruppieren (falls Backend unterstützt)
+      // Fallback zu täglich wenn 'hour' nicht unterstützt wird
+      return ['day', 'month', 'year'] // TODO: Backend prüfen ob 'hour' unterstützt wird
+    case 'weekly':
+      // Für wöchentliche Ansicht: nach Woche gruppieren (falls Backend unterstützt)
+      // Fallback zu täglich wenn 'week' nicht unterstützt wird
+      return ['day', 'month', 'year'] // TODO: Backend prüfen ob 'week' unterstützt wird
+    case 'monthly':
+      // Für monatliche Ansicht: nur nach Monat und Jahr
+      return ['month', 'year']
+    case 'daily':
+    default:
+      // Standard: täglich nach Tag, Monat, Jahr
+      return ['day', 'month', 'year']
+  }
+}
+
+const handleChartPeriodChange = async (period: string) => {
   ownChartPeriod.value = period
+  saveFiltersToUrl()
+
+  // Refetch mit angepasstem groupBy wenn in Overview-Ansicht
+  if (ownView.value === 'overview') {
+    const groupBy = getGroupByForPeriod(period)
+    await updateFilter(
+      {
+        groupBy,
+      },
+      false, // useAdminApi = false
+    )
+    await loadUsageSummary({}, false)
+  }
 }
 
 // Handle retry
