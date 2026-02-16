@@ -5,15 +5,14 @@ import type {
   ModelUsageSummary,
   ModelUsageType,
   SummaryUsage,
-  SummaryUsageResponse,
   UsageAggregation,
   UserUsageSummary,
-} from '@/api/types/types'
+} from '@/api/types/frontend'
 import {
   CompletionModelUsageType as CompletionModelUsageTypeEnum,
   EmbeddingModelUsageType as EmbeddingModelUsageTypeEnum,
   ImageModelUsageType as ImageModelUsageTypeEnum,
-} from '@/api/types/types'
+} from '@/api/types/frontend'
 import { calculateCost } from '@/config/pricing'
 import { usageService } from './apiService'
 
@@ -100,26 +99,23 @@ export const usageAnalyticsService = {
         try {
           const summary = await usageService.getAdminUsageSummary(fromDate, toDate)
           debugLog('Admin summary loaded:', summary)
-          usageData = summary.usage || []
+          usageData = summary.data || []
         } catch (adminError) {
           debugLog('Admin summary failed, trying regular summary:', adminError)
-          // Fallback: Verwende normale Usage-Summary
           const summary = await usageService.getUsageSummary(fromDate, toDate)
           debugLog('Regular summary loaded:', summary)
-          usageData = summary.usage || []
+          usageData = summary.data || []
         }
       } else {
-        // Verwende detaillierte API für normale Benutzer (v1/usage/ai)
         try {
           const detailedResponse = await usageService.getOwnUsage(fromDate, toDate)
           debugLog('Detailed usage data loaded:', detailedResponse)
-          usageData = detailedResponse.usage || []
+          usageData = detailedResponse.data || []
         } catch (detailedError) {
           debugLog('Detailed usage failed, trying summary:', detailedError)
-          // Fallback: Verwende normale Usage-Summary
           const summary = await usageService.getUsageSummary(fromDate, toDate)
           debugLog('Regular summary loaded:', summary)
-          usageData = summary.usage || []
+          usageData = summary.data || []
         }
       }
 
@@ -208,7 +204,7 @@ export const usageAnalyticsService = {
     useAdminApi: boolean = false,
   ): Promise<UsageAggregation> {
     try {
-      let summary: SummaryUsageResponse
+      let summary: Awaited<ReturnType<typeof usageService.getUsageSummary>>
 
       if (useAdminApi) {
         // Verwende Admin API nur wenn explizit gewünscht
@@ -253,7 +249,7 @@ export const usageAnalyticsService = {
         }
       }
 
-      if (!summary.usage || summary.usage.length === 0) {
+      if (!summary.data || summary.data.length === 0) {
         debugLog('No usage data found for aggregation')
         return {
           totalRequests: 0,
@@ -270,15 +266,15 @@ export const usageAnalyticsService = {
       }
 
       const uniqueUsers = new Set(
-        summary.usage.map(
+        summary.data.map(
           (item) =>
             (item as SummaryUsage).technicalUserId ||
             (item as { technicalUSerid?: string }).technicalUSerid,
         ),
       ).size
-      const uniqueModels = new Set(summary.usage.map((item) => item.model)).size
-      const totalRequests = summary.usage.reduce(
-        (sum, item) => sum + ((item as SummaryUsage).requests || 0),
+      const uniqueModels = new Set(summary.data.map((item: SummaryUsage) => item.model)).size
+      const totalRequests = summary.data.reduce(
+        (sum: number, item: SummaryUsage) => sum + (item.requests || 0),
         0,
       )
 
@@ -287,7 +283,7 @@ export const usageAnalyticsService = {
       let totalTokensOut = 0
       let totalTokens = 0
 
-      summary.usage.forEach((item) => {
+      summary.data.forEach((item: SummaryUsage) => {
         // Extrahiere Token-Informationen je nach Modelltyp
         let requestTokens = 0
         let responseTokens = 0
@@ -315,7 +311,7 @@ export const usageAnalyticsService = {
       })
 
       // Berechne Gesamtkosten
-      const totalCost = summary.usage.reduce((sum, item) => {
+      const totalCost = summary.data.reduce((sum: number, item: SummaryUsage) => {
         // Extrahiere Token-Informationen je nach Modelltyp
         let requestTokens = 0
         let responseTokens = 0

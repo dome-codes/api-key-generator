@@ -11,20 +11,22 @@
  * - Pagination wird vollständig über die API gehandhabt
  */
 
+import { getAdmin } from '@/api/admin/admin'
+import { getUsage } from '@/api/usage/usage'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
+  PaginationInfo,
   SummaryUsage,
+  SummaryUsagePageResponse,
   UsageFilterApi,
   UsagePageResponse,
-  SummaryUsagePageResponse,
-  PaginationInfo,
-} from '@/api/types/types'
-import {
-  usageAIGetV1Extended,
-  usageAISummaryGetV1Extended,
-  adminUsageAISummaryGetV1Extended,
-} from '@/api/usage/usage'
+} from '@/api/types/frontend'
+import type {
+  AIRequestParamsGroupByParameterItem,
+  AIUsageRecord,
+  AIUsageSummaryRecord,
+} from '@/api/types'
 import { calculateCost } from '@/config/pricing'
 
 // Debug-Log-Funktion
@@ -58,31 +60,21 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        modelType: filter.modelType,
-        sort: filter.sort,
-        order: filter.order,
+        modelType: filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined,
       }
 
-      let response: UsagePageResponse
-
-      if (useAdminApi) {
-        // Admin-Endpunkt verwenden - für getUsageData verwenden wir den normalen Endpunkt
-        // da Admin-Endpunkt für Summary gedacht ist
-        // TODO: Wenn Admin-Endpunkt für getUsageData verfügbar ist, hier verwenden
-        const apiResponse = await usageAIGetV1Extended(params)
-        response = apiResponse.data
-      } else {
-        const apiResponse = await usageAIGetV1Extended(params)
-        response = apiResponse.data
-      }
+      const apiResponse = useAdminApi
+        ? await getAdmin().adminUsageAIGetV1(params)
+        : await getUsage().usageAIGetV1(params)
+      const response: UsagePageResponse = apiResponse.data
 
       debugLog('API response received:', response)
 
       // Konvertiere zu EnhancedUsageRecord
       const enhancedData = await Promise.all(
-        (response.data || []).map(async (item) => {
-          const requestTokens = (item as SummaryUsage).requestTokens || 0
-          const responseTokens = (item as SummaryUsage).responseTokens || 0
+        (response.data || []).map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
+          const requestTokens = (item as AIUsageSummaryRecord).requestTokens ?? (item as AIUsageRecord).tokensIn ?? 0
+          const responseTokens = (item as AIUsageSummaryRecord).responseTokens ?? (item as AIUsageRecord).tokensOut ?? 0
 
           const costResult = calculateCost(
             requestTokens,
@@ -162,19 +154,14 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        modelType: filter.modelType,
-        by: filter.groupBy,
+        modelType: filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined,
+        by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       }
 
-      let response: SummaryUsagePageResponse
-
-      if (useAdminApi) {
-        const adminResponse = await adminUsageAISummaryGetV1Extended(params)
-        response = adminResponse.data
-      } else {
-        const apiResponse = await usageAISummaryGetV1Extended(params)
-        response = apiResponse.data
-      }
+      const apiResponse = useAdminApi
+        ? await getAdmin().adminUsageAISummaryGetV1(params)
+        : await getUsage().usageAISummaryGetV1(params)
+      const response: SummaryUsagePageResponse = apiResponse.data
 
       debugLog('API summary response received:', response)
 

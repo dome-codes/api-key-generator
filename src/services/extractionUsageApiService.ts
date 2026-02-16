@@ -5,19 +5,16 @@
  * für Extraction Usage über die API. Parallel zum usageApiService strukturiert.
  */
 
+import { getAdmin } from '@/api/admin/admin'
+import { getUsage } from '@/api/usage/usage'
+import type { ExtractionRequestParamsGroupByParameterItem } from '@/api/types'
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
   ExtractionUsagePageResponse,
   ExtractionUsageSummaryPageResponse,
   PaginationInfo,
-} from '@/api/types/extraction'
-import {
-  extractionUsageGetV1Extended,
-  extractionUsageSummaryGetV1Extended,
-  adminExtractionUsageGetV1Extended,
-  adminExtractionUsageSummaryGetV1Extended,
-} from '@/api/usage/extraction'
+} from '@/api/types/frontend'
 
 // Debug-Log-Funktion
 const debugLog = (...args: unknown[]) => {
@@ -48,28 +45,21 @@ export const extractionUsageApiService = {
         limit: filter.limit || 20,
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status,
+        status: filter.status as import('@/api/types').ExtractionRequestParamsStatusParameter | undefined,
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
-        sort: filter.sort,
-        order: filter.order,
       }
 
-      let response: ExtractionUsagePageResponse
-
-      if (useAdminApi) {
-        const apiResponse = await adminExtractionUsageGetV1Extended(params)
-        response = apiResponse.data
-      } else {
-        const apiResponse = await extractionUsageGetV1Extended(params)
-        response = apiResponse.data
-      }
+      const apiResponse = useAdminApi
+        ? await getAdmin().adminUsageExtractionGetV1(params)
+        : await getUsage().usageExtractionGetV1(params)
+      const response: ExtractionUsagePageResponse = apiResponse.data
 
       debugLog('API response received:', response)
 
       // Konvertiere zu EnhancedExtractionUsageRecord
-      const enhancedData = (response.data || []).map((item) => ({
+      const enhancedData = (response.data || []).map((item: import('@/api/types').ExtractionUsageRecord) => ({
         id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
         operationId: item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
         status: item.status || 'completed',
@@ -131,27 +121,22 @@ export const extractionUsageApiService = {
         limit: filter.limit || 20,
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status,
+        status: filter.status as import('@/api/types').ExtractionRequestParamsStatusParameter | undefined,
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
-        by: filter.groupBy, // Die API-Funktion konvertiert das Array automatisch zu einem String
+        by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
       }
 
-      let response: ExtractionUsageSummaryPageResponse
-
-      if (useAdminApi) {
-        const adminResponse = await adminExtractionUsageSummaryGetV1Extended(params)
-        response = adminResponse.data
-      } else {
-        const apiResponse = await extractionUsageSummaryGetV1Extended(params)
-        response = apiResponse.data
-      }
+      const apiResponse = useAdminApi
+        ? await getAdmin().adminUsageExtractionSummaryGetV1(params)
+        : await getUsage().usageExtractionSummaryGetV1(params)
+      const response: ExtractionUsageSummaryPageResponse = apiResponse.data
 
       debugLog('API summary response received:', response)
 
       // Konvertiere Summary zu EnhancedExtractionUsageRecord
-      const enhancedData = (response.data || []).map((item) => ({
+      const enhancedData = (response.data || []).map((item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
         id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
         operationId: `${item.provider}-${item.modelId}`,
         status: item.status || 'completed',
