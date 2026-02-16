@@ -1,4 +1,5 @@
 @import './base.css';
+@import './corporate-colors.css';
 
 @tailwind base;
 @tailwind components;

@@ -1,0 +1,70 @@
+/**
+ * Corporate Design Farben
+ * 
+ * Diese Datei definiert das neue Corporate Design Farbschema.
+ * Die Farben werden sowohl als CSS-Variablen als auch für Tailwind CSS verfügbar gemacht.
+ */
+
+:root {
+  /* Primärfarbe (Main) - Rot #e00 */
+  --color-primary: #e00;
+  --color-primary-rgb: 238, 0, 0;
+  
+  /* Navbar Farben */
+  --color-navbar-border: #e00;
+  --coyo-navbar: #e00;
+  --coyo-navbar-active: #d50000;
+  --coyo-navbar-text: #fff;
+  
+  /* Text Farben */
+  --text-color: #243243;
+  --color-text: #243243;
+  
+  /* Button Farben */
+  --btn-primary-bg: #e00;
+  --btn-primary-bg-rgb: 238, 0, 0;
+  --btn-primary-color: #fff;
+  
+  /* CUI (Component UI) Farben */
+  --cui-primary-bg: #e00;
+  --cui-primary-fill: #fff;
+  
+  /* Kategorie Farben */
+  --cat-primary-bg-hover: 186, 0, 0;
+  --cat-primary-bg-active: 186, 0, 0;
+  --cat-bg: 237, 238, 239;
+  
+  /* Link Farben */
+  --link-color: #e00;
+  --link-color-rgb: 238, 0, 0;
+  --color-link: #e00;
+  
+  /* Hintergrund Farben */
+  --color-background-main: #edeeef;
+  
+  /* Farbpalette */
+  --color-green: #0d8093;
+  --color-blue: #0d8093;
+  --color-yellow: #ffa82e;
+  --color-orange: #ff8716;
+  --color-red: #991d67;
+  --color-white: #fff;
+  --color-gray: #aaa;
+  
+  /* RGB-Varianten für rgba() Nutzung */
+  --color-primary-rgb: 238, 0, 0;
+  --color-green-rgb: 13, 128, 147;
+  --color-blue-rgb: 13, 128, 147;
+  --color-yellow-rgb: 255, 168, 46;
+  --color-orange-rgb: 255, 135, 22;
+  --color-red-rgb: 153, 29, 103;
+  --color-gray-rgb: 170, 170, 170;
+}
+
+/* Dark Mode Varianten (optional, falls benötigt) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Für Dark Mode können die Farben angepasst werden */
+    /* Aktuell verwenden wir die gleichen Farben */
+  }
+}
