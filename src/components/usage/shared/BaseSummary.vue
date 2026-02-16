@@ -8,8 +8,8 @@
       <p class="mt-2 text-gray-600">Lade Daten...</p>
     </div>
 
-    <div v-else-if="error" class="text-center py-8">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error">
+      <ErrorState :error="error" @retry="$emit('retry')" />
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -20,6 +20,8 @@
 </template>
 
 <script setup lang="ts">
+import ErrorState from './ErrorState.vue'
+
 interface Props {
   title: string
   description: string
@@ -28,4 +30,8 @@ interface Props {
 }
 
 defineProps<Props>()
+
+defineEmits<{
+  retry: []
+}>()
 </script>

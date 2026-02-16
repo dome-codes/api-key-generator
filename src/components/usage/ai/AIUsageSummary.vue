@@ -4,6 +4,7 @@
     :description="description"
     :is-loading="isLoading"
     :error="error"
+    @retry="$emit('retry')"
   >
     <template #summary-cards>
       <div class="bg-blue-50 rounded-lg p-4">
@@ -66,6 +67,10 @@ interface Props {
 }
 
 defineProps<Props>()
+
+defineEmits<{
+  retry: []
+}>()
 
 const formatCost = (cost: number): string => {
   if (cost === 0) return '€0.00'

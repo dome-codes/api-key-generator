@@ -18,8 +18,8 @@
       <p class="mt-2 text-gray-600">Lade Daten...</p>
     </div>
 
-    <div v-else-if="error" class="text-center py-12">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error">
+      <ErrorState :error="error" @retry="$emit('retry')" />
     </div>
 
     <div v-else-if="!data || data.length === 0">
@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import type { PaginationInfo } from '@/api/types/types'
 import EmptyState from './EmptyState.vue'
+import ErrorState from './ErrorState.vue'
 import PaginationControls from './PaginationControls.vue'
 
 interface Props {
@@ -79,5 +80,6 @@ const props = withDefaults(defineProps<Props>(), {
 defineEmits<{
   'page-change': [page: number]
   'reset-filters': []
+  retry: []
 }>()
 </script>

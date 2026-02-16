@@ -72,6 +72,7 @@
         :summary="ownSummary"
         :is-loading="isLoading"
         :error="error"
+        @retry="handleRetry"
       />
 
       <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
@@ -98,6 +99,7 @@
         :use-backend-sorting="true"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
+        @retry="handleRetry"
       />
     </div>
 
@@ -132,6 +134,7 @@
         :is-loading="isLoading"
         :error="error"
         :show-unique-users="true"
+        @retry="handleRetry"
       />
 
       <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
@@ -157,6 +160,7 @@
         :use-backend-sorting="true"
         @page-change="handlePageChange"
         @sort-change="handleSortChange"
+        @retry="handleRetry"
       />
     </div>
   </div>
@@ -394,6 +398,15 @@ const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
 
 const handleChartPeriodChange = (period: string) => {
   ownChartPeriod.value = period
+}
+
+// Handle retry
+const handleRetry = async () => {
+  if (activeTab.value === 'own') {
+    await handleOwnFilterChange()
+  } else if (activeTab.value === 'admin') {
+    await handleAdminFilterChange()
+  }
 }
 
 // Watch for tab changes
