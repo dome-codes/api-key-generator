@@ -1,8 +1,8 @@
 <template>
-  <div class="bg-primary-100 border border-primary-200 rounded-lg p-3 mb-4">
+  <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
     <div class="flex items-start">
       <svg
-        class="w-4 h-4 text-primary mr-2 mt-0.5 flex-shrink-0"
+        class="w-4 h-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0"
         fill="currentColor"
         viewBox="0 0 20 20"
       >
@@ -14,7 +14,7 @@
       </svg>
       <div class="flex-1">
         <!-- Vollständiger Disclaimer aus pricing.ts -->
-        <div v-if="useFullDisclaimer" class="text-sm text-primary">
+        <div v-if="useFullDisclaimer" class="text-sm text-gray-700">
           <div v-html="formattedFullDisclaimer" class="space-y-2"></div>
         </div>
 
@@ -94,7 +94,7 @@
         <div v-if="!useFullDisclaimer" class="mt-2">
           <button
             @click="showDetails = !showDetails"
-            class="text-xs text-link hover:text-primary-hover font-medium flex items-center gap-1"
+            class="text-xs text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1"
           >
             {{ showDetails ? 'Weniger Details' : 'Mehr Details' }}
             <svg
