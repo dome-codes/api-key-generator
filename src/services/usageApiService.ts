@@ -133,7 +133,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage data with filter:', filter)
 
-      // Backend erwartet usageType (nicht modelType) im Query
+      // User-Endpoint (usage/ai) erwartet usageType, Admin (admin/usage/ai) ggf. modelType – je nach Backend den passenden Param mitsenden
+      const modelTypeParam = filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -143,7 +144,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        usageType: filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined,
+        ...(useAdminApi ? { modelType: modelTypeParam } : { usageType: modelTypeParam }),
       } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
@@ -255,7 +256,8 @@ export const usageApiService = {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
-      // Backend erwartet usageType (nicht modelType) im Query
+      // User-Endpoint erwartet usageType, Admin ggf. modelType
+      const modelTypeParam = filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
@@ -265,7 +267,7 @@ export const usageApiService = {
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
         model: filter.model,
-        usageType: filter.modelType as import('@/api/types').AIRequestParamsModelTypeParameter | undefined,
+        ...(useAdminApi ? { modelType: modelTypeParam } : { usageType: modelTypeParam }),
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       } as import('@/api/types').UsageAISummaryGetV1Params
 
