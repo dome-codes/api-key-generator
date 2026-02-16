@@ -5,7 +5,7 @@
         @click="$emit('update:view', 'overview')"
         :class="[
           view === 'overview'
-            ? 'bg-white text-blue-600 shadow-sm'
+            ? 'bg-white text-primary shadow-sm'
             : 'text-gray-600 hover:text-gray-900',
           'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
         ]"
@@ -46,7 +46,7 @@
         @click="$emit('update:view', 'detailed')"
         :class="[
           view === 'detailed'
-            ? 'bg-white text-blue-600 shadow-sm'
+            ? 'bg-white text-primary shadow-sm'
             : 'text-gray-600 hover:text-gray-900',
           'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
         ]"

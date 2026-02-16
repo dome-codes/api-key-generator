@@ -288,7 +288,7 @@ onMounted(() => {
             <button
               v-if="canCreateKeys"
               @click="openModal"
-              class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors"
+              class="bg-primary hover:bg-primary-hover text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 text-sm transition-colors"
             >
               <svg
                 class="w-5 h-5"
@@ -361,7 +361,7 @@ onMounted(() => {
                 />
                 <button
                   @click="copyApiKeyWithSuccess(createdSecret)"
-                  class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors"
+                  class="ml-2 bg-primary hover:bg-primary-hover text-white px-3 py-1 rounded text-xs transition-colors"
                 >
                   Kopieren
                 </button>
@@ -391,7 +391,7 @@ onMounted(() => {
               <div class="flex justify-end gap-2">
                 <button
                   @click="closeKeyDisplayModal"
-                  class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                  class="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
                 >
                   Fertig
                 </button>

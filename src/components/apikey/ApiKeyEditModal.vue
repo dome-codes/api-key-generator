@@ -23,7 +23,7 @@
         </button>
         <button
           @click="$emit('save')"
-          class="px-4 py-2 rounded bg-green-600 text-white font-medium"
+          class="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
         >
           Rotieren
         </button>

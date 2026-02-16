@@ -7,7 +7,7 @@
           @click="activeTab = 'own'"
           :class="[
             activeTab === 'own'
-              ? 'border-blue-500 text-blue-600'
+              ? 'border-primary text-primary'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
           ]"
@@ -28,7 +28,7 @@
           @click="activeTab = 'admin'"
           :class="[
             activeTab === 'admin'
-              ? 'border-blue-500 text-blue-600'
+              ? 'border-primary text-primary'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
           ]"
@@ -66,7 +66,7 @@
             @click="ownView = 'overview'"
             :class="[
               ownView === 'overview'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100',
               'px-4 py-2 rounded-md text-sm font-medium',
             ]"
@@ -77,7 +77,7 @@
             @click="ownView = 'detailed'"
             :class="[
               ownView === 'detailed'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100',
               'px-4 py-2 rounded-md text-sm font-medium',
             ]"
@@ -142,7 +142,7 @@
             @click="adminView = 'overview'"
             :class="[
               adminView === 'overview'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100',
               'px-4 py-2 rounded-md text-sm font-medium',
             ]"
@@ -153,7 +153,7 @@
             @click="adminView = 'detailed'"
             :class="[
               adminView === 'detailed'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100',
               'px-4 py-2 rounded-md text-sm font-medium',
             ]"

@@ -15,13 +15,13 @@ defineEmits<Emits>()
 <template>
   <aside class="w-56 bg-white border-r flex flex-col py-6 px-6 min-h-screen">
     <div class="mb-8">
-      <span class="text-xl font-bold text-blue-700">API-Dashboard</span>
+      <span class="text-xl font-bold text-primary">API-Dashboard</span>
     </div>
     <nav class="flex-1 flex flex-col gap-2">
       <button
         @click="$emit('update:activeSidebar', 'api')"
         :class="
-          activeSidebar === 'api' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
+          activeSidebar === 'api' ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >
@@ -34,7 +34,7 @@ defineEmits<Emits>()
         v-if="canViewUsage"
         @click="$emit('update:activeSidebar', 'usage')"
         :class="
-          activeSidebar === 'usage' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'
+          activeSidebar === 'usage' ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >

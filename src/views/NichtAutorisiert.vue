@@ -10,7 +10,7 @@
       <div class="space-y-4">
         <button
           @click="goHome"
-          class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-hover transition-colors"
         >
           Zur Startseite
         </button>

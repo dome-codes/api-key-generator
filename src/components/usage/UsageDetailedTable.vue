@@ -9,7 +9,7 @@
         <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
         <button
           @click="exportTableData"
-          class="text-sm text-blue-600 hover:text-blue-800"
+          class="text-sm text-link hover:text-primary-hover"
           :disabled="isLoading"
         >
           {{ isLoading ? 'Exportiere...' : 'Als CSV exportieren' }}

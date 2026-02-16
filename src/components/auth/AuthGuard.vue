@@ -4,7 +4,7 @@
     <div v-if="isLoading" class="flex items-center justify-center min-h-screen">
       <div class="text-center">
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"
         ></div>
         <p class="text-gray-600">Authentifizierung läuft...</p>
       </div>
@@ -18,7 +18,7 @@
         <p class="text-gray-600 mb-4">{{ error }}</p>
         <button
           @click="retryAuth"
-          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          class="bg-primary text-white px-4 py-2 rounded hover:bg-primary-hover"
         >
           Erneut versuchen
         </button>

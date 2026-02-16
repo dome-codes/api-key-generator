@@ -1,8 +1,8 @@
 <template>
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+  <div class="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
     <div class="flex items-start">
       <svg
-        class="w-4 h-4 text-blue-400 mr-2 mt-0.5 flex-shrink-0"
+        class="w-4 h-4 text-primary mr-2 mt-0.5 flex-shrink-0"
         fill="currentColor"
         viewBox="0 0 20 20"
       >
@@ -14,12 +14,12 @@
       </svg>
       <div class="flex-1">
         <!-- Vollständiger Disclaimer aus pricing.ts -->
-        <div v-if="useFullDisclaimer" class="text-sm text-blue-700">
+        <div v-if="useFullDisclaimer" class="text-sm text-primary">
           <div v-html="formattedFullDisclaimer" class="space-y-2"></div>
         </div>
 
         <!-- Kompakter Disclaimer (Standard) -->
-        <div v-else class="text-sm text-blue-700">
+        <div v-else class="text-sm text-primary">
           <!-- AI Usage Disclaimer -->
           <div v-if="variant === 'ai'">
             <p class="mb-1">
@@ -28,7 +28,7 @@
                 href="https://azure.microsoft.com/de-de/pricing/details/cognitive-services/openai-service/#pricing"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-blue-600 hover:text-blue-800 underline"
+                class="text-link hover:text-primary-hover underline"
               >
                 Azure OpenAI Preisen (2025)
               </a>
@@ -52,7 +52,7 @@
                   href="https://azure.microsoft.com/de-de/pricing/details/form-recognizer/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-blue-600 hover:text-blue-800 underline"
+                  class="text-link hover:text-primary-hover underline"
                 >
                   Azure Preise
                 </a>
@@ -64,7 +64,7 @@
                   href="https://aws.amazon.com/de/textract/pricing/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-blue-600 hover:text-blue-800 underline"
+                  class="text-link hover:text-primary-hover underline"
                 >
                   AWS Preise
                 </a>
@@ -76,7 +76,7 @@
                   href="https://cloud.google.com/document-ai/pricing"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-blue-600 hover:text-blue-800 underline"
+                  class="text-link hover:text-primary-hover underline"
                 >
                   Google Cloud Preise
                 </a>
@@ -94,7 +94,7 @@
         <div v-if="!useFullDisclaimer" class="mt-2">
           <button
             @click="showDetails = !showDetails"
-            class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            class="text-xs text-link hover:text-primary-hover font-medium flex items-center gap-1"
           >
             {{ showDetails ? 'Weniger Details' : 'Mehr Details' }}
             <svg
@@ -113,8 +113,8 @@
           </button>
 
           <!-- Erweiterte Details -->
-          <div v-if="showDetails" class="mt-3 p-3 bg-blue-100 rounded-lg border border-blue-200">
-            <div class="text-xs text-blue-800 space-y-2">
+          <div v-if="showDetails" class="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <div class="text-xs text-primary space-y-2">
               <!-- AI Usage Details -->
               <div v-if="variant === 'ai'">
                 <div>

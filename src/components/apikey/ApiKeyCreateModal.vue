@@ -25,7 +25,7 @@
         <button
           @click="$emit('create')"
           :disabled="isCreating"
-          class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium flex items-center justify-center min-w-[90px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-medium flex items-center justify-center min-w-[90px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg
             v-if="isCreating"
