@@ -8,8 +8,8 @@
       <SkeletonLoader type="table" :rows="10" :columns="8" />
     </div>
 
-    <div v-else-if="error" class="text-center py-12">
-      <p class="text-red-600">{{ error }}</p>
+    <div v-else-if="error" class="p-6">
+      <ErrorState :error="error" @retry="$emit('retry')" />
     </div>
 
     <div v-else-if="!data || data.length === 0">
@@ -331,8 +331,9 @@
 import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
-import type { EnhancedExtractionUsageRecord, PaginationInfo } from '@/api/types/extraction'
+import type { EnhancedExtractionUsageRecord } from '@/api/types/extraction'
 import type { ExtractionOperationStatus } from '@/api/types/extraction'
+import type { PaginationInfo } from '@/api/types/types'
 import { ref, watch } from 'vue'
 
 interface Props {
@@ -367,13 +368,13 @@ const currentSortOrder = ref<'asc' | 'desc'>(props.sortOrder || 'desc')
 // Watch für Props-Änderungen
 watch(
   () => props.sortField,
-  (newValue) => {
+  (newValue: string | undefined) => {
     if (newValue) currentSortField.value = newValue
   },
 )
 watch(
   () => props.sortOrder,
-  (newValue) => {
+  (newValue: 'asc' | 'desc' | undefined) => {
     if (newValue) currentSortOrder.value = newValue
   },
 )
