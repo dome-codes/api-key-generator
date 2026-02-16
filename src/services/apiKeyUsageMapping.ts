@@ -53,11 +53,11 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
- * @param keys Liste der Keys mit id und optional userId (für Fallback bei apiKeyId: null)
+ * @param keys Liste der Keys mit id, optional userId und optional status (für Fallback: erstem aktiven Key zuordnen)
  */
 export function buildApiKeyUsageMap(
   records: UsageRecordForApiKey[],
-  keys: { id: string; userId?: string }[],
+  keys: { id: string; userId?: string; status?: string }[],
 ): Record<string, ApiKeyUsageData> {
   const safeRecords = records.filter((r) => r != null && typeof r === 'object')
   const map: Record<string, ApiKeyUsageData> = {}
@@ -117,10 +117,10 @@ export function buildApiKeyUsageMap(
         tokensOut: (existing?.tokensOut ?? 0) + fallback.tokensOut,
       }
     }
-    // Fallback wenn Keys kein userId haben (z. B. eigene Keys): Verbrauch dem ersten Key zuordnen
+    // Fallback wenn Keys kein passendes userId haben: Verbrauch dem ersten aktiven Key zuordnen (sichtbar in der Tabelle)
     const userIdsWithUsage = Object.keys(usageByUserId)
     if (userIdsWithUsage.length > 0 && userIdAlreadyAssigned.size === 0 && keys.length > 0) {
-      const firstKey = keys[0]
+      const firstActiveKey = keys.find((k) => k.status === 'active') ?? keys[0]
       const total: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
       for (const uid of userIdsWithUsage) {
         const u = usageByUserId[uid]
@@ -128,8 +128,8 @@ export function buildApiKeyUsageMap(
         total.tokensIn += u.tokensIn
         total.tokensOut += u.tokensOut
       }
-      const existing = map[firstKey.id]
-      map[firstKey.id] = {
+      const existing = map[firstActiveKey.id]
+      map[firstActiveKey.id] = {
         cost: (existing?.cost ?? 0) + total.cost,
         tokensIn: (existing?.tokensIn ?? 0) + total.tokensIn,
         tokensOut: (existing?.tokensOut ?? 0) + total.tokensOut,

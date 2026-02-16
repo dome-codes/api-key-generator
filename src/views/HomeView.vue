@@ -80,7 +80,7 @@ const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSum
 // API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
 // Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert
 const apiKeyUsageData = computed(() => {
-  const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId }))
+  const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId, status: k.status }))
   return buildApiKeyUsageMap(detailedUsageData.value, keys)
 })
 
