@@ -15,9 +15,8 @@ export function useAuth() {
       return { name, avatar }
     }
     
-    // Fallback: Prüfe ob Keycloak-Bypass aktiv ist
-    const bypassActive = import.meta.env.DEV && 
-      (import.meta.env.VITE_BYPASS_KEYCLOAK === 'true' || localStorage.getItem('bypassKeycloak') === 'true')
+    // Fallback: nur wenn Bypass explizit per Env aktiv
+    const bypassActive = import.meta.env.VITE_BYPASS_KEYCLOAK === 'true' && import.meta.env.DEV
     
     if (bypassActive) {
       // Verwende Mock-Daten wenn Bypass aktiv ist

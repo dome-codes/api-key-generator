@@ -121,11 +121,23 @@ const cleanupUrl = () => {
   }
 }
 
-// Keycloak-Bypass für Development (über Environment Variable)
+// Keycloak-Bypass nur wenn explizit gewünscht (VITE_BYPASS_KEYCLOAK=true).
+// Bei 'false' oder nicht gesetzt: Keycloak immer nutzen, alten localStorage-Bypass löschen.
 const shouldBypassKeycloak = (): boolean => {
-  const bypassFromEnv = import.meta.env.VITE_BYPASS_KEYCLOAK === 'true'
-  const bypassFromLocalStorage = localStorage.getItem('bypassKeycloak') === 'true'
-  return import.meta.env.DEV && (bypassFromEnv || bypassFromLocalStorage)
+  const envValue = import.meta.env.VITE_BYPASS_KEYCLOAK
+  if (envValue === 'false' || envValue === '') {
+    localStorage.removeItem('bypassKeycloak')
+    return false
+  }
+  if (envValue === 'true' && import.meta.env.DEV) {
+    return true
+  }
+  // Nicht gesetzt: Keycloak nutzen (kein Bypass)
+  if (envValue === undefined) {
+    localStorage.removeItem('bypassKeycloak')
+    return false
+  }
+  return false
 }
 
 // Mock-Token für Development-Bypass
@@ -140,7 +152,7 @@ const createMockToken = () => {
     groups: ['API-Admin'],
     exp: Math.floor(Date.now() / 1000) + 3600, // 1 Stunde gültig
   }
-  
+
   // Erstelle Mock-Token (nur für Frontend, Backend akzeptiert auch ohne echten Token)
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
   const payload = btoa(JSON.stringify(mockTokenData))
@@ -156,13 +168,13 @@ export const initKeycloak = async (): Promise<boolean> => {
     // Setze Mock-Token
     const mockToken = createMockToken()
     const tokenPayload = JSON.parse(atob(mockToken.split('.')[1]))
-    
+
     keycloak.token = mockToken
     keycloak.tokenParsed = tokenPayload
     keycloak.authenticated = true
     keycloak.idToken = mockToken
     keycloak.idTokenParsed = tokenPayload
-    
+
     // Stelle sicher, dass userInfo verfügbar ist
     debugLog('🔓 Mock-Token gesetzt:', {
       name: tokenPayload.name,
@@ -170,7 +182,7 @@ export const initKeycloak = async (): Promise<boolean> => {
       preferred_username: tokenPayload.preferred_username,
       groups: tokenPayload.groups,
     })
-    
+
     return true
   }
 
@@ -219,13 +231,13 @@ export const getUserInfo = () => {
     debugLog('🔍 getUserInfo() from tokenParsed:', keycloak.tokenParsed)
     return keycloak.tokenParsed
   }
-  
+
   // Fallback: Prüfe idTokenParsed
   if (keycloak.idTokenParsed) {
     debugLog('🔍 getUserInfo() from idTokenParsed:', keycloak.idTokenParsed)
     return keycloak.idTokenParsed
   }
-  
+
   // Wenn Bypass aktiv ist, aber kein Token gesetzt wurde, erstelle Mock-Daten
   if (shouldBypassKeycloak()) {
     debugLog('🔍 getUserInfo() - Bypass aktiv, aber kein Token gefunden, erstelle Mock-Daten')
@@ -234,7 +246,7 @@ export const getUserInfo = () => {
     keycloak.tokenParsed = tokenPayload
     return tokenPayload
   }
-  
+
   debugLog('🔍 getUserInfo() - Keine Benutzerinformationen gefunden')
   return null
 }
