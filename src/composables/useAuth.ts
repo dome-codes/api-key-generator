@@ -1,57 +1,47 @@
-import { getHighestRole, getUserInfo, getUserRoles, hasPermission, keycloak } from '@/auth/keycloak'
+import { getHighestRole, getUserInfo, UserRole, hasPermission, keycloak } from '@/auth/keycloak'
 import { computed } from 'vue'
 
 export function useAuth() {
   // Benutzerinformationen aus Keycloak
   const userProfile = computed(() => {
     const userInfo = getUserInfo()
-    console.log('🔍 [useAuth] getUserInfo() returned:', userInfo)
-    
     if (userInfo) {
       const name =
         userInfo.name || userInfo.preferred_username || userInfo.email || 'Unbekannter Benutzer'
-      const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e00&color=fff`
-      console.log('🔍 [useAuth] User profile:', { name, avatar })
+      const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=608ABC&color=FFF`
       return { name, avatar }
     }
-    
-    // Fallback: nur wenn Bypass explizit per Env aktiv
-    const bypassActive = import.meta.env.VITE_BYPASS_KEYCLOAK === 'true' && import.meta.env.DEV
-    
-    if (bypassActive) {
-      // Verwende Mock-Daten wenn Bypass aktiv ist
-      const mockName = 'Mock Admin User'
-      const mockAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(mockName)}&background=e00&color=fff`
-      console.log('🔍 [useAuth] Using mock profile (bypass active):', { name: mockName, avatar: mockAvatar })
-      return { name: mockName, avatar: mockAvatar }
-    }
-    
-    console.log('🔍 [useAuth] No user info found, using fallback')
     return {
       name: 'Unbekannter Benutzer',
-      avatar: 'https://ui-avatars.com/api/?name=Unknown&background=e00&color=fff',
+      avatar: 'https://ui-avatars.com/api/?name=Unknown&background=0D8ABC&color=FFF',
     }
   })
 
   // Rollenbasierte Computed Properties
-  const userRoles = computed(() => getUserRoles())
   const highestRole = computed(() => getHighestRole())
-  const isAdmin = computed(() => hasPermission('canViewAdminUsage'))
+  const isAdmin = computed(() => highestRole.value === UserRole.ADMIN)
+  const isUser = computed(() => highestRole.value === UserRole.USER)
+  const isTechnical = computed(() => highestRole.value === UserRole.TECHNICAL)
+
+  // Feature Permissions
+  const canUseAdminFeatures = computed(() => hasPermission('canUseAdminFeatures'))
   const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
-  const canViewUsage = computed(() => hasPermission('canViewOwnUsage'))
+  const canSeeOwnUsage = computed(() => hasPermission('canSeeOwnUsage'))
 
   // Logout-Funktion
   const handleLogout = () => {
-    keycloak.logout({})
+    keycloak.logout()
   }
 
   return {
     userProfile,
-    userRoles,
     highestRole,
     isAdmin,
+    isUser,
+    isTechnical,
+    canUseAdminFeatures,
     canCreateKeys,
-    canViewUsage,
+    canSeeOwnUsage,
     handleLogout,
   }
 }
