@@ -165,6 +165,7 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
+import { useUrlFilters } from '@/composables/useUrlFilters'
 import { computed, onMounted, ref, watch } from 'vue'
 import AIUsageCharts from './AIUsageCharts.vue'
 import AIUsageFilters from './AIUsageFilters.vue'
@@ -173,7 +174,11 @@ import UsageDetailedTable from '../UsageDetailedTable.vue'
 import UsagePricingDisclaimer from '../UsagePricingDisclaimer.vue'
 import UsageViewToggle from '../UsageViewToggle.vue'
 
-const activeTab = ref('own')
+// URL Filters Composable
+const { getQueryParam, setQueryParams } = useUrlFilters()
+
+// Initialize activeTab from URL or default
+const activeTab = ref<'own' | 'admin'>((getQueryParam('tab') as 'own' | 'admin') || 'own')
 const isApiAdmin = computed(() => hasPermission('canViewAdminUsage'))
 
 // Usage API Composable - Nutzt server-seitige Filterung
@@ -231,6 +236,72 @@ const setDefaultDates = () => {
   adminToDate.value = today.toISOString().split('T')[0]
 }
 
+// Load filters from URL
+const loadFiltersFromUrl = () => {
+  const tab = getQueryParam('tab') || 'own'
+  activeTab.value = tab as 'own' | 'admin'
+
+  if (tab === 'own') {
+    ownTimeRange.value = getQueryParam('timeRange') || '30d'
+    ownModelType.value = getQueryParam('modelType') || ''
+    ownModel.value = getQueryParam('model') || ''
+    ownTag.value = getQueryParam('tag') || ''
+    ownApiKeyId.value = getQueryParam('apiKeyId') || ''
+    ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
+    ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
+    ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
+    ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+  } else {
+    adminTimeRange.value = getQueryParam('timeRange') || '30d'
+    adminModelType.value = getQueryParam('modelType') || ''
+    adminModel.value = getQueryParam('model') || ''
+    adminTag.value = getQueryParam('tag') || ''
+    adminApiKeyId.value = getQueryParam('apiKeyId') || ''
+    adminUser.value = getQueryParam('userId') || ''
+    adminUserGroup.value = getQueryParam('userGroup') || ''
+    adminView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
+    adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
+    adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+  }
+}
+
+// Save filters to URL
+const saveFiltersToUrl = () => {
+  const params: Record<string, string | number | undefined> = {
+    tab: activeTab.value,
+  }
+
+  if (activeTab.value === 'own') {
+    if (ownTimeRange.value) params.timeRange = ownTimeRange.value
+    if (ownModelType.value) params.modelType = ownModelType.value
+    if (ownModel.value) params.model = ownModel.value
+    if (ownTag.value) params.tag = ownTag.value
+    if (ownApiKeyId.value) params.apiKeyId = ownApiKeyId.value
+    if (ownView.value) params.view = ownView.value
+    if (ownChartPeriod.value) params.chartPeriod = ownChartPeriod.value
+    if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
+    if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
+  } else {
+    if (adminTimeRange.value) params.timeRange = adminTimeRange.value
+    if (adminModelType.value) params.modelType = adminModelType.value
+    if (adminModel.value) params.model = adminModel.value
+    if (adminTag.value) params.tag = adminTag.value
+    if (adminApiKeyId.value) params.apiKeyId = adminApiKeyId.value
+    if (adminUser.value) params.userId = adminUser.value
+    if (adminUserGroup.value) params.userGroup = adminUserGroup.value
+    if (adminView.value) params.view = adminView.value
+    if (adminFromDate.value) params.fromDate = toIsoDate(adminFromDate.value)
+    if (adminToDate.value) params.toDate = toIsoDate(adminToDate.value)
+  }
+
+  // Pagination und Sortierung
+  if (pagination.value.page > 1) params.page = pagination.value.page
+  if (currentFilter.value.sort) params.sort = currentFilter.value.sort
+  if (currentFilter.value.order) params.order = currentFilter.value.order
+
+  setQueryParams(params)
+}
+
 // Convert date string to ISO format
 const toIsoDate = (dateStr: string): string => {
   if (!dateStr) return ''
@@ -278,6 +349,8 @@ const handleOwnFilterChange = async () => {
   } else {
     await loadUsageData({}, false)
   }
+
+  saveFiltersToUrl()
 }
 
 // Handle filter changes - Admin
@@ -301,18 +374,22 @@ const handleAdminFilterChange = async () => {
   } else {
     await loadUsageData({}, true)
   }
+
+  saveFiltersToUrl()
 }
 
 // Handle page change
 const handlePageChange = async (page: number) => {
   const useAdminApi = activeTab.value === 'admin'
   await goToPage(page, useAdminApi)
+  saveFiltersToUrl()
 }
 
 // Handle sort change
 const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
   const useAdminApi = activeTab.value === 'admin'
   await updateSort(field, order, useAdminApi)
+  saveFiltersToUrl()
 }
 
 const handleChartPeriodChange = (period: string) => {
@@ -321,6 +398,7 @@ const handleChartPeriodChange = (period: string) => {
 
 // Watch for tab changes
 watch(activeTab, async (newTab) => {
+  saveFiltersToUrl()
   if (newTab === 'own') {
     await handleOwnFilterChange()
   } else if (newTab === 'admin') {
@@ -339,7 +417,15 @@ watch(adminView, async () => {
 
 // Initialize
 onMounted(() => {
+  // Load from URL first, then set defaults for missing values
+  loadFiltersFromUrl()
   setDefaultDates()
-  handleOwnFilterChange()
+
+  // Apply loaded filters
+  if (activeTab.value === 'own') {
+    handleOwnFilterChange()
+  } else if (activeTab.value === 'admin') {
+    handleAdminFilterChange()
+  }
 })
 </script>
