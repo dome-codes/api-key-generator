@@ -20,6 +20,35 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[extractionUsageApiService]', ...args)
 
+/**
+ * Mappt Backend-Pagination-Struktur auf die erwartete PaginationInfo-Struktur
+ * Backend kann verschiedene Feldnamen verwenden: totalItems, currentPage, pageSize
+ */
+function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
+  if (!backendPagination || typeof backendPagination !== 'object') {
+    return undefined
+  }
+
+  const pag = backendPagination as Record<string, unknown>
+
+  // Prüfe auf verschiedene mögliche Feldnamen
+  const totalItems = pag.totalItems ?? pag.total
+  const currentPage = pag.currentPage ?? pag.page
+  const pageSize = pag.pageSize ?? pag.limit
+  const totalPages = pag.totalPages
+
+  if (totalItems === undefined && currentPage === undefined && pageSize === undefined && totalPages === undefined) {
+    return undefined
+  }
+
+  return {
+    page: typeof currentPage === 'number' ? currentPage : undefined,
+    limit: typeof pageSize === 'number' ? pageSize : undefined,
+    total: typeof totalItems === 'number' ? totalItems : undefined,
+    totalPages: typeof totalPages === 'number' ? totalPages : undefined,
+  }
+}
+
 /** Response-Array aus Backend: data, items oder usage (andere OpenAPI wie bei AI). */
 function getDataArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response
@@ -148,13 +177,17 @@ export const extractionUsageApiService = {
         length: enhancedData.length,
       })
 
-      const pagination =
+      // Extrahiere Pagination und mappe Backend-Feldnamen
+      let pagination: PaginationInfo | undefined
+      if (
         response &&
         typeof response === 'object' &&
         !Array.isArray(response) &&
         'pagination' in response
-          ? (response as ExtractionUsagePageResponse).pagination
-          : undefined
+      ) {
+        const backendPagination = (response as ExtractionUsagePageResponse).pagination
+        pagination = mapPagination(backendPagination) || backendPagination
+      }
 
       return {
         data: enhancedData,

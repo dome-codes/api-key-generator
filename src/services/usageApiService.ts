@@ -33,6 +33,35 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[usageApiService]', ...args)
 
+/**
+ * Mappt Backend-Pagination-Struktur auf die erwartete PaginationInfo-Struktur
+ * Backend kann verschiedene Feldnamen verwenden: totalItems, currentPage, pageSize
+ */
+function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
+  if (!backendPagination || typeof backendPagination !== 'object') {
+    return undefined
+  }
+
+  const pag = backendPagination as Record<string, unknown>
+
+  // Prüfe auf verschiedene mögliche Feldnamen
+  const totalItems = pag.totalItems ?? pag.total
+  const currentPage = pag.currentPage ?? pag.page
+  const pageSize = pag.pageSize ?? pag.limit
+  const totalPages = pag.totalPages
+
+  if (totalItems === undefined && currentPage === undefined && pageSize === undefined && totalPages === undefined) {
+    return undefined
+  }
+
+  return {
+    page: typeof currentPage === 'number' ? currentPage : undefined,
+    limit: typeof pageSize === 'number' ? pageSize : undefined,
+    total: typeof totalItems === 'number' ? totalItems : undefined,
+    totalPages: typeof totalPages === 'number' ? totalPages : undefined,
+  }
+}
+
 /** Diagnose-Log für andere OpenAPI/Backend: immer in DEV oder wenn localStorage.debug=true. Ausgabe hier kopieren und teilen. */
 function diagLog(
   label: string,
@@ -261,10 +290,12 @@ export const usageApiService = {
         }),
       )
 
-      const pagination =
-        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
-          ? (response as UsagePageResponse).pagination
-          : undefined
+      // Extrahiere Pagination und mappe Backend-Feldnamen
+      let pagination: PaginationInfo | undefined
+      if (response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response) {
+        const backendPagination = (response as UsagePageResponse).pagination
+        pagination = mapPagination(backendPagination) || backendPagination
+      }
 
       diagLog('getUsageData (after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,
@@ -383,10 +414,12 @@ export const usageApiService = {
         }),
       )
 
-      const pagination =
-        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
-          ? (response as SummaryUsagePageResponse).pagination
-          : undefined
+      // Extrahiere Pagination und mappe Backend-Feldnamen
+      let pagination: PaginationInfo | undefined
+      if (response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response) {
+        const backendPagination = (response as SummaryUsagePageResponse).pagination
+        pagination = mapPagination(backendPagination) || backendPagination
+      }
 
       diagLog('getUsageSummary (after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,
