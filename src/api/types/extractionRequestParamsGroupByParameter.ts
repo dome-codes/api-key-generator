@@ -8,6 +8,6 @@
 import type { ExtractionRequestParamsGroupByParameterItem } from './extractionRequestParamsGroupByParameterItem';
 
 /**
- * Comma separated list of parameters to group by: day|month|year|[tag|apiKey|provider|modelId|user]
+ * Comma separated list of parameters to group by: day|month|year|[tag|apikey|provider|modelId|user]
  */
 export type ExtractionRequestParamsGroupByParameter = ExtractionRequestParamsGroupByParameterItem[];

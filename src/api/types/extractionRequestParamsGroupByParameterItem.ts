@@ -15,7 +15,7 @@ export const ExtractionRequestParamsGroupByParameterItem = {
   month: 'month',
   year: 'year',
   tag: 'tag',
-  apiKey: 'apiKey',
+  apikey: 'apikey',
   provider: 'provider',
   modelId: 'modelId',
   user: 'user',

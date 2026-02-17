@@ -8,6 +8,6 @@
 import type { AIRequestParamsGroupByParameterItem } from './aIRequestParamsGroupByParameterItem';
 
 /**
- * Comma separated list of parameters to group by: day|month|year|[tag|apiKey|model|user]
+ * Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]
  */
 export type AIRequestParamsGroupByParameter = AIRequestParamsGroupByParameterItem[];

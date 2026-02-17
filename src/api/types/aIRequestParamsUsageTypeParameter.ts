@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type AIRequestParamsUsageTypeParameter =
-  (typeof AIRequestParamsUsageTypeParameter)[keyof typeof AIRequestParamsUsageTypeParameter]
+export type AIRequestParamsUsageTypeParameter = typeof AIRequestParamsUsageTypeParameter[keyof typeof AIRequestParamsUsageTypeParameter];
+
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AIRequestParamsUsageTypeParameter = {
   COMPLETION_USAGE: 'COMPLETION_USAGE',
   EMBEDDING_USAGE: 'EMBEDDING_USAGE',
   IMAGE_USAGE: 'IMAGE_USAGE',
-} as const
+} as const;

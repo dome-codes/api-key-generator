@@ -98,7 +98,7 @@ export const extractionUsageApiService = {
           | undefined,
         userId: filter.userId,
         tag: filter.tag,
-        apiKeyId: filter.apiKeyId,
+        apiKey: filter.apiKey,
       }
 
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
@@ -202,7 +202,7 @@ export const extractionUsageApiService = {
           | undefined,
         userId: filter.userId,
         tag: filter.tag,
-        apiKeyId: filter.apiKeyId,
+        apiKey: filter.apiKey,
         by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
       }
 

@@ -172,7 +172,7 @@ export const usageApiService = {
         limit: filter.limit || 20,
         userId: filter.userId,
         tag: filter.tag,
-        apiKeyId: filter.apiKeyId,
+        apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
       } as import('@/api/types').UsageAIGetV1Params
@@ -303,7 +303,7 @@ export const usageApiService = {
         limit: filter.limit || 20,
         userId: filter.userId,
         tag: filter.tag,
-        apiKeyId: filter.apiKeyId,
+        apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,

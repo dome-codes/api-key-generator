@@ -7,6 +7,6 @@
  */
 
 /**
- * End date of the time interval (UTC). If left empty it uses the latest known date.
+ * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
  */
 export type CommonRequestParamsToDateParameter = string;

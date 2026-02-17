@@ -15,7 +15,7 @@ export const AIRequestParamsGroupByParameterItem = {
   month: 'month',
   year: 'year',
   tag: 'tag',
-  apiKey: 'apiKey',
+  apikey: 'apikey',
   model: 'model',
   user: 'user',
 } as const;

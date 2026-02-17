@@ -18,11 +18,11 @@ import type { AIRequestParamsGroupByParameter } from './aIRequestParamsGroupByPa
 
 export type UsageAISummaryGetV1Params = {
 /**
- * Start date of the time interval (UTC). If left empty it uses the earliest known date.
+ * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
  */
 from_date?: CommonRequestParamsFromDateParameter;
 /**
- * End date of the time interval (UTC). If left empty it uses the latest known date.
+ * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
  */
 to_date?: CommonRequestParamsToDateParameter;
 /**
@@ -44,17 +44,17 @@ tag?: CommonRequestParamsTagParameter;
 /**
  * Filter by API key ID.
  */
-apiKeyId?: CommonRequestParamsApiKeyIdParameter;
+apiKey?: CommonRequestParamsApiKeyIdParameter;
 /**
  * Filter by model name.
  */
 model?: AIRequestParamsModelParameter;
 /**
- * Filter by usage type (COMPLETION_USAGE, EMBEDDING_USAGE, IMAGE_USAGE).
+ * Filter by usage type (backend enum).
  */
 usageType?: AIRequestParamsUsageTypeParameter;
 /**
- * Comma separated list of parameters to group by: day|month|year|[tag|apiKey|model|user]
+ * Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]
  */
 by?: AIRequestParamsGroupByParameter;
 };

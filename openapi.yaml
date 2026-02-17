@@ -384,7 +384,7 @@ components:
         example: 'production'
 
     Common.RequestParams.ApiKeyId:
-      name: apiKeyId
+      name: apiKey
       in: query
       description: Filter by API key ID.
       required: false

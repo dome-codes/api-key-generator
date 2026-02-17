@@ -35,7 +35,7 @@ export interface UsageFilterApi {
   limit?: number
   userId?: string
   tag?: string
-  apiKeyId?: string
+  apiKey?: string
   model?: string
   modelType?: string
   technicalUserIds?: string[]
@@ -55,7 +55,7 @@ export interface ExtractionUsageFilterApi {
   limit?: number
   userId?: string
   tag?: string
-  apiKeyId?: string
+  apiKey?: string
   provider?: string
   modelId?: string
   status?: string
@@ -81,7 +81,7 @@ export interface EnhancedUsageRecord {
   month?: number
   year?: number
   createDate?: string
-  apiKeyId?: string
+  apiKey?: string
   /** Nur bei ImageModelUsage: Bildbreite */
   sizeWidth?: number
   /** Nur bei ImageModelUsage: Bildhöhe */
@@ -102,7 +102,7 @@ export interface EnhancedExtractionUsageRecord {
   year?: number
   technicalUserId?: string
   technicalUserName?: string
-  apiKeyId?: string
+  apiKey?: string
   tag?: string
   provider?: string
   modelId?: string

@@ -142,7 +142,7 @@ const saveFiltersToUrl = () => {
   if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
   if (ownModel.value) params.model = ownModel.value
   if (ownTag.value) params.tag = ownTag.value
-  if (ownApiKeyId.value) params.apiKeyId = ownApiKeyId.value
+    if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
   if (ownView.value) params.view = ownView.value
   if (ownChartPeriod.value) params.chartPeriod = ownChartPeriod.value
   if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
@@ -196,7 +196,7 @@ const handleOwnFilterChange = async () => {
         modelType: ownModelType.value || undefined,
         model: ownModel.value || undefined,
         tag: ownTag.value || undefined,
-        apiKeyId: ownApiKeyId.value || undefined,
+        apiKey: ownApiKeyId.value || undefined,
         groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
       },
       props.useAdminApi,
