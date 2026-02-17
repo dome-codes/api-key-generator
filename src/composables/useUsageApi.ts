@@ -31,6 +31,7 @@ export function useUsageApi() {
   const error = ref<string | null>(null)
   const usageData = ref<EnhancedUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
+  const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
   const pagination = ref<PaginationInfo>({
     page: 1,
     limit: 20,
@@ -208,45 +209,35 @@ export function useUsageApi() {
   // Chart data für Tag-Verwendung (Bar Chart) - zeigt standardmäßig Top 10
   const showAllTagsInChart = ref(false)
   const tagUsageChartData = computed(() => {
-    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
+    // Verwende tagSummaryData, die mit groupBy: ['tag'] geladen wurde
+    const data = tagSummaryData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
     }
 
-    const tagMap = new Map<string, number>()
-
-    data.forEach((item) => {
-      const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
-      if (!tag) return // Überspringe Items ohne Tag für Chart
-      const currentCount = tagMap.get(tag) || 0
-      tagMap.set(tag, currentCount + getRequestCount(item))
-    })
-
-    // Sortiere nach Anzahl (absteigend) und nehme Top 10 oder alle
-    const sortedTags = Array.from(tagMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, showAllTagsInChart.value ? tagMap.size : 10)
+    // Die Daten sind bereits nach Tag gruppiert, also können wir sie direkt verwenden
+    const tagEntries = data
+      .map((item) => {
+        const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
+        if (!tag) return null
+        return {
+          tag,
+          count: getRequestCount(item),
+        }
+      })
+      .filter((entry): entry is { tag: string; count: number } => entry !== null)
+      .sort((a, b) => b.count - a.count) // Sortiere nach Anzahl (absteigend)
+      .slice(0, showAllTagsInChart.value ? data.length : 10) // Top 10 oder alle
 
     return {
-      labels: sortedTags.map(([tag]) => tag),
-      data: sortedTags.map(([, count]) => count),
+      labels: tagEntries.map((entry) => entry.tag),
+      data: tagEntries.map((entry) => entry.count),
     }
   })
 
   const hasMoreTags = computed(() => {
-    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
-    if (data.length === 0) return false
-
-    const tagMap = new Map<string, number>()
-    data.forEach((item) => {
-      const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
-      if (!tag) return
-      const currentCount = tagMap.get(tag) || 0
-      tagMap.set(tag, currentCount + getRequestCount(item))
-    })
-
-    return tagMap.size > 10
+    return tagSummaryData.value.length > 10
   })
 
   const toggleShowAllTags = () => {
@@ -341,6 +332,9 @@ export function useUsageApi() {
         firstItem: allData[0],
       })
       debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
+
+      // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
+      await loadTagSummary(useAdminApi)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
@@ -355,6 +349,50 @@ export function useUsageApi() {
       }
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // Lade Tag-Daten für den Tag-Chart (gruppiert nach Tag)
+  const loadTagSummary = async (useAdminApi: boolean = false) => {
+    try {
+      const tagFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 1000, // Ausreichend für Tags
+        groupBy: ['tag'] as ('day' | 'month' | 'year' | 'tag')[],
+      }
+
+      debugLog('Loading tag summary with filter:', tagFilter)
+
+      const result = await usageApiService.getUsageSummary(tagFilter, useAdminApi)
+
+      // Lade alle Seiten falls nötig
+      let allTagData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination?.totalPages ?? 0
+      const total = result.pagination?.total ?? 0
+
+      while (currentPage < totalPages && allTagData.length < total) {
+        currentPage++
+        const pageResult = await usageApiService.getUsageSummary(
+          { ...tagFilter, page: currentPage },
+          useAdminApi,
+        )
+        allTagData = [...allTagData, ...pageResult.data]
+      }
+
+      tagSummaryData.value = allTagData.filter(
+        (item) => item.tag && String(item.tag).trim() && item.tag !== '',
+      )
+
+      debugLog('Tag summary loaded:', {
+        count: tagSummaryData.value.length,
+        tags: tagSummaryData.value.map((item) => item.tag),
+      })
+    } catch (err) {
+      console.error('Error loading tag summary:', err)
+      // Fehler beim Laden der Tag-Daten sollte nicht die gesamte Summary blockieren
+      tagSummaryData.value = []
     }
   }
 
