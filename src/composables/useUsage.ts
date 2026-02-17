@@ -68,6 +68,7 @@ export function useUsage() {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const detailedUsageData = ref<EnhancedUsageRecord[]>([])
+  const apiKeySummaryData = ref<Array<{ apiKeyId?: string | null; requestTokens?: number; responseTokens?: number; cost?: number }>>([]) // Summary-Daten pro API Key (bereits aggregiert)
   const usageAggregation = ref<UsageAggregation | null>(null)
   const userUsageSummary = ref<UserUsageSummary[]>([])
   const modelUsageSummary = ref<ModelUsageSummary[]>([])
@@ -126,10 +127,18 @@ export function useUsage() {
       debugLog('🔍 [USE-USAGE] Summary data received:', summaryData)
       debugLog('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
 
-      // Extrahiere Aggregation aus den API-Key-Daten (ohne undefined-Einträge → verhindert Index-Fehler)
+      // Speichere Summary-Daten für einfaches Mapping in ApiKeyTable
       const validItems = (summaryData.data || []).filter(
         (item: any) => item != null && typeof item === 'object',
       )
+      apiKeySummaryData.value = validItems.map((item: any) => ({
+        apiKeyId: item.apiKeyId ?? item.api_key_id,
+        requestTokens: item.requestTokens ?? 0,
+        responseTokens: item.responseTokens ?? 0,
+        cost: item.cost ?? 0,
+      }))
+
+      // Extrahiere Aggregation aus den API-Key-Daten (ohne undefined-Einträge → verhindert Index-Fehler)
       if (validItems.length > 0) {
         // Berechne Aggregation aus den API-Key-Daten
         const totalRequests = validItems.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
@@ -434,6 +443,7 @@ export function useUsage() {
     isLoading,
     error,
     detailedUsageData,
+    apiKeySummaryData, // Summary-Daten pro API Key (bereits aggregiert vom Backend)
     usageAggregation,
     userUsageSummary,
     modelUsageSummary,
