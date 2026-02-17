@@ -614,6 +614,22 @@ if (LOG_USAGE_DEBUG) {
       isAdmin: isAdmin.value,
     }),
     (val) => {
+      const usageData = props.usageData
+      const rowKeyIds = val.rowKeyIds as string[]
+      const lookupCheck =
+        usageData && rowKeyIds.length > 0
+          ? rowKeyIds.map((rid) => {
+              const found = usageData[rid]
+              const inKeys = val.usageDataKeys.includes(rid)
+              return {
+                rowKeyId: rid,
+                inUsageDataKeys: inKeys,
+                value: found
+                  ? { cost: found.cost, tokensIn: found.tokensIn, tokensOut: found.tokensOut }
+                  : null,
+              }
+            })
+          : []
       console.log('[ApiKeyTable] usageData / rows Update', {
         'usageData Keys (Anzahl)': val.usageDataKeys.length,
         'usageData Keys': val.usageDataKeys,
@@ -621,6 +637,7 @@ if (LOG_USAGE_DEBUG) {
         'rowKeyIds (aktuelle Seite)': val.rowKeyIds,
         'keys aus props (erste 5 .id)': val.keysFromProps,
         isAdmin: val.isAdmin,
+        'Lookup pro Zeile (rowKeyId → inKeys?, value)': lookupCheck,
       })
     },
     { deep: true },
