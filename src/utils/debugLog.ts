@@ -45,7 +45,7 @@ export function showWelcomeMessage(): void {
 ║   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝     ║
 ║                                                                ║
 ║              API Key Generator & Management                    ║
-║                    Version ${version}${' '.repeat(47 - version.length)}║
+║       Version ${version}${' '.repeat(47 - version.length)}║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 `
