@@ -105,16 +105,60 @@ export const pricingService = {
     embeddingPricing: EmbeddingModelPricing[]
     markupPercentage: number
   }): void {
+    // Erstelle Zeitstempel für Dateinamen (Format: YYYY-MM-DD-HH-MM-SS)
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const seconds = String(now.getSeconds()).padStart(2, '0')
+    const timestamp = `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`
+    
     const jsonString = JSON.stringify(pricing, null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'pricing.json'
+    link.download = `pricing-${timestamp}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
     debugLog('[pricingService] Pricing JSON downloaded')
+  },
+
+  /**
+   * Lädt Pricing-Daten aus einer hochgeladenen JSON-Datei
+   */
+  async uploadPricingJson(file: File): Promise<{
+    modelPricing: ModelPricing[]
+    imagePricing: ImageModelPricing[]
+    embeddingPricing: EmbeddingModelPricing[]
+    markupPercentage: number
+  }> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string
+          const data = JSON.parse(content)
+          
+          // Validierung der Struktur
+          if (!data.modelPricing || !data.imagePricing || !data.embeddingPricing || typeof data.markupPercentage !== 'number') {
+            throw new Error('Ungültige JSON-Struktur. Erwartet: modelPricing, imagePricing, embeddingPricing, markupPercentage')
+          }
+          
+          debugLog('[pricingService] Pricing JSON uploaded and parsed')
+          resolve(data)
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error('Fehler beim Parsen der JSON-Datei'))
+        }
+      }
+      reader.onerror = () => {
+        reject(new Error('Fehler beim Lesen der Datei'))
+      }
+      reader.readAsText(file)
+    })
   },
 }

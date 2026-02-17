@@ -38,20 +38,24 @@
     </div>
 
     <!-- Info-Box: Speicherung -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
       <div class="flex items-start">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-        </div>
-        <div class="ml-3 flex-1">
-          <h3 class="text-sm font-medium text-blue-800">Hinweis zur Speicherung</h3>
-          <div class="mt-2 text-sm text-blue-700">
+        <svg
+          class="w-4 h-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div class="flex-1">
+          <div class="text-sm text-gray-700">
             <p>
-              <strong>Änderungen werden nur im Browser gespeichert.</strong> Klicken Sie auf "💾 Preise speichern (Download)",
-              um die aktualisierten Preise als JSON-Datei herunterzuladen. Diese Datei muss dann manuell in
-              <code class="bg-blue-100 px-1 rounded">public/pricing.json</code> kopiert werden.
+              <strong>Speicherung:</strong> Änderungen werden automatisch gespeichert (Enter-Taste oder Fokus-Verlust).
+              Verwenden Sie die Download/Upload-Funktionen, um Preise als JSON-Datei zu exportieren oder zu importieren.
             </p>
             <p class="mt-2">
               <strong>Reasoning-Tokens:</strong> Werden aktuell zu Output-Tokens addiert. Falls Sie einen separaten Reasoning-Preis
@@ -65,11 +69,27 @@
     <div class="flex items-center justify-between">
       <div></div>
       <div class="flex gap-2">
+        <label class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover cursor-pointer flex items-center gap-2">
+          <input
+            type="file"
+            accept=".json"
+            @change="handleFileUpload"
+            class="hidden"
+            ref="fileInputRef"
+          />
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          Preise hochladen
+        </label>
         <button
           @click="savePricing"
-          class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover flex items-center gap-2"
         >
-          💾 Preise speichern (Download)
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Preise herunterladen
         </button>
         <button
           @click="showResetConfirm = true"
@@ -86,20 +106,16 @@
       <div class="flex items-center gap-4">
         <label class="text-sm font-medium text-gray-700">Aufschlag:</label>
         <input
-          v-model.number="localMarkup"
-          type="number"
-          step="0.01"
-          min="0"
-          max="1"
+          :value="localMarkupString"
+          @input="localMarkupString = ($event.target as HTMLInputElement).value"
+          type="text"
+          pattern="[0-9]*\.?[0-9]*"
+          inputmode="decimal"
           class="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          @keyup.enter="handleMarkupEnter"
+          @blur="handleMarkupBlur"
         />
         <span class="text-sm text-gray-600">{{ (localMarkup * 100).toFixed(1) }}%</span>
-        <button
-          @click="saveMarkup"
-          class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover"
-        >
-          Speichern
-        </button>
       </div>
     </div>
 
@@ -141,50 +157,58 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.inputPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.inputPrice?.toString() || ''"
+                  @input="setInputValue(model, 'inputPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @blur="updateModelPricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'inputPrice')"
+                  @blur="handleInputBlur(model, 'inputPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.outputPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.outputPrice?.toString() || ''"
+                  @input="setInputValue(model, 'outputPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @blur="updateModelPricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'outputPrice')"
+                  @blur="handleInputBlur(model, 'outputPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.cachedInputPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.cachedInputPrice?.toString() || ''"
+                  @input="setInputValue(model, 'cachedInputPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
                   placeholder="Optional"
-                  @blur="updateModelPricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'cachedInputPrice')"
+                  @blur="handleInputBlur(model, 'cachedInputPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.reasoningPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.reasoningPrice?.toString() || ''"
+                  @input="setInputValue(model, 'reasoningPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
                   placeholder="Optional"
-                  @blur="updateModelPricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'reasoningPrice')"
+                  @blur="handleInputBlur(model, 'reasoningPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   v-if="model.modelName !== 'unknown'"
-                  @click="deleteModelPricing(model.modelName)"
+                  @click="showDeleteConfirm('model', model.modelName)"
                   class="text-red-600 hover:text-red-900"
                 >
                   Löschen
@@ -234,50 +258,58 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.standardPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.standardPrice?.toString() || ''"
+                  @input="setInputValue(model, 'standardPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @blur="updateImagePricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'standardPrice')"
+                  @blur="handleInputBlur(model, 'standardPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.hdPrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.hdPrice?.toString() || ''"
+                  @input="setInputValue(model, 'hdPrice', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @blur="updateImagePricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'hdPrice')"
+                  @blur="handleInputBlur(model, 'hdPrice')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.standardPriceLarge"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.standardPriceLarge?.toString() || ''"
+                  @input="setInputValue(model, 'standardPriceLarge', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
                   placeholder="Optional"
-                  @blur="updateImagePricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'standardPriceLarge')"
+                  @blur="handleInputBlur(model, 'standardPriceLarge')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.hdPriceLarge"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  :value="model.hdPriceLarge?.toString() || ''"
+                  @input="setInputValue(model, 'hdPriceLarge', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
                   placeholder="Optional"
-                  @blur="updateImagePricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'hdPriceLarge')"
+                  @blur="handleInputBlur(model, 'hdPriceLarge')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   v-if="model.modelName !== 'unknown'"
-                  @click="deleteImagePricing(model.modelName)"
+                  @click="showDeleteConfirm('image', model.modelName)"
                   class="text-red-600 hover:text-red-900"
                 >
                   Löschen
@@ -318,18 +350,20 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model.number="model.pricePer1000Tokens"
-                  type="number"
-                  step="0.000001"
-                  min="0"
+                  :value="model.pricePer1000Tokens?.toString() || ''"
+                  @input="setInputValue(model, 'pricePer1000Tokens', ($event.target as HTMLInputElement).value)"
+                  type="text"
+                  pattern="[0-9]*\.?[0-9]*"
+                  inputmode="decimal"
                   class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @blur="updateEmbeddingPricing(model)"
+                  @keyup.enter="handleInputBlur(model, 'pricePer1000Tokens')"
+                  @blur="handleInputBlur(model, 'pricePer1000Tokens')"
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   v-if="model.modelName !== 'unknown'"
-                  @click="deleteEmbeddingPricing(model.modelName)"
+                  @click="showDeleteConfirm('embedding', model.modelName)"
                   class="text-red-600 hover:text-red-900"
                 >
                   Löschen
@@ -338,6 +372,35 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteConfirmModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="showDeleteConfirmModal = false"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Modell wirklich löschen?</h3>
+        <p class="text-sm text-gray-600 mb-6">
+          Möchten Sie das Modell <strong>{{ deleteModelName }}</strong> wirklich löschen? Diese Aktion kann nicht
+          rückgängig gemacht werden.
+        </p>
+        <div class="flex justify-end gap-2">
+          <button
+            @click="showDeleteConfirmModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Abbrechen
+          </button>
+          <button
+            @click="handleDeleteConfirm"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+          >
+            Löschen
+          </button>
+        </div>
       </div>
     </div>
 
@@ -393,11 +456,14 @@
               Eingabe-Preis (€/1M Tokens)
             </label>
             <input
-              v-model.number="newModel.inputPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newModel.inputPrice?.toString() || ''"
+              @input="setInputValue(newModel, 'inputPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              @keyup.enter="handleModalInputBlur(newModel, 'inputPrice')"
+              @blur="handleModalInputBlur(newModel, 'inputPrice')"
             />
           </div>
           <div>
@@ -405,11 +471,14 @@
               Ausgabe-Preis (€/1M Tokens)
             </label>
             <input
-              v-model.number="newModel.outputPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newModel.outputPrice?.toString() || ''"
+              @input="setInputValue(newModel, 'outputPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              @keyup.enter="handleModalInputBlur(newModel, 'outputPrice')"
+              @blur="handleModalInputBlur(newModel, 'outputPrice')"
             />
           </div>
           <div>
@@ -417,11 +486,15 @@
               Cached Eingabe-Preis (€/1M Tokens, optional)
             </label>
             <input
-              v-model.number="newModel.cachedInputPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newModel.cachedInputPrice?.toString() || ''"
+              @input="setInputValue(newModel, 'cachedInputPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Optional"
+              @keyup.enter="handleModalInputBlur(newModel, 'cachedInputPrice')"
+              @blur="handleModalInputBlur(newModel, 'cachedInputPrice')"
             />
           </div>
           <div>
@@ -429,12 +502,15 @@
               Reasoning-Preis (€/1M Tokens, optional)
             </label>
             <input
-              v-model.number="newModel.reasoningPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newModel.reasoningPrice?.toString() || ''"
+              @input="setInputValue(newModel, 'reasoningPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               placeholder="Falls Reasoning-Tokens separat berechnet werden sollen"
+              @keyup.enter="handleModalInputBlur(newModel, 'reasoningPrice')"
+              @blur="handleModalInputBlur(newModel, 'reasoningPrice')"
             />
           </div>
         </div>
@@ -478,11 +554,14 @@
               Standard-Preis (€/100 Bilder)
             </label>
             <input
-              v-model.number="newImageModel.standardPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newImageModel.standardPrice?.toString() || ''"
+              @input="setInputValue(newImageModel, 'standardPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              @keyup.enter="handleModalInputBlur(newImageModel, 'standardPrice')"
+              @blur="handleModalInputBlur(newImageModel, 'standardPrice')"
             />
           </div>
           <div>
@@ -490,11 +569,14 @@
               HD-Preis (€/100 Bilder)
             </label>
             <input
-              v-model.number="newImageModel.hdPrice"
-              type="number"
-              step="0.01"
-              min="0"
+              :value="newImageModel.hdPrice?.toString() || ''"
+              @input="setInputValue(newImageModel, 'hdPrice', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              @keyup.enter="handleModalInputBlur(newImageModel, 'hdPrice')"
+              @blur="handleModalInputBlur(newImageModel, 'hdPrice')"
             />
           </div>
         </div>
@@ -538,11 +620,14 @@
               Preis (€/1000 Tokens)
             </label>
             <input
-              v-model.number="newEmbeddingModel.pricePer1000Tokens"
-              type="number"
-              step="0.000001"
-              min="0"
+              :value="newEmbeddingModel.pricePer1000Tokens?.toString() || ''"
+              @input="setInputValue(newEmbeddingModel, 'pricePer1000Tokens', ($event.target as HTMLInputElement).value)"
+              type="text"
+              pattern="[0-9]*\.?[0-9]*"
+              inputmode="decimal"
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              @keyup.enter="handleModalInputBlur(newEmbeddingModel, 'pricePer1000Tokens')"
+              @blur="handleModalInputBlur(newEmbeddingModel, 'pricePer1000Tokens')"
             />
           </div>
         </div>
@@ -579,9 +664,10 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDebug } from '@/composables/useDebug'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { hasPermission } from '@/auth/keycloak'
+import { pricingService } from '@/services/pricingService'
 
 const router = useRouter()
 
@@ -618,10 +704,16 @@ const {
   addEmbeddingPricing,
   resetToDefaults,
   savePricing,
+  uploadPricing,
 } = usePricingManagement()
 
 const localMarkup = ref(markupPercentage.value)
+const localMarkupString = ref(String(markupPercentage.value))
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const showResetConfirm = ref(false)
+const showDeleteConfirmModal = ref(false)
+const deleteModelType = ref<'model' | 'image' | 'embedding' | null>(null)
+const deleteModelName = ref<string>('')
 const showAddModelModal = ref(false)
 const showAddImageModal = ref(false)
 const showAddEmbeddingModal = ref(false)
@@ -645,9 +737,117 @@ const newEmbeddingModel = ref<EmbeddingModelPricing>({
   pricePer1000Tokens: 0,
 })
 
-const saveMarkup = async () => {
-  markupPercentage.value = localMarkup.value
-  // Speichern wird automatisch durch watch ausgelöst
+// Hilfsfunktion für Input-Zuweisung (umgeht TypeScript-Fehler)
+const setInputValue = (model: any, field: string, value: string) => {
+  model[field] = value
+}
+
+// Konvertiert String zu Number und speichert automatisch
+const handleMarkupEnter = () => {
+  const num = parseFloat(localMarkupString.value)
+  if (!isNaN(num) && num >= 0 && num <= 1) {
+    localMarkup.value = num
+    markupPercentage.value = num
+    localMarkupString.value = String(num)
+  } else {
+    localMarkupString.value = String(localMarkup.value)
+  }
+}
+
+const handleMarkupBlur = () => {
+  handleMarkupEnter()
+}
+
+// Konvertiert String-Input zu Number für alle Preis-Felder
+const handleInputBlur = (model: any, field: string) => {
+  const value = model[field]
+  if (typeof value === 'string') {
+    const num = parseFloat(value)
+    if (!isNaN(num) && num >= 0) {
+      model[field] = num
+    } else if (value === '' || value === null || value === undefined) {
+      // Optional fields können leer sein
+      if (field === 'cachedInputPrice' || field === 'reasoningPrice' || field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+        model[field] = undefined
+      } else {
+        model[field] = 0
+      }
+    } else {
+      // Ungültiger Wert, zurücksetzen
+      const current = model[field]
+      model[field] = typeof current === 'number' ? current : 0
+    }
+  }
+  // Automatisch speichern basierend auf Modell-Typ
+  if ('inputPrice' in model || 'outputPrice' in model) {
+    updateModelPricing(model)
+  } else if ('standardPrice' in model || 'hdPrice' in model) {
+    updateImagePricing(model)
+  } else if ('pricePer1000Tokens' in model) {
+    updateEmbeddingPricing(model)
+  }
+}
+
+// Für Modal-Inputs: Konvertiert String zu Number, speichert aber nicht automatisch
+const handleModalInputBlur = (model: any, field: string) => {
+  const value = model[field]
+  if (typeof value === 'string') {
+    const num = parseFloat(value)
+    if (!isNaN(num) && num >= 0) {
+      model[field] = num
+    } else if (value === '' || value === null || value === undefined) {
+      // Optional fields können leer sein
+      if (field === 'cachedInputPrice' || field === 'reasoningPrice' || field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+        model[field] = undefined
+      } else {
+        model[field] = 0
+      }
+    } else {
+      // Ungültiger Wert, zurücksetzen
+      const current = model[field]
+      model[field] = typeof current === 'number' ? current : 0
+    }
+  }
+}
+
+// Zeigt Bestätigungsdialog für Löschen
+const showDeleteConfirm = (type: 'model' | 'image' | 'embedding', modelName: string) => {
+  deleteModelType.value = type
+  deleteModelName.value = modelName
+  showDeleteConfirmModal.value = true
+}
+
+// Führt Löschung nach Bestätigung aus
+const handleDeleteConfirm = () => {
+  if (deleteModelType.value === 'model') {
+    deleteModelPricing(deleteModelName.value)
+  } else if (deleteModelType.value === 'image') {
+    deleteImagePricing(deleteModelName.value)
+  } else if (deleteModelType.value === 'embedding') {
+    deleteEmbeddingPricing(deleteModelName.value)
+  }
+  showDeleteConfirmModal.value = false
+  deleteModelType.value = null
+  deleteModelName.value = ''
+}
+
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  try {
+    await uploadPricing(file)
+    // Cache zurücksetzen, damit neue Daten geladen werden
+    pricingService.reloadPricing()
+    // File input zurücksetzen
+    if (fileInputRef.value) {
+      fileInputRef.value.value = ''
+    }
+  } catch (error) {
+    console.error('Fehler beim Hochladen:', error)
+    alert(error instanceof Error ? error.message : 'Fehler beim Hochladen der Datei')
+  }
 }
 
 const handleReset = async () => {
@@ -657,8 +857,28 @@ const handleReset = async () => {
 }
 
 const handleAddModel = () => {
-  if (newModel.value.modelName && newModel.value.inputPrice > 0 && newModel.value.outputPrice > 0) {
-    addModelPricing({ ...newModel.value })
+  // Konvertiere Strings zu Numbers
+  const inputPrice = typeof newModel.value.inputPrice === 'string' 
+    ? parseFloat(newModel.value.inputPrice) 
+    : newModel.value.inputPrice
+  const outputPrice = typeof newModel.value.outputPrice === 'string' 
+    ? parseFloat(newModel.value.outputPrice) 
+    : newModel.value.outputPrice
+  const cachedInputPrice = typeof newModel.value.cachedInputPrice === 'string'
+    ? (newModel.value.cachedInputPrice === '' ? undefined : parseFloat(newModel.value.cachedInputPrice))
+    : newModel.value.cachedInputPrice
+  const reasoningPrice = typeof newModel.value.reasoningPrice === 'string'
+    ? (newModel.value.reasoningPrice === '' ? undefined : parseFloat(newModel.value.reasoningPrice))
+    : newModel.value.reasoningPrice
+
+  if (newModel.value.modelName && !isNaN(inputPrice) && inputPrice > 0 && !isNaN(outputPrice) && outputPrice > 0) {
+    addModelPricing({
+      modelName: newModel.value.modelName,
+      inputPrice,
+      outputPrice,
+      cachedInputPrice: isNaN(cachedInputPrice as number) ? undefined : cachedInputPrice,
+      reasoningPrice: isNaN(reasoningPrice as number) ? undefined : reasoningPrice,
+    })
     newModel.value = {
       modelName: '',
       inputPrice: 0,
@@ -671,32 +891,56 @@ const handleAddModel = () => {
 }
 
 const handleAddImageModel = () => {
+  const standardPrice = typeof newImageModel.value.standardPrice === 'string'
+    ? parseFloat(newImageModel.value.standardPrice)
+    : newImageModel.value.standardPrice
+  const hdPrice = typeof newImageModel.value.hdPrice === 'string'
+    ? parseFloat(newImageModel.value.hdPrice)
+    : newImageModel.value.hdPrice
+
   if (
     newImageModel.value.modelName &&
-    newImageModel.value.standardPrice > 0 &&
-    newImageModel.value.hdPrice > 0
+    !isNaN(standardPrice) && standardPrice > 0 &&
+    !isNaN(hdPrice) && hdPrice > 0
   ) {
-    addImagePricing({ ...newImageModel.value })
+    addImagePricing({
+      modelName: newImageModel.value.modelName,
+      standardPrice,
+      hdPrice,
+    })
     newImageModel.value = { modelName: '', standardPrice: 0, hdPrice: 0 }
     showAddImageModal.value = false
   }
 }
 
 const handleAddEmbeddingModel = () => {
+  const pricePer1000Tokens = typeof newEmbeddingModel.value.pricePer1000Tokens === 'string'
+    ? parseFloat(newEmbeddingModel.value.pricePer1000Tokens)
+    : newEmbeddingModel.value.pricePer1000Tokens
+
   if (
     newEmbeddingModel.value.modelName &&
-    newEmbeddingModel.value.pricePer1000Tokens > 0
+    !isNaN(pricePer1000Tokens) && pricePer1000Tokens > 0
   ) {
-    addEmbeddingPricing({ ...newEmbeddingModel.value })
+    addEmbeddingPricing({
+      modelName: newEmbeddingModel.value.modelName,
+      pricePer1000Tokens,
+    })
     newEmbeddingModel.value = { modelName: '', pricePer1000Tokens: 0 }
     showAddEmbeddingModal.value = false
   }
 }
+
+// Watch für automatisches Speichern des Markup
+watch(localMarkup, (newValue) => {
+  markupPercentage.value = newValue
+})
 
 onMounted(async () => {
   // Preise werden bereits von usePricingManagement geladen
   // Warte kurz bis sie geladen sind
   await new Promise((resolve) => setTimeout(resolve, 100))
   localMarkup.value = markupPercentage.value
+  localMarkupString.value = String(markupPercentage.value)
 })
 </script>

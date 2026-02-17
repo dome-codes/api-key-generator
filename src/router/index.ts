@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { hasPermission, type UserRole } from '@/auth/keycloak'
+import { hasPermission, type UserRole, whenKeycloakInit } from '@/auth/keycloak'
 import AuthGuard from '@/components/auth/AuthGuard.vue'
 import HomeView from '../views/HomeView.vue'
 
@@ -68,6 +68,15 @@ const routes: RouteRecordRaw[] = [
         path: 'nicht-autorisiert',
         redirect: { name: 'NichtAutorisiert' },
       },
+      {
+        path: 'admin/preise',
+        name: 'PricingManagement',
+        component: () => import('../views/admin/PricingManagementView.vue'),
+        meta: {
+          requiresAuth: true,
+          requiredPermissions: ['canUseAdminFeatures'],
+        },
+      },
     ],
   },
 ]
@@ -87,8 +96,14 @@ router.beforeEach(async (to, from, next) => {
 
   // Prüfe ob Route Auth benötigt
   if (to.meta.requiresAuth !== false) {
-    // Keycloak-Initialisierung prüfen (wird in AuthGuard gemacht)
-    // Hier nur Route-Meta-Prüfungen
+    // Warte auf Keycloak-Initialisierung, bevor Permission-Prüfungen durchgeführt werden
+    // Dies verhindert, dass Permission-Prüfungen fehlschlagen, wenn Keycloak noch nicht bereit ist
+    try {
+      await whenKeycloakInit
+    } catch (error) {
+      // Wenn Keycloak-Initialisierung fehlschlägt, weiterleiten
+      console.error('Keycloak-Initialisierung fehlgeschlagen:', error)
+    }
 
     // Prüfe spezifische Berechtigungen
     if (to.meta.requiredPermissions && to.meta.requiredPermissions.length > 0) {

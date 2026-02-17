@@ -151,6 +151,28 @@ export function usePricingManagement() {
     pricingService.downloadPricingJson(pricingData)
   }
 
+  /**
+   * Lädt Pricing-Daten aus einer hochgeladenen JSON-Datei
+   */
+  const uploadPricing = async (file: File) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const data = await pricingService.uploadPricingJson(file)
+      modelPricing.value = data.modelPricing
+      imagePricing.value = data.imagePricing
+      embeddingPricing.value = data.embeddingPricing
+      markupPercentage.value = data.markupPercentage
+      debugLog('[PricingManagement] Pricing uploaded from JSON file')
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Fehler beim Hochladen der Preise'
+      console.error('[PricingManagement] Error uploading pricing:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // Initial load beim Mount
   onMounted(() => {
     loadPricing()
@@ -178,5 +200,6 @@ export function usePricingManagement() {
     addEmbeddingPricing,
     resetToDefaults,
     savePricing,
+    uploadPricing,
   }
 }
