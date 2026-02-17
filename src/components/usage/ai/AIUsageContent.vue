@@ -250,6 +250,11 @@ const handleOwnFilterChange = async () => {
     if (ownView.value === 'overview') {
       await loadUsageSummary({}, props.useAdminApi)
     } else {
+      // In der detaillierten Ansicht müssen wir sowohl die paginierten Daten
+      // als auch die Summary-Daten laden, damit die Summary-Werte korrekt berechnet werden
+      // Wichtig: loadUsageData muss nach loadUsageSummary aufgerufen werden,
+      // damit die Pagination für die Tabelle korrekt gesetzt wird
+      await loadUsageSummary({}, props.useAdminApi)
       await loadUsageData({}, props.useAdminApi)
     }
 

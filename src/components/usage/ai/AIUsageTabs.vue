@@ -456,7 +456,12 @@ const handleOwnFilterChange = async () => {
       debugLog('[AIUsageTabs] Loading usage summary...')
       await loadUsageSummary({}, false)
     } else {
-      debugLog('[AIUsageTabs] Loading usage data...')
+      // In der detaillierten Ansicht müssen wir sowohl die paginierten Daten
+      // als auch die Summary-Daten laden, damit die Summary-Werte korrekt berechnet werden
+      // Wichtig: loadUsageData muss nach loadUsageSummary aufgerufen werden,
+      // damit die Pagination für die Tabelle korrekt gesetzt wird
+      debugLog('[AIUsageTabs] Loading usage summary and data...')
+      await loadUsageSummary({}, false)
       await loadUsageData({}, false)
     }
 
@@ -493,7 +498,12 @@ const handleAdminFilterChange = async () => {
       debugLog('[AIUsageTabs] Loading admin usage summary...')
       await loadUsageSummary({}, true)
     } else {
-      debugLog('[AIUsageTabs] Loading admin usage data...')
+      // In der detaillierten Ansicht müssen wir sowohl die paginierten Daten
+      // als auch die Summary-Daten laden, damit die Summary-Werte korrekt berechnet werden
+      // Wichtig: loadUsageData muss nach loadUsageSummary aufgerufen werden,
+      // damit die Pagination für die Tabelle korrekt gesetzt wird
+      debugLog('[AIUsageTabs] Loading admin usage summary and data...')
+      await loadUsageSummary({}, true)
       await loadUsageData({}, true)
     }
 

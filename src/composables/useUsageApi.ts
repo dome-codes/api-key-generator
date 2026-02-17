@@ -321,6 +321,8 @@ export function useUsageApi() {
 
       // Speichere Summary-Daten separat, damit sie nicht von loadUsageData überschrieben werden
       summaryData.value = allData
+      // Pagination wird von loadUsageData gesetzt, wenn wir in der detaillierten Ansicht sind
+      // In der Übersicht setzen wir die Pagination hier
       pagination.value = {
         ...result.pagination,
         total: allData.length,
