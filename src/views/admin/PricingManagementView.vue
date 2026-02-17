@@ -26,6 +26,47 @@
       </button>
     </div>
 
+    <!-- Upload Error/Success Messages -->
+    <div v-if="uploadError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <div class="flex items-start">
+        <svg class="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        <div class="flex-1">
+          <h3 class="text-sm font-medium text-red-800">Fehler beim Hochladen</h3>
+          <p class="mt-1 text-sm text-red-700">{{ uploadError }}</p>
+        </div>
+        <button
+          @click="uploadError = null"
+          class="ml-2 text-red-600 hover:text-red-800"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div v-if="uploadSuccess" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+      <div class="flex items-start">
+        <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <div class="flex-1">
+          <h3 class="text-sm font-medium text-green-800">Erfolgreich hochgeladen</h3>
+          <p class="mt-1 text-sm text-green-700">Die Preise wurden erfolgreich aus der JSON-Datei geladen.</p>
+        </div>
+        <button
+          @click="uploadSuccess = false"
+          class="ml-2 text-green-600 hover:text-green-800"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- Content -->
     <template v-else>
     <div class="flex items-center justify-between">
@@ -156,54 +197,144 @@
                 {{ model.modelName }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.inputPrice?.toString() || ''"
-                  @input="setInputValue(model, 'inputPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @keyup.enter="handleInputBlur(model, 'inputPrice')"
-                  @blur="handleInputBlur(model, 'inputPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'inputPrice', el)"
+                    :value="getEditingValue(model.modelName, 'inputPrice') ?? (model.inputPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'inputPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'inputPrice', model.inputPrice)"
+                    @keyup.enter="confirmEdit(model, 'inputPrice')"
+                    @keyup.escape="cancelEdit(model.modelName, 'inputPrice')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                  />
+                  <div v-if="isEditing(model.modelName, 'inputPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'inputPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'inputPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.outputPrice?.toString() || ''"
-                  @input="setInputValue(model, 'outputPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @keyup.enter="handleInputBlur(model, 'outputPrice')"
-                  @blur="handleInputBlur(model, 'outputPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'outputPrice', el)"
+                    :value="getEditingValue(model.modelName, 'outputPrice') ?? (model.outputPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'outputPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'outputPrice', model.outputPrice)"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                  />
+                  <div v-if="isEditing(model.modelName, 'outputPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'outputPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'outputPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.cachedInputPrice?.toString() || ''"
-                  @input="setInputValue(model, 'cachedInputPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  placeholder="Optional"
-                  @keyup.enter="handleInputBlur(model, 'cachedInputPrice')"
-                  @blur="handleInputBlur(model, 'cachedInputPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'cachedInputPrice', el)"
+                    :value="getEditingValue(model.modelName, 'cachedInputPrice') ?? (model.cachedInputPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'cachedInputPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'cachedInputPrice', model.cachedInputPrice)"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                    placeholder="Optional"
+                  />
+                  <div v-if="isEditing(model.modelName, 'cachedInputPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'cachedInputPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'cachedInputPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.reasoningPrice?.toString() || ''"
-                  @input="setInputValue(model, 'reasoningPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  placeholder="Optional"
-                  @keyup.enter="handleInputBlur(model, 'reasoningPrice')"
-                  @blur="handleInputBlur(model, 'reasoningPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'reasoningPrice', el)"
+                    :value="getEditingValue(model.modelName, 'reasoningPrice') ?? (model.reasoningPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'reasoningPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'reasoningPrice', model.reasoningPrice)"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                    placeholder="Optional"
+                  />
+                  <div v-if="isEditing(model.modelName, 'reasoningPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'reasoningPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'reasoningPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
@@ -257,54 +388,150 @@
                 {{ model.modelName }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.standardPrice?.toString() || ''"
-                  @input="setInputValue(model, 'standardPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @keyup.enter="handleInputBlur(model, 'standardPrice')"
-                  @blur="handleInputBlur(model, 'standardPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'standardPrice', el)"
+                    :value="getEditingValue(model.modelName, 'standardPrice') ?? (model.standardPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'standardPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'standardPrice', model.standardPrice)"
+                    @keyup.enter="confirmEdit(model, 'standardPrice')"
+                    @keyup.escape="cancelEdit(model.modelName, 'standardPrice')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                  />
+                  <div v-if="isEditing(model.modelName, 'standardPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'standardPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'standardPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.hdPrice?.toString() || ''"
-                  @input="setInputValue(model, 'hdPrice', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @keyup.enter="handleInputBlur(model, 'hdPrice')"
-                  @blur="handleInputBlur(model, 'hdPrice')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'hdPrice', el)"
+                    :value="getEditingValue(model.modelName, 'hdPrice') ?? (model.hdPrice?.toString() || '')"
+                    @input="handleInputChange(model, 'hdPrice', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'hdPrice', model.hdPrice)"
+                    @keyup.enter="confirmEdit(model, 'hdPrice')"
+                    @keyup.escape="cancelEdit(model.modelName, 'hdPrice')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                  />
+                  <div v-if="isEditing(model.modelName, 'hdPrice')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'hdPrice')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'hdPrice')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.standardPriceLarge?.toString() || ''"
-                  @input="setInputValue(model, 'standardPriceLarge', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  placeholder="Optional"
-                  @keyup.enter="handleInputBlur(model, 'standardPriceLarge')"
-                  @blur="handleInputBlur(model, 'standardPriceLarge')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'standardPriceLarge', el)"
+                    :value="getEditingValue(model.modelName, 'standardPriceLarge') ?? (model.standardPriceLarge?.toString() || '')"
+                    @input="handleInputChange(model, 'standardPriceLarge', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'standardPriceLarge', model.standardPriceLarge)"
+                    @keyup.enter="confirmEdit(model, 'standardPriceLarge')"
+                    @keyup.escape="cancelEdit(model.modelName, 'standardPriceLarge')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                    placeholder="Optional"
+                  />
+                  <div v-if="isEditing(model.modelName, 'standardPriceLarge')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'standardPriceLarge')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'standardPriceLarge')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.hdPriceLarge?.toString() || ''"
-                  @input="setInputValue(model, 'hdPriceLarge', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  placeholder="Optional"
-                  @keyup.enter="handleInputBlur(model, 'hdPriceLarge')"
-                  @blur="handleInputBlur(model, 'hdPriceLarge')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'hdPriceLarge', el)"
+                    :value="getEditingValue(model.modelName, 'hdPriceLarge') ?? (model.hdPriceLarge?.toString() || '')"
+                    @input="handleInputChange(model, 'hdPriceLarge', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'hdPriceLarge', model.hdPriceLarge)"
+                    @keyup.enter="confirmEdit(model, 'hdPriceLarge')"
+                    @keyup.escape="cancelEdit(model.modelName, 'hdPriceLarge')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                    placeholder="Optional"
+                  />
+                  <div v-if="isEditing(model.modelName, 'hdPriceLarge')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'hdPriceLarge')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'hdPriceLarge')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
@@ -349,16 +576,40 @@
                 {{ model.modelName }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  :value="model.pricePer1000Tokens?.toString() || ''"
-                  @input="setInputValue(model, 'pricePer1000Tokens', ($event.target as HTMLInputElement).value)"
-                  type="text"
-                  pattern="[0-9]*\.?[0-9]*"
-                  inputmode="decimal"
-                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
-                  @keyup.enter="handleInputBlur(model, 'pricePer1000Tokens')"
-                  @blur="handleInputBlur(model, 'pricePer1000Tokens')"
-                />
+                <div class="relative inline-block">
+                  <input
+                    :ref="el => setInputRef(model.modelName, 'pricePer1000Tokens', el)"
+                    :value="getEditingValue(model.modelName, 'pricePer1000Tokens') ?? (model.pricePer1000Tokens?.toString() || '')"
+                    @input="handleInputChange(model, 'pricePer1000Tokens', ($event.target as HTMLInputElement).value)"
+                    @focus="startEditing(model.modelName, 'pricePer1000Tokens', model.pricePer1000Tokens)"
+                    @keyup.enter="confirmEdit(model, 'pricePer1000Tokens')"
+                    @keyup.escape="cancelEdit(model.modelName, 'pricePer1000Tokens')"
+                    type="text"
+                    pattern="[0-9]*\.?[0-9]*"
+                    inputmode="decimal"
+                    class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
+                  />
+                  <div v-if="isEditing(model.modelName, 'pricePer1000Tokens')" class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button
+                      @click="confirmEdit(model, 'pricePer1000Tokens')"
+                      class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                      title="Bestätigen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      @click="cancelEdit(model.modelName, 'pricePer1000Tokens')"
+                      class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Abbrechen"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
@@ -717,6 +968,91 @@ const deleteModelName = ref<string>('')
 const showAddModelModal = ref(false)
 const showAddImageModal = ref(false)
 const showAddEmbeddingModal = ref(false)
+const uploadError = ref<string | null>(null)
+const uploadSuccess = ref(false)
+
+// State für Editing-Management
+interface EditingState {
+  originalValue: number | undefined
+  currentValue: string
+}
+const editingState = ref<Record<string, EditingState>>({})
+const inputRefs = ref<Record<string, HTMLInputElement | null>>({})
+
+// Helper-Funktionen für Editing
+const getEditingKey = (modelName: string, field: string) => `${modelName}::${field}`
+const isEditing = (modelName: string, field: string) => !!editingState.value[getEditingKey(modelName, field)]
+const getEditingValue = (modelName: string, field: string) => editingState.value[getEditingKey(modelName, field)]?.currentValue
+const setInputRef = (modelName: string, field: string, el: any) => {
+  if (el && el instanceof HTMLInputElement) {
+    inputRefs.value[getEditingKey(modelName, field)] = el
+  }
+}
+
+const startEditing = (modelName: string, field: string, originalValue: number | undefined) => {
+  const key = getEditingKey(modelName, field)
+  editingState.value[key] = {
+    originalValue,
+    currentValue: originalValue?.toString() || '',
+  }
+}
+
+const handleInputChange = (model: any, field: string, value: string) => {
+  const key = getEditingKey(model.modelName, field)
+  if (editingState.value[key]) {
+    editingState.value[key].currentValue = value
+  } else {
+    // Fallback für den Fall, dass startEditing nicht aufgerufen wurde
+    startEditing(model.modelName, field, model[field])
+    const fallbackKey = getEditingKey(model.modelName, field)
+    if (editingState.value[fallbackKey]) {
+      editingState.value[fallbackKey].currentValue = value
+    }
+  }
+}
+
+const confirmEdit = (model: any, field: string) => {
+  const key = getEditingKey(model.modelName, field)
+  const editing = editingState.value[key]
+  if (!editing) return
+
+  const num = parseFloat(editing.currentValue)
+  if (!isNaN(num) && num >= 0) {
+    model[field] = num
+  } else if (editing.currentValue === '' || editing.currentValue === null || editing.currentValue === undefined) {
+    // Optional fields können leer sein
+    if (field === 'cachedInputPrice' || field === 'reasoningPrice' || field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+      model[field] = undefined
+    } else {
+      model[field] = 0
+    }
+  } else {
+    // Ungültiger Wert, zurücksetzen auf Original
+    model[field] = editing.originalValue ?? 0
+  }
+
+  // Automatisch speichern basierend auf Modell-Typ
+  if ('inputPrice' in model || 'outputPrice' in model) {
+    updateModelPricing(model)
+  } else if ('standardPrice' in model || 'hdPrice' in model) {
+    updateImagePricing(model)
+  } else if ('pricePer1000Tokens' in model) {
+    updateEmbeddingPricing(model)
+  }
+
+  // Editing-State entfernen
+  delete editingState.value[key]
+}
+
+const cancelEdit = (modelName: string, field: string) => {
+  const key = getEditingKey(modelName, field)
+  delete editingState.value[key]
+  // Input-Feld fokussieren entfernen
+  const inputRef = inputRefs.value[key]
+  if (inputRef) {
+    inputRef.blur()
+  }
+}
 
 const newModel = ref<ModelPricing>({
   modelName: '',
@@ -836,17 +1172,42 @@ const handleFileUpload = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
+  uploadError.value = null
+  uploadSuccess.value = false
+
+  // Prüfe Dateityp
+  if (!file.name.endsWith('.json')) {
+    uploadError.value = 'Ungültiger Dateityp: Bitte laden Sie eine JSON-Datei hoch (.json)'
+    if (fileInputRef.value) {
+      fileInputRef.value.value = ''
+    }
+    return
+  }
+
   try {
     await uploadPricing(file)
     // Cache zurücksetzen, damit neue Daten geladen werden
     pricingService.reloadPricing()
+    uploadSuccess.value = true
+    // Erfolgsmeldung nach 3 Sekunden ausblenden
+    setTimeout(() => {
+      uploadSuccess.value = false
+    }, 3000)
     // File input zurücksetzen
     if (fileInputRef.value) {
       fileInputRef.value.value = ''
     }
   } catch (error) {
     console.error('Fehler beim Hochladen:', error)
-    alert(error instanceof Error ? error.message : 'Fehler beim Hochladen der Datei')
+    uploadError.value = error instanceof Error ? error.message : 'Fehler beim Hochladen der Datei'
+    // Fehlermeldung nach 10 Sekunden ausblenden
+    setTimeout(() => {
+      uploadError.value = null
+    }, 10000)
+    // File input zurücksetzen
+    if (fileInputRef.value) {
+      fileInputRef.value.value = ''
+    }
   }
 }
 

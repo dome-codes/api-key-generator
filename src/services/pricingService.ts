@@ -130,6 +130,7 @@ export const pricingService = {
 
   /**
    * Lädt Pricing-Daten aus einer hochgeladenen JSON-Datei
+   * Validiert die Struktur und gibt detaillierte Fehlermeldungen zurück
    */
   async uploadPricingJson(file: File): Promise<{
     modelPricing: ModelPricing[]
@@ -144,19 +145,110 @@ export const pricingService = {
           const content = e.target?.result as string
           const data = JSON.parse(content)
           
-          // Validierung der Struktur
-          if (!data.modelPricing || !data.imagePricing || !data.embeddingPricing || typeof data.markupPercentage !== 'number') {
-            throw new Error('Ungültige JSON-Struktur. Erwartet: modelPricing, imagePricing, embeddingPricing, markupPercentage')
+          // Validierung der Top-Level-Struktur
+          if (!data || typeof data !== 'object') {
+            throw new Error('Ungültige JSON-Struktur: Die Datei muss ein Objekt enthalten.')
+          }
+
+          // Prüfe ob alle erforderlichen Felder vorhanden sind
+          if (!data.modelPricing) {
+            throw new Error('Fehlendes Feld: "modelPricing" ist erforderlich.')
+          }
+          if (!data.imagePricing) {
+            throw new Error('Fehlendes Feld: "imagePricing" ist erforderlich.')
+          }
+          if (!data.embeddingPricing) {
+            throw new Error('Fehlendes Feld: "embeddingPricing" ist erforderlich.')
+          }
+          if (typeof data.markupPercentage !== 'number') {
+            throw new Error('Fehlendes oder ungültiges Feld: "markupPercentage" muss eine Zahl sein.')
+          }
+
+          // Prüfe ob Arrays vorhanden sind
+          if (!Array.isArray(data.modelPricing)) {
+            throw new Error('Ungültiger Typ: "modelPricing" muss ein Array sein.')
+          }
+          if (!Array.isArray(data.imagePricing)) {
+            throw new Error('Ungültiger Typ: "imagePricing" muss ein Array sein.')
+          }
+          if (!Array.isArray(data.embeddingPricing)) {
+            throw new Error('Ungültiger Typ: "embeddingPricing" muss ein Array sein.')
+          }
+
+          // Validiere jedes ModelPricing-Element
+          data.modelPricing.forEach((model: any, index: number) => {
+            if (!model || typeof model !== 'object') {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: Muss ein Objekt sein.`)
+            }
+            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: "modelName" muss ein nicht-leerer String sein.`)
+            }
+            if (typeof model.inputPrice !== 'number' || model.inputPrice < 0) {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: "inputPrice" muss eine positive Zahl sein.`)
+            }
+            if (typeof model.outputPrice !== 'number' || model.outputPrice < 0) {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: "outputPrice" muss eine positive Zahl sein.`)
+            }
+            if (model.cachedInputPrice !== undefined && (typeof model.cachedInputPrice !== 'number' || model.cachedInputPrice < 0)) {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: "cachedInputPrice" muss eine positive Zahl oder undefined sein.`)
+            }
+            if (model.reasoningPrice !== undefined && (typeof model.reasoningPrice !== 'number' || model.reasoningPrice < 0)) {
+              throw new Error(`Ungültiges Modell in modelPricing[${index}]: "reasoningPrice" muss eine positive Zahl oder undefined sein.`)
+            }
+          })
+
+          // Validiere jedes ImageModelPricing-Element
+          data.imagePricing.forEach((model: any, index: number) => {
+            if (!model || typeof model !== 'object') {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: Muss ein Objekt sein.`)
+            }
+            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: "modelName" muss ein nicht-leerer String sein.`)
+            }
+            if (typeof model.standardPrice !== 'number' || model.standardPrice < 0) {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: "standardPrice" muss eine positive Zahl sein.`)
+            }
+            if (typeof model.hdPrice !== 'number' || model.hdPrice < 0) {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: "hdPrice" muss eine positive Zahl sein.`)
+            }
+            if (model.standardPriceLarge !== undefined && (typeof model.standardPriceLarge !== 'number' || model.standardPriceLarge < 0)) {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: "standardPriceLarge" muss eine positive Zahl oder undefined sein.`)
+            }
+            if (model.hdPriceLarge !== undefined && (typeof model.hdPriceLarge !== 'number' || model.hdPriceLarge < 0)) {
+              throw new Error(`Ungültiges Modell in imagePricing[${index}]: "hdPriceLarge" muss eine positive Zahl oder undefined sein.`)
+            }
+          })
+
+          // Validiere jedes EmbeddingModelPricing-Element
+          data.embeddingPricing.forEach((model: any, index: number) => {
+            if (!model || typeof model !== 'object') {
+              throw new Error(`Ungültiges Modell in embeddingPricing[${index}]: Muss ein Objekt sein.`)
+            }
+            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+              throw new Error(`Ungültiges Modell in embeddingPricing[${index}]: "modelName" muss ein nicht-leerer String sein.`)
+            }
+            if (typeof model.pricePer1000Tokens !== 'number' || model.pricePer1000Tokens < 0) {
+              throw new Error(`Ungültiges Modell in embeddingPricing[${index}]: "pricePer1000Tokens" muss eine positive Zahl sein.`)
+            }
+          })
+
+          // Validiere markupPercentage
+          if (data.markupPercentage < 0 || data.markupPercentage > 1) {
+            throw new Error('Ungültiger Wert: "markupPercentage" muss zwischen 0 und 1 liegen (z.B. 0.09 für 9%).')
           }
           
-          debugLog('[pricingService] Pricing JSON uploaded and parsed')
+          debugLog('[pricingService] Pricing JSON uploaded and parsed successfully')
           resolve(data)
         } catch (error) {
-          reject(error instanceof Error ? error : new Error('Fehler beim Parsen der JSON-Datei'))
+          if (error instanceof SyntaxError) {
+            reject(new Error('Ungültige JSON-Syntax: Die Datei konnte nicht geparst werden. Bitte überprüfen Sie die Datei auf Syntaxfehler.'))
+          } else {
+            reject(error instanceof Error ? error : new Error('Unbekannter Fehler beim Validieren der JSON-Datei'))
+          }
         }
       }
       reader.onerror = () => {
-        reject(new Error('Fehler beim Lesen der Datei'))
+        reject(new Error('Fehler beim Lesen der Datei. Bitte versuchen Sie es erneut.'))
       }
       reader.readAsText(file)
     })
