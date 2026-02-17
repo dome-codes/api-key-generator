@@ -26,13 +26,7 @@
     <td class="py-3 px-4 text-sm" :class="isChildRow ? 'pl-10' : ''">
       <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
         <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
-        <!-- Badge nur bei Parent-Rows anzeigen, nicht bei Child-Rows -->
-        <span
-          v-if="keyData.status === 'revoked' && !isChildRow"
-          class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded"
-        >
-          Deaktiviert
-        </span>
+        <!-- Badge entfernt - Status wird bereits in eigener Spalte angezeigt -->
       </div>
     </td>
     <td class="py-3 px-4 font-mono text-xs break-all">
