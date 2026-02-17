@@ -5,6 +5,10 @@ import { createApp } from 'vue'
 
 import App from './App.vue'
 import router from './router'
+import { showWelcomeMessage } from './utils/debugLog'
+
+// Begrüßungsnachricht in der Konsole
+showWelcomeMessage()
 
 const app = createApp(App)
 
