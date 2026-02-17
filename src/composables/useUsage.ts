@@ -178,6 +178,19 @@ export function useUsage() {
         // Konvertiere zu EnhancedUsageRecord für Progress Bars (apiKeyId aus allen Backend-Varianten)
         const enhancedData = await Promise.all(
           validItems.map(async (item: any) => {
+            // DEBUG: Zeige rohes Item vor Extraktion
+            if (isDebugLogEnabled()) {
+              debugLog('[useUsage] Rohes Item vor apiKeyId-Extraktion:', {
+                'Item Keys': Object.keys(item),
+                'Item komplett': item,
+                'item.apiKeyId': item.apiKeyId,
+                'item.api_key_id': item.api_key_id,
+                'item.api_key': item.api_key,
+                'item.key_id': item.key_id,
+                'item.keyId': item.keyId,
+              })
+            }
+
             const { calculateCost } = await import('@/config/pricing')
             const { requestTokens, responseTokens } = readTokensFromItem(item)
             const costResult = calculateCost(
@@ -188,6 +201,15 @@ export function useUsage() {
               item.type || 'CompletionModelUsage',
             )
             const apiKeyId = getApiKeyIdFromItem(item)
+
+            // DEBUG: Zeige Extraktions-Ergebnis
+            if (isDebugLogEnabled()) {
+              debugLog('[useUsage] apiKeyId nach Extraktion:', {
+                'Extrahierte apiKeyId': apiKeyId,
+                'War undefined?': apiKeyId === undefined,
+              })
+            }
+
             return {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,

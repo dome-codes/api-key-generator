@@ -11,7 +11,7 @@ import type {
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
-import { debugLog } from '@/utils/debugLog'
+import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 import { getDataArray } from '@/services/usageApiService'
 
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
@@ -187,6 +187,24 @@ export const usageService = {
       const response = await getUsage().usageAISummaryGetV1(params)
       const body = response.data
       debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
+      
+      // DEBUG: Zeige rohe Response-Daten für Troubleshooting
+      if (isDebugLogEnabled()) {
+        const rawData = getDataArray<AIUsageSummaryRecord>(body)
+        debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
+          'Anzahl Records': rawData.length,
+          'Erste 3 Records': rawData.slice(0, 3).map((r: any) => ({
+            'Alle Keys': Object.keys(r),
+            'apiKeyId': r.apiKeyId,
+            'api_key_id': r.api_key_id,
+            'api_key': r.api_key,
+            'key_id': r.key_id,
+            'keyId': r.keyId,
+            'Komplettes Record': r,
+          })),
+        })
+      }
+      
       // Backend kann data, items oder usage liefern
       const data = getDataArray<AIUsageSummaryRecord>(body)
       const pagination: PaginationInfo | undefined =
