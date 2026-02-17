@@ -692,11 +692,11 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
     }
   }
 
-  if (!props.usageData || !props.usageData[keyId]) {
+  const data = props.usageData?.[keyId]
+  if (!data) {
     return { cost: 0, tokensIn: 0, tokensOut: 0 }
   }
-
-  return props.usageData[keyId]
+  return { cost: data.cost, tokensIn: data.tokensIn, tokensOut: data.tokensOut }
 }
 
 // Berechne akkumulierte Verbrauchsdaten für Entwicklung-Nutzer
