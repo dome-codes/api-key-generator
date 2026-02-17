@@ -10,12 +10,11 @@ import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 /**
  * Record mit API-Key-ID und Verbrauchsfeldern.
  * Entspricht EnhancedUsageRecord / AIUsageSummaryRecord (OpenAPI):
- * apiKeyId (oder api_key_id), requestTokens/responseTokens oder tokensIn/tokensOut, cost optional.
+ * apiKeyId (laut OpenAPI-Spezifikation), requestTokens/responseTokens oder tokensIn/tokensOut, cost optional.
  * technicalUserId für Fallback, wenn Backend apiKeyId: null liefert (z. B. bei Aggregation).
  */
 export interface UsageRecordForApiKey {
-  apiKeyId?: string | null
-  api_key_id?: string | null
+  apiKeyId?: string | null // Laut OpenAPI-Spezifikation: apiKeyId (camelCase)
   technicalUserId?: string
   cost?: number
   tokensIn?: number
@@ -26,13 +25,14 @@ export interface UsageRecordForApiKey {
 }
 
 /** Normalisiert ID für Vergleich (Trim, Lowercase, Bindestriche optional entfernen). */
-function normalizeId(id: string): string {
+function normalizeId(id: string | null | undefined): string {
+  if (!id || id === 'null' || id === 'undefined') return ''
   return String(id).trim().toLowerCase().replace(/-/g, '')
 }
 
 /**
  * Prüft, ob Key-ID und Usage-apiKeyId zusammenpassen (Trim, case-insensitiv, Bindestriche ignoriert).
- * Berücksichtigt, dass Backend api_key_id oder anderes Format liefern kann.
+ * Laut OpenAPI-Spezifikation heißt das Feld 'apiKeyId' (camelCase).
  */
 export function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefined): boolean {
   if (!usageApiKeyId) return false
@@ -71,28 +71,51 @@ export function buildApiKeyUsageMap(
   const map: Record<string, ApiKeyUsageData> = {}
 
   if (isDebugLogEnabled() && safeRecords.length > 0 && keys.length > 0) {
-    const recordIds = [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? r.technicalUserId ?? '').filter(Boolean))]
+    const recordIds = [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.technicalUserId ?? '').filter(Boolean))]
+    const apiKeyIds = keys.map((k) => k.id)
+    const recordApiKeyIds = [...new Set(safeRecords.map((r) => r.apiKeyId).filter(Boolean))]
+    
     debugLog('[buildApiKeyUsageMap] Format-Check', {
-      'key.ids (erste 3)': keys.slice(0, 3).map((k) => k.id),
-      'Record apiKeyId/technicalUserId (unique, erste 5)': recordIds.slice(0, 5),
+      'API Key IDs (erste 5)': apiKeyIds.slice(0, 5),
+      'API Key IDs (normalized, erste 5)': apiKeyIds.slice(0, 5).map((id) => normalizeId(id)),
+      'Record apiKeyIds (unique, erste 5)': recordApiKeyIds.slice(0, 5),
+      'Record apiKeyIds (normalized, erste 5)': recordApiKeyIds.slice(0, 5).map((id) => normalizeId(id)),
+      'Record technicalUserId (unique, erste 5)': [...new Set(safeRecords.map((r) => r.technicalUserId).filter(Boolean))].slice(0, 5),
       'Anzahl Records': safeRecords.length,
       'Anzahl Keys': keys.length,
+      'ERSTER RECORD KOMPLETT (für Debugging)': safeRecords[0] ? {
+        'Alle Keys': Object.keys(safeRecords[0]),
+        'apiKeyId (laut OpenAPI)': safeRecords[0].apiKeyId,
+        'apiKeyId (type)': typeof safeRecords[0].apiKeyId,
+        'apiKeyId (is null/undefined?)': safeRecords[0].apiKeyId == null,
+        'technicalUserId': safeRecords[0].technicalUserId,
+        'Kompletter Record': safeRecords[0],
+      } : 'KEINE RECORDS',
+      'VERGLEICH: Passen API Key IDs zu Record apiKeyIds?': {
+        'API Key IDs vorhanden?': apiKeyIds.length > 0,
+        'Record apiKeyIds vorhanden?': recordApiKeyIds.length > 0,
+        'Erste API Key ID': apiKeyIds[0],
+        'Erste Record apiKeyId': recordApiKeyIds[0],
+        'Match?': apiKeyIds.length > 0 && recordApiKeyIds.length > 0 && apiKeyIds[0] === recordApiKeyIds[0],
+        'Normalized Match?': apiKeyIds.length > 0 && recordApiKeyIds.length > 0 && normalizeId(apiKeyIds[0]) === normalizeId(recordApiKeyIds[0]),
+      },
     })
   }
 
   for (const key of keys) {
     const keyId = key.id
-    // 1) Direktes Matching über apiKeyId / api_key_id (inkl. Normalisierung: Trim, Lowercase, ohne Bindestriche)
+    // 1) Direktes Matching über apiKeyId (laut OpenAPI-Spezifikation: camelCase)
+    // Inkl. Normalisierung: Trim, Lowercase, ohne Bindestriche
     const keyUsage = safeRecords.filter((r) =>
-      keyIdMatchesUsage(keyId, r.apiKeyId ?? r.api_key_id ?? undefined),
+      keyIdMatchesUsage(keyId, r.apiKeyId ?? undefined),
     )
 
     // DEBUG: Zeige Matching-Ergebnisse für jeden Key
     if (isDebugLogEnabled()) {
       debugLog(`[buildApiKeyUsageMap] Key ${keyId}:`, {
         'Gefundene Records': keyUsage.length,
-        'Erste 3 Record apiKeyIds': keyUsage.slice(0, 3).map((r) => r.apiKeyId ?? r.api_key_id ?? 'null'),
-        'Alle Record apiKeyIds (unique)': [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? 'null'))].slice(0, 10),
+        'Erste 3 Record apiKeyIds': keyUsage.slice(0, 3).map((r) => r.apiKeyId ?? 'null'),
+        'Alle Record apiKeyIds (unique)': [...new Set(safeRecords.map((r) => r.apiKeyId ?? 'null'))].slice(0, 10),
       })
     }
 
@@ -110,7 +133,7 @@ export function buildApiKeyUsageMap(
         // DEBUG: Zeige jeden Record der aggregiert wird
         if (isDebugLogEnabled()) {
           debugLog(`[buildApiKeyUsageMap] Aggregiere Record für Key ${keyId}:`, {
-            'apiKeyId': u.apiKeyId ?? u.api_key_id ?? 'null',
+            'apiKeyId': u.apiKeyId ?? 'null',
             'cost': recordCost,
             'tokensIn': t.tokensIn,
             'tokensOut': t.tokensOut,
@@ -135,13 +158,30 @@ export function buildApiKeyUsageMap(
       map[keyId] = { cost: 0, tokensIn: 0, tokensOut: 0 }
       // DEBUG: Zeige wenn kein Match gefunden wurde
       if (isDebugLogEnabled()) {
+        const recordApiKeyIds = safeRecords.slice(0, 5).map((r) => {
+          const rawId = r.apiKeyId ?? null
+          return {
+            'Raw apiKeyId (laut OpenAPI)': rawId,
+            'Type': typeof rawId,
+            'Is null/undefined?': rawId == null,
+            'Normalized': rawId ? normalizeId(rawId) : 'EMPTY',
+            'Kompletter Record (erste 5 Keys)': Object.keys(r).slice(0, 5),
+          }
+        })
+
         debugLog(`[buildApiKeyUsageMap] ❌ Key ${keyId}: KEIN MATCH gefunden`, {
-          'keyId': keyId,
+          'keyId (original)': keyId,
+          'keyId (type)': typeof keyId,
           'normalizedKeyId': normalizeId(keyId),
-          'Erste 5 Record apiKeyIds zum Vergleich': safeRecords.slice(0, 5).map((r) => ({
-            apiKeyId: r.apiKeyId ?? r.api_key_id ?? 'null',
-            normalized: r.apiKeyId ? normalizeId(r.apiKeyId) : r.api_key_id ? normalizeId(r.api_key_id) : 'null',
-          })),
+          'Erste 5 Records Details': recordApiKeyIds,
+          'Alle Record apiKeyIds (raw, unique)': [...new Set(safeRecords.map((r) => String(r.apiKeyId ?? 'null')))].slice(0, 10),
+          'Vergleich: normalizedKeyId === normalized Record?': safeRecords.slice(0, 5).map((r) => {
+            const recordId = r.apiKeyId ?? null
+            return {
+              'Record ID': recordId,
+              'Match?': recordId ? normalizeId(keyId) === normalizeId(recordId) : false,
+            }
+          }),
         })
       }
     }
@@ -149,7 +189,7 @@ export function buildApiKeyUsageMap(
 
   // 2) Fallback: Records mit apiKeyId null/undefined aber technicalUserId → Verbrauch nur dem ersten Key dieses Users zuordnen (keine dreifache Anzeige)
   const recordsWithoutKeyId = safeRecords.filter((r) => {
-    const id = r.apiKeyId ?? r.api_key_id
+    const id = r.apiKeyId
     return (id == null || id === '') && r.technicalUserId
   })
   if (recordsWithoutKeyId.length > 0) {

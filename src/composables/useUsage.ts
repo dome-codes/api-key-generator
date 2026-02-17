@@ -51,14 +51,10 @@ function defaultUsageDateRange(): { from: string; to: string } {
   return { from: from.toISOString(), to: now.toISOString() }
 }
 
-/** Liest API-Key-ID aus Backend-Item (apiKeyId, api_key_id, api_key, key_id, keyId) */
+/** Liest API-Key-ID aus Backend-Item (laut OpenAPI-Spezifikation: apiKeyId) */
 function getApiKeyIdFromItem(item: Record<string, unknown>): string | undefined {
-  const raw =
-    (item.apiKeyId as string) ??
-    (item.api_key_id as string) ??
-    (item.api_key as string) ??
-    (item.key_id as string) ??
-    (item.keyId as string)
+  // Laut OpenAPI-Spezifikation heißt das Feld 'apiKeyId' (camelCase)
+  const raw = item.apiKeyId as string | undefined
   if (raw == null || raw === '') return undefined
   return String(raw).trim()
 }
