@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { hasPermission, type UserRole, whenKeycloakInit } from '@/auth/keycloak'
+import { hasPermission, type UserRole } from '@/auth/keycloak'
 import AuthGuard from '@/components/auth/AuthGuard.vue'
 import HomeView from '../views/HomeView.vue'
 
@@ -70,7 +70,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'admin/preise',
-        name: 'PricingManagement',
+        name: 'PricingManagementAdminConsole',
         component: () => import('../views/admin/PricingManagementView.vue'),
         meta: {
           requiresAuth: true,
@@ -87,6 +87,9 @@ const router = createRouter({
 })
 
 // Navigation Guard für globale Auth-Prüfung
+// WICHTIG: Permission-Prüfungen werden im AuthGuard durchgeführt, nicht hier
+// Der Router-Guard sollte nicht auf Keycloak-Initialisierung warten, da dies zu Deadlocks führt
+// Der AuthGuard ist für die Keycloak-Initialisierung und Permission-Prüfungen zuständig
 router.beforeEach(async (to, from, next) => {
   // Public Routes erlauben
   if (to.meta.public) {
@@ -94,39 +97,8 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Prüfe ob Route Auth benötigt
-  if (to.meta.requiresAuth !== false) {
-    // Warte auf Keycloak-Initialisierung, bevor Permission-Prüfungen durchgeführt werden
-    // Dies verhindert, dass Permission-Prüfungen fehlschlagen, wenn Keycloak noch nicht bereit ist
-    try {
-      await whenKeycloakInit
-    } catch (error) {
-      // Wenn Keycloak-Initialisierung fehlschlägt, weiterleiten
-      console.error('Keycloak-Initialisierung fehlgeschlagen:', error)
-    }
-
-    // Prüfe spezifische Berechtigungen
-    if (to.meta.requiredPermissions && to.meta.requiredPermissions.length > 0) {
-      const hasAllPermissions = to.meta.requiredPermissions.every((permission) =>
-        hasPermission(permission as any),
-      )
-      if (!hasAllPermissions) {
-        next({ name: 'NichtAutorisiert' })
-        return
-      }
-    }
-
-    // Prüfe spezifische Rolle
-    if (to.meta.requiredRole) {
-      const { getHighestRole } = await import('@/auth/keycloak')
-      const userRole = getHighestRole()
-      if (userRole !== to.meta.requiredRole) {
-        next({ name: 'NichtAutorisiert' })
-        return
-      }
-    }
-  }
-
+  // Für alle anderen Routes: Navigation durchlassen
+  // Der AuthGuard prüft die Berechtigungen nach der Keycloak-Initialisierung
   next()
 })
 
