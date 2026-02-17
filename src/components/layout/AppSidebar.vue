@@ -42,7 +42,7 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
     <div class="mb-8 flex items-center justify-center">
       <!-- Logo SVG -->
       <img
-        src="/admin-console/rag.svg"
+        src="/rag.svg"
         alt="RAG Logo"
         class="w-10 h-10 text-primary"
       />
