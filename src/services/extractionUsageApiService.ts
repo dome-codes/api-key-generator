@@ -115,11 +115,16 @@ export const extractionUsageApiService = {
     try {
       debugLog('Loading extraction usage data with filter:', filter)
 
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page: filter.page || 1,
-        limit: filter.limit || 20,
+        page: page,
+        limit: limit,
+        offset: offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
         status: filter.status as
@@ -128,7 +133,7 @@ export const extractionUsageApiService = {
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
-      }
+      } as typeof params & { offset?: number }
 
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
@@ -231,11 +236,16 @@ export const extractionUsageApiService = {
     try {
       debugLog('Loading extraction usage summary with filter:', filter)
 
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page: filter.page || 1,
-        limit: filter.limit || 20,
+        page: page,
+        limit: limit,
+        offset: offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
         status: filter.status as
@@ -245,7 +255,7 @@ export const extractionUsageApiService = {
         tag: filter.tag,
         apiKey: filter.apiKey,
         by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
-      }
+      } as typeof params & { offset?: number }
 
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
       const apiResponse = await getUsage().usageExtractionSummaryGetV1(params)

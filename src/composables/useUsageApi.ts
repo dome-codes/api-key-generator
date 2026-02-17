@@ -264,6 +264,8 @@ export function useUsageApi() {
       debugLog('Usage data loaded:', {
         count: result.data.length,
         pagination: result.pagination,
+        currentPage: result.pagination?.page,
+        totalPages: result.pagination?.totalPages,
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungsdaten'

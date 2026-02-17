@@ -50,16 +50,42 @@ function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
   const pageSize = pag.pageSize ?? pag.limit
   const totalPages = pag.totalPages
 
-  if (totalItems === undefined && currentPage === undefined && pageSize === undefined && totalPages === undefined) {
+  // Wenn bereits die Standard-Struktur vorhanden ist, verwende sie direkt
+  if (pag.page !== undefined && pag.limit !== undefined && pag.total !== undefined && pag.totalPages !== undefined) {
+    return pag as PaginationInfo
+  }
+
+  // Mappe Backend-Feldnamen auf Standard-Struktur
+  const mapped: PaginationInfo = {}
+  
+  if (typeof currentPage === 'number') {
+    mapped.page = currentPage
+  } else if (typeof pag.page === 'number') {
+    mapped.page = pag.page
+  }
+  
+  if (typeof pageSize === 'number') {
+    mapped.limit = pageSize
+  } else if (typeof pag.limit === 'number') {
+    mapped.limit = pag.limit
+  }
+  
+  if (typeof totalItems === 'number') {
+    mapped.total = totalItems
+  } else if (typeof pag.total === 'number') {
+    mapped.total = pag.total
+  }
+  
+  if (typeof totalPages === 'number') {
+    mapped.totalPages = totalPages
+  }
+
+  // Nur zurückgeben, wenn mindestens ein Feld gesetzt ist
+  if (Object.keys(mapped).length === 0) {
     return undefined
   }
 
-  return {
-    page: typeof currentPage === 'number' ? currentPage : undefined,
-    limit: typeof pageSize === 'number' ? pageSize : undefined,
-    total: typeof totalItems === 'number' ? totalItems : undefined,
-    totalPages: typeof totalPages === 'number' ? totalPages : undefined,
-  }
+  return mapped
 }
 
 /** Diagnose-Log für andere OpenAPI/Backend: immer in DEV oder wenn localStorage.debug=true. Ausgabe hier kopieren und teilen. */
@@ -194,17 +220,22 @@ export const usageApiService = {
       debugLog('Loading usage data with filter:', filter)
 
       const usageTypeValue = toBackendUsageType(filter.modelType)
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
-        limit: filter.limit || 20,
+        limit: limit,
+        offset: offset, // Backend verwendet offset statt page
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
-      } as import('@/api/types').UsageAIGetV1Params
+      } as import('@/api/types').UsageAIGetV1Params & { offset?: number }
 
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAIGetV1(params)
@@ -295,6 +326,11 @@ export const usageApiService = {
       if (response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response) {
         const backendPagination = (response as UsagePageResponse).pagination
         pagination = mapPagination(backendPagination) || backendPagination
+        debugLog('Pagination mapped:', {
+          backend: backendPagination,
+          mapped: pagination,
+          filterPage: filter.page,
+        })
       }
 
       diagLog('getUsageData (after map)', response, rawData.length, rawData[0], {
@@ -309,14 +345,22 @@ export const usageApiService = {
             : undefined,
       })
 
+      // Stelle sicher, dass die Pagination immer die aktuelle Seite enthält
+      const finalPagination: PaginationInfo = pagination || {
+        page: filter.page || 1,
+        limit: filter.limit || 20,
+        total: enhancedData.length,
+        totalPages: 1,
+      }
+      
+      // Wenn die Pagination keine page enthält, aber der Filter eine hat, setze sie
+      if (!finalPagination.page && filter.page) {
+        finalPagination.page = filter.page
+      }
+
       return {
         data: enhancedData,
-        pagination: pagination || {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: enhancedData.length,
-          totalPages: 1,
-        },
+        pagination: finalPagination,
       }
     } catch (error) {
       console.error('Error loading usage data via API:', error)
@@ -343,18 +387,23 @@ export const usageApiService = {
       debugLog('Loading usage summary with filter:', filter)
 
       const usageTypeValue = toBackendUsageType(filter.modelType)
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
-        limit: filter.limit || 20,
+        limit: limit,
+        offset: offset, // Backend verwendet offset statt page
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
-      } as import('@/api/types').UsageAISummaryGetV1Params
+      } as import('@/api/types').UsageAISummaryGetV1Params & { offset?: number }
 
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAISummaryGetV1(params)
