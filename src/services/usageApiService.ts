@@ -213,12 +213,18 @@ export const usageApiService = {
             technicalUserId:
               (item as SummaryUsage).technicalUserId ||
               (item as { technicalUSerid?: string }).technicalUSerid ||
-              'unknown',
-            technicalUserName: `User ${
-              (item as SummaryUsage).technicalUserId ||
-              (item as { technicalUSerid?: string }).technicalUSerid ||
-              'unknown'
-            }`,
+              '',
+            technicalUserName: (() => {
+              const userId = (item as SummaryUsage).technicalUserId ||
+                (item as { technicalUSerid?: string }).technicalUSerid ||
+                ''
+              if (!userId) return 'Unknown User'
+              // Für technische User (SVC_*, e*, b*) zeige die ID direkt
+              if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
+                return userId
+              }
+              return `User ${userId}`
+            })(),
             modelName: item.model || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
@@ -336,8 +342,12 @@ export const usageApiService = {
           )
 
           return {
-            technicalUserId: item.technicalUserId || 'unknown',
-            technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+            technicalUserId: item.technicalUserId || '',
+            technicalUserName: item.technicalUserId 
+              ? (item.technicalUserId.startsWith('SVC_') || item.technicalUserId.startsWith('e') || item.technicalUserId.startsWith('b')
+                  ? item.technicalUserId 
+                  : `User ${item.technicalUserId}`)
+              : 'Unknown User',
             modelName: item.model || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,

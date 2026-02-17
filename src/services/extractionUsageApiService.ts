@@ -123,8 +123,12 @@ export const extractionUsageApiService = {
         day: item.day,
         month: item.month,
         year: item.year,
-        technicalUserId: item.technicalUserId || 'unknown',
-        technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+        technicalUserId: item.technicalUserId || '',
+        technicalUserName: item.technicalUserId 
+          ? (item.technicalUserId.startsWith('SVC_') || item.technicalUserId.startsWith('e') || item.technicalUserId.startsWith('b')
+              ? item.technicalUserId 
+              : `User ${item.technicalUserId}`)
+          : 'Unknown User',
         apiKeyId: item.apiKeyId,
         tag: item.tag || '',
         provider: item.provider || '',
