@@ -23,16 +23,7 @@ import { readTokensFromItem } from '@/services/usageApiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
-// Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log(...args)
-  }
-}
+import { debugLog } from '@/utils/debugLog'
 
 // Hilfsfunktion um Datumswerte in ISO-Strings zu konvertieren
 const convertToIsoString = (dateString?: string): string | undefined => {
@@ -123,7 +114,7 @@ export function useUsage() {
       }
 
       debugLog('Loading usage summary with filter:', currentFilter.value)
-      console.log('🔍 [FRONTEND] Loading usage summary...')
+      debugLog('🔍 [FRONTEND] Loading usage summary...')
 
       // Zeitraum: Filter oder Standard (aktueller Monat), damit Backend überhaupt Daten liefert
       const fromIso =
@@ -132,8 +123,8 @@ export function useUsage() {
         convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
       const summaryData = await usageService.getUsageSummaryByApiKey(fromIso, toIso)
 
-      console.log('🔍 [USE-USAGE] Summary data received:', summaryData)
-      console.log('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
+      debugLog('🔍 [USE-USAGE] Summary data received:', summaryData)
+      debugLog('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
 
       // Extrahiere Aggregation aus den API-Key-Daten (ohne undefined-Einträge → verhindert Index-Fehler)
       const validItems = (summaryData.data || []).filter(
@@ -218,8 +209,8 @@ export function useUsage() {
           }),
         )
         detailedUsageData.value = enhancedData.filter(Boolean)
-        console.log('🔍 [FRONTEND] API Key data loaded:', detailedUsageData.value.length, 'records')
-        console.log(
+        debugLog('🔍 [FRONTEND] API Key data loaded:', detailedUsageData.value.length, 'records')
+        debugLog(
           '🔍 [USE-USAGE] Enhanced data apiKeyIds:',
           detailedUsageData.value.map((item) => item.apiKeyId),
         )
@@ -248,7 +239,7 @@ export function useUsage() {
         aggregation: usageAggregation.value,
         apiKeyDataLength: detailedUsageData.value.length,
       })
-      console.log('✅ [FRONTEND] Usage summary loaded')
+      debugLog('✅ [FRONTEND] Usage summary loaded')
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
@@ -275,7 +266,7 @@ export function useUsage() {
       }
 
       debugLog('Loading detailed usage data with filter:', currentFilter.value)
-      console.log('🔍 [FRONTEND] Loading detailed usage data...')
+      debugLog('🔍 [FRONTEND] Loading detailed usage data...')
 
       // Prüfe ob Admin-Berechtigung vorhanden ist
       const hasAdminPermission = await import('@/auth/keycloak').then((m) =>
@@ -283,7 +274,7 @@ export function useUsage() {
       )
 
       debugLog('Has admin permission:', hasAdminPermission)
-      console.log('🔍 [FRONTEND] Admin permission:', hasAdminPermission)
+      debugLog('🔍 [FRONTEND] Admin permission:', hasAdminPermission)
 
       let response: EnhancedUsageRecord[]
 
@@ -306,7 +297,7 @@ export function useUsage() {
       detailedUsageData.value = response
 
       debugLog('Detailed usage data loaded successfully:', response.length, 'records')
-      console.log('✅ [FRONTEND] Detailed usage data loaded:', response.length, 'records')
+      debugLog('✅ [FRONTEND] Detailed usage data loaded:', response.length, 'records')
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
@@ -323,13 +314,13 @@ export function useUsage() {
     error.value = null
 
     try {
-      console.log('🔍 [FRONTEND] Loading usage data by API Key...')
+      debugLog('🔍 [FRONTEND] Loading usage data by API Key...')
 
       // Lade gruppierte Daten aus der Summarize API
       const { usageService } = await import('@/services/apiService')
       const summaryResponse = await usageService.getUsageSummaryByApiKey(fromDate, toDate)
 
-      console.log('🔍 [FRONTEND] Summary response:', summaryResponse)
+      debugLog('🔍 [FRONTEND] Summary response:', summaryResponse)
 
       if (summaryResponse.data && summaryResponse.data.length > 0) {
         // Konvertiere SummaryUsage zu EnhancedUsageRecord für Kompatibilität
@@ -367,10 +358,10 @@ export function useUsage() {
         )
 
         detailedUsageData.value = enhancedData
-        console.log('🔍 [FRONTEND] Enhanced data from summary:', enhancedData)
+        debugLog('🔍 [FRONTEND] Enhanced data from summary:', enhancedData)
       } else {
         detailedUsageData.value = []
-        console.log('🔍 [FRONTEND] No usage data found in summary')
+        debugLog('🔍 [FRONTEND] No usage data found in summary')
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der API Key Usage-Daten'

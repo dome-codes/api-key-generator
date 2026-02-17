@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import BaseSummary from '../shared/BaseSummary.vue'
+import { debugLog } from '@/utils/debugLog'
 import { watch } from 'vue'
 
 interface UsageSummary {
@@ -86,7 +87,7 @@ const props = defineProps<Props>()
 watch(
   () => props.summary,
   (newSummary) => {
-    console.log('[AIUsageSummary] Summary changed:', newSummary)
+    debugLog('[AIUsageSummary] Summary changed:', newSummary)
   },
   { immediate: true, deep: true },
 )

@@ -173,6 +173,7 @@ import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
 import { fromBackendUsageType, toBackendUsageType } from '@/services/usageApiService'
 import { useUrlFilters } from '@/composables/useUrlFilters'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref, watch } from 'vue'
 import AIUsageCharts from './AIUsageCharts.vue'
 import AIUsageFilters from './AIUsageFilters.vue'
@@ -333,7 +334,7 @@ const showAdminDetails = computed(() => adminView.value === 'detailed')
 
 const ownSummary = computed(() => {
   const agg = usageAggregation.value
-  console.log('[AIUsageTabs] ownSummary computed:', {
+  debugLog('[AIUsageTabs] ownSummary computed:', {
     usageDataLength: usageData.value.length,
     aggregation: agg,
   })
@@ -358,7 +359,7 @@ const adminSummary = computed(() => ({
 // Handle filter changes - Own
 const handleOwnFilterChange = async () => {
   try {
-    console.log('[AIUsageTabs] handleOwnFilterChange - Own tab')
+    debugLog('[AIUsageTabs] handleOwnFilterChange - Own tab')
     await updateFilter(
       {
         fromDate: toIsoDate(ownFromDate.value),
@@ -373,10 +374,10 @@ const handleOwnFilterChange = async () => {
     )
 
     if (ownView.value === 'overview') {
-      console.log('[AIUsageTabs] Loading usage summary...')
+      debugLog('[AIUsageTabs] Loading usage summary...')
       await loadUsageSummary({}, false)
     } else {
-      console.log('[AIUsageTabs] Loading usage data...')
+      debugLog('[AIUsageTabs] Loading usage data...')
       await loadUsageData({}, false)
     }
 
@@ -390,7 +391,7 @@ const handleOwnFilterChange = async () => {
 // Handle filter changes - Admin
 const handleAdminFilterChange = async () => {
   try {
-    console.log('[AIUsageTabs] handleAdminFilterChange - Admin tab')
+    debugLog('[AIUsageTabs] handleAdminFilterChange - Admin tab')
     await updateFilter(
       {
         fromDate: toIsoDate(adminFromDate.value),
@@ -406,10 +407,10 @@ const handleAdminFilterChange = async () => {
     )
 
     if (adminView.value === 'overview') {
-      console.log('[AIUsageTabs] Loading admin usage summary...')
+      debugLog('[AIUsageTabs] Loading admin usage summary...')
       await loadUsageSummary({}, true)
     } else {
-      console.log('[AIUsageTabs] Loading admin usage data...')
+      debugLog('[AIUsageTabs] Loading admin usage data...')
       await loadUsageData({}, true)
     }
 

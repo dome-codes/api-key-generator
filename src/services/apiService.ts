@@ -11,6 +11,7 @@ import type {
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
+import { debugLog } from '@/utils/debugLog'
 import { getDataArray } from '@/services/usageApiService'
 
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
@@ -118,7 +119,7 @@ export const usageService = {
   // Eigene Usage-Daten abrufen
   async getOwnUsage(fromDate?: string, toDate?: string): Promise<AIUsagePage> {
     try {
-      console.log('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
+      debugLog('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
@@ -129,9 +130,9 @@ export const usageService = {
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
       if (toDate) params.to_date = toIsoDateTime(toDate)
 
-      console.log('🔍 [API-SERVICE] Calling usageAIGetV1 with params:', params)
+      debugLog('🔍 [API-SERVICE] Calling usageAIGetV1 with params:', params)
       const response = await getUsage().usageAIGetV1(params)
-      console.log('🔍 [API-SERVICE] API response:', response.data)
+      debugLog('🔍 [API-SERVICE] API response:', response.data)
 
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
@@ -143,7 +144,7 @@ export const usageService = {
   // Usage-Summary abrufen
   async getUsageSummary(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
-      console.log('🔍 [API-SERVICE] getUsageSummary called with:', { fromDate, toDate })
+      debugLog('🔍 [API-SERVICE] getUsageSummary called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
@@ -154,9 +155,9 @@ export const usageService = {
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
       if (toDate) params.to_date = toIsoDateTime(toDate)
 
-      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with params:', params)
+      debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
-      console.log('🔍 [API-SERVICE] API response:', response.data)
+      debugLog('🔍 [API-SERVICE] API response:', response.data)
 
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
@@ -168,7 +169,7 @@ export const usageService = {
   // Usage-Summary nach API Key gruppiert abrufen (für Progress Bar)
   async getUsageSummaryByApiKey(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
-      console.log('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
+      debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
         console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
@@ -182,10 +183,10 @@ export const usageService = {
         to_date: toIsoDateTime(toDate),
       } as unknown as UsageAISummaryGetV1Params
 
-      console.log('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
+      debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
       const body = response.data
-      console.log('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
+      debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
       // Backend kann data, items oder usage liefern
       const data = getDataArray<AIUsageSummaryRecord>(body)
       const pagination: PaginationInfo | undefined =

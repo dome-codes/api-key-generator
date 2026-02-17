@@ -63,6 +63,7 @@ import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
 import { fromBackendUsageType, toBackendUsageType } from '@/services/usageApiService'
 import { useUrlFilters } from '@/composables/useUrlFilters'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref, watch } from 'vue'
 import AIUsageCharts from './AIUsageCharts.vue'
 import AIUsageFilters from './AIUsageFilters.vue'
@@ -180,7 +181,7 @@ let isHandlingFilterChange = false
 const handleOwnFilterChange = async () => {
   // Verhindere gleichzeitige Aufrufe
   if (isHandlingFilterChange) {
-    console.log('[AIUsageContent] handleOwnFilterChange already in progress, skipping...')
+    debugLog('[AIUsageContent] handleOwnFilterChange already in progress, skipping...')
     return
   }
 

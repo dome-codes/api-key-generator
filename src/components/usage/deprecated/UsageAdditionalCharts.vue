@@ -75,6 +75,7 @@
 <script setup lang="ts">
 import type { TooltipItem } from 'chart.js'
 import type { Chart } from 'chart.js/auto'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface UsageDataItem {
@@ -143,20 +144,16 @@ const tagUsageData = computed(() => {
 
 const createPieChart = async () => {
   if (!pieChartCanvas.value) {
-    console.log('Pie chart canvas not found')
+    debugLog('Pie chart canvas not found')
     return
   }
 
   try {
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Creating pie chart...')
-    }
+    debugLog('Creating pie chart...')
 
     // Dynamisch Chart.js importieren
     const { Chart } = await import('chart.js/auto')
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Chart.js imported successfully')
-    }
+    debugLog('Chart.js imported successfully')
 
     // Bestehenden Chart zerstören
     if (pieChartInstance) {
@@ -167,21 +164,15 @@ const createPieChart = async () => {
 
     const ctx = pieChartCanvas.value.getContext('2d')
     if (!ctx) {
-      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-        console.log('Could not get 2D context')
-      }
+      debugLog('Could not get 2D context')
       return
     }
 
     const data = modelDistributionData.value
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Pie chart data:', data)
-    }
+    debugLog('Pie chart data:', data)
 
     if (data.labels.length === 0) {
-      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-        console.log('No data available for pie chart')
-      }
+      debugLog('No data available for pie chart')
       pieChartLoaded.value = false
       return
     }
@@ -246,22 +237,16 @@ const createPieChart = async () => {
 
 const createBarChart = async () => {
   if (!barChartCanvas.value) {
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Bar chart canvas not found')
-    }
+    debugLog('Bar chart canvas not found')
     return
   }
 
   try {
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Creating bar chart...')
-    }
+    debugLog('Creating bar chart...')
 
     // Dynamisch Chart.js importieren
     const { Chart } = await import('chart.js/auto')
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Chart.js imported successfully for bar chart')
-    }
+    debugLog('Chart.js imported successfully for bar chart')
 
     // Bestehenden Chart zerstören
     if (barChartInstance) {
@@ -272,21 +257,15 @@ const createBarChart = async () => {
 
     const ctx = barChartCanvas.value.getContext('2d')
     if (!ctx) {
-      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-        console.log('Could not get 2D context for bar chart')
-      }
+      debugLog('Could not get 2D context for bar chart')
       return
     }
 
     const data = tagUsageData.value
-    if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-      console.log('Bar chart data:', data)
-    }
+    debugLog('Bar chart data:', data)
 
     if (data.labels.length === 0) {
-      if (import.meta.env.VITE_SHOW_DEBUG === 'true') {
-        console.log('No data available for bar chart')
-      }
+      debugLog('No data available for bar chart')
       barChartLoaded.value = false
       return
     }

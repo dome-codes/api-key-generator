@@ -1,4 +1,5 @@
 import { debugToken, getHighestRole, hasPermission } from '@/auth/keycloak'
+import { debugLog as baseDebugLog, isDebugLogEnabled } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
 export function useDebug() {
@@ -21,11 +22,9 @@ export function useDebug() {
   // Debug-Info anzeigen/verstecken
   const showDebugInfo = ref(false)
 
-  // Debug-Log-Funktion (nur im Debug-Modus)
+  // Debug-Log-Funktion (nur im Debug-Modus) - verwendet zentrale Funktion
   const debugLog = (...args: unknown[]) => {
-    if (showDebugMode.value) {
-      console.log(...args)
-    }
+    baseDebugLog(...args)
   }
 
   // Token-Debug-Funktion (zeigt Frontend-Info UND Console-Logs)

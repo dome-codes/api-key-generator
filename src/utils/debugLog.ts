@@ -11,3 +11,13 @@ export function isDebugLogEnabled(): boolean {
     return false
   }
 }
+
+/**
+ * Zentrale Debug-Log-Funktion: Loggt nur wenn Debug-Modus aktiviert ist.
+ * Verwendet isDebugLogEnabled() für die Prüfung.
+ */
+export function debugLog(...args: unknown[]): void {
+  if (isDebugLogEnabled()) {
+    console.log(...args)
+  }
+}

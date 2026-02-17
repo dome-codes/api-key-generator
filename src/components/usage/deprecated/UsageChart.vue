@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
+import { debugLog } from '@/utils/debugLog'
 import { onMounted, ref, watch } from 'vue'
 
 interface Props {
@@ -280,7 +281,7 @@ const createChart = async () => {
     })
 
     chartLoaded.value = true
-    console.log('Chart created successfully with data:', data)
+    debugLog('Chart created successfully with data:', data)
   } catch (error) {
     console.error('Fehler beim Erstellen des Charts:', error)
     chartLoaded.value = false

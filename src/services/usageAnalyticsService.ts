@@ -14,18 +14,8 @@ import {
   ImageModelUsageType as ImageModelUsageTypeEnum,
 } from '@/api/types/frontend'
 import { calculateCost } from '@/config/pricing'
+import { debugLog } from '@/utils/debugLog'
 import { usageService } from './apiService'
-
-// Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log(...args)
-  }
-}
 
 // Frontend-Service für erweiterte Usage-Analytics-Funktionen
 // Diese Funktionen implementieren die Filterungslogik im Frontend

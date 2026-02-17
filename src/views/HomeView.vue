@@ -16,6 +16,7 @@ import { useModals } from '@/composables/useModals'
 import { useUsage } from '@/composables/useUsage'
 import { buildApiKeyUsageMap } from '@/services/apiKeyUsageMapping'
 import { apiKeyService } from '@/services/apiService'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref } from 'vue'
 
 // Composables verwenden
@@ -160,7 +161,7 @@ const copyApiKeyWithSuccess = async (apiKey: string) => {
 
 // Zentralisierte Datenladung - nur einmal beim App-Start
 const loadInitialData = async () => {
-  console.log('🔍 [HOMEVIEW] Loading initial data...')
+  debugLog('🔍 [HOMEVIEW] Loading initial data...')
 
   // Lade alle Daten parallel
   await Promise.all([
@@ -170,11 +171,11 @@ const loadInitialData = async () => {
   ])
 
   // Debug: Überprüfe ob API-Key-Daten geladen wurden
-  console.log(
+  debugLog(
     '🔍 [HOMEVIEW] After loading - detailedUsageData length:',
     detailedUsageData.value.length,
   )
-  console.log('🔍 [HOMEVIEW] After loading - apiKeyUsageData:', apiKeyUsageData.value)
+  debugLog('🔍 [HOMEVIEW] After loading - apiKeyUsageData:', apiKeyUsageData.value)
 }
 
 onMounted(() => {

@@ -28,17 +28,10 @@ import type {
   AIUsageSummaryRecord,
 } from '@/api/types'
 import { calculateCost } from '@/config/pricing'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
-// Debug-Log-Funktion
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log('[usageApiService]', ...args)
-  }
-}
+// Debug-Log mit Präfix
+const debugLog = (...args: unknown[]) => baseDebugLog('[usageApiService]', ...args)
 
 /** Diagnose-Log für andere OpenAPI/Backend: immer in DEV oder wenn localStorage.debug=true. Ausgabe hier kopieren und teilen. */
 function diagLog(
@@ -73,7 +66,7 @@ function diagLog(
         )
       : '-'
 
-  console.log('[USAGE-API-DIAG]', label, {
+  debugLog('[USAGE-API-DIAG]', label, {
     responseShape,
     rawDataLength,
     firstItemKeys,

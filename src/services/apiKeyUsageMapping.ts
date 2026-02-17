@@ -5,7 +5,7 @@
  */
 
 import type { ApiKeyUsageData } from '@/api/types/frontend'
-import { isDebugLogEnabled } from '@/utils/debugLog'
+import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 
 /**
  * Record mit API-Key-ID und Verbrauchsfeldern.
@@ -72,7 +72,7 @@ export function buildApiKeyUsageMap(
 
   if (isDebugLogEnabled() && safeRecords.length > 0 && keys.length > 0) {
     const recordIds = [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? r.technicalUserId ?? '').filter(Boolean))]
-    console.log('[buildApiKeyUsageMap] Format-Check', {
+    debugLog('[buildApiKeyUsageMap] Format-Check', {
       'key.ids (erste 3)': keys.slice(0, 3).map((k) => k.id),
       'Record apiKeyId/technicalUserId (unique, erste 5)': recordIds.slice(0, 5),
       'Anzahl Records': safeRecords.length,

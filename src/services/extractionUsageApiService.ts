@@ -1,12 +1,11 @@
 /**
  * Extraction Usage API Service
- * 
+ *
  * Dieser Service implementiert die server-seitige Filterung und Gruppierung
  * für Extraction Usage über die API. Parallel zum usageApiService strukturiert.
  */
 
 import { getAdmin } from '@/api/admin/admin'
-import { getUsage } from '@/api/usage/usage'
 import type { ExtractionRequestParamsGroupByParameterItem } from '@/api/types'
 import type {
   EnhancedExtractionUsageRecord,
@@ -15,17 +14,11 @@ import type {
   ExtractionUsageSummaryPageResponse,
   PaginationInfo,
 } from '@/api/types/frontend'
+import { getUsage } from '@/api/usage/usage'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
-// Debug-Log-Funktion
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log('[extractionUsageApiService]', ...args)
-  }
-}
+// Debug-Log mit Präfix
+const debugLog = (...args: unknown[]) => baseDebugLog('[extractionUsageApiService]', ...args)
 
 /** Response-Array aus Backend: data, items oder usage (andere OpenAPI wie bei AI). */
 function getDataArray<T>(response: unknown): T[] {
@@ -48,7 +41,8 @@ function diagLog(
   afterMap?: { length: number },
 ) {
   const show =
-    typeof localStorage !== 'undefined' && (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
+    typeof localStorage !== 'undefined' &&
+    (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
   if (!show) return
 
   const responseShape =
@@ -65,7 +59,7 @@ function diagLog(
       ? Object.keys(firstItem as object).join(', ')
       : '-'
 
-  console.log('[EXTRACTION-API-DIAG]', label, {
+  debugLog('[EXTRACTION-API-DIAG]', label, {
     responseShape,
     rawDataLength,
     firstItemKeys,
@@ -99,7 +93,9 @@ export const extractionUsageApiService = {
         limit: filter.limit || 20,
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status as import('@/api/types').ExtractionRequestParamsStatusParameter | undefined,
+        status: filter.status as
+          | import('@/api/types').ExtractionRequestParamsStatusParameter
+          | undefined,
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
@@ -109,7 +105,9 @@ export const extractionUsageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionGetV1(params)
         : await getUsage().usageExtractionGetV1(params)
-      const response = apiResponse.data as ExtractionUsagePageResponse | import('@/api/types').ExtractionUsageRecord[]
+      const response = apiResponse.data as
+        | ExtractionUsagePageResponse
+        | import('@/api/types').ExtractionUsageRecord[]
       const rawData = getDataArray<import('@/api/types').ExtractionUsageRecord>(response)
 
       debugLog('API response received:', response, 'rawData length:', rawData.length)
@@ -143,7 +141,10 @@ export const extractionUsageApiService = {
       })
 
       const pagination =
-        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+        response &&
+        typeof response === 'object' &&
+        !Array.isArray(response) &&
+        'pagination' in response
           ? (response as ExtractionUsagePageResponse).pagination
           : undefined
 
@@ -159,7 +160,9 @@ export const extractionUsageApiService = {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (useAdminApi && status === 403) {
-        console.warn('403 bei admin/usage/extraction – Backend verweigert Admin-Extraction. Rolle/Scope prüfen.')
+        console.warn(
+          '403 bei admin/usage/extraction – Backend verweigert Admin-Extraction. Rolle/Scope prüfen.',
+        )
         throw new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
         )
@@ -194,7 +197,9 @@ export const extractionUsageApiService = {
         limit: filter.limit || 20,
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status as import('@/api/types').ExtractionRequestParamsStatusParameter | undefined,
+        status: filter.status as
+          | import('@/api/types').ExtractionRequestParamsStatusParameter
+          | undefined,
         userId: filter.userId,
         tag: filter.tag,
         apiKeyId: filter.apiKeyId,
@@ -212,36 +217,42 @@ export const extractionUsageApiService = {
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere Summary zu EnhancedExtractionUsageRecord
-      const enhancedData = rawData.map((item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
-        id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
-        operationId: `${item.provider}-${item.modelId}`,
-        status: item.status || 'completed',
-        createDate: item.year && item.month && item.day
-          ? new Date(item.year, item.month - 1, item.day).toISOString()
-          : new Date().toISOString(),
-        completedDate: undefined,
-        day: item.day,
-        month: item.month,
-        year: item.year,
-        technicalUserId: item.technicalUserId,
-        technicalUserName: `User ${item.technicalUserId}`,
-        apiKeyId: item.apiKeyId,
-        tag: item.tag,
-        provider: item.provider,
-        modelId: item.modelId,
-        documentType: 'unknown',
-        pages: item.totalPages,
-        extractedFields: [],
-        confidenceScore: item.averageConfidence,
-        cost: item.cost,
-      }))
+      const enhancedData = rawData.map(
+        (item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
+          id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
+          operationId: `${item.provider}-${item.modelId}`,
+          status: item.status || 'completed',
+          createDate:
+            item.year && item.month && item.day
+              ? new Date(item.year, item.month - 1, item.day).toISOString()
+              : new Date().toISOString(),
+          completedDate: undefined,
+          day: item.day,
+          month: item.month,
+          year: item.year,
+          technicalUserId: item.technicalUserId,
+          technicalUserName: `User ${item.technicalUserId}`,
+          apiKeyId: item.apiKeyId,
+          tag: item.tag,
+          provider: item.provider,
+          modelId: item.modelId,
+          documentType: 'unknown',
+          pages: item.totalPages,
+          extractedFields: [],
+          confidenceScore: item.averageConfidence,
+          cost: item.cost,
+        }),
+      )
 
       diagLog('getUsageSummary (extraction, after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,
       })
 
       const pagination =
-        response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response
+        response &&
+        typeof response === 'object' &&
+        !Array.isArray(response) &&
+        'pagination' in response
           ? (response as ExtractionUsageSummaryPageResponse).pagination
           : undefined
 
@@ -257,7 +268,9 @@ export const extractionUsageApiService = {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (useAdminApi && status === 403) {
-        console.warn('403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.')
+        console.warn(
+          '403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.',
+        )
         throw new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
         )

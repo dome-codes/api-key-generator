@@ -12,18 +12,11 @@ import type {
 } from '@/api/types/frontend'
 import type { PaginationInfo } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
-// Debug-Log-Funktion
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log('[useExtractionUsageApi]', ...args)
-  }
-}
+// Debug-Log mit Präfix
+const debugLog = (...args: unknown[]) => baseDebugLog('[useExtractionUsageApi]', ...args)
 
 export function useExtractionUsageApi() {
   // State

@@ -19,18 +19,11 @@
 import type { PaginationInfo } from '@/api/types'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/api/types/frontend'
 import { usageApiService } from '@/services/usageApiService'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
-// Debug-Log-Funktion
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log('[useUsageApi]', ...args)
-  }
-}
+// Debug-Log mit Präfix
+const debugLog = (...args: unknown[]) => baseDebugLog('[useUsageApi]', ...args)
 
 export function useUsageApi() {
   // State
@@ -321,7 +314,7 @@ export function useUsageApi() {
         pagination: pagination.value,
         firstItem: allData[0],
       })
-      console.log('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
+      debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'

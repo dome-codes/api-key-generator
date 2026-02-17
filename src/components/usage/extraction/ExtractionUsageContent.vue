@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { useUrlFilters } from '@/composables/useUrlFilters'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
@@ -182,13 +183,13 @@ let isHandlingFilterChange = false
 const handleOwnFilterChange = async () => {
   // Verhindere gleichzeitige Aufrufe
   if (isHandlingFilterChange) {
-    console.log('[ExtractionUsageContent] handleOwnFilterChange already in progress, skipping...')
+    debugLog('[ExtractionUsageContent] handleOwnFilterChange already in progress, skipping...')
     return
   }
 
   try {
     isHandlingFilterChange = true
-    console.log('[ExtractionUsageContent] handleOwnFilterChange called with:', {
+    debugLog('[ExtractionUsageContent] handleOwnFilterChange called with:', {
       timeRange: ownTimeRange.value,
       fromDate: ownFromDate.value,
       toDate: ownToDate.value,

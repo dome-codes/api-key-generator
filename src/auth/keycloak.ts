@@ -1,16 +1,6 @@
 import appConfig from '@root/app.config.js'
 import Keycloak from 'keycloak-js'
-
-// Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log(...args)
-  }
-}
+import { debugLog } from '@/utils/debugLog'
 
 // Keycloak-Konfiguration aus zentraler appConfig.js (env-basiert möglich)
 const keycloakConfig = {

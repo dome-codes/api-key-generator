@@ -60,19 +60,9 @@ import {
   setTokenReadyForApi,
 } from '@/auth/keycloak'
 import { useAuth } from '@/composables/useAuth'
+import { debugLog } from '@/utils/debugLog'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
-
-// Debug-Log-Funktion (nur im Debug-Modus)
-const debugLog = (...args: unknown[]) => {
-  const isDevelopment = import.meta.env.DEV
-  const debugFromEnv = import.meta.env.VITE_SHOW_DEBUG === 'true'
-  const debugFromLocalStorage = localStorage.getItem('debug') === 'true'
-  const showDebugMode = isDevelopment && (debugFromEnv || debugFromLocalStorage)
-  if (showDebugMode) {
-    console.log(...args)
-  }
-}
 
 const route = useRoute()
 const router = useRouter()
