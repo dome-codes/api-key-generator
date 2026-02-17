@@ -129,7 +129,7 @@ export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
   },
 ]
 
-// Service-Aufschlag (9%)
+// FITS-Aufschlag (9%)
 export const SERVICE_MARKUP_PERCENTAGE = 0.09
 
 // Erweiterte Preisberechnung mit Unterstützung für verschiedene ModelUsageTypes
@@ -198,7 +198,7 @@ function calculateCompletionCost(
   const outputCost = tokensOut * outputPricePerToken
   const totalCost = inputCost + outputCost
 
-  // Berechne Service-Aufschlag
+  // Berechne FITS-Aufschlag
   const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
   const finalCost = totalCost + serviceMarkup
 
@@ -237,7 +237,7 @@ function calculateEmbeddingCost(
   const outputCost = 0 // Embedding-Modelle haben keine Output-Tokens
   const totalCost = inputCost + outputCost
 
-  // Berechne Service-Aufschlag
+  // Berechne FITS-Aufschlag
   const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
   const finalCost = totalCost + serviceMarkup
 
@@ -300,7 +300,7 @@ function calculateImageCost(
   const outputCost = pricePerImage * imageCount
   const totalCost = inputCost + outputCost
 
-  // Berechne Service-Aufschlag
+  // Berechne FITS-Aufschlag
   const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
   const finalCost = totalCost + serviceMarkup
 
@@ -425,14 +425,14 @@ export function removeModel(
 export const PRICING_DISCLAIMER = `
 **Preisberechnung basierend auf Azure OpenAI Tarifen**
 
-Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2026) plus einem Service-Aufschlag von 9%.
+Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2026) plus einem FITS-Aufschlag von 9%.
 
 **Wichtige Hinweise:**
 - **Completion Models**: Preise sind pro 1 Million Tokens berechnet
 - **Embedding Models**: Preise sind pro 1000 Tokens berechnet
 - **Image Models**: Preise sind pro 100 Bilder berechnet (Standard: 1024x1024, HD: 1024x1024, Large: 1024x1792/1792x1024)
 - Zwischengespeicherte Eingaben können günstiger sein
-- Alle Preise in Euro (€) inklusive Service-Aufschlag
+- Alle Preise in Euro (€) inklusive FITS-Aufschlag
 
 **Preisbeispiele:**
 - **GPT-4o-mini**: Eingabe €0,14 / Ausgabe €0,55 (pro 1M Tokens)

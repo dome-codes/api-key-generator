@@ -32,7 +32,7 @@
               >
                 Azure OpenAI Preisen (2026)
               </a>
-              plus 9% Service-Aufschlag.
+              plus einem FITS-Aufschlag von 9%.
             </p>
             <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
@@ -52,7 +52,7 @@
               >
                 Azure Document Intelligence Preisen
               </a>
-              plus 9% Service-Aufschlag.
+              plus einem FITS-Aufschlag von 9%.
             </p>
             <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen Abrechnungspreisen
@@ -102,7 +102,7 @@
                       1024x1024, HD: 1024x1024, Large: 1024x1792/1792x1024)
                     </li>
                     <li>• Zwischengespeicherte Eingaben können günstiger sein</li>
-                    <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
+                    <li>• Alle Preise in Euro (€) inklusive FITS-Aufschlag</li>
                   </ul>
                 </div>
 
@@ -126,10 +126,10 @@
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
                       • <strong>Azure Document Intelligence:</strong> Preise basieren auf der Anzahl der
-                      verarbeiteten Seiten/Dokumente. Der Service-Aufschlag von 9% wird auf die Azure
+                      verarbeiteten Seiten/Dokumente. Der FITS-Aufschlag von 9% wird auf die Azure
                       Preise aufgeschlagen.
                     </li>
-                    <li>• Alle Preise in Euro (€) inklusive Service-Aufschlag</li>
+                    <li>• Alle Preise in Euro (€) inklusive FITS-Aufschlag</li>
                     <li>
                       • Die tatsächlichen Kosten können je nach Dokumenttyp, Modell (Prebuilt vs. Custom)
                       und Komplexität variieren
@@ -142,7 +142,7 @@
                 </div>
 
                 <div class="mt-3">
-                  <strong>Preisbeispiele (pro 100 Seiten, inkl. 9% Service-Aufschlag):</strong>
+                  <strong>Preisbeispiele (pro 100 Seiten, inkl. 9% FITS-Aufschlag):</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
                       • <strong>Azure Document Intelligence:</strong> Standard-Modelle (Prebuilt) ab ca. €1,15
