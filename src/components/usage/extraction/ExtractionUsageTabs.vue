@@ -204,6 +204,7 @@
 import { hasPermission } from '@/auth/keycloak'
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { useUrlFilters } from '@/composables/useUrlFilters'
+import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
@@ -216,9 +217,6 @@ const { getQueryParam } = useUrlFilters()
 
 const activeTab = ref('own')
 const isApiAdmin = computed(() => hasPermission('canUseAdminFeatures'))
-
-// URL Filters Composable
-const { getQueryParam } = useUrlFilters()
 
 // Extraction Usage Composable mit API-basierter Filterung
 const {
@@ -234,6 +232,7 @@ const {
   loadUsageSummary,
   updateFilter,
   goToPage,
+  currentFilter,
 } = useExtractionUsageApi()
 
 // Filter State - Own
@@ -289,17 +288,23 @@ const toIsoDate = (dateStr: string): string | undefined => {
 
 // Handle filter changes - Own
 const handleOwnFilterChange = async () => {
-  await updateFilter(
-    {
-      fromDate: toIsoDate(ownFromDate.value),
-      toDate: toIsoDate(ownToDate.value),
-      modelId: ownModelId.value || undefined,
-      status: ownStatus.value || undefined,
-      tag: ownTag.value || undefined,
-      groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-    },
-    false, // useAdminApi = false
-  )
+  debugLog('[ExtractionUsageTabs] handleOwnFilterChange - Own tab', {
+    view: ownView.value,
+    fromDate: ownFromDate.value,
+    toDate: ownToDate.value,
+  })
+  
+  // Setze Filter ohne sofort zu laden
+  currentFilter.value = {
+    ...currentFilter.value,
+    fromDate: toIsoDate(ownFromDate.value),
+    toDate: toIsoDate(ownToDate.value),
+    modelId: ownModelId.value || undefined,
+    status: ownStatus.value || undefined,
+    tag: ownTag.value || undefined,
+    groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+    page: 1,
+  }
 
   if (ownView.value === 'overview') {
     await loadUsageSummary({}, false)
@@ -310,18 +315,24 @@ const handleOwnFilterChange = async () => {
 
 // Handle filter changes - Admin
 const handleAdminFilterChange = async () => {
-  await updateFilter(
-    {
-      fromDate: toIsoDate(adminFromDate.value),
-      toDate: toIsoDate(adminToDate.value),
-      modelId: adminModelId.value || undefined,
-      status: adminStatus.value || undefined,
-      tag: adminTag.value || undefined,
-      userId: adminUser.value || undefined,
-      groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-    },
-    true, // useAdminApi = true
-  )
+  debugLog('[ExtractionUsageTabs] handleAdminFilterChange - Admin tab', {
+    view: adminView.value,
+    fromDate: adminFromDate.value,
+    toDate: adminToDate.value,
+  })
+  
+  // Setze Filter ohne sofort zu laden
+  currentFilter.value = {
+    ...currentFilter.value,
+    fromDate: toIsoDate(adminFromDate.value),
+    toDate: toIsoDate(adminToDate.value),
+    modelId: adminModelId.value || undefined,
+    status: adminStatus.value || undefined,
+    tag: adminTag.value || undefined,
+    userId: adminUser.value || undefined,
+    groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+    page: 1,
+  }
 
   if (adminView.value === 'overview') {
     await loadUsageSummary({}, true)

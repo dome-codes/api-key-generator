@@ -433,19 +433,24 @@ const adminSummary = computed(() => ({
 // Handle filter changes - Own
 const handleOwnFilterChange = async () => {
   try {
-    debugLog('[AIUsageTabs] handleOwnFilterChange - Own tab')
-    await updateFilter(
-      {
-        fromDate: toIsoDate(ownFromDate.value),
-        toDate: toIsoDate(ownToDate.value),
-        modelType: ownModelType.value || undefined,
-        model: ownModel.value || undefined,
-        tag: ownTag.value || undefined,
-        apiKey: ownApiKeyId.value || undefined,
-        groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-      },
-      false, // useAdminApi = false
-    )
+    debugLog('[AIUsageTabs] handleOwnFilterChange - Own tab', {
+      view: ownView.value,
+      fromDate: ownFromDate.value,
+      toDate: ownToDate.value,
+    })
+    
+    // Setze Filter ohne sofort zu laden
+    currentFilter.value = {
+      ...currentFilter.value,
+      fromDate: toIsoDate(ownFromDate.value),
+      toDate: toIsoDate(ownToDate.value),
+      modelType: ownModelType.value || undefined,
+      model: ownModel.value || undefined,
+      tag: ownTag.value || undefined,
+      apiKey: ownApiKeyId.value || undefined,
+      groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+      page: 1,
+    }
 
     if (ownView.value === 'overview') {
       debugLog('[AIUsageTabs] Loading usage summary...')
@@ -465,20 +470,25 @@ const handleOwnFilterChange = async () => {
 // Handle filter changes - Admin
 const handleAdminFilterChange = async () => {
   try {
-    debugLog('[AIUsageTabs] handleAdminFilterChange - Admin tab')
-    await updateFilter(
-      {
-        fromDate: toIsoDate(adminFromDate.value),
-        toDate: toIsoDate(adminToDate.value),
-        modelType: adminModelType.value || undefined,
-        model: adminModel.value || undefined,
-        tag: adminTag.value || undefined,
-        apiKey: adminApiKeyId.value || undefined,
-        userId: adminUser.value || undefined,
-        groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-      },
-      true, // useAdminApi = true
-    )
+    debugLog('[AIUsageTabs] handleAdminFilterChange - Admin tab', {
+      view: adminView.value,
+      fromDate: adminFromDate.value,
+      toDate: adminToDate.value,
+    })
+    
+    // Setze Filter ohne sofort zu laden
+    currentFilter.value = {
+      ...currentFilter.value,
+      fromDate: toIsoDate(adminFromDate.value),
+      toDate: toIsoDate(adminToDate.value),
+      modelType: adminModelType.value || undefined,
+      model: adminModel.value || undefined,
+      tag: adminTag.value || undefined,
+      apiKey: adminApiKeyId.value || undefined,
+      userId: adminUser.value || undefined,
+      groupBy: adminView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+      page: 1,
+    }
 
     if (adminView.value === 'overview') {
       debugLog('[AIUsageTabs] Loading admin usage summary...')

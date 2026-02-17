@@ -225,25 +225,32 @@ const handleOwnFilterChange = async () => {
   try {
     isHandlingFilterChange = true
     
-    // updateFilter ruft bereits loadUsageData auf, daher müssen wir nicht nochmal explizit laden
-    await updateFilter(
-      {
-        fromDate: toIsoDate(ownFromDate.value),
-        toDate: toIsoDate(ownToDate.value),
-        modelType: ownModelType.value || undefined,
-        model: ownModel.value || undefined,
-        tag: ownTag.value || undefined,
-        apiKey: ownApiKeyId.value || undefined,
-        groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-      },
-      props.useAdminApi,
-    )
+    debugLog('[AIUsageContent] handleOwnFilterChange', {
+      view: ownView.value,
+      fromDate: ownFromDate.value,
+      toDate: ownToDate.value,
+      useAdminApi: props.useAdminApi,
+    })
+    
+    // Setze Filter ohne sofort zu laden
+    currentFilter.value = {
+      ...currentFilter.value,
+      fromDate: toIsoDate(ownFromDate.value),
+      toDate: toIsoDate(ownToDate.value),
+      modelType: ownModelType.value || undefined,
+      model: ownModel.value || undefined,
+      tag: ownTag.value || undefined,
+      apiKey: ownApiKeyId.value || undefined,
+      groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
+      page: 1,
+    }
 
-    // Nur Summary laden wenn im Overview-Modus (updateFilter lädt bereits die detaillierten Daten)
+    // Lade je nach View-Modus die richtigen Daten
     if (ownView.value === 'overview') {
       await loadUsageSummary({}, props.useAdminApi)
+    } else {
+      await loadUsageData({}, props.useAdminApi)
     }
-    // else: loadUsageData wird bereits von updateFilter aufgerufen
 
     saveFiltersToUrl()
   } catch (err) {
