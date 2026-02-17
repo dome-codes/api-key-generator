@@ -94,4 +94,27 @@ export const pricingService = {
     cachedPricing = null
     debugLog('[pricingService] Pricing cache cleared')
   },
+
+  /**
+   * Erstellt Download-Link für aktuelle Preise (als JSON-Datei)
+   * Da keine API vorhanden ist, wird die Datei zum Download bereitgestellt
+   */
+  downloadPricingJson(pricing: {
+    modelPricing: ModelPricing[]
+    imagePricing: ImageModelPricing[]
+    embeddingPricing: EmbeddingModelPricing[]
+    markupPercentage: number
+  }): void {
+    const jsonString = JSON.stringify(pricing, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'pricing.json'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    debugLog('[pricingService] Pricing JSON downloaded')
+  },
 }

@@ -4,6 +4,7 @@ export interface ModelPricing {
   inputPrice: number // € pro 1M Tokens
   outputPrice: number // € pro 1M Tokens
   cachedInputPrice?: number // € pro 1M Tokens (optional)
+  reasoningPrice?: number // € pro 1M Tokens (optional, für Reasoning-Tokens)
 }
 
 // Image-basierte Preise (pro Bild)

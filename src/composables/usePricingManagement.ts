@@ -137,6 +137,20 @@ export function usePricingManagement() {
     markupPercentage.value = 0.09
   }
 
+  /**
+   * Speichert aktuelle Preise als JSON-Datei (Download)
+   * Die Datei muss manuell in public/pricing.json kopiert werden
+   */
+  const savePricing = () => {
+    const pricingData = {
+      modelPricing: modelPricing.value,
+      imagePricing: imagePricing.value,
+      embeddingPricing: embeddingPricing.value,
+      markupPercentage: markupPercentage.value,
+    }
+    pricingService.downloadPricingJson(pricingData)
+  }
+
   // Initial load beim Mount
   onMounted(() => {
     loadPricing()
@@ -163,5 +177,6 @@ export function usePricingManagement() {
     deleteEmbeddingPricing,
     addEmbeddingPricing,
     resetToDefaults,
+    savePricing,
   }
 }

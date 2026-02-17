@@ -35,7 +35,42 @@
           Verwalten Sie die Preise für Azure OpenAI und Document Intelligence Modelle
         </p>
       </div>
+    </div>
+
+    <!-- Info-Box: Speicherung -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <h3 class="text-sm font-medium text-blue-800">Hinweis zur Speicherung</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <p>
+              <strong>Änderungen werden nur im Browser gespeichert.</strong> Klicken Sie auf "💾 Preise speichern (Download)",
+              um die aktualisierten Preise als JSON-Datei herunterzuladen. Diese Datei muss dann manuell in
+              <code class="bg-blue-100 px-1 rounded">public/pricing.json</code> kopiert werden.
+            </p>
+            <p class="mt-2">
+              <strong>Reasoning-Tokens:</strong> Werden aktuell zu Output-Tokens addiert. Falls Sie einen separaten Reasoning-Preis
+              definieren, wird dieser verwendet (sobald die Berechnung angepasst ist).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div></div>
       <div class="flex gap-2">
+        <button
+          @click="savePricing"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover"
+        >
+          💾 Preise speichern (Download)
+        </button>
         <button
           @click="showResetConfirm = true"
           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -93,6 +128,9 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Cached Eingabe (€/1M Tokens)
               </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Reasoning (€/1M Tokens)
+              </th>
               <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
             </tr>
           </thead>
@@ -124,6 +162,17 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
                   v-model.number="model.cachedInputPrice"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-32 border border-gray-300 rounded px-2 py-1 text-sm"
+                  placeholder="Optional"
+                  @blur="updateModelPricing(model)"
+                />
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <input
+                  v-model.number="model.reasoningPrice"
                   type="number"
                   step="0.01"
                   min="0"
@@ -375,6 +424,19 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Reasoning-Preis (€/1M Tokens, optional)
+            </label>
+            <input
+              v-model.number="newModel.reasoningPrice"
+              type="number"
+              step="0.01"
+              min="0"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Falls Reasoning-Tokens separat berechnet werden sollen"
+            />
+          </div>
         </div>
         <div class="flex justify-end gap-2 mt-6">
           <button
@@ -555,6 +617,7 @@ const {
   deleteEmbeddingPricing,
   addEmbeddingPricing,
   resetToDefaults,
+  savePricing,
 } = usePricingManagement()
 
 const localMarkup = ref(markupPercentage.value)
@@ -567,6 +630,8 @@ const newModel = ref<ModelPricing>({
   modelName: '',
   inputPrice: 0,
   outputPrice: 0,
+  cachedInputPrice: undefined,
+  reasoningPrice: undefined,
 })
 
 const newImageModel = ref<ImageModelPricing>({
@@ -594,7 +659,13 @@ const handleReset = async () => {
 const handleAddModel = () => {
   if (newModel.value.modelName && newModel.value.inputPrice > 0 && newModel.value.outputPrice > 0) {
     addModelPricing({ ...newModel.value })
-    newModel.value = { modelName: '', inputPrice: 0, outputPrice: 0 }
+    newModel.value = {
+      modelName: '',
+      inputPrice: 0,
+      outputPrice: 0,
+      cachedInputPrice: undefined,
+      reasoningPrice: undefined,
+    }
     showAddModelModal.value = false
   }
 }
