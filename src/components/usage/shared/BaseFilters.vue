@@ -47,14 +47,34 @@
       <!-- Tag Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
-        <input
+        <select
           v-model="localTagInput"
-          type="text"
-          placeholder="z.B. production"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @keyup.enter="handleFilterChange"
-          @blur="handleFilterChange"
-        />
+          @change="handleTagChange"
+        >
+          <option value="">Alle Tags</option>
+          <option
+            v-for="tagInfo in displayedTags"
+            :key="tagInfo.tag"
+            :value="tagInfo.tag"
+          >
+            {{ tagInfo.tag }} ({{ tagInfo.count }})
+          </option>
+        </select>
+        <button
+          v-if="!showAllTags && availableTags.length > 10"
+          @click="showAllTags = true"
+          class="mt-1 text-xs text-primary hover:text-primary-hover"
+        >
+          + {{ availableTags.length - 10 }} weitere anzeigen
+        </button>
+        <button
+          v-if="showAllTags && availableTags.length > 10"
+          @click="showAllTags = false"
+          class="mt-1 text-xs text-primary hover:text-primary-hover"
+        >
+          Weniger anzeigen
+        </button>
       </div>
 
       <!-- API Key Filter -->
@@ -87,7 +107,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import { getTopAITags, getTopExtractionTags, getAllAITags, getAllExtractionTags, type TagInfo } from '@/services/tagsService'
 
 interface Props {
   timeRange: string
@@ -95,9 +116,14 @@ interface Props {
   apiKeyId?: string
   fromDate?: string
   toDate?: string
+  tagType?: 'ai' | 'extraction' // Typ für Tag-Loading
+  useAdminApi?: boolean // Ob Admin-API verwendet werden soll
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  tagType: 'ai',
+  useAdminApi: false,
+})
 
 const emit = defineEmits<{
   'update:timeRange': [value: string]
@@ -117,6 +143,9 @@ const localTimeRange = computed({
 // Local Text-Inputs für Tag und API Key (werden erst beim Button-Klick oder Enter aktualisiert)
 const localTagInput = ref(props.tag || '')
 const localApiKeyIdInput = ref(props.apiKeyId || '')
+const availableTags = ref<TagInfo[]>([])
+const showAllTags = ref(false)
+const isLoadingTags = ref(false)
 
 // Sync props changes back to local inputs
 watch(
@@ -186,10 +215,74 @@ const handleDateChange = () => {
   handleFilterChange()
 }
 
+const displayedTags = computed(() => {
+  if (showAllTags.value) {
+    return availableTags.value
+  }
+  return availableTags.value.slice(0, 10)
+})
+
+// Lade Tags beim Mount und wenn sich Datum ändert
+const loadTags = async () => {
+  if (!props.tagType) return
+  
+  isLoadingTags.value = true
+  try {
+    const fromDateISO = props.fromDate ? new Date(props.fromDate + 'T00:00:00').toISOString() : undefined
+    const toDateISO = props.toDate ? new Date(props.toDate + 'T23:59:59').toISOString() : undefined
+
+    if (showAllTags.value) {
+      // Lade alle Tags
+      if (props.tagType === 'ai') {
+        availableTags.value = await getAllAITags(fromDateISO, toDateISO, props.useAdminApi)
+      } else {
+        availableTags.value = await getAllExtractionTags(fromDateISO, toDateISO, props.useAdminApi)
+      }
+    } else {
+      // Lade nur Top 10
+      if (props.tagType === 'ai') {
+        availableTags.value = await getTopAITags(fromDateISO, toDateISO, 10, props.useAdminApi)
+      } else {
+        availableTags.value = await getTopExtractionTags(fromDateISO, toDateISO, 10, props.useAdminApi)
+      }
+    }
+  } catch (error) {
+    console.error('Error loading tags:', error)
+    availableTags.value = []
+  } finally {
+    isLoadingTags.value = false
+  }
+}
+
+// Watch für Datum-Änderungen
+watch([() => props.fromDate, () => props.toDate], () => {
+  loadTags()
+})
+
+// Watch für showAllTags
+watch(showAllTags, (newValue) => {
+  if (newValue) {
+    loadTags()
+  } else {
+    // Zurück zu Top 10
+    loadTags()
+  }
+})
+
+const handleTagChange = () => {
+  // Aktualisiere Tag-Wert
+  emit('update:tag', localTagInput.value)
+  emit('filter-changed')
+}
+
 const handleFilterChange = () => {
   // Aktualisiere alle Werte bevor der Filter ausgelöst wird
   emit('update:tag', localTagInput.value)
   emit('update:apiKeyId', localApiKeyIdInput.value)
   emit('filter-changed')
 }
+
+onMounted(() => {
+  loadTags()
+})
 </script>

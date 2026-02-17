@@ -5,7 +5,9 @@ import * as mockData from './mock-data.js'
 import {
   getAIUsageSummaryByDay,
   getAIUsageSummaryByApiKey,
+  getAIUsageSummaryByTag,
   getExtractionUsageSummaryByDay,
+  getExtractionUsageSummaryByTag,
   closeDatabase,
 } from './scripts/db-helper.js'
 
@@ -924,6 +926,10 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     // Verwende SQLite für API Key Gruppierung
     mockUsage = getAIUsageSummaryByApiKey(filters)
     console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_apikey), length:`, mockUsage.length)
+  } else if (groupBy.includes('tag')) {
+    // Verwende SQLite für Tag-Gruppierung
+    mockUsage = getAIUsageSummaryByTag(filters)
+    console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_tag), length:`, mockUsage.length)
   } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     // Verwende SQLite für Tag/Monat/Jahr Gruppierung
     mockUsage = getAIUsageSummaryByDay(filters)
@@ -1041,6 +1047,10 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
   
   if (groupBy.includes('apikey') || by === 'apikey') {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
+  } else if (groupBy.includes('tag')) {
+    // Verwende SQLite für Tag-Gruppierung
+    mockUsage = getAIUsageSummaryByTag(filters)
+    console.log(`[${timestamp}] Admin: Using SQLite (ai_usage_summary_by_tag), length:`, mockUsage.length)
   } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_DAY]
   } else {
@@ -1331,7 +1341,11 @@ app.get('/v1/usage/extraction/summarize', validateToken, (req, res) => {
     userId,
   }
 
-  if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
+  if (groupBy.includes('tag')) {
+    // Verwende SQLite für Tag-Gruppierung
+    mockExtraction = getExtractionUsageSummaryByTag(filters)
+    console.log(`[${timestamp}] Using SQLite (extraction_usage_summary_by_tag), length:`, mockExtraction.length)
+  } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     // Verwende SQLite für Tag/Monat/Jahr Gruppierung
     mockExtraction = getExtractionUsageSummaryByDay(filters)
     console.log(`[${timestamp}] Using SQLite (extraction_usage_summary_by_day), length:`, mockExtraction.length)
@@ -1454,7 +1468,21 @@ app.get(
     // Gruppierung nach 'by' Parameter
     const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
 
-    if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
+    if (groupBy.includes('tag')) {
+      // Verwende SQLite für Tag-Gruppierung
+      const filters = {
+        from_date,
+        to_date,
+        provider,
+        modelId,
+        status,
+        tag,
+        apiKeyId,
+        userId,
+      }
+      mockExtraction = getExtractionUsageSummaryByTag(filters)
+      console.log(`[${timestamp}] Admin: Using SQLite (extraction_usage_summary_by_tag), length:`, mockExtraction.length)
+    } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
       mockExtraction = [...mockData.MOCK_EXTRACTION_SUMMARY_BY_DAY]
     } else {
       mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]

@@ -5,6 +5,8 @@
     :api-key-id="apiKeyId"
     :from-date="fromDate"
     :to-date="toDate"
+    tag-type="ai"
+    :use-admin-api="showUserFilter"
     @update:time-range="$emit('update:timeRange', $event)"
     @update:tag="$emit('update:tag', $event)"
     @update:api-key-id="$emit('update:apiKeyId', $event)"
