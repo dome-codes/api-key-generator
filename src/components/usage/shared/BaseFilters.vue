@@ -54,8 +54,8 @@
         >
           <option value="">Alle Tags</option>
           <option
-            v-for="tagInfo in displayedTags"
-            :key="tagInfo.tag"
+            v-for="(tagInfo, index) in displayedTags"
+            :key="`tag-${index}-${tagInfo.tag}`"
             :value="tagInfo.tag"
           >
             {{ tagInfo.tag }} ({{ tagInfo.count }})
