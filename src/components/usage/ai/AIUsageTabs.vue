@@ -257,7 +257,7 @@ const loadFiltersFromUrl = () => {
   activeTab.value = tabParam === 'admin' ? 'admin' : 'own'
 
   if (activeTab.value === 'own') {
-    ownTimeRange.value = getQueryParam('timeRange') || ''
+    ownTimeRange.value = getQueryParam('timeRange') || '30d' // Default: 30 Tage wenn nicht in URL
     ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     ownModel.value = getQueryParam('model') || ''
     ownTag.value = getQueryParam('tag') || ''
@@ -267,9 +267,42 @@ const loadFiltersFromUrl = () => {
     // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
     ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+    
+    // Wenn timeRange gesetzt ist, aber keine expliziten Daten, dann Datum entsprechend setzen
+    if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+      const today = new Date()
+      let startDate: Date
+      switch (ownTimeRange.value) {
+        case '7d':
+          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case '30d':
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          break
+        case '90d':
+          startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+          break
+        case 'thisMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+          break
+        case 'lastMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+          const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+          ownToDate.value = lastDay.toISOString().split('T')[0]
+          break
+        default:
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      }
+      if (ownTimeRange.value !== 'lastMonth') {
+        ownFromDate.value = startDate.toISOString().split('T')[0]
+        ownToDate.value = today.toISOString().split('T')[0]
+      } else {
+        ownFromDate.value = startDate.toISOString().split('T')[0]
+      }
+    }
   }
   if (activeTab.value === 'admin') {
-    adminTimeRange.value = getQueryParam('timeRange') || ''
+    adminTimeRange.value = getQueryParam('timeRange') || '30d' // Default: 30 Tage wenn nicht in URL
     adminModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     adminModel.value = getQueryParam('model') || ''
     adminTag.value = getQueryParam('tag') || ''
@@ -280,6 +313,39 @@ const loadFiltersFromUrl = () => {
     // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
     adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+    
+    // Wenn timeRange gesetzt ist, aber keine expliziten Daten, dann Datum entsprechend setzen
+    if (adminTimeRange.value && adminTimeRange.value !== 'custom' && !adminFromDate.value && !adminToDate.value) {
+      const today = new Date()
+      let startDate: Date
+      switch (adminTimeRange.value) {
+        case '7d':
+          startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case '30d':
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          break
+        case '90d':
+          startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+          break
+        case 'thisMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+          break
+        case 'lastMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+          const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+          adminToDate.value = lastDay.toISOString().split('T')[0]
+          break
+        default:
+          startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      }
+      if (adminTimeRange.value !== 'lastMonth') {
+        adminFromDate.value = startDate.toISOString().split('T')[0]
+        adminToDate.value = today.toISOString().split('T')[0]
+      } else {
+        adminFromDate.value = startDate.toISOString().split('T')[0]
+      }
+    }
   }
 }
 
