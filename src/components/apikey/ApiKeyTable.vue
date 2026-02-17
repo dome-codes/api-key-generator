@@ -292,27 +292,27 @@
       <tbody>
         <template
           v-for="group in paginatedKeys"
-          :key="isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id"
+          :key="getGroupId(group)"
         >
           <ApiKeyRow
             :keyData="isAdmin ? createGroupedKeyData(group) : group"
-            :editing="editingKey === (isAdmin ? group.userId : group.id)"
+            :editing="editingKey === getGroupId(group)"
             :editingName="editingName"
-            :usageData="usageDataByKeyId[isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
+            :usageData="usageDataByKeyId[getGroupId(group)] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
             :budgetLimit="budgetLimit"
             :isAdmin="isAdmin"
             :isEntwicklung="isEntwicklung"
             :adminUsageByUser="adminUsageByUser"
-            :expandable="isAdmin && !!(group as { keys?: unknown[] }).keys?.length"
-            :expanded="isAdmin && expandedUserId === (group as { userId?: string }).userId"
-            :child-count="isAdmin ? (group as { keys?: unknown[] }).keys?.length ?? 0 : 0"
+            :expandable="isAdmin && hasGroupKeys(group)"
+            :expanded="isAdmin && expandedUserId === getGroupId(group)"
+            :child-count="isAdmin ? getGroupKeys(group).length : 0"
             :is-child-row="false"
             @toggle-expand="
               isAdmin &&
                 (expandedUserId =
-                  expandedUserId === (group as { userId?: string }).userId
+                  expandedUserId === getGroupId(group)
                     ? null
-                    : (group as { userId: string }).userId)
+                    : getGroupId(group))
             "
             @edit="$emit('edit', $event)"
             @save="$emit('save', $event)"
@@ -321,15 +321,11 @@
             @name-input="$emit('name-input', $event)"
           />
           <template
-            v-if="
-              isAdmin &&
-              expandedUserId === (group as { userId?: string }).userId &&
-              (group as { keys?: ApiKeyDisplay[] }).keys?.length
-            "
-            :key="(group as { userId: string }).userId + '-expanded'"
+            v-if="isAdmin && expandedUserId === getGroupId(group) && hasGroupKeys(group)"
+            :key="getGroupId(group) + '-expanded'"
           >
             <ApiKeyRow
-              v-for="k in (group as { keys: ApiKeyDisplay[] }).keys"
+              v-for="k in getGroupKeys(group)"
               :key="k.id"
               :keyData="k"
               :editing="editingKey === k.id"
@@ -755,14 +751,39 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
   return { cost: data.cost, tokensIn: data.tokensIn, tokensOut: data.tokensOut }
 }
 
+// Helper: Hole ID aus group (userId für Admin-Gruppe, id für einzelner Key)
+function getGroupId(group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDisplay[] }): string {
+  if (isAdmin.value && 'userId' in group && group.userId) {
+    return group.userId
+  }
+  return (group as ApiKeyDisplay).id
+}
+
+// Helper: Hole Keys-Array aus Admin-Gruppe
+function getGroupKeys(group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDisplay[] }): ApiKeyDisplay[] {
+  if (isAdmin.value && 'keys' in group && Array.isArray(group.keys)) {
+    return group.keys
+  }
+  return []
+}
+
+// Helper: Prüfe ob Gruppe Keys hat
+function hasGroupKeys(group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDisplay[] }): boolean {
+  if (isAdmin.value && 'keys' in group && Array.isArray(group.keys)) {
+    return group.keys.length > 0
+  }
+  return false
+}
+
 // Reaktive Map keyId → usageData für die sichtbaren Zeilen, damit ApiKeyRow sicher die aktuellen Werte bekommt
 const usageDataByKeyId = computed(() => {
   const out: Record<string, ApiKeyUsageData> = {}
   for (const group of paginatedKeys.value) {
-    const id = isAdmin.value ? (group as { userId?: string }).userId : (group as { id: string }).id
+    const id = getGroupId(group)
     if (id) out[id] = getUsageDataForKey(id)
-    if (isAdmin.value && (group as { keys?: ApiKeyDisplay[] }).keys) {
-      for (const k of (group as { keys: ApiKeyDisplay[] }).keys) {
+    if (isAdmin.value) {
+      const keys = getGroupKeys(group)
+      for (const k of keys) {
         out[k.id] = getUsageDataForKey(k.id)
       }
     }

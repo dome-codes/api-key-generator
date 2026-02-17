@@ -59,19 +59,11 @@ export function useApiKeys(userProfile: UserProfile) {
     error.value = ''
     try {
       const data = await apiKeyService.createApiKey(newKeyName.value, newKeyPermissions.value)
-      const raw = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
-      const secret =
-        (raw.secret as string) ??
-        (raw.api_key as string) ??
-        (raw.apiKey as string) ??
-        (raw.value as string) ??
-        (raw.key as string) ??
-        ''
-      createdSecret.value = typeof secret === 'string' ? secret : ''
-      createdKeyName.value = (raw.name as string) || (data?.name as string) || ''
+
+      createdSecret.value = data.token || ''
+      createdKeyName.value = data.name
       createdKeyPermissions.value = ['api-access']
-      createdKeyValidUntil.value =
-        (raw.expiresAt as string) || (raw.expires_at as string) || 'Never'
+      createdKeyValidUntil.value = data.expiresAt || 'Never'
       createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
       await loadKeys()
     } catch (err) {

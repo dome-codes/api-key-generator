@@ -186,7 +186,7 @@ export function useUsage() {
 
         // Konvertiere zu EnhancedUsageRecord für Progress Bars (apiKeyId aus allen Backend-Varianten)
         const enhancedData = await Promise.all(
-          validItems.map(async (item: SummaryUsage & Record<string, unknown>) => {
+          validItems.map(async (item: any) => {
             const { calculateCost } = await import('@/config/pricing')
             const { requestTokens, responseTokens } = readTokensFromItem(item)
             const costResult = calculateCost(

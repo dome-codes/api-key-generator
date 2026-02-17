@@ -1,27 +1,23 @@
 /**
  * useUsageApi Composable
- * 
+ *
  * Dieser Composable implementiert die server-seitige Filterung und Gruppierung
  * über die API. Er läuft parallel zum bestehenden useUsage Composable.
- * 
+ *
  * Unterschiede zu useUsage:
  * - Alle Filterung erfolgt server-seitig über API-Parameter
  * - Pagination wird vollständig über die API gehandhabt
  * - Gruppierung erfolgt server-seitig über den 'by' Parameter
  * - Keine Client-seitige Filterung oder Gruppierung
- * 
+ *
  * Verwendung:
  * - Für neue Features die API-basierte Filterung nutzen sollen
  * - Parallel zum bestehenden useUsage nutzbar
  * - Migration: Schrittweise von useUsage zu useUsageApi wechseln
  */
 
-import type {
-  EnhancedUsageRecord,
-  UsageFilterApi,
-  UsageAggregation,
-} from '@/api/types/frontend'
 import type { PaginationInfo } from '@/api/types'
+import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/api/types/frontend'
 import { usageApiService } from '@/services/usageApiService'
 import { computed, ref } from 'vue'
 
@@ -109,7 +105,12 @@ export function useUsageApi() {
   })
 
   // Hilfsfunktion: Datum aus Item; wenn createDate leer oder ungültig → 'unknown' (Chart zeigt dann "Gesamt")
-  const getDateKeyFromItem = (item: { day?: number; month?: number; year?: number; createDate?: string }): string => {
+  const getDateKeyFromItem = (item: {
+    day?: number
+    month?: number
+    year?: number
+    createDate?: string
+  }): string => {
     if (item.day != null && item.month != null && item.year != null) {
       return `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
     }
@@ -139,7 +140,10 @@ export function useUsageApi() {
       }
     }
 
-    const dateMap = new Map<string, { tokensIn: number; tokensOut: number; requests: number; cost: number }>()
+    const dateMap = new Map<
+      string,
+      { tokensIn: number; tokensOut: number; requests: number; cost: number }
+    >()
 
     data.forEach((item) => {
       const dateKey = getDateKeyFromItem(item)
@@ -176,7 +180,11 @@ export function useUsageApi() {
   })
 
   // Request-Zählung für Charts: Backend sendet oft keine "requests", dann 1 pro Eintrag mit Tokens
-  const getRequestCount = (item: { requests?: number; tokensIn?: number; tokensOut?: number }): number => {
+  const getRequestCount = (item: {
+    requests?: number
+    tokensIn?: number
+    tokensOut?: number
+  }): number => {
     const r = item.requests ?? 0
     if (r > 0) return r
     return item.tokensIn || item.tokensOut ? 1 : 0
@@ -193,7 +201,7 @@ export function useUsageApi() {
     const modelMap = new Map<string, number>()
 
     data.forEach((item) => {
-      const modelName = item.modelName || item.model || 'Unknown'
+      const modelName = item.modelName || 'Unknown'
       const currentCount = modelMap.get(modelName) || 0
       modelMap.set(modelName, currentCount + getRequestCount(item))
     })
@@ -315,7 +323,8 @@ export function useUsageApi() {
       })
       console.log('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
+      error.value =
+        err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
       console.error('Error loading usage summary:', err)
       // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
       summaryData.value = []
