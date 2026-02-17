@@ -1,16 +1,328 @@
+<script setup lang="ts">
+import type { EnhancedUsageRecord } from '@/api/types/frontend'
+import type { ModelUsageType } from '@/api/types'
+import { formatCost } from '@/config/pricing'
+import ErrorState from './shared/ErrorState.vue'
+import SkeletonLoader from './shared/SkeletonLoader.vue'
+import { computed, ref } from 'vue'
+
+const emit = defineEmits<{
+  'page-change': [page: number]
+  'sort-change': [field: string, order: 'asc' | 'desc']
+  retry: []
+}>()
+
+// Local state
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// Handle page size change
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  pageSize.value = Number(pageSize.value)
+}
+
+// Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
+const sortField = ref('date')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+// Props für Backend-Sortierung (optional)
+interface Props {
+  data: EnhancedUsageRecord[]
+  isLoading?: boolean
+  error?: string | null
+  pagination?: {
+    page?: number
+    limit?: number
+    total?: number
+    totalPages?: number
+  }
+  sortField?: string // Aktuelles Sortierfeld vom Backend
+  sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
+  useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
+  /** Wenn gesetzt: Spalten Größe/Qualität nur bei IMAGE_USAGE anzeigen (sonst ausblenden) */
+  modelTypeFilter?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false,
+  error: null,
+  pagination: undefined,
+  sortField: undefined,
+  sortOrder: undefined,
+  useBackendSorting: false,
+  modelTypeFilter: undefined,
+})
+
+// Größe/Qualität nur bei Image-Nutzung oder wenn kein Filter gesetzt
+const showImageColumns = computed(() => {
+  const f = (props.modelTypeFilter || '').toLowerCase()
+  if (!f) return true
+  return f.includes('image') || f === 'image_model_usage' || f === 'imageusage'
+})
+
+// Computed
+const filteredData = computed(() => props.data)
+
+// Wenn Backend-Sortierung aktiv ist, nutze Daten direkt (bereits sortiert)
+// Sonst client-seitige Sortierung als Fallback
+const sortedData = computed(() => {
+  if (props.useBackendSorting) {
+    // Daten sind bereits vom Backend sortiert
+    return filteredData.value
+  }
+
+  // Fallback: Client-seitige Sortierung
+  const data = [...filteredData.value]
+
+  return data.sort((a, b) => {
+    let comparison = 0
+
+    switch (sortField.value) {
+      case 'technicalUserName':
+        comparison = (a.technicalUserName || '').localeCompare(b.technicalUserName || '')
+        break
+      case 'modelName':
+        comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'modelType':
+        const typeA = a.type || a.modelType || ''
+        const typeB = b.type || b.modelType || ''
+        comparison = typeA.localeCompare(typeB)
+        break
+      case 'requests':
+        comparison = (a.requests || 0) - (b.requests || 0)
+        break
+      case 'tokensIn':
+        comparison = (a.tokensIn || 0) - (b.tokensIn || 0)
+        break
+      case 'tokensOut':
+        comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
+        break
+      case 'totalTokens':
+        comparison = (a.totalTokens || 0) - (b.totalTokens || 0)
+        break
+      case 'cost':
+        comparison = (a.cost || 0) - (b.cost || 0)
+        break
+      case 'date':
+        // Sortiere nach Datum (Jahr, Monat, Tag)
+        const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
+        const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
+        comparison = dateA.getTime() - dateB.getTime()
+        break
+      case 'apiKeyId':
+        comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
+        break
+      default:
+        comparison = 0
+    }
+
+    return sortOrder.value === 'asc' ? comparison : -comparison
+  })
+})
+
+// Aktuelles Sortierfeld für Anzeige
+const currentSortField = computed(() => {
+  return props.useBackendSorting && props.sortField ? props.sortField : sortField.value
+})
+
+const currentSortOrder = computed(() => {
+  return props.useBackendSorting && props.sortOrder ? props.sortOrder : sortOrder.value
+})
+
+const paginationPage = computed(() => props.pagination?.page ?? 1)
+const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
+const paginationTotal = computed(() => props.pagination?.total ?? 0)
+
+// Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
+const totalPages = computed(() => {
+  if (props.pagination) {
+    return props.pagination?.totalPages ?? 0
+  }
+  return Math.ceil(sortedData.value.length / pageSize.value)
+})
+
+// Display data - nutze Backend-Pagination wenn vorhanden, sonst Client-seitige
+const displayData = computed(() => {
+  // Wenn Backend-Pagination vorhanden ist, zeige alle Daten (bereits paginiert)
+  if (props.pagination) {
+    return sortedData.value
+  }
+  // Sonst nutze Client-seitige Pagination
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return sortedData.value.slice(start, end)
+})
+
+// Methods
+const getInitials = (name?: string): string => {
+  if (!name) return '--'
+
+  return name
+    .split(' ')
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+const getModelTypeLabel = (type: ModelUsageType | string): string => {
+  switch (type) {
+    case 'CompletionModelUsage':
+    case 'COMPLETION_USAGE':
+      return 'Chat'
+    case 'EmbeddingModelUsage':
+    case 'EMBEDDING_USAGE':
+      return 'Embedding'
+    case 'ImageModelUsage':
+    case 'IMAGE_USAGE':
+      return 'Bild'
+    default:
+      return type || 'Chat'
+  }
+}
+
+const getModelTypeBadgeClass = (type: ModelUsageType | string): string => {
+  switch (type) {
+    case 'CompletionModelUsage':
+    case 'COMPLETION_USAGE':
+      return 'bg-blue-100 text-blue-800'
+    case 'EmbeddingModelUsage':
+    case 'EMBEDDING_USAGE':
+      return 'bg-green-100 text-green-800'
+    case 'ImageModelUsage':
+    case 'IMAGE_USAGE':
+      return 'bg-purple-100 text-purple-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const formatDate = (day?: number, month?: number, year?: number, createDate?: string): string => {
+  if (day != null && month != null && year != null) {
+    return `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`
+  }
+  if (createDate && String(createDate).trim()) {
+    try {
+      const d = new Date(createDate)
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return '–'
+}
+
+const formatImageSize = (width?: number, height?: number): string => {
+  if (width != null && height != null) return `${width}×${height}`
+  if (width != null) return `${width}×?`
+  if (height != null) return `?×${height}`
+  return '–'
+}
+
+// Methods
+const sortBy = (field: string) => {
+  if (props.useBackendSorting) {
+    // Backend-Sortierung: Emitte Event an Parent-Komponente
+    const newOrder =
+      currentSortField.value === field && currentSortOrder.value === 'desc' ? 'asc' : 'desc'
+    emit('sort-change', field, newOrder)
+  } else {
+    // Client-seitige Sortierung (Fallback)
+    if (sortField.value === field) {
+      // Toggle sort order if same field
+      sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+      // Set new field and default to desc
+      sortField.value = field
+      sortOrder.value = 'desc'
+    }
+    currentPage.value = 1 // Reset to first page when sorting changes
+  }
+}
+
+const exportTableData = async () => {
+  try {
+    const headers = [
+      'Technische User ID',
+      'Technischer Benutzername',
+      'Modell',
+      'Modelltyp',
+      'Anfragen',
+      'Tokens In',
+      'Tokens Out',
+      'Gesamt Tokens',
+      'Kosten (€)',
+      'Tag',
+      'Größe',
+      'Qualität',
+      'API Key ID',
+      'Tag',
+      'Monat',
+      'Jahr',
+    ]
+
+    const csvContent = [
+      headers.join(','),
+      ...sortedData.value.map((item) =>
+        [
+          item.technicalUserId,
+          item.technicalUserName,
+          item.modelName,
+          item.type || item.modelType,
+          item.requests,
+          item.tokensIn,
+          item.tokensOut,
+          item.totalTokens,
+          (item.cost ?? 0).toFixed(4),
+          item.tag,
+          formatImageSize(item.sizeWidth, item.sizeHeight),
+          item.quality || '',
+          item.apiKeyId || '',
+          item.day || '',
+          item.month || '',
+          item.year || '',
+        ].join(','),
+      ),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `detailed-usage-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  } catch (err) {
+    console.error('Fehler beim Exportieren:', err)
+  }
+}
+
+// Reset pagination when data changes
+import { watch } from 'vue'
+watch(
+  () => props.data,
+  () => {
+    currentPage.value = 1
+  },
+)
+</script>
+
 <template>
   <div class="bg-white rounded-xl shadow p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
         <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
-          {{ pagination.total }} Einträge (Seite {{ pagination.page }} von {{ pagination.totalPages }})
+          {{ pagination.total }} Einträge (Seite {{ pagination.page }} von
+          {{ pagination.totalPages }})
         </span>
         <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
         <button
-          @click="exportTableData"
           class="text-sm text-link hover:text-primary-hover"
           :disabled="isLoading"
+          @click="exportTableData"
         >
           {{ isLoading ? 'Exportiere...' : 'Als CSV exportieren' }}
         </button>
@@ -292,9 +604,9 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <span
                 class="px-2 py-1 text-xs font-medium rounded-full"
-                :class="getModelTypeBadgeClass((item.type ?? item.modelType) ?? '')"
+                :class="getModelTypeBadgeClass(item.type ?? item.modelType ?? '')"
               >
-                {{ getModelTypeLabel((item.type ?? item.modelType) ?? 'CompletionModelUsage') }}
+                {{ getModelTypeLabel(item.type ?? item.modelType ?? 'CompletionModelUsage') }}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -330,13 +642,15 @@
 
       <!-- Pagination: Backend-Pagination hat Priorität, sonst Client-seitige Pagination -->
       <!-- Backend-Pagination -->
-      <div v-if="pagination && (pagination.totalPages ?? 0) > 1 && displayData.length > 0" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
+      <div
+        v-if="pagination && (pagination.totalPages ?? 0) > 1 && displayData.length > 0"
+        class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200"
+      >
         <div class="text-sm text-gray-700">
           Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
         </div>
         <div class="flex space-x-2">
           <button
-            @click="$emit('page-change', paginationPage - 1)"
             :disabled="paginationPage <= 1"
             :class="[
               'px-3 py-2 text-sm font-medium rounded-md',
@@ -344,11 +658,11 @@
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
             ]"
+            @click="$emit('page-change', paginationPage - 1)"
           >
             Zurück
           </button>
           <button
-            @click="$emit('page-change', paginationPage + 1)"
             :disabled="paginationPage >= paginationTotalPages"
             :class="[
               'px-3 py-2 text-sm font-medium rounded-md',
@@ -356,6 +670,7 @@
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
             ]"
+            @click="$emit('page-change', paginationPage + 1)"
           >
             Weiter
           </button>
@@ -372,17 +687,17 @@
         </div>
         <div class="flex items-center space-x-2">
           <button
-            @click="currentPage = Math.max(1, currentPage - 1)"
             :disabled="currentPage === 1"
             class="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            @click="currentPage = Math.max(1, currentPage - 1)"
           >
             Zurück
           </button>
           <span class="text-sm text-gray-700"> Seite {{ currentPage }} von {{ totalPages }} </span>
           <button
-            @click="currentPage = Math.min(totalPages, currentPage + 1)"
             :disabled="currentPage === totalPages"
             class="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            @click="currentPage = Math.min(totalPages, currentPage + 1)"
           >
             Weiter
           </button>
@@ -412,321 +727,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { EnhancedUsageRecord } from '@/api/types/frontend'
-import type { ModelUsageType } from '@/api/types'
-import { formatCost } from '@/config/pricing'
-import EmptyState from './shared/EmptyState.vue'
-import ErrorState from './shared/ErrorState.vue'
-import SkeletonLoader from './shared/SkeletonLoader.vue'
-import { computed, ref } from 'vue'
-
-
-const emit = defineEmits<{
-  'page-change': [page: number]
-  'sort-change': [field: string, order: 'asc' | 'desc']
-  retry: []
-}>()
-
-// Local state
-const currentPage = ref(1)
-const pageSize = ref(10)
-
-// Handle page size change
-const handlePageSizeChange = () => {
-  currentPage.value = 1
-  pageSize.value = Number(pageSize.value)
-}
-
-// Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
-const sortField = ref('date')
-const sortOrder = ref<'asc' | 'desc'>('desc')
-
-// Props für Backend-Sortierung (optional)
-interface Props {
-  data: EnhancedUsageRecord[]
-  isLoading?: boolean
-  error?: string | null
-  pagination?: {
-    page?: number
-    limit?: number
-    total?: number
-    totalPages?: number
-  }
-  sortField?: string // Aktuelles Sortierfeld vom Backend
-  sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
-  useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
-  /** Wenn gesetzt: Spalten Größe/Qualität nur bei IMAGE_USAGE anzeigen (sonst ausblenden) */
-  modelTypeFilter?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  isLoading: false,
-  error: null,
-  pagination: undefined,
-  sortField: undefined,
-  sortOrder: undefined,
-  useBackendSorting: false,
-  modelTypeFilter: undefined,
-})
-
-// Größe/Qualität nur bei Image-Nutzung oder wenn kein Filter gesetzt
-const showImageColumns = computed(() => {
-  const f = (props.modelTypeFilter || '').toLowerCase()
-  if (!f) return true
-  return f.includes('image') || f === 'image_model_usage' || f === 'imageusage'
-})
-
-// Computed
-const filteredData = computed(() => props.data)
-
-// Wenn Backend-Sortierung aktiv ist, nutze Daten direkt (bereits sortiert)
-// Sonst client-seitige Sortierung als Fallback
-const sortedData = computed(() => {
-  if (props.useBackendSorting) {
-    // Daten sind bereits vom Backend sortiert
-    return filteredData.value
-  }
-
-  // Fallback: Client-seitige Sortierung
-  const data = [...filteredData.value]
-
-  return data.sort((a, b) => {
-    let comparison = 0
-
-    switch (sortField.value) {
-      case 'technicalUserName':
-        comparison = (a.technicalUserName || '').localeCompare(b.technicalUserName || '')
-        break
-      case 'modelName':
-        comparison = (a.modelName || '').localeCompare(b.modelName || '')
-        break
-      case 'modelType':
-        const typeA = a.type || a.modelType || ''
-        const typeB = b.type || b.modelType || ''
-        comparison = typeA.localeCompare(typeB)
-        break
-      case 'requests':
-        comparison = (a.requests || 0) - (b.requests || 0)
-        break
-      case 'tokensIn':
-        comparison = (a.tokensIn || 0) - (b.tokensIn || 0)
-        break
-      case 'tokensOut':
-        comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
-        break
-      case 'totalTokens':
-        comparison = (a.totalTokens || 0) - (b.totalTokens || 0)
-        break
-      case 'cost':
-        comparison = (a.cost || 0) - (b.cost || 0)
-        break
-      case 'date':
-        // Sortiere nach Datum (Jahr, Monat, Tag)
-        const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
-        const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
-        comparison = dateA.getTime() - dateB.getTime()
-        break
-      case 'apiKeyId':
-        comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
-        break
-      default:
-        comparison = 0
-    }
-
-    return sortOrder.value === 'asc' ? comparison : -comparison
-  })
-})
-
-// Aktuelles Sortierfeld für Anzeige
-const currentSortField = computed(() => {
-  return props.useBackendSorting && props.sortField ? props.sortField : sortField.value
-})
-
-const currentSortOrder = computed(() => {
-  return props.useBackendSorting && props.sortOrder ? props.sortOrder : sortOrder.value
-})
-
-const paginationPage = computed(() => props.pagination?.page ?? 1)
-const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
-const paginationTotal = computed(() => props.pagination?.total ?? 0)
-
-// Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
-const totalPages = computed(() => {
-  if (props.pagination) {
-    return props.pagination?.totalPages ?? 0
-  }
-  return Math.ceil(sortedData.value.length / pageSize.value)
-})
-
-// Display data - nutze Backend-Pagination wenn vorhanden, sonst Client-seitige
-const displayData = computed(() => {
-  // Wenn Backend-Pagination vorhanden ist, zeige alle Daten (bereits paginiert)
-  if (props.pagination) {
-    return sortedData.value
-  }
-  // Sonst nutze Client-seitige Pagination
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return sortedData.value.slice(start, end)
-})
-
-// Methods
-const getInitials = (name?: string): string => {
-  if (!name) return '--'
-
-  return name
-    .split(' ')
-    .map((word) => word.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-const getModelTypeLabel = (type: ModelUsageType | string): string => {
-  switch (type) {
-    case 'CompletionModelUsage':
-    case 'COMPLETION_USAGE':
-      return 'Chat'
-    case 'EmbeddingModelUsage':
-    case 'EMBEDDING_USAGE':
-      return 'Embedding'
-    case 'ImageModelUsage':
-    case 'IMAGE_USAGE':
-      return 'Bild'
-    default:
-      return type || 'Chat'
-  }
-}
-
-const getModelTypeBadgeClass = (type: ModelUsageType | string): string => {
-  switch (type) {
-    case 'CompletionModelUsage':
-    case 'COMPLETION_USAGE':
-      return 'bg-blue-100 text-blue-800'
-    case 'EmbeddingModelUsage':
-    case 'EMBEDDING_USAGE':
-      return 'bg-green-100 text-green-800'
-    case 'ImageModelUsage':
-    case 'IMAGE_USAGE':
-      return 'bg-purple-100 text-purple-800'
-    default:
-      return 'bg-gray-100 text-gray-800'
-  }
-}
-
-const formatDate = (
-  day?: number,
-  month?: number,
-  year?: number,
-  createDate?: string,
-): string => {
-  if (day != null && month != null && year != null) {
-    return `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`
-  }
-  if (createDate && String(createDate).trim()) {
-    try {
-      const d = new Date(createDate)
-      if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      }
-    } catch {
-      // ignore
-    }
-  }
-  return '–'
-}
-
-const formatImageSize = (width?: number, height?: number): string => {
-  if (width != null && height != null) return `${width}×${height}`
-  if (width != null) return `${width}×?`
-  if (height != null) return `?×${height}`
-  return '–'
-}
-
-// Methods
-const sortBy = (field: string) => {
-  if (props.useBackendSorting) {
-    // Backend-Sortierung: Emitte Event an Parent-Komponente
-    const newOrder =
-      currentSortField.value === field && currentSortOrder.value === 'desc' ? 'asc' : 'desc'
-    emit('sort-change', field, newOrder)
-  } else {
-    // Client-seitige Sortierung (Fallback)
-    if (sortField.value === field) {
-      // Toggle sort order if same field
-      sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      // Set new field and default to desc
-      sortField.value = field
-      sortOrder.value = 'desc'
-    }
-    currentPage.value = 1 // Reset to first page when sorting changes
-  }
-}
-
-const exportTableData = async () => {
-  try {
-    const headers = [
-      'Technische User ID',
-      'Technischer Benutzername',
-      'Modell',
-      'Modelltyp',
-      'Anfragen',
-      'Tokens In',
-      'Tokens Out',
-      'Gesamt Tokens',
-      'Kosten (€)',
-      'Tag',
-      'Größe',
-      'Qualität',
-      'API Key ID',
-      'Tag',
-      'Monat',
-      'Jahr',
-    ]
-
-    const csvContent = [
-      headers.join(','),
-      ...sortedData.value.map((item) =>
-        [
-          item.technicalUserId,
-          item.technicalUserName,
-          item.modelName,
-          item.type || item.modelType,
-          item.requests,
-          item.tokensIn,
-          item.tokensOut,
-          item.totalTokens,
-          (item.cost ?? 0).toFixed(4),
-          item.tag,
-          formatImageSize(item.sizeWidth, item.sizeHeight),
-          item.quality || '',
-          item.apiKeyId || '',
-          item.day || '',
-          item.month || '',
-          item.year || '',
-        ].join(','),
-      ),
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `detailed-usage-${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-  } catch (err) {
-    console.error('Fehler beim Exportieren:', err)
-  }
-}
-
-// Reset pagination when data changes
-import { watch } from 'vue'
-watch(
-  () => props.data,
-  () => {
-    currentPage.value = 1
-  },
-)
-</script>

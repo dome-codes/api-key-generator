@@ -9,4 +9,4 @@
 /**
  * Filter by extraction provider.
  */
-export type ExtractionRequestParamsProviderParameter = string;
+export type ExtractionRequestParamsProviderParameter = string

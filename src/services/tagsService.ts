@@ -1,6 +1,6 @@
 /**
  * Tags Service
- * 
+ *
  * Lädt Top Tags für AI und Extraction Usage über den summarize Endpunkt
  */
 
@@ -28,7 +28,7 @@ export async function getTopAITags(
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         page: 1,
-        limit: limit,
+        limit,
         groupBy: ['tag'],
       },
       useAdminApi,
@@ -66,7 +66,7 @@ export async function getTopExtractionTags(
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         page: 1,
-        limit: limit,
+        limit,
         groupBy: ['tag'],
       },
       useAdminApi,

@@ -1,78 +1,3 @@
-<template>
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <!-- Time Range Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
-        <select
-          v-model="localTimeRange"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleTimeRangeChange"
-        >
-          <option value="7d">Letzte 7 Tage</option>
-          <option value="30d">Letzte 30 Tage</option>
-          <option value="90d">Letzte 90 Tage</option>
-          <option value="thisMonth">Diesen Monat</option>
-          <option value="lastMonth">Vormonat</option>
-          <option value="custom">Benutzerdefiniert</option>
-        </select>
-
-        <!-- Custom Date Range -->
-        <div v-if="localTimeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Von</label>
-            <input
-              v-model="localFromDate"
-              type="date"
-              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleDateChange"
-            />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Bis</label>
-            <input
-              v-model="localToDate"
-              type="date"
-              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleDateChange"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Slot für spezifische Filter (z.B. Model Type, Provider, Status) -->
-      <slot name="specific-filters" />
-
-      <!-- API Key Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-        <input
-          v-model="localApiKeyIdInput"
-          type="text"
-          placeholder="API Key ID"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @keyup.enter="handleFilterChange"
-          @blur="handleFilterChange"
-        />
-      </div>
-
-      <!-- Slot für Admin-Filter (User, User Group) -->
-      <slot name="admin-filters" />
-    </div>
-
-    <!-- Filter anwenden Button -->
-    <div class="mt-4 flex justify-end">
-      <button
-        @click="handleFilterChange"
-        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium text-sm"
-      >
-        Filter anwenden
-      </button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
@@ -166,3 +91,78 @@ const handleFilterChange = () => {
   emit('filter-changed')
 }
 </script>
+
+<template>
+  <div class="bg-white rounded-xl shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <!-- Time Range Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
+        <select
+          v-model="localTimeRange"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleTimeRangeChange"
+        >
+          <option value="7d">Letzte 7 Tage</option>
+          <option value="30d">Letzte 30 Tage</option>
+          <option value="90d">Letzte 90 Tage</option>
+          <option value="thisMonth">Diesen Monat</option>
+          <option value="lastMonth">Vormonat</option>
+          <option value="custom">Benutzerdefiniert</option>
+        </select>
+
+        <!-- Custom Date Range -->
+        <div v-if="localTimeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-gray-600 mb-1">Von</label>
+            <input
+              v-model="localFromDate"
+              type="date"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
+              @change="handleDateChange"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600 mb-1">Bis</label>
+            <input
+              v-model="localToDate"
+              type="date"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
+              @change="handleDateChange"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Slot für spezifische Filter (z.B. Model Type, Provider, Status) -->
+      <slot name="specific-filters" />
+
+      <!-- API Key Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+        <input
+          v-model="localApiKeyIdInput"
+          type="text"
+          placeholder="API Key ID"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
+          @blur="handleFilterChange"
+        />
+      </div>
+
+      <!-- Slot für Admin-Filter (User, User Group) -->
+      <slot name="admin-filters" />
+    </div>
+
+    <!-- Filter anwenden Button -->
+    <div class="mt-4 flex justify-end">
+      <button
+        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium text-sm"
+        @click="handleFilterChange"
+      >
+        Filter anwenden
+      </button>
+    </div>
+  </div>
+</template>

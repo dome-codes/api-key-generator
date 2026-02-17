@@ -1,3 +1,7 @@
+<script setup lang="ts">
+// Dummy-Daten, keine Logik nötig
+</script>
+
 <template>
   <div class="w-full lg:w-64 flex-shrink-0 bg-white rounded-xl shadow p-6 flex flex-col gap-4">
     <div>
@@ -55,7 +59,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-// Dummy-Daten, keine Logik nötig
-</script>

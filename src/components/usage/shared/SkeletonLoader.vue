@@ -1,3 +1,21 @@
+<script setup lang="ts">
+interface Props {
+  type?: 'card' | 'table' | 'chart' | 'text' | 'custom'
+  rows?: number
+  columns?: number
+  height?: string
+  width?: string
+}
+
+withDefaults(defineProps<Props>(), {
+  type: 'custom',
+  rows: 5,
+  columns: 4,
+  height: '100px',
+  width: '100%',
+})
+</script>
+
 <template>
   <div class="animate-pulse">
     <!-- Card Skeleton -->
@@ -28,21 +46,3 @@
     <div v-else class="bg-gray-200 rounded" :style="{ height: height, width: width }"></div>
   </div>
 </template>
-
-<script setup lang="ts">
-interface Props {
-  type?: 'card' | 'table' | 'chart' | 'text' | 'custom'
-  rows?: number
-  columns?: number
-  height?: string
-  width?: string
-}
-
-withDefaults(defineProps<Props>(), {
-  type: 'custom',
-  rows: 5,
-  columns: 4,
-  height: '100px',
-  width: '100%',
-})
-</script>

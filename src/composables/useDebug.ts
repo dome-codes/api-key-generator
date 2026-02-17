@@ -1,5 +1,5 @@
 import { debugToken, getHighestRole, hasPermission } from '@/auth/keycloak'
-import { debugLog as baseDebugLog, isDebugLogEnabled } from '@/utils/debugLog'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
 export function useDebug() {

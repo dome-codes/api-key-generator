@@ -1,36 +1,3 @@
-<template>
-  <div class="bg-white rounded-xl shadow p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
-    </div>
-
-    <div class="h-64">
-      <canvas ref="chartCanvas"></canvas>
-      <div
-        v-if="!chartLoaded"
-        class="h-full bg-gray-50 rounded-lg flex items-center justify-center"
-      >
-        <div class="text-center">
-          <svg
-            class="w-16 h-16 text-gray-300 mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          <p class="text-gray-500">{{ placeholder }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -80,27 +47,26 @@ const defaultDatasets = computed(() => {
     {
       label: 'Tokens In',
       data: data.tokensIn || [],
-      borderColor: 'rgb(238, 0, 0)',        // Primary Rot (#e00)
+      borderColor: 'rgb(238, 0, 0)', // Primary Rot (#e00)
       backgroundColor: 'rgba(238, 0, 0, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Tokens Out',
       data: data.tokensOut || [],
-      borderColor: 'rgb(13, 128, 147)',     // Corporate Blue/Green (#0d8093)
+      borderColor: 'rgb(13, 128, 147)', // Corporate Blue/Green (#0d8093)
       backgroundColor: 'rgba(13, 128, 147, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Anfragen',
       data: data.requests || [],
-      borderColor: 'rgb(255, 168, 46)',     // Corporate Yellow (#ffa82e)
+      borderColor: 'rgb(255, 168, 46)', // Corporate Yellow (#ffa82e)
       backgroundColor: 'rgba(255, 168, 46, 0.15)',
       yAxisID: 'y1',
     },
   ]
 })
-
 
 watch(
   () => props.chartData,
@@ -221,3 +187,36 @@ onUnmounted(() => {
   }
 })
 </script>
+
+<template>
+  <div class="bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
+    </div>
+
+    <div class="h-64">
+      <canvas ref="chartCanvas"></canvas>
+      <div
+        v-if="!chartLoaded"
+        class="h-full bg-gray-50 rounded-lg flex items-center justify-center"
+      >
+        <div class="text-center">
+          <svg
+            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <p class="text-gray-500">{{ placeholder }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

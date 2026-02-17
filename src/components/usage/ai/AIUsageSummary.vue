@@ -1,62 +1,3 @@
-<template>
-  <BaseSummary
-    :title="title"
-    :description="description"
-    :is-loading="isLoading"
-    :error="error"
-    @retry="$emit('retry')"
-  >
-    <template #summary-cards>
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-        <div class="text-sm text-gray-600 font-medium">Tokens In</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.tokensIn.toLocaleString() }}
-        </div>
-      </div>
-
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-        <div class="text-sm text-gray-600 font-medium">Tokens Out</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.tokensOut.toLocaleString() }}
-        </div>
-      </div>
-
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-        <div class="text-sm text-gray-600 font-medium">Gesamte Anfragen</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.requests.toLocaleString() }}
-        </div>
-      </div>
-
-      <div class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors">
-        <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
-        <div class="text-2xl font-bold text-primary">
-          {{ formatCost(summary.cost) }}
-        </div>
-      </div>
-
-      <!-- Bei Image-Nutzung: Kachel „Bilder“ -->
-      <div
-        v-if="summary.imageCount != null && summary.imageCount > 0"
-        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-      >
-        <div class="text-sm text-gray-600 font-medium">Bilder</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.imageCount.toLocaleString() }}
-        </div>
-      </div>
-
-      <!-- Additional card for unique users (Admin only) -->
-      <div v-if="showUniqueUsers" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-        <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.uniqueUsers?.toLocaleString() || 0 }}
-        </div>
-      </div>
-    </template>
-  </BaseSummary>
-</template>
-
 <script setup lang="ts">
 import BaseSummary from '../shared/BaseSummary.vue'
 import { debugLog } from '@/utils/debugLog'
@@ -101,3 +42,73 @@ const formatCost = (cost: number): string => {
   return `€${cost.toFixed(2)}`
 }
 </script>
+
+<template>
+  <BaseSummary
+    :title="title"
+    :description="description"
+    :is-loading="isLoading"
+    :error="error"
+    @retry="$emit('retry')"
+  >
+    <template #summary-cards>
+      <div
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Tokens In</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.tokensIn.toLocaleString() }}
+        </div>
+      </div>
+
+      <div
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Tokens Out</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.tokensOut.toLocaleString() }}
+        </div>
+      </div>
+
+      <div
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Gesamte Anfragen</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.requests.toLocaleString() }}
+        </div>
+      </div>
+
+      <div
+        class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors"
+      >
+        <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
+        <div class="text-2xl font-bold text-primary">
+          {{ formatCost(summary.cost) }}
+        </div>
+      </div>
+
+      <!-- Bei Image-Nutzung: Kachel „Bilder“ -->
+      <div
+        v-if="summary.imageCount != null && summary.imageCount > 0"
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Bilder</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.imageCount.toLocaleString() }}
+        </div>
+      </div>
+
+      <!-- Additional card for unique users (Admin only) -->
+      <div
+        v-if="showUniqueUsers"
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.uniqueUsers?.toLocaleString() || 0 }}
+        </div>
+      </div>
+    </template>
+  </BaseSummary>
+</template>

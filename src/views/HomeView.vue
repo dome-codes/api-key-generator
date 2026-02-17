@@ -20,14 +20,7 @@ import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 import { computed, onMounted, ref } from 'vue'
 
 // Composables verwenden
-const {
-  userProfile,
-  highestRole,
-  isAdmin,
-  canCreateKeys,
-  canSeeOwnUsage,
-  handleLogout,
-} = useAuth()
+const { userProfile, highestRole, isAdmin, canCreateKeys, canSeeOwnUsage, handleLogout } = useAuth()
 const userRolesForHeader = computed(() => [String(highestRole.value)])
 const { isDevelopment, showDebugMode, showDebugInfo, debugTokenInfo } = useDebug()
 const {
@@ -161,7 +154,10 @@ const startRotating = (key: ApiKeyDisplay, keys: ApiKeyDisplay[]) => {
   if (foundKey) {
     editModalKey.value = foundKey
     editModalName.value = foundKey.name
-    editModalPermissions.value = (foundKey.permissions || 'api-access').split(',').map((p) => p.trim()).filter(Boolean)
+    editModalPermissions.value = (foundKey.permissions || 'api-access')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
     showEditModal.value = true
   }
 }
@@ -232,8 +228,8 @@ onMounted(() => {
             </div>
             <button
               v-if="canCreateKeys"
-              @click="openModal"
               class="bg-primary hover:bg-primary-hover text-white font-medium py-3 px-6 rounded-lg flex items-center gap-2.5 text-sm transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              @click="openModal"
             >
               <svg
                 class="w-5 h-5"
@@ -309,8 +305,8 @@ onMounted(() => {
                   class="flex-1 bg-transparent font-mono text-xs select-all outline-none text-gray-900"
                 />
                 <button
-                  @click="copyApiKeyWithSuccess(createdSecret)"
                   class="ml-2 bg-primary hover:bg-primary-hover text-white px-3 py-1 rounded text-xs transition-colors"
+                  @click="copyApiKeyWithSuccess(createdSecret)"
                 >
                   Kopieren
                 </button>
@@ -339,8 +335,8 @@ onMounted(() => {
               </div>
               <div class="flex justify-end gap-2">
                 <button
-                  @click="closeKeyDisplayModal"
                   class="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
+                  @click="closeKeyDisplayModal"
                 >
                   Fertig
                 </button>
@@ -352,7 +348,9 @@ onMounted(() => {
         <!-- Usage Section -->
         <div v-else-if="activeSidebar === 'usage'">
           <div v-if="!canSeeOwnUsage" class="rounded-lg border border-amber-200 bg-amber-50 p-6">
-            <p class="text-amber-800">Sie haben keine Berechtigung, die Nutzungsdaten anzuzeigen.</p>
+            <p class="text-amber-800">
+              Sie haben keine Berechtigung, die Nutzungsdaten anzuzeigen.
+            </p>
           </div>
           <UsageTabs v-else />
         </div>

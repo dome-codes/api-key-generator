@@ -1,51 +1,3 @@
-<template>
-  <div class="bg-white rounded-xl shadow p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
-      <div class="flex items-center gap-2">
-        <button
-          v-for="period in periods"
-          :key="period.value"
-          @click="$emit('update:selectedPeriod', period.value)"
-          :class="[
-            'px-3 py-1 text-sm rounded-lg transition-colors',
-            selectedPeriod === period.value
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-          ]"
-        >
-          {{ period.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="h-64">
-      <canvas ref="chartCanvas"></canvas>
-      <div
-        v-if="!chartLoaded"
-        class="h-full bg-gray-50 rounded-lg flex items-center justify-center"
-      >
-        <div class="text-center">
-          <svg
-            class="w-16 h-16 text-gray-300 mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          <p class="text-gray-500">Chart wird geladen...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
 import { debugLog } from '@/utils/debugLog'
@@ -206,7 +158,7 @@ const createChart = async () => {
               minRotation: 0,
               autoSkip: true,
               maxTicksLimit: data.labels.length > 15 ? 15 : data.labels.length,
-              callback: function (value, index) {
+              callback(value, index) {
                 const label = data.labels[index]
                 // Für tägliche Ansicht: Zeige Wochentage
                 if (props.selectedPeriod === 'daily') {
@@ -301,3 +253,51 @@ onMounted(() => {
   }
 })
 </script>
+
+<template>
+  <div class="bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
+      <div class="flex items-center gap-2">
+        <button
+          v-for="period in periods"
+          :key="period.value"
+          :class="[
+            'px-3 py-1 text-sm rounded-lg transition-colors',
+            selectedPeriod === period.value
+              ? 'bg-blue-100 text-blue-700'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+          ]"
+          @click="$emit('update:selectedPeriod', period.value)"
+        >
+          {{ period.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="h-64">
+      <canvas ref="chartCanvas"></canvas>
+      <div
+        v-if="!chartLoaded"
+        class="h-full bg-gray-50 rounded-lg flex items-center justify-center"
+      >
+        <div class="text-center">
+          <svg
+            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <p class="text-gray-500">Chart wird geladen...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

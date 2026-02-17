@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { hasPermission, type UserRole } from '@/auth/keycloak'
+import { type UserRole } from '@/auth/keycloak'
 import AuthGuard from '@/components/auth/AuthGuard.vue'
 import HomeView from '../views/HomeView.vue'
 

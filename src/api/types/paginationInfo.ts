@@ -8,11 +8,11 @@
 
 export interface PaginationInfo {
   /** Current page number (1-based) */
-  page?: number;
+  page?: number
   /** Number of items per page */
-  limit?: number;
+  limit?: number
   /** Total number of items */
-  total?: number;
+  total?: number
   /** Total number of pages */
-  totalPages?: number;
+  totalPages?: number
 }

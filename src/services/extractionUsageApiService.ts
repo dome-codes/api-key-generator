@@ -37,7 +37,12 @@ function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
   const pageSize = pag.pageSize ?? pag.limit
   const totalPages = pag.totalPages
 
-  if (totalItems === undefined && currentPage === undefined && pageSize === undefined && totalPages === undefined) {
+  if (
+    totalItems === undefined &&
+    currentPage === undefined &&
+    pageSize === undefined &&
+    totalPages === undefined
+  ) {
     return undefined
   }
 
@@ -118,13 +123,13 @@ export const extractionUsageApiService = {
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
-      
+
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page: page,
-        limit: limit,
-        offset: offset, // Backend verwendet offset statt page
+        page,
+        limit,
+        offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
         status: filter.status as
@@ -239,13 +244,13 @@ export const extractionUsageApiService = {
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
-      
+
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page: page,
-        limit: limit,
-        offset: offset, // Backend verwendet offset statt page
+        page,
+        limit,
+        offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
         status: filter.status as

@@ -13,71 +13,71 @@ import type {
   AdminUsageExtractionGetV1Params,
   AdminUsageExtractionSummaryGetV1Params,
   ExtractionUsagePage,
-  ExtractionUsageSummaryPage
-} from '.././types';
+  ExtractionUsageSummaryPage,
+} from '.././types'
 
-import adminUsageAIGetV1Mutator from '../../axios/api';
-import adminUsageAISummaryGetV1Mutator from '../../axios/api';
-import adminUsageExtractionGetV1Mutator from '../../axios/api';
-import adminUsageExtractionSummaryGetV1Mutator from '../../axios/api';
+import adminUsageAIGetV1Mutator from '../../axios/api'
+import adminUsageAISummaryGetV1Mutator from '../../axios/api'
+import adminUsageExtractionGetV1Mutator from '../../axios/api'
+import adminUsageExtractionSummaryGetV1Mutator from '../../axios/api'
 
-
-
-  export const getAdmin = () => {
-/**
- * Returns all AI usage data with server-side filtering and pagination. Admin only.
- * @summary Tracks the usage of the AI service (Admin)
- */
-const adminUsageAIGetV1 = (
-    params?: AdminUsageAIGetV1Params,
- ) => {
-      return adminUsageAIGetV1Mutator<AIUsagePage>(
-      {url: `/admin/usage/ai`, method: 'GET',
-        params
-    },
-      );
-    }
+export const getAdmin = () => {
   /**
- * Returns the usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
- * @summary Returns the usage summary by type, user and cost factors (Admin)
- */
-const adminUsageAISummaryGetV1 = (
-    params?: AdminUsageAISummaryGetV1Params,
- ) => {
-      return adminUsageAISummaryGetV1Mutator<AIUsageSummaryPage>(
-      {url: `/admin/usage/ai/summarize`, method: 'GET',
-        params
-    },
-      );
-    }
+   * Returns all AI usage data with server-side filtering and pagination. Admin only.
+   * @summary Tracks the usage of the AI service (Admin)
+   */
+  const adminUsageAIGetV1 = (params?: AdminUsageAIGetV1Params) => {
+    return adminUsageAIGetV1Mutator<AIUsagePage>({ url: `/admin/usage/ai`, method: 'GET', params })
+  }
   /**
- * Returns all extraction usage data with server-side filtering and pagination. Admin only.
- * @summary Tracks the usage of the Extraction service (Admin)
- */
-const adminUsageExtractionGetV1 = (
-    params?: AdminUsageExtractionGetV1Params,
- ) => {
-      return adminUsageExtractionGetV1Mutator<ExtractionUsagePage>(
-      {url: `/admin/usage/extraction`, method: 'GET',
-        params
-    },
-      );
-    }
+   * Returns the usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
+   * @summary Returns the usage summary by type, user and cost factors (Admin)
+   */
+  const adminUsageAISummaryGetV1 = (params?: AdminUsageAISummaryGetV1Params) => {
+    return adminUsageAISummaryGetV1Mutator<AIUsageSummaryPage>({
+      url: `/admin/usage/ai/summarize`,
+      method: 'GET',
+      params,
+    })
+  }
   /**
- * Returns the extraction usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
- * @summary Returns the extraction usage summary (Admin)
- */
-const adminUsageExtractionSummaryGetV1 = (
-    params?: AdminUsageExtractionSummaryGetV1Params,
- ) => {
-      return adminUsageExtractionSummaryGetV1Mutator<ExtractionUsageSummaryPage>(
-      {url: `/admin/usage/extraction/summarize`, method: 'GET',
-        params
-    },
-      );
-    }
-  return {adminUsageAIGetV1,adminUsageAISummaryGetV1,adminUsageExtractionGetV1,adminUsageExtractionSummaryGetV1}};
-export type AdminUsageAIGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAIGetV1']>>>
-export type AdminUsageAISummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAISummaryGetV1']>>>
-export type AdminUsageExtractionGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionGetV1']>>>
-export type AdminUsageExtractionSummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionSummaryGetV1']>>>
+   * Returns all extraction usage data with server-side filtering and pagination. Admin only.
+   * @summary Tracks the usage of the Extraction service (Admin)
+   */
+  const adminUsageExtractionGetV1 = (params?: AdminUsageExtractionGetV1Params) => {
+    return adminUsageExtractionGetV1Mutator<ExtractionUsagePage>({
+      url: `/admin/usage/extraction`,
+      method: 'GET',
+      params,
+    })
+  }
+  /**
+   * Returns the extraction usage summary for all users grouped by specified parameters with server-side filtering and pagination. Admin only.
+   * @summary Returns the extraction usage summary (Admin)
+   */
+  const adminUsageExtractionSummaryGetV1 = (params?: AdminUsageExtractionSummaryGetV1Params) => {
+    return adminUsageExtractionSummaryGetV1Mutator<ExtractionUsageSummaryPage>({
+      url: `/admin/usage/extraction/summarize`,
+      method: 'GET',
+      params,
+    })
+  }
+  return {
+    adminUsageAIGetV1,
+    adminUsageAISummaryGetV1,
+    adminUsageExtractionGetV1,
+    adminUsageExtractionSummaryGetV1,
+  }
+}
+export type AdminUsageAIGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAIGetV1']>>
+>
+export type AdminUsageAISummaryGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAISummaryGetV1']>>
+>
+export type AdminUsageExtractionGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionGetV1']>>
+>
+export type AdminUsageExtractionSummaryGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionSummaryGetV1']>>
+>

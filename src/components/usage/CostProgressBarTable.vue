@@ -1,3 +1,55 @@
+<script setup lang="ts">
+import { useAuth } from '@/composables/useAuth'
+import { formatCost } from '@/config/pricing'
+import { computed } from 'vue'
+
+interface Props {
+  currentCost: number
+  budgetLimit: number
+  tokensIn?: number
+  tokensOut?: number
+  showDetailedInfo?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  tokensIn: 0,
+  tokensOut: 0,
+  showDetailedInfo: false,
+})
+
+const { isAdmin: isApiAdmin } = useAuth()
+
+// Computed
+const progressPercentage = computed(() => {
+  if (props.budgetLimit <= 0) return 0
+  return Math.min((props.currentCost / props.budgetLimit) * 100, 100)
+})
+
+const progressBarColor = computed(() => {
+  const percentage = progressPercentage.value
+  if (percentage >= 100) return 'bg-red-500'
+  if (percentage >= 80) return 'bg-yellow-500'
+  return 'bg-green-500'
+})
+
+const statusTextColor = computed(() => {
+  const percentage = progressPercentage.value
+  if (percentage >= 100) return 'text-red-600'
+  if (percentage >= 80) return 'text-yellow-600'
+  return 'text-green-600'
+})
+
+// Helper function for number formatting
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`
+  }
+  return num.toString()
+}
+</script>
+
 <template>
   <div class="flex flex-col space-y-1">
     <!-- Token Display oberhalb der Progress Bar -->
@@ -57,55 +109,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { useAuth } from '@/composables/useAuth'
-import { formatCost } from '@/config/pricing'
-import { computed } from 'vue'
-
-interface Props {
-  currentCost: number
-  budgetLimit: number
-  tokensIn?: number
-  tokensOut?: number
-  showDetailedInfo?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  tokensIn: 0,
-  tokensOut: 0,
-  showDetailedInfo: false,
-})
-
-const { isAdmin: isApiAdmin } = useAuth()
-
-// Computed
-const progressPercentage = computed(() => {
-  if (props.budgetLimit <= 0) return 0
-  return Math.min((props.currentCost / props.budgetLimit) * 100, 100)
-})
-
-const progressBarColor = computed(() => {
-  const percentage = progressPercentage.value
-  if (percentage >= 100) return 'bg-red-500'
-  if (percentage >= 80) return 'bg-yellow-500'
-  return 'bg-green-500'
-})
-
-const statusTextColor = computed(() => {
-  const percentage = progressPercentage.value
-  if (percentage >= 100) return 'text-red-600'
-  if (percentage >= 80) return 'text-yellow-600'
-  return 'text-green-600'
-})
-
-// Helper function for number formatting
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`
-  } else if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`
-  }
-  return num.toString()
-}
-</script>

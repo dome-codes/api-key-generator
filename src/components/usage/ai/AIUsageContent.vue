@@ -1,67 +1,4 @@
-<template>
-  <div class="space-y-6">
-    <!-- Pricing Disclaimer für AI Usage -->
-    <UsagePricingDisclaimer />
-
-    <!-- Filter Section -->
-    <AIUsageFilters
-      v-model:time-range="ownTimeRange"
-      v-model:model-type="ownModelType"
-      v-model:model="ownModel"
-      v-model:api-key-id="ownApiKeyId"
-      v-model:from-date="ownFromDate"
-      v-model:to-date="ownToDate"
-      @filter-changed="handleOwnFilterChange"
-    />
-
-    <!-- View Toggle -->
-    <UsageViewToggle v-model:view="ownView" />
-
-    <!-- Summary Cards -->
-    <AIUsageSummary
-      title="Meine Nutzungsdaten"
-      description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
-      :summary="ownSummary"
-      :is-loading="isLoading"
-      :error="error"
-      @retry="handleRetry"
-    />
-
-    <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
-    <div v-if="showOwnChart" class="space-y-6">
-      <AIUsageCharts
-        line-chart-title="Nutzungsverlauf"
-        :selected-period="ownChartPeriod"
-        :line-chart-data="chartData"
-        :model-distribution-data="modelDistributionChartData"
-        :tag-usage-data="tagUsageChartData"
-        :has-more-tags="hasMoreTags"
-        :show-all-tags-in-chart="showAllTagsInChart"
-        @update:selected-period="handleChartPeriodChange"
-        @toggle-show-all-tags="toggleShowAllTags"
-      />
-    </div>
-
-    <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
-    <UsageDetailedTable
-      v-if="showOwnDetails"
-      :data="usageData"
-      :is-loading="isLoading"
-      :error="error"
-      :pagination="pagination"
-      :sort-field="currentFilter.sort"
-      :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
-      :use-backend-sorting="true"
-      :model-type-filter="ownModelType"
-      @page-change="handlePageChange"
-      @sort-change="handleSortChange"
-      @retry="handleRetry"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
 import { fromBackendUsageType, toBackendUsageType } from '@/services/usageApiService'
 import { useUrlFilters } from '@/composables/useUrlFilters'
@@ -132,17 +69,23 @@ const loadFiltersFromUrl = () => {
   // Lade timeRange aus URL oder setze Default auf '30d'
   const urlTimeRange = getQueryParam('timeRange')
   ownTimeRange.value = urlTimeRange || '30d'
-  
-  ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
+
+  ownModelType.value =
+    fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
   ownModel.value = getQueryParam('model') || ''
   ownApiKeyId.value = getQueryParam('apiKeyId') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
   ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
-  
+
   // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
-  if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+  if (
+    ownTimeRange.value &&
+    ownTimeRange.value !== 'custom' &&
+    !ownFromDate.value &&
+    !ownToDate.value
+  ) {
     const today = new Date()
     let startDate: Date
     switch (ownTimeRange.value) {
@@ -179,7 +122,8 @@ const loadFiltersFromUrl = () => {
 const saveFiltersToUrl = () => {
   const params: Record<string, string | number | undefined> = {}
   if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-  if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
+  if (ownModelType.value)
+    params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
   if (ownModel.value) params.model = ownModel.value
   if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
   if (ownView.value) params.view = ownView.value
@@ -195,7 +139,7 @@ const saveFiltersToUrl = () => {
 // Convert date string to ISO format
 const toIsoDate = (dateStr: string): string | undefined => {
   if (!dateStr || dateStr.trim() === '') return undefined
-  return new Date(dateStr + 'T00:00:00Z').toISOString()
+  return new Date(`${dateStr}T00:00:00Z`).toISOString()
 }
 
 // Computed properties
@@ -226,14 +170,14 @@ const handleOwnFilterChange = async () => {
 
   try {
     isHandlingFilterChange = true
-    
+
     debugLog('[AIUsageContent] handleOwnFilterChange', {
       view: ownView.value,
       fromDate: ownFromDate.value,
       toDate: ownToDate.value,
       useAdminApi: props.useAdminApi,
     })
-    
+
     // Setze Filter ohne sofort zu laden
     currentFilter.value = {
       ...currentFilter.value,
@@ -328,7 +272,7 @@ watch(
 onMounted(async () => {
   try {
     loadFiltersFromUrl()
-    
+
     // Set defaults ONLY if no dates were loaded from URL
     if (!ownFromDate.value && !ownToDate.value) {
       if (ownTimeRange.value && ownTimeRange.value !== 'custom') {
@@ -366,7 +310,7 @@ onMounted(async () => {
         setDefaultDates()
       }
     }
-    
+
     await handleOwnFilterChange()
   } catch (err) {
     console.error('Error initializing AIUsageContent:', err)
@@ -374,3 +318,65 @@ onMounted(async () => {
   }
 })
 </script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Pricing Disclaimer für AI Usage -->
+    <UsagePricingDisclaimer />
+
+    <!-- Filter Section -->
+    <AIUsageFilters
+      v-model:time-range="ownTimeRange"
+      v-model:model-type="ownModelType"
+      v-model:model="ownModel"
+      v-model:api-key-id="ownApiKeyId"
+      v-model:from-date="ownFromDate"
+      v-model:to-date="ownToDate"
+      @filter-changed="handleOwnFilterChange"
+    />
+
+    <!-- View Toggle -->
+    <UsageViewToggle v-model:view="ownView" />
+
+    <!-- Summary Cards -->
+    <AIUsageSummary
+      title="Meine Nutzungsdaten"
+      description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
+      :summary="ownSummary"
+      :is-loading="isLoading"
+      :error="error"
+      @retry="handleRetry"
+    />
+
+    <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
+    <div v-if="showOwnChart" class="space-y-6">
+      <AIUsageCharts
+        line-chart-title="Nutzungsverlauf"
+        :selected-period="ownChartPeriod"
+        :line-chart-data="chartData"
+        :model-distribution-data="modelDistributionChartData"
+        :tag-usage-data="tagUsageChartData"
+        :has-more-tags="hasMoreTags"
+        :show-all-tags-in-chart="showAllTagsInChart"
+        @update:selected-period="handleChartPeriodChange"
+        @toggle-show-all-tags="toggleShowAllTags"
+      />
+    </div>
+
+    <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
+    <UsageDetailedTable
+      v-if="showOwnDetails"
+      :data="usageData"
+      :is-loading="isLoading"
+      :error="error"
+      :pagination="pagination"
+      :sort-field="currentFilter.sort"
+      :sort-order="currentFilter.order as 'asc' | 'desc' | undefined"
+      :use-backend-sorting="true"
+      :model-type-filter="ownModelType"
+      @page-change="handlePageChange"
+      @sort-change="handleSortChange"
+      @retry="handleRetry"
+    />
+  </div>
+</template>

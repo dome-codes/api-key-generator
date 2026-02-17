@@ -190,12 +190,15 @@ app.use(express.json())
 // JWT Token Validierung (Mock)
 function validateToken(req, res, next) {
   // Bypass für Development (wenn kein Token vorhanden)
-  const bypassKeycloak = process.env.BYPASS_KEYCLOAK === 'true' || process.env.NODE_ENV === 'development'
+  const bypassKeycloak =
+    process.env.BYPASS_KEYCLOAK === 'true' || process.env.NODE_ENV === 'development'
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     if (bypassKeycloak) {
-      console.log(`[${new Date().toISOString()}] 🔓 Keycloak-Bypass aktiviert - Mock-Token verwendet`)
+      console.log(
+        `[${new Date().toISOString()}] 🔓 Keycloak-Bypass aktiviert - Mock-Token verwendet`,
+      )
       req.user = {
         sub: 'mock-user-123',
         email: 'mock-admin@example.com',
@@ -240,7 +243,7 @@ function validateToken(req, res, next) {
     }
 
     // Mock-Token für verschiedene Rollen
-    let mockTokenData = {
+    const mockTokenData = {
       sub: payload.sub || 'user-123',
       email: payload.email || 'admin@example.com',
       name: payload.name || 'Admin User',
@@ -314,11 +317,9 @@ console.log(
 
 // Hilfsfunktionen
 function generateApiKey() {
-  return (
-    'dk_' +
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  )
+  return `dk_${Math.random()
+    .toString(36)
+    .substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`
 }
 
 function createApiKeyObject(name, permissions, userId = null) {
@@ -327,12 +328,12 @@ function createApiKeyObject(name, permissions, userId = null) {
 
   return {
     id: uuidv4(),
-    name: name,
+    name,
     createdAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
     active: true,
     secret: generateApiKey(),
-    userId: userId,
+    userId,
   }
 }
 
@@ -611,17 +612,21 @@ function applyFilters(data, filters) {
         // Fallback auf aktuelles Datum
         itemDate = new Date()
       }
-      
+
       const from = filters.from_date ? new Date(filters.from_date) : new Date(0)
       const to = filters.to_date ? new Date(filters.to_date) : new Date(8640000000000000) // Max date
-      
+
       // Normalisiere auf Tagesebene (ignoriere Zeit) - UTC verwenden um Zeitzonen-Probleme zu vermeiden
-      const itemDateOnly = new Date(Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()))
-      const fromDateOnly = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()))
+      const itemDateOnly = new Date(
+        Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()),
+      )
+      const fromDateOnly = new Date(
+        Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()),
+      )
       const toDateOnly = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
-      
+
       const isInRange = itemDateOnly >= fromDateOnly && itemDateOnly <= toDateOnly
-      
+
       // Debug-Logging für erste paar Items
       if (beforeFilter - filtered.length < 5) {
         console.log(`[applyFilters] Date check:`, {
@@ -634,7 +639,7 @@ function applyFilters(data, filters) {
           itemDay: itemDate.getUTCDate(),
         })
       }
-      
+
       return isInRange
     })
     console.log(`[applyFilters] Date filter: ${beforeFilter} -> ${filtered.length} items`)
@@ -655,9 +660,7 @@ function applyFilters(data, filters) {
   // usageType (COMPLETION_USAGE etc.) oder modelType (CompletionModelUsage etc.) Filter
   const typeFilter = filters.modelType
   if (typeFilter) {
-    filtered = filtered.filter(
-      (item) => item.type === typeFilter || item.modelType === typeFilter,
-    )
+    filtered = filtered.filter((item) => item.type === typeFilter || item.modelType === typeFilter)
   }
 
   // API Key filter
@@ -708,7 +711,8 @@ function applySorting(data, sort, order) {
         comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
         break
       case 'totalTokens':
-        comparison = ((a.tokensIn || 0) + (a.tokensOut || 0)) - ((b.tokensIn || 0) + (b.tokensOut || 0))
+        comparison =
+          (a.tokensIn || 0) + (a.tokensOut || 0) - ((b.tokensIn || 0) + (b.tokensOut || 0))
         break
       case 'model':
         comparison = (a.modelName || a.model || '').localeCompare(b.modelName || b.model || '')
@@ -777,7 +781,11 @@ function applyPagination(data, page = 1, limit = 20) {
 
 // usageType (COMPLETION_USAGE) -> modelType (CompletionModelUsage) für Filter/DB
 function usageTypeToModelType(usageType) {
-  const map = { COMPLETION_USAGE: 'CompletionModelUsage', EMBEDDING_USAGE: 'EmbeddingModelUsage', IMAGE_USAGE: 'ImageModelUsage' }
+  const map = {
+    COMPLETION_USAGE: 'CompletionModelUsage',
+    EMBEDDING_USAGE: 'EmbeddingModelUsage',
+    IMAGE_USAGE: 'ImageModelUsage',
+  }
   return map[usageType] || usageType
 }
 
@@ -807,7 +815,7 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
   // Konvertiere Summary-Daten zu detaillierten Usage-Daten
   let mockUsage = []
   let filteredUsage = []
-  
+
   try {
     // Verwende SQLite Summary-Daten und konvertiere sie zu detaillierten Records
     const summaryData = getAIUsageSummaryByDay({
@@ -819,9 +827,9 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
       apiKeyId,
       userId,
     })
-    
+
     console.log(`[${timestamp}] SQLite returned ${summaryData.length} summary records`)
-    
+
     // Konvertiere Summary zu detaillierten Records (ein Record pro Summary-Eintrag)
     mockUsage = summaryData.map((summary, index) => ({
       id: `usage-${summary.id || index}`,
@@ -844,12 +852,17 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
       month: summary.month,
       year: summary.year,
     }))
-    
-    console.log(`[${timestamp}] Using SQLite data, converted ${summaryData.length} summary records to ${mockUsage.length} detailed records`)
+
+    console.log(
+      `[${timestamp}] Using SQLite data, converted ${summaryData.length} summary records to ${mockUsage.length} detailed records`,
+    )
     // Daten sind bereits durch SQLite gefiltert, keine weitere Filterung nötig
     filteredUsage = mockUsage
   } catch (error) {
-    console.error(`[${timestamp}] Error loading from SQLite, falling back to MOCK_USAGE_DATA:`, error)
+    console.error(
+      `[${timestamp}] Error loading from SQLite, falling back to MOCK_USAGE_DATA:`,
+      error,
+    )
     // Fallback auf hardcodierte Daten - hier Filterung anwenden
     mockUsage = [...mockData.MOCK_USAGE_DATA]
     const filters = {
@@ -910,7 +923,7 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
   // Gruppierung nach 'by' Parameter
   const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
   console.log(`[${timestamp}] GroupBy parameter:`, by, 'parsed:', groupBy)
-  
+
   // Filter für SQLite-Abfrage
   const filters = {
     from_date,
@@ -921,11 +934,14 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     apiKeyId,
     userId,
   }
-  
+
   if (groupBy.includes('apikey') || by === 'apikey') {
     // Verwende SQLite für API Key Gruppierung
     mockUsage = getAIUsageSummaryByApiKey(filters)
-    console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_apikey), length:`, mockUsage.length)
+    console.log(
+      `[${timestamp}] Using SQLite (ai_usage_summary_by_apikey), length:`,
+      mockUsage.length,
+    )
   } else if (groupBy.includes('tag')) {
     // Verwende SQLite für Tag-Gruppierung
     mockUsage = getAIUsageSummaryByTag(filters)
@@ -935,15 +951,33 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     mockUsage = getAIUsageSummaryByDay(filters)
     console.log(`[${timestamp}] Using SQLite (ai_usage_summary_by_day), length:`, mockUsage.length)
     if (mockUsage.length > 0) {
-      console.log(`[${timestamp}] First item date:`, mockUsage[0].createDate, 'day:', mockUsage[0].day, 'month:', mockUsage[0].month, 'year:', mockUsage[0].year)
-      console.log(`[${timestamp}] Last item date:`, mockUsage[mockUsage.length - 1].createDate, 'day:', mockUsage[mockUsage.length - 1].day, 'month:', mockUsage[mockUsage.length - 1].month, 'year:', mockUsage[mockUsage.length - 1].year)
+      console.log(
+        `[${timestamp}] First item date:`,
+        mockUsage[0].createDate,
+        'day:',
+        mockUsage[0].day,
+        'month:',
+        mockUsage[0].month,
+        'year:',
+        mockUsage[0].year,
+      )
+      console.log(
+        `[${timestamp}] Last item date:`,
+        mockUsage[mockUsage.length - 1].createDate,
+        'day:',
+        mockUsage[mockUsage.length - 1].day,
+        'month:',
+        mockUsage[mockUsage.length - 1].month,
+        'year:',
+        mockUsage[mockUsage.length - 1].year,
+      )
     }
   } else {
     // Fallback auf statische Daten für nicht-gruppierte Abfragen
     mockUsage = [...mockData.MOCK_USAGE_DATA]
     console.log(`[${timestamp}] Using MOCK_USAGE_DATA (fallback), length:`, mockUsage.length)
     // Filter anwenden für Fallback-Daten
-    let filteredUsage = applyFilters(mockUsage, filters)
+    const filteredUsage = applyFilters(mockUsage, filters)
     mockUsage = filteredUsage
   }
 
@@ -986,7 +1020,7 @@ app.get('/v1/admin/usage/ai', validateToken, requireRole(['API-Admin']), (req, r
   console.log(`[${timestamp}] Admin: Getting all AI usage data with filters:`, req.query)
 
   // Verwende hardcodierte Usage-Daten für Admin
-  let mockUsage = [...mockData.MOCK_USAGE_DATA]
+  const mockUsage = [...mockData.MOCK_USAGE_DATA]
 
   // Filter anwenden
   const filters = {
@@ -1044,13 +1078,16 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
 
   // Gruppierung nach 'by' Parameter
   const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
-  
+
   if (groupBy.includes('apikey') || by === 'apikey') {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
   } else if (groupBy.includes('tag')) {
     // Verwende SQLite für Tag-Gruppierung
     mockUsage = getAIUsageSummaryByTag(filters)
-    console.log(`[${timestamp}] Admin: Using SQLite (ai_usage_summary_by_tag), length:`, mockUsage.length)
+    console.log(
+      `[${timestamp}] Admin: Using SQLite (ai_usage_summary_by_tag), length:`,
+      mockUsage.length,
+    )
   } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_DAY]
   } else {
@@ -1067,7 +1104,7 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     apiKeyId,
     userId: userId || technicalUserId,
   }
-  let filteredUsage = applyFilters(mockUsage, filters)
+  const filteredUsage = applyFilters(mockUsage, filters)
 
   // Pagination anwenden
   const result = applyPagination(filteredUsage, page, limit)
@@ -1150,7 +1187,9 @@ app.listen(port, () => {
     `[${timestamp}]   GET  http://localhost:${port}/v1/admin/usage/ai/summarize - Admin usage summary`,
   )
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/admin/users - Get all users`)
-  console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/usage/extraction - Get extraction usage`)
+  console.log(
+    `[${timestamp}]   GET  http://localhost:${port}/v1/usage/extraction - Get extraction usage`,
+  )
   console.log(
     `[${timestamp}]   GET  http://localhost:${port}/v1/usage/extraction/summarize - Get extraction summary`,
   )
@@ -1185,17 +1224,21 @@ function applyExtractionFilters(data, filters) {
         // Fallback auf aktuelles Datum
         itemDate = new Date()
       }
-      
+
       const from = filters.from_date ? new Date(filters.from_date) : new Date(0)
       const to = filters.to_date ? new Date(filters.to_date) : new Date(8640000000000000) // Max date
-      
+
       // Normalisiere auf Tagesebene (ignoriere Zeit) - UTC verwenden um Zeitzonen-Probleme zu vermeiden
-      const itemDateOnly = new Date(Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()))
-      const fromDateOnly = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()))
+      const itemDateOnly = new Date(
+        Date.UTC(itemDate.getUTCFullYear(), itemDate.getUTCMonth(), itemDate.getUTCDate()),
+      )
+      const fromDateOnly = new Date(
+        Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()),
+      )
       const toDateOnly = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
-      
+
       const isInRange = itemDateOnly >= fromDateOnly && itemDateOnly <= toDateOnly
-      
+
       // Debug-Logging für erste paar Items
       if (beforeFilter - filtered.length < 5) {
         console.log(`[applyExtractionFilters] Date check:`, {
@@ -1209,7 +1252,7 @@ function applyExtractionFilters(data, filters) {
           hasDayMonthYear: !!(item.day && item.month && item.year),
         })
       }
-      
+
       return isInRange
     })
     console.log(`[applyExtractionFilters] Date filter: ${beforeFilter} -> ${filtered.length} items`)
@@ -1270,7 +1313,7 @@ app.get('/v1/usage/extraction', validateToken, (req, res) => {
 
   console.log(`[${timestamp}] Getting extraction usage data with filters:`, req.query)
 
-  let mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+  const mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
 
   // Filter anwenden
   const filters = {
@@ -1305,19 +1348,8 @@ app.get('/v1/usage/extraction', validateToken, (req, res) => {
 
 // GET /v1/usage/extraction/summarize - Get extraction usage summary
 app.get('/v1/usage/extraction/summarize', validateToken, (req, res) => {
-  const {
-    from_date,
-    to_date,
-    by,
-    page,
-    limit,
-    provider,
-    modelId,
-    status,
-    tag,
-    apiKeyId,
-    userId,
-  } = req.query
+  const { from_date, to_date, by, page, limit, provider, modelId, status, tag, apiKeyId, userId } =
+    req.query
   const timestamp = new Date().toISOString()
 
   console.log(`[${timestamp}] Getting extraction usage summary with filters:`, req.query)
@@ -1344,17 +1376,26 @@ app.get('/v1/usage/extraction/summarize', validateToken, (req, res) => {
   if (groupBy.includes('tag')) {
     // Verwende SQLite für Tag-Gruppierung
     mockExtraction = getExtractionUsageSummaryByTag(filters)
-    console.log(`[${timestamp}] Using SQLite (extraction_usage_summary_by_tag), length:`, mockExtraction.length)
+    console.log(
+      `[${timestamp}] Using SQLite (extraction_usage_summary_by_tag), length:`,
+      mockExtraction.length,
+    )
   } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
     // Verwende SQLite für Tag/Monat/Jahr Gruppierung
     mockExtraction = getExtractionUsageSummaryByDay(filters)
-    console.log(`[${timestamp}] Using SQLite (extraction_usage_summary_by_day), length:`, mockExtraction.length)
+    console.log(
+      `[${timestamp}] Using SQLite (extraction_usage_summary_by_day), length:`,
+      mockExtraction.length,
+    )
   } else {
     // Fallback auf statische Daten für nicht-gruppierte Abfragen
     mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
-    console.log(`[${timestamp}] Using MOCK_EXTRACTION_DATA (fallback), length:`, mockExtraction.length)
+    console.log(
+      `[${timestamp}] Using MOCK_EXTRACTION_DATA (fallback), length:`,
+      mockExtraction.length,
+    )
     // Filter anwenden für Fallback-Daten
-    let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+    const filteredExtraction = applyExtractionFilters(mockExtraction, filters)
     mockExtraction = filteredExtraction
   }
 
@@ -1407,7 +1448,7 @@ app.get('/v1/admin/usage/extraction', validateToken, requireRole(['API-Admin']),
 
   console.log(`[${timestamp}] Admin: Getting all extraction usage data with filters:`, req.query)
 
-  let mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
+  const mockExtraction = [...mockData.MOCK_EXTRACTION_DATA]
 
   // Filter anwenden
   const filters = {
@@ -1481,7 +1522,10 @@ app.get(
         userId,
       }
       mockExtraction = getExtractionUsageSummaryByTag(filters)
-      console.log(`[${timestamp}] Admin: Using SQLite (extraction_usage_summary_by_tag), length:`, mockExtraction.length)
+      console.log(
+        `[${timestamp}] Admin: Using SQLite (extraction_usage_summary_by_tag), length:`,
+        mockExtraction.length,
+      )
     } else if (groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')) {
       mockExtraction = [...mockData.MOCK_EXTRACTION_SUMMARY_BY_DAY]
     } else {
@@ -1499,7 +1543,7 @@ app.get(
       apiKeyId,
       userId,
     }
-    let filteredExtraction = applyExtractionFilters(mockExtraction, filters)
+    const filteredExtraction = applyExtractionFilters(mockExtraction, filters)
 
     // Pagination anwenden
     const result = applyPagination(filteredExtraction, page, limit)

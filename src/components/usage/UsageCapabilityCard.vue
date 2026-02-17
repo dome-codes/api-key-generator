@@ -1,3 +1,14 @@
+<script setup lang="ts">
+defineProps<{
+  title: string
+  requests: number
+  chartHeights: string[]
+  footer: string
+  tokensIn: number
+  tokensOut: number
+}>()
+</script>
+
 <template>
   <div class="bg-white rounded-xl shadow p-6">
     <div class="flex items-center justify-between mb-2">
@@ -16,14 +27,3 @@
     <div class="text-xs text-gray-500 mt-1">{{ tokensIn }} In / {{ tokensOut }} Out</div>
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps<{
-  title: string
-  requests: number
-  chartHeights: string[]
-  footer: string
-  tokensIn: number
-  tokensOut: number
-}>()
-</script>

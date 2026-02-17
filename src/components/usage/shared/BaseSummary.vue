@@ -1,3 +1,21 @@
+<script setup lang="ts">
+import ErrorState from './ErrorState.vue'
+import SkeletonLoader from './SkeletonLoader.vue'
+
+interface Props {
+  title: string
+  description: string
+  isLoading: boolean
+  error: string | null
+}
+
+defineProps<Props>()
+
+defineEmits<{
+  retry: []
+}>()
+</script>
+
 <template>
   <div class="bg-white rounded-xl shadow p-6">
     <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ title }}</h2>
@@ -17,21 +35,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import ErrorState from './ErrorState.vue'
-import SkeletonLoader from './SkeletonLoader.vue'
-
-interface Props {
-  title: string
-  description: string
-  isLoading: boolean
-  error: string | null
-}
-
-defineProps<Props>()
-
-defineEmits<{
-  retry: []
-}>()
-</script>

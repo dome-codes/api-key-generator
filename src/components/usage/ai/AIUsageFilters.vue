@@ -1,79 +1,3 @@
-<template>
-  <BaseFilters
-    :time-range="timeRange"
-    :api-key-id="apiKeyId"
-    :from-date="fromDate"
-    :to-date="toDate"
-    @update:time-range="$emit('update:timeRange', $event)"
-    @update:api-key-id="$emit('update:apiKeyId', $event)"
-    @update:from-date="$emit('update:fromDate', $event)"
-    @update:to-date="$emit('update:toDate', $event)"
-    @filter-changed="handleFilterChange"
-  >
-    <!-- AI-spezifische Filter -->
-    <template #specific-filters>
-      <!-- Model Type Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
-        <select
-          v-model="localModelType"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Modelltypen</option>
-          <option value="CompletionModelUsage">Chat Completions</option>
-          <option value="EmbeddingModelUsage">Embeddings</option>
-          <option value="ImageModelUsage">Bilder</option>
-        </select>
-      </div>
-
-      <!-- Model Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
-        <input
-          v-model="localModelInput"
-          type="text"
-          placeholder="z.B. gpt-4o"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @keyup.enter="handleFilterChange"
-          @blur="handleFilterChange"
-        />
-      </div>
-    </template>
-
-    <!-- Admin-Filter -->
-    <template #admin-filters>
-      <div v-if="showUserFilter">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
-        <select
-          v-model="localSelectedUser"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Benutzer</option>
-          <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
-            {{ user.displayName }}
-          </option>
-        </select>
-      </div>
-
-      <div v-if="showUserFilter">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
-        <select
-          v-model="localSelectedUserGroup"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Gruppen</option>
-          <option v-for="group in availableGroups" :key="group.id" :value="group.id">
-            {{ group.name }} ({{ group.count }})
-          </option>
-        </select>
-      </div>
-    </template>
-  </BaseFilters>
-</template>
-
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import BaseFilters from '../shared/BaseFilters.vue'
@@ -196,3 +120,79 @@ watch(localSelectedUser, (newUser) => {
   }
 })
 </script>
+
+<template>
+  <BaseFilters
+    :time-range="timeRange"
+    :api-key-id="apiKeyId"
+    :from-date="fromDate"
+    :to-date="toDate"
+    @update:time-range="$emit('update:timeRange', $event)"
+    @update:api-key-id="$emit('update:apiKeyId', $event)"
+    @update:from-date="$emit('update:fromDate', $event)"
+    @update:to-date="$emit('update:toDate', $event)"
+    @filter-changed="handleFilterChange"
+  >
+    <!-- AI-spezifische Filter -->
+    <template #specific-filters>
+      <!-- Model Type Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
+        <select
+          v-model="localModelType"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Modelltypen</option>
+          <option value="CompletionModelUsage">Chat Completions</option>
+          <option value="EmbeddingModelUsage">Embeddings</option>
+          <option value="ImageModelUsage">Bilder</option>
+        </select>
+      </div>
+
+      <!-- Model Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
+        <input
+          v-model="localModelInput"
+          type="text"
+          placeholder="z.B. gpt-4o"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
+          @blur="handleFilterChange"
+        />
+      </div>
+    </template>
+
+    <!-- Admin-Filter -->
+    <template #admin-filters>
+      <div v-if="showUserFilter">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
+        <select
+          v-model="localSelectedUser"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Benutzer</option>
+          <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
+            {{ user.displayName }}
+          </option>
+        </select>
+      </div>
+
+      <div v-if="showUserFilter">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
+        <select
+          v-model="localSelectedUserGroup"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Gruppen</option>
+          <option v-for="group in availableGroups" :key="group.id" :value="group.id">
+            {{ group.name }} ({{ group.count }})
+          </option>
+        </select>
+      </div>
+    </template>
+  </BaseFilters>
+</template>

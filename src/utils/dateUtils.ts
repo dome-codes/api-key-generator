@@ -152,7 +152,16 @@ export function isDateInRange(
 /**
  * Berechnet relative Datumsangaben
  */
-export function getRelativeDateRange(range: 'today' | 'yesterday' | 'last7days' | 'last30days' | 'last90days' | 'thisMonth' | 'lastMonth'): { start: Date; end: Date } {
+export function getRelativeDateRange(
+  range:
+    | 'today'
+    | 'yesterday'
+    | 'last7days'
+    | 'last30days'
+    | 'last90days'
+    | 'thisMonth'
+    | 'lastMonth',
+): { start: Date; end: Date } {
   const today = new Date()
   const end = endOfDay(today)
 

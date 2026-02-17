@@ -5,29 +5,29 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { ModelUsageType } from './modelUsageType';
-import type { AIUsageRecordQuality } from './aIUsageRecordQuality';
+import type { ModelUsageType } from './modelUsageType'
+import type { AIUsageRecordQuality } from './aIUsageRecordQuality'
 
 export interface AIUsageRecord {
-  type?: ModelUsageType;
-  tag?: string;
-  model?: string;
-  modelName?: string;
-  createDate?: string;
-  day?: number;
-  month?: number;
-  year?: number;
-  technicalUserId?: string;
-  apiKeyId?: string;
-  requests?: number;
-  tokensIn?: number;
-  tokensOut?: number;
-  totalTokens?: number;
-  cost?: number;
+  type?: ModelUsageType
+  tag?: string
+  model?: string
+  modelName?: string
+  createDate?: string
+  day?: number
+  month?: number
+  year?: number
+  technicalUserId?: string
+  apiKeyId?: string
+  requests?: number
+  tokensIn?: number
+  tokensOut?: number
+  totalTokens?: number
+  cost?: number
   /** Image width (only for ImageModelUsage) */
-  sizeWidth?: number;
+  sizeWidth?: number
   /** Image height (only for ImageModelUsage) */
-  sizeHeight?: number;
+  sizeHeight?: number
   /** Image quality (only for ImageModelUsage) */
-  quality?: AIUsageRecordQuality;
+  quality?: AIUsageRecordQuality
 }

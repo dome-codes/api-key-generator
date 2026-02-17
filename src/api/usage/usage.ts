@@ -13,71 +13,66 @@ import type {
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
   UsageExtractionGetV1Params,
-  UsageExtractionSummaryGetV1Params
-} from '.././types';
+  UsageExtractionSummaryGetV1Params,
+} from '.././types'
 
-import usageAIGetV1Mutator from '../../axios/api';
-import usageAISummaryGetV1Mutator from '../../axios/api';
-import usageExtractionGetV1Mutator from '../../axios/api';
-import usageExtractionSummaryGetV1Mutator from '../../axios/api';
+import usageAIGetV1Mutator from '../../axios/api'
+import usageAISummaryGetV1Mutator from '../../axios/api'
+import usageExtractionGetV1Mutator from '../../axios/api'
+import usageExtractionSummaryGetV1Mutator from '../../axios/api'
 
-
-
-  export const getUsage = () => {
-/**
- * Returns the usage in terms of tokens per model per time period with server-side filtering and pagination.
- * @summary Tracks the usage of the AI service
- */
-const usageAIGetV1 = (
-    params?: UsageAIGetV1Params,
- ) => {
-      return usageAIGetV1Mutator<AIUsagePage>(
-      {url: `/usage/ai`, method: 'GET',
-        params
-    },
-      );
-    }
+export const getUsage = () => {
   /**
- * Returns the usage summary grouped by specified parameters with server-side filtering and pagination.
- * @summary Returns the usage summary by type, user and cost factors
- */
-const usageAISummaryGetV1 = (
-    params?: UsageAISummaryGetV1Params,
- ) => {
-      return usageAISummaryGetV1Mutator<AIUsageSummaryPage>(
-      {url: `/usage/ai/summarize`, method: 'GET',
-        params
-    },
-      );
-    }
+   * Returns the usage in terms of tokens per model per time period with server-side filtering and pagination.
+   * @summary Tracks the usage of the AI service
+   */
+  const usageAIGetV1 = (params?: UsageAIGetV1Params) => {
+    return usageAIGetV1Mutator<AIUsagePage>({ url: `/usage/ai`, method: 'GET', params })
+  }
   /**
- * Returns the usage of the extraction service with server-side filtering and pagination.
- * @summary Tracks the usage of the Extraction service
- */
-const usageExtractionGetV1 = (
-    params?: UsageExtractionGetV1Params,
- ) => {
-      return usageExtractionGetV1Mutator<ExtractionUsagePage>(
-      {url: `/usage/extraction`, method: 'GET',
-        params
-    },
-      );
-    }
+   * Returns the usage summary grouped by specified parameters with server-side filtering and pagination.
+   * @summary Returns the usage summary by type, user and cost factors
+   */
+  const usageAISummaryGetV1 = (params?: UsageAISummaryGetV1Params) => {
+    return usageAISummaryGetV1Mutator<AIUsageSummaryPage>({
+      url: `/usage/ai/summarize`,
+      method: 'GET',
+      params,
+    })
+  }
   /**
- * Returns the extraction usage summary grouped by specified parameters with server-side filtering and pagination.
- * @summary Returns the extraction usage summary
- */
-const usageExtractionSummaryGetV1 = (
-    params?: UsageExtractionSummaryGetV1Params,
- ) => {
-      return usageExtractionSummaryGetV1Mutator<ExtractionUsageSummaryPage>(
-      {url: `/usage/extraction/summarize`, method: 'GET',
-        params
-    },
-      );
-    }
-  return {usageAIGetV1,usageAISummaryGetV1,usageExtractionGetV1,usageExtractionSummaryGetV1}};
-export type UsageAIGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getUsage>['usageAIGetV1']>>>
-export type UsageAISummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getUsage>['usageAISummaryGetV1']>>>
-export type UsageExtractionGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getUsage>['usageExtractionGetV1']>>>
-export type UsageExtractionSummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getUsage>['usageExtractionSummaryGetV1']>>>
+   * Returns the usage of the extraction service with server-side filtering and pagination.
+   * @summary Tracks the usage of the Extraction service
+   */
+  const usageExtractionGetV1 = (params?: UsageExtractionGetV1Params) => {
+    return usageExtractionGetV1Mutator<ExtractionUsagePage>({
+      url: `/usage/extraction`,
+      method: 'GET',
+      params,
+    })
+  }
+  /**
+   * Returns the extraction usage summary grouped by specified parameters with server-side filtering and pagination.
+   * @summary Returns the extraction usage summary
+   */
+  const usageExtractionSummaryGetV1 = (params?: UsageExtractionSummaryGetV1Params) => {
+    return usageExtractionSummaryGetV1Mutator<ExtractionUsageSummaryPage>({
+      url: `/usage/extraction/summarize`,
+      method: 'GET',
+      params,
+    })
+  }
+  return { usageAIGetV1, usageAISummaryGetV1, usageExtractionGetV1, usageExtractionSummaryGetV1 }
+}
+export type UsageAIGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsage>['usageAIGetV1']>>
+>
+export type UsageAISummaryGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsage>['usageAISummaryGetV1']>>
+>
+export type UsageExtractionGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsage>['usageExtractionGetV1']>>
+>
+export type UsageExtractionSummaryGetV1Result = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsage>['usageExtractionSummaryGetV1']>>
+>

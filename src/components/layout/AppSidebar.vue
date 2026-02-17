@@ -41,21 +41,17 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
   <aside class="w-56 bg-white border-r flex flex-col py-6 px-6 min-h-screen">
     <div class="mb-8 flex items-center justify-center">
       <!-- Logo SVG -->
-      <img
-        src="/rag.svg"
-        alt="RAG Logo"
-        class="w-10 h-10 text-primary"
-      />
+      <img src="/rag.svg" alt="RAG Logo" class="w-10 h-10 text-primary" />
     </div>
     <nav class="flex-1 flex flex-col gap-2">
       <button
-        @click="handleSidebarClick('api')"
         :class="
           activeSidebar === 'api' && route.name === 'home'
             ? 'bg-primary-100 text-primary font-semibold'
             : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
+        @click="handleSidebarClick('api')"
       >
         <!-- Schlüssel-Icon für API-Schlüssel -->
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -69,13 +65,13 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
       </button>
       <button
         v-if="canViewUsage"
-        @click="handleSidebarClick('usage')"
         :class="
           activeSidebar === 'usage' && route.name === 'home'
             ? 'bg-primary-100 text-primary font-semibold'
             : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
+        @click="handleSidebarClick('usage')"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path
@@ -86,20 +82,26 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
         </svg>
         Nutzung
       </button>
-      
+
       <!-- Admin-Bereich -->
       <div v-if="isAdmin" class="mt-4 pt-4 border-t border-gray-200">
         <p class="text-xs font-semibold text-gray-500 uppercase mb-2 px-3">Administration</p>
         <button
-          @click="navigateTo('/admin/preise')"
           :class="
             route.name === 'PricingManagement'
               ? 'bg-primary-100 text-primary font-semibold'
               : 'text-gray-700'
           "
           class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
+          @click="navigateTo('/admin/preise')"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

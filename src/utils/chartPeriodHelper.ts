@@ -176,11 +176,7 @@ export function convertToPeriod(
 /**
  * Generiert Labels für Chart-Achsen basierend auf Periode
  */
-export function generateChartLabels(
-  startDate: Date,
-  endDate: Date,
-  period: ChartPeriod,
-): string[] {
+export function generateChartLabels(startDate: Date, endDate: Date, period: ChartPeriod): string[] {
   const config = PERIOD_CONFIGS[period]
   const labels: string[] = []
   const current = new Date(config.getStartOfPeriod(startDate))

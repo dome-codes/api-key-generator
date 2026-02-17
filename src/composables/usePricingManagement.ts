@@ -1,15 +1,11 @@
 /**
  * Composable für Preisverwaltung
- * 
+ *
  * Lädt Preise aus lokaler JSON-Datei (public/pricing.json)
  * Änderungen werden nur im State gehalten (nicht gespeichert)
  */
 
-import type {
-  ModelPricing,
-  ImageModelPricing,
-  EmbeddingModelPricing,
-} from '@/config/pricing'
+import type { ModelPricing, ImageModelPricing, EmbeddingModelPricing } from '@/config/pricing'
 import {
   DEFAULT_AZURE_MODEL_PRICING,
   DEFAULT_AZURE_IMAGE_MODEL_PRICING,

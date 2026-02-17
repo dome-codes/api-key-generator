@@ -8,13 +8,13 @@
 
 export interface ExtractedField {
   /** Name of the extracted field (e.g., "Rechnungsnummer", "Datum", "Betrag") */
-  fieldName?: string;
+  fieldName?: string
   /** Extracted value */
-  value?: string;
+  value?: string
   /**
    * Confidence score for this specific field
    * @minimum 0
    * @maximum 1
    */
-  confidence?: number;
+  confidence?: number
 }

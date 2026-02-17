@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { v4 as uuidv4 } from 'uuid'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -20,18 +19,18 @@ const providers = ['azure-form-recognizer', 'aws-textract', 'google-document-ai'
 const extractionTags = ['invoice', 'contract', 'receipt', 'form', 'report']
 // Model IDs für verschiedene Provider
 const modelIds = [
-  'prebuilt-layout',           // Azure Form Recognizer
-  'prebuilt-document',         // Azure Form Recognizer
-  'prebuilt-invoice',          // Azure Form Recognizer
-  'prebuilt-receipt',          // Azure Form Recognizer
-  'prebuilt-businessCard',     // Azure Form Recognizer
-  'document-intelligence',     // Azure Document Intelligence
-  'textract-general',          // AWS Textract
-  'textract-forms',            // AWS Textract
-  'textract-tables',           // AWS Textract
-  'document-ai-general',       // Google Document AI
-  'document-ai-form-parser',   // Google Document AI
-  'document-ai-ocr',           // Google Document AI
+  'prebuilt-layout', // Azure Form Recognizer
+  'prebuilt-document', // Azure Form Recognizer
+  'prebuilt-invoice', // Azure Form Recognizer
+  'prebuilt-receipt', // Azure Form Recognizer
+  'prebuilt-businessCard', // Azure Form Recognizer
+  'document-intelligence', // Azure Document Intelligence
+  'textract-general', // AWS Textract
+  'textract-forms', // AWS Textract
+  'textract-tables', // AWS Textract
+  'document-ai-general', // Google Document AI
+  'document-ai-form-parser', // Google Document AI
+  'document-ai-ocr', // Google Document AI
 ]
 
 // Beginne Transaktion für bessere Performance
@@ -73,7 +72,7 @@ const insertManyAIByDay = db.transaction((items) => {
       item.cost,
       item.day,
       item.month,
-      item.year
+      item.year,
     )
   }
 })
@@ -95,7 +94,7 @@ const insertManyAIByApiKey = db.transaction((items) => {
       item.cost,
       item.day,
       item.month,
-      item.year
+      item.year,
     )
   }
 })
@@ -115,7 +114,7 @@ const insertManyExtractionByDay = db.transaction((items) => {
       item.createDate,
       item.day,
       item.month,
-      item.year
+      item.year,
     )
   }
 })
@@ -125,7 +124,9 @@ const today = new Date()
 const startDate = new Date(today)
 startDate.setMonth(startDate.getMonth() - MONTHS_TO_GENERATE)
 
-console.log(`Generiere Daten von ${startDate.toISOString().split('T')[0]} bis ${today.toISOString().split('T')[0]}`)
+console.log(
+  `Generiere Daten von ${startDate.toISOString().split('T')[0]} bis ${today.toISOString().split('T')[0]}`,
+)
 
 // Zähle Tage
 let currentDate = new Date(startDate)
@@ -194,7 +195,7 @@ while (currentDate <= today) {
       month - 1,
       day,
       Math.floor(Math.random() * 24),
-      Math.floor(Math.random() * 60)
+      Math.floor(Math.random() * 60),
     ).toISOString()
 
     aiByDayData.push({
@@ -217,7 +218,7 @@ while (currentDate <= today) {
 
     // Für API Key Gruppierung: aggregiere pro API Key pro Tag
     const existingApiKeyEntry = aiByApiKeyData.find(
-      (e) => e.apiKeyId === apiKeyId && e.day === day && e.month === month && e.year === year
+      (e) => e.apiKeyId === apiKeyId && e.day === day && e.month === month && e.year === year,
     )
 
     if (existingApiKeyEntry) {
@@ -264,7 +265,7 @@ while (currentDate <= today) {
     month - 1,
     day,
     Math.floor(Math.random() * 24),
-    Math.floor(Math.random() * 60)
+    Math.floor(Math.random() * 60),
   ).toISOString()
 
   extractionByDayData.push({
@@ -303,7 +304,9 @@ insertManyExtractionByDay(extractionByDayData)
 // Statistiken
 const aiDayCount = db.prepare('SELECT COUNT(*) as count FROM ai_usage_summary_by_day').get()
 const aiApiKeyCount = db.prepare('SELECT COUNT(*) as count FROM ai_usage_summary_by_apikey').get()
-const extractionCount = db.prepare('SELECT COUNT(*) as count FROM extraction_usage_summary_by_day').get()
+const extractionCount = db
+  .prepare('SELECT COUNT(*) as count FROM extraction_usage_summary_by_day')
+  .get()
 
 console.log('\n✅ Daten erfolgreich generiert:')
 console.log(`  - AI Usage (nach Tag): ${aiDayCount.count} Einträge`)

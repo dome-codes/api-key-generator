@@ -775,23 +775,23 @@ const generateMockUsageSummaryByDay = (days = 90) => {
   for (let i = 0; i < days; i++) {
     const currentDate = new Date(startDate)
     currentDate.setDate(startDate.getDate() + i)
-    
+
     const day = currentDate.getDate()
     const month = currentDate.getMonth() + 1
     const year = currentDate.getFullYear()
     const dayOfWeek = currentDate.getDay()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    
+
     // Generiere 3-8 Einträge pro Tag
     const entriesPerDay = Math.floor(Math.random() * 6) + 3
-    
+
     for (let j = 0; j < entriesPerDay; j++) {
       const baseMultiplier = isWeekend ? 0.6 : 1.2
       const requests = Math.floor((Math.random() * 200 + 50) * baseMultiplier)
       const requestTokens = Math.floor(requests * (Math.random() * 200 + 150))
       const responseTokens = Math.floor(requestTokens * (Math.random() * 0.4 + 0.3))
       const cost = requestTokens * 0.000001 + responseTokens * 0.000003
-      
+
       summaryData.push({
         type: 'CompletionModelUsage',
         tag: tags[Math.floor(Math.random() * tags.length)],
@@ -802,7 +802,13 @@ const generateMockUsageSummaryByDay = (days = 90) => {
         tokensIn: requestTokens,
         tokensOut: responseTokens,
         technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
-        createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+        createDate: new Date(
+          year,
+          month - 1,
+          day,
+          Math.floor(Math.random() * 24),
+          Math.floor(Math.random() * 60),
+        ).toISOString(),
         requests,
         cost,
         day,
@@ -811,7 +817,7 @@ const generateMockUsageSummaryByDay = (days = 90) => {
       })
     }
   }
-  
+
   return summaryData
 }
 
@@ -835,23 +841,23 @@ const generateMockExtractionData = (days = 90) => {
   for (let i = 0; i < days; i++) {
     const currentDate = new Date(startDate)
     currentDate.setDate(startDate.getDate() + i)
-    
+
     const day = currentDate.getDate()
     const month = currentDate.getMonth() + 1
     const year = currentDate.getFullYear()
     const dayOfWeek = currentDate.getDay()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    
+
     // Generiere 5-15 Einträge pro Tag
     const entriesPerDay = Math.floor(Math.random() * 11) + 5
-    
+
     for (let j = 0; j < entriesPerDay; j++) {
       const baseMultiplier = isWeekend ? 0.6 : 1.2
       const operations = Math.floor((Math.random() * 50 + 10) * baseMultiplier)
       const pages = Math.floor(operations * (Math.random() * 3 + 1))
       const confidence = Math.random() * 0.3 + 0.7 // 70-100%
       const cost = operations * (Math.random() * 0.1 + 0.05)
-      
+
       extractionData.push({
         id: uuidv4(),
         provider: providers[Math.floor(Math.random() * providers.length)],
@@ -864,14 +870,20 @@ const generateMockExtractionData = (days = 90) => {
         cost,
         technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
         apiKeyId: apiKeys[Math.floor(Math.random() * apiKeys.length)],
-        createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+        createDate: new Date(
+          year,
+          month - 1,
+          day,
+          Math.floor(Math.random() * 24),
+          Math.floor(Math.random() * 60),
+        ).toISOString(),
         day,
         month,
         year,
       })
     }
   }
-  
+
   return extractionData
 }
 
@@ -890,19 +902,19 @@ const generateExtendedExtractionSummaryByDay = (days = 90) => {
   for (let i = 0; i < days; i++) {
     const currentDate = new Date(startDate)
     currentDate.setDate(startDate.getDate() + i)
-    
+
     const day = currentDate.getDate()
     const month = currentDate.getMonth() + 1
     const year = currentDate.getFullYear()
     const dayOfWeek = currentDate.getDay()
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    
+
     const baseMultiplier = isWeekend ? 0.6 : 1.2
     const operations = Math.floor((Math.random() * 200 + 50) * baseMultiplier)
     const totalPages = Math.floor(operations * (Math.random() * 3 + 1))
     const averageConfidence = Math.random() * 0.2 + 0.75 // 75-95%
     const cost = operations * (Math.random() * 0.1 + 0.05)
-    
+
     summaryData.push({
       provider: providers[Math.floor(Math.random() * providers.length)],
       tag: tags[Math.floor(Math.random() * tags.length)],
@@ -912,13 +924,19 @@ const generateExtendedExtractionSummaryByDay = (days = 90) => {
       cost,
       technicalUserId: userIds[Math.floor(Math.random() * userIds.length)],
       apiKeyId: apiKeys[Math.floor(Math.random() * apiKeys.length)],
-      createDate: new Date(year, month - 1, day, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60)).toISOString(),
+      createDate: new Date(
+        year,
+        month - 1,
+        day,
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60),
+      ).toISOString(),
       day,
       month,
       year,
     })
   }
-  
+
   return summaryData
 }
 

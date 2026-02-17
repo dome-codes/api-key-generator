@@ -10,10 +10,8 @@ const keycloakConfig = {
 }
 
 // Gruppennamen kommen direkt über ENV/Helm-Chart (maximale Flexibilität)
-export const ADMIN_GROUP_NAME =
-  import.meta.env.VITE_ADMIN_GROUP_NAME || 'G_APPL_DEKARAG_API_ADMIN'
-export const USER_GROUP_NAME =
-  import.meta.env.VITE_USER_GROUP_NAME || 'G_APPL_DEKARAG_ENTWICKLUNG'
+export const ADMIN_GROUP_NAME = import.meta.env.VITE_ADMIN_GROUP_NAME || 'G_APPL_DEKARAG_API_ADMIN'
+export const USER_GROUP_NAME = import.meta.env.VITE_USER_GROUP_NAME || 'G_APPL_DEKARAG_ENTWICKLUNG'
 export const TECHNICAL_GROUP_NAME =
   import.meta.env.VITE_TECHNICAL_GROUP_NAME || 'G_APPL_DEKARAG_API_DEFAULT'
 
@@ -221,7 +219,7 @@ export const getToken = async (): Promise<string | null> => {
   try {
     const cached = getTokenFromStorage()
     const nowSec = Math.floor(Date.now() / 1000)
-    
+
     // WICHTIG: Prüfe, ob der gecachte Token zum aktuellen Keycloak-Token passt
     // Wenn Keycloak einen neuen Token hat (z.B. nach Login als anderer User),
     // muss der Cache geleert werden, damit der neue Token verwendet wird
@@ -268,7 +266,14 @@ export function getHighestRole(): UserRole {
   }
 
   const groups: string[] = keycloak.tokenParsed.groups || []
-  debugLog('Vergleiche Gruppen:', groups, 'mit', ADMIN_GROUP_NAME, USER_GROUP_NAME, TECHNICAL_GROUP_NAME)
+  debugLog(
+    'Vergleiche Gruppen:',
+    groups,
+    'mit',
+    ADMIN_GROUP_NAME,
+    USER_GROUP_NAME,
+    TECHNICAL_GROUP_NAME,
+  )
 
   if (groups.includes(ADMIN_GROUP_NAME)) {
     return UserRole.ADMIN
@@ -283,9 +288,7 @@ export function getHighestRole(): UserRole {
 }
 
 // Berechtigung prüfen
-export const hasPermission = (
-  permission: keyof (typeof ROLE_PERMISSIONS)[UserRole],
-): boolean => {
+export const hasPermission = (permission: keyof (typeof ROLE_PERMISSIONS)[UserRole]): boolean => {
   const userRole = getHighestRole()
   const permitted = ROLE_PERMISSIONS[userRole][permission] || false
   debugLog(`Prüfe Permission "${permission}" für Rolle "${userRole}": ${permitted}`)

@@ -32,8 +32,8 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
   },
   {
     modelName: 'gpt-4o',
-    inputPrice: 2.30, // $2.50 * 0.92 EUR/USD
-    outputPrice: 9.20, // $10.00 * 0.92 EUR/USD
+    inputPrice: 2.3, // $2.50 * 0.92 EUR/USD
+    outputPrice: 9.2, // $10.00 * 0.92 EUR/USD
   },
 
   // GPT-4.1 Serie (Stand: 2026)
@@ -259,7 +259,7 @@ function calculateCompletionCost(
   // Lade aktuelle Preise dynamisch (können sich geändert haben)
   const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
   const currentMarkup = loadMarkupFromStorage()
-  
+
   // Finde das Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
@@ -302,14 +302,16 @@ function calculateEmbeddingCost(
   finalCost: number
 } {
   // Lade aktuelle Preise dynamisch (können sich geändert haben)
-  const currentPricing = loadPricingFromStorage('pricing:embedding', DEFAULT_AZURE_EMBEDDING_MODEL_PRICING)
+  const currentPricing = loadPricingFromStorage(
+    'pricing:embedding',
+    DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+  )
   const currentMarkup = loadMarkupFromStorage()
-  
+
   // Finde das Modell in der Preisliste
   const model =
-    currentPricing.find(
-      (m) => m.modelName.toLowerCase() === modelName.toLowerCase(),
-    ) || currentPricing.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
+    currentPricing.find((m) => m.modelName === 'unknown')!
 
   // Berechne Kosten pro Token (Preise sind pro 1000 Tokens)
   const pricePerToken = model.pricePer1000Tokens / 1000
@@ -349,7 +351,7 @@ function calculateImageCost(
   // Lade aktuelle Preise dynamisch (können sich geändert haben)
   const currentPricing = getCurrentImagePricing()
   const currentMarkup = getCurrentMarkup()
-  
+
   // Finde das Image-Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||

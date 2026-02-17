@@ -1,3 +1,22 @@
+<script setup lang="ts">
+interface Props {
+  error: string
+  title?: string
+  showRetry?: boolean
+  isRetrying?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  title: 'Fehler beim Laden der Daten',
+  showRetry: true,
+  isRetrying: false,
+})
+
+defineEmits<{
+  retry: []
+}>()
+</script>
+
 <template>
   <div class="bg-red-50 border border-red-200 rounded-lg p-6">
     <div class="flex items-start">
@@ -17,9 +36,9 @@
         </div>
         <div v-if="showRetry" class="mt-4">
           <button
-            @click="$emit('retry')"
             :disabled="isRetrying"
             class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="$emit('retry')"
           >
             <svg
               v-if="isRetrying"
@@ -62,22 +81,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-interface Props {
-  error: string
-  title?: string
-  showRetry?: boolean
-  isRetrying?: boolean
-}
-
-withDefaults(defineProps<Props>(), {
-  title: 'Fehler beim Laden der Daten',
-  showRetry: true,
-  isRetrying: false,
-})
-
-defineEmits<{
-  retry: []
-}>()
-</script>

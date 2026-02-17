@@ -76,11 +76,7 @@ export const apiKeyService = {
   },
 
   // API-Key rotieren (rollenbasiert)
-  async rotateApiKey(
-    keyId: string,
-    name: string,
-    permissions: string[],
-  ): Promise<any> {
+  async rotateApiKey(keyId: string, name: string, permissions: string[]): Promise<any> {
     // Prüfe Berechtigung
     if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Bearbeiten von API-Keys')
@@ -187,7 +183,7 @@ export const usageService = {
       const response = await getUsage().usageAISummaryGetV1(params)
       const body = response.data
       debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
-      
+
       // DEBUG: Zeige rohe Response-Daten für Troubleshooting
       if (isDebugLogEnabled()) {
         const rawData = getDataArray<AIUsageSummaryRecord>(body)
@@ -195,16 +191,16 @@ export const usageService = {
           'Anzahl Records': rawData.length,
           'Erste 3 Records': rawData.slice(0, 3).map((r: any) => ({
             'Alle Keys': Object.keys(r),
-            'apiKeyId': r.apiKeyId,
-            'api_key_id': r.api_key_id,
-            'api_key': r.api_key,
-            'key_id': r.key_id,
-            'keyId': r.keyId,
+            apiKeyId: r.apiKeyId,
+            api_key_id: r.api_key_id,
+            api_key: r.api_key,
+            key_id: r.key_id,
+            keyId: r.keyId,
             'Komplettes Record': r,
           })),
         })
       }
-      
+
       // Backend kann data, items oder usage liefern
       const data = getDataArray<AIUsageSummaryRecord>(body)
       const pagination: PaginationInfo | undefined =

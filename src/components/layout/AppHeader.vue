@@ -37,9 +37,9 @@ const getRoleColor = (role: string) => {
       <!-- Debug-Button (nur im Debug-Modus) -->
       <button
         v-if="showDebugMode"
-        @click="$emit('debugTokenInfo')"
         class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
         title="Debug Info Toggle (Frontend + Console)"
+        @click="$emit('debugTokenInfo')"
       >
         🔧 Debug
       </button>
@@ -60,9 +60,9 @@ const getRoleColor = (role: string) => {
       </div>
       <img :src="userProfile.avatar" alt="avatar" class="w-9 h-9 rounded-full border" />
       <button
-        @click="$emit('logout')"
         class="ml-3 px-3 py-1 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
         title="Abmelden"
+        @click="$emit('logout')"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

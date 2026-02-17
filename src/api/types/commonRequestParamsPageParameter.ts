@@ -9,4 +9,4 @@
 /**
  * Page number for pagination (1-based).
  */
-export type CommonRequestParamsPageParameter = number;
+export type CommonRequestParamsPageParameter = number

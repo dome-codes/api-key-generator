@@ -1,130 +1,3 @@
-<template>
-  <div class="bg-white rounded-xl shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <!-- Time Range Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
-        <select
-          v-model="timeRange"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleTimeRangeChange"
-        >
-          <option value="7d">Letzte 7 Tage</option>
-          <option value="30d">Letzte 30 Tage</option>
-          <option value="90d">Letzte 90 Tage</option>
-          <option value="thisMonth">Diesen Monat</option>
-          <option value="lastMonth">Vormonat</option>
-          <option value="custom">Benutzerdefiniert</option>
-        </select>
-
-        <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
-        <div v-if="timeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Von</label>
-            <input
-              v-model="fromDate"
-              type="date"
-              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleFilterChange"
-            />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">Bis</label>
-            <input
-              v-model="toDate"
-              type="date"
-              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
-              @change="handleFilterChange"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Model Type Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
-        <select
-          v-model="modelType"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Modelltypen</option>
-          <option value="CompletionModelUsage">Chat Completions</option>
-          <option value="EmbeddingModelUsage">Embeddings</option>
-          <option value="ImageModelUsage">Bilder</option>
-        </select>
-      </div>
-
-      <!-- Model Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
-        <input
-          v-model="model"
-          type="text"
-          placeholder="z.B. gpt-4o"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
-        />
-      </div>
-
-      <!-- Tag Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
-        <input
-          v-model="tag"
-          type="text"
-          placeholder="z.B. production"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
-        />
-      </div>
-
-      <!-- API Key Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-        <input
-          v-model="apiKeyId"
-          type="text"
-          placeholder="API Key ID"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @input="handleFilterChange"
-        />
-      </div>
-
-      <!-- User Filter (nur für Admin) -->
-      <div v-if="showUserFilter">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
-        <select
-          v-model="selectedUser"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Benutzer</option>
-          <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
-            {{ user.displayName }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Gruppen Filter (nur für Admin) -->
-      <div v-if="showUserFilter">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
-        <select
-          v-model="selectedUserGroup"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Gruppen</option>
-          <option v-for="group in availableGroups" :key="group.id" :value="group.id">
-            {{ group.name }} ({{ group.count }})
-          </option>
-        </select>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 
@@ -305,3 +178,130 @@ watch(selectedUser, (newUser) => {
   }
 })
 </script>
+
+<template>
+  <div class="bg-white rounded-xl shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Zeitraum</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <!-- Time Range Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Zeitraum</label>
+        <select
+          v-model="timeRange"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleTimeRangeChange"
+        >
+          <option value="7d">Letzte 7 Tage</option>
+          <option value="30d">Letzte 30 Tage</option>
+          <option value="90d">Letzte 90 Tage</option>
+          <option value="thisMonth">Diesen Monat</option>
+          <option value="lastMonth">Vormonat</option>
+          <option value="custom">Benutzerdefiniert</option>
+        </select>
+
+        <!-- Custom Date Range (nur sichtbar wenn "Benutzerdefiniert" ausgewählt) -->
+        <div v-if="timeRange === 'custom'" class="mt-2 grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-gray-600 mb-1">Von</label>
+            <input
+              v-model="fromDate"
+              type="date"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
+              @change="handleFilterChange"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600 mb-1">Bis</label>
+            <input
+              v-model="toDate"
+              type="date"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 bg-white"
+              @change="handleFilterChange"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Type Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Modelltyp</label>
+        <select
+          v-model="modelType"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Modelltypen</option>
+          <option value="CompletionModelUsage">Chat Completions</option>
+          <option value="EmbeddingModelUsage">Embeddings</option>
+          <option value="ImageModelUsage">Bilder</option>
+        </select>
+      </div>
+
+      <!-- Model Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Modell</label>
+        <input
+          v-model="model"
+          type="text"
+          placeholder="z.B. gpt-4o"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @input="handleFilterChange"
+        />
+      </div>
+
+      <!-- Tag Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
+        <input
+          v-model="tag"
+          type="text"
+          placeholder="z.B. production"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @input="handleFilterChange"
+        />
+      </div>
+
+      <!-- API Key Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+        <input
+          v-model="apiKeyId"
+          type="text"
+          placeholder="API Key ID"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @input="handleFilterChange"
+        />
+      </div>
+
+      <!-- User Filter (nur für Admin) -->
+      <div v-if="showUserFilter">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
+        <select
+          v-model="selectedUser"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Benutzer</option>
+          <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
+            {{ user.displayName }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Gruppen Filter (nur für Admin) -->
+      <div v-if="showUserFilter">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
+        <select
+          v-model="selectedUserGroup"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @change="handleFilterChange"
+        >
+          <option value="">Alle Gruppen</option>
+          <option v-for="group in availableGroups" :key="group.id" :value="group.id">
+            {{ group.name }} ({{ group.count }})
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+</template>

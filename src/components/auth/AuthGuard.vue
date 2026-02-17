@@ -1,55 +1,3 @@
-<template>
-  <div>
-    <!-- Ladezustand während Keycloak-Initialisierung -->
-    <div v-if="isLoading" class="flex items-center justify-center min-h-screen">
-      <div class="text-center">
-        <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"
-        ></div>
-        <p class="text-gray-600">Authentifizierung läuft...</p>
-      </div>
-    </div>
-
-    <!-- Fehlerzustand -->
-    <div v-else-if="error" class="flex items-center justify-center min-h-screen">
-      <div class="text-center">
-        <div class="text-red-600 text-6xl mb-4">⚠️</div>
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Authentifizierungsfehler</h2>
-        <p class="text-gray-600 mb-4">{{ error }}</p>
-        <button
-          @click="retryAuth"
-          class="bg-primary text-white px-4 py-2 rounded hover:bg-primary-hover"
-        >
-          Erneut versuchen
-        </button>
-      </div>
-    </div>
-
-    <!-- App-Inhalt erst, wenn Token bereit (verhindert 403 durch vorzeitige API-Calls) -->
-    <template v-else-if="isAuthenticated && tokenReady">
-      <RouterView />
-    </template>
-    <!-- Nicht eingeloggt: Weiterleitung zur Keycloak-Login-Oberfläche -->
-    <div v-else class="flex items-center justify-center min-h-screen">
-      <div class="text-center">
-        <div
-          class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"
-        ></div>
-        <p class="text-gray-600">
-          {{ redirectingToLogin ? 'Weiterleitung zur Anmeldung…' : 'Nicht angemeldet.' }}
-        </p>
-        <button
-          v-if="!redirectingToLogin"
-          @click="retryAuth"
-          class="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
-        >
-          Anmelden
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import {
   getToken,
@@ -85,7 +33,7 @@ const initializeAuth = async () => {
   try {
     const authenticated = await initKeycloak()
     isAuthenticated.value = authenticated
-    
+
     if (authenticated) {
       // Kein gültiger Nutzer (Unbekannter Nutzer / keine Rolle) → Nicht autorisiert
       if (!hasValidAppUser()) {
@@ -160,3 +108,55 @@ onMounted(() => {
   initializeAuth()
 })
 </script>
+
+<template>
+  <div>
+    <!-- Ladezustand während Keycloak-Initialisierung -->
+    <div v-if="isLoading" class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"
+        ></div>
+        <p class="text-gray-600">Authentifizierung läuft...</p>
+      </div>
+    </div>
+
+    <!-- Fehlerzustand -->
+    <div v-else-if="error" class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="text-red-600 text-6xl mb-4">⚠️</div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Authentifizierungsfehler</h2>
+        <p class="text-gray-600 mb-4">{{ error }}</p>
+        <button
+          class="bg-primary text-white px-4 py-2 rounded hover:bg-primary-hover"
+          @click="retryAuth"
+        >
+          Erneut versuchen
+        </button>
+      </div>
+    </div>
+
+    <!-- App-Inhalt erst, wenn Token bereit (verhindert 403 durch vorzeitige API-Calls) -->
+    <template v-else-if="isAuthenticated && tokenReady">
+      <RouterView />
+    </template>
+    <!-- Nicht eingeloggt: Weiterleitung zur Keycloak-Login-Oberfläche -->
+    <div v-else class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div
+          class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"
+        ></div>
+        <p class="text-gray-600">
+          {{ redirectingToLogin ? 'Weiterleitung zur Anmeldung…' : 'Nicht angemeldet.' }}
+        </p>
+        <button
+          v-if="!redirectingToLogin"
+          class="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-hover"
+          @click="retryAuth"
+        >
+          Anmelden
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

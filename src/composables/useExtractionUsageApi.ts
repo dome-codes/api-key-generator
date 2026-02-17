@@ -1,6 +1,6 @@
 /**
  * useExtractionUsageApi Composable
- * 
+ *
  * Dieser Composable implementiert die server-seitige Filterung und Gruppierung
  * für Extraction Usage über die API. Parallel zum useUsageApi Composable strukturiert.
  */
@@ -225,7 +225,8 @@ export function useExtractionUsageApi() {
         pagination: result.pagination,
       })
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Extraction-Nutzungsdaten'
+      error.value =
+        err instanceof Error ? err.message : 'Fehler beim Laden der Extraction-Nutzungsdaten'
       console.error('Error loading extraction usage data:', err)
       usageData.value = []
       pagination.value = {
@@ -290,7 +291,10 @@ export function useExtractionUsageApi() {
         pagination: pagination.value,
       })
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Extraction-Nutzungszusammenfassung'
+      error.value =
+        err instanceof Error
+          ? err.message
+          : 'Fehler beim Laden der Extraction-Nutzungszusammenfassung'
       console.error('Error loading extraction usage summary:', err)
       usageData.value = []
       pagination.value = {

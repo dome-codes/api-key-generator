@@ -9,7 +9,12 @@ import type { AIUsageSummaryRecord } from './aIUsageSummaryRecord'
 import type { ModelUsageType } from './modelUsageType'
 
 // Re-export Orval types used by frontend
-export type { AIUsagePage, AIUsageSummaryPage, ExtractionUsagePage, ExtractionUsageSummaryPage } from './index'
+export type {
+  AIUsagePage,
+  AIUsageSummaryPage,
+  ExtractionUsagePage,
+  ExtractionUsageSummaryPage,
+} from './index'
 export type { PaginationInfo, ModelUsageType } from './index'
 
 // Aliases for API records (used as SummaryUsage | ModelUsage in analytics)
@@ -173,7 +178,17 @@ export interface ModelUsageSummary {
   totalTokensOut: number
   totalTokens: number
   totalCost: number
-  userBreakdown: Record<string, { requests: number; tokensIn: number; tokensOut: number; totalTokens: number; cost: number; tag: string }>
+  userBreakdown: Record<
+    string,
+    {
+      requests: number
+      tokensIn: number
+      tokensOut: number
+      totalTokens: number
+      cost: number
+      tag: string
+    }
+  >
 }
 
 export interface UserUsageSummary {
@@ -184,7 +199,17 @@ export interface UserUsageSummary {
   totalTokensOut: number
   totalTokens: number
   totalCost: number
-  modelBreakdown: Record<string, { requests: number; tokensIn: number; tokensOut: number; totalTokens: number; cost: number; tag: string }>
+  modelBreakdown: Record<
+    string,
+    {
+      requests: number
+      tokensIn: number
+      tokensOut: number
+      totalTokens: number
+      cost: number
+      tag: string
+    }
+  >
 }
 
 export interface ImageModelUsage extends AIUsageSummaryRecord {

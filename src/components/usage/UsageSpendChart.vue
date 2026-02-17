@@ -1,3 +1,7 @@
+<script setup lang="ts">
+// Dummy-Daten, keine Logik nötig
+</script>
+
 <template>
   <div class="flex-1 bg-white rounded-xl shadow p-6">
     <div class="flex items-center justify-between mb-2">
@@ -23,7 +27,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-// Dummy-Daten, keine Logik nötig
-</script>

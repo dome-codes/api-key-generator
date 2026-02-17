@@ -17,7 +17,10 @@ export function useModals() {
     if (!newKey) return
 
     editModalName.value = newKey.name
-    editModalPermissions.value = (newKey.permissions || 'api-access').split(',').map((p) => p.trim()).filter(Boolean)
+    editModalPermissions.value = (newKey.permissions || 'api-access')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
     editModalKey.value = newKey
     showEditModal.value = true
   }

@@ -1,3 +1,32 @@
+<script setup lang="ts">
+interface UsageSummary {
+  tokensIn: number
+  tokensOut: number
+  requests: number
+  cost: number
+  uniqueUsers?: number
+}
+
+interface Props {
+  title: string
+  description: string
+  summary: UsageSummary
+  isLoading: boolean
+  error: string | null
+  showUniqueUsers?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showUniqueUsers: false,
+})
+
+// Cost formatting function
+const formatCost = (cost: number): string => {
+  if (cost === 0) return '€0.00'
+  return `€${cost.toFixed(2)}`
+}
+</script>
+
 <template>
   <div class="bg-white rounded-xl shadow p-6">
     <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ title }}</h2>
@@ -51,32 +80,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-interface UsageSummary {
-  tokensIn: number
-  tokensOut: number
-  requests: number
-  cost: number
-  uniqueUsers?: number
-}
-
-interface Props {
-  title: string
-  description: string
-  summary: UsageSummary
-  isLoading: boolean
-  error: string | null
-  showUniqueUsers?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  showUniqueUsers: false
-})
-
-// Cost formatting function
-const formatCost = (cost: number): string => {
-  if (cost === 0) return '€0.00'
-  return `€${cost.toFixed(2)}`
-}
-</script>

@@ -5,10 +5,10 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { ExtractionUsageSummaryRecord } from './extractionUsageSummaryRecord';
-import type { PaginationInfo } from './paginationInfo';
+import type { ExtractionUsageSummaryRecord } from './extractionUsageSummaryRecord'
+import type { PaginationInfo } from './paginationInfo'
 
 export interface ExtractionUsageSummaryPage {
-  data?: ExtractionUsageSummaryRecord[];
-  pagination?: PaginationInfo;
+  data?: ExtractionUsageSummaryRecord[]
+  pagination?: PaginationInfo
 }

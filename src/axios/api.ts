@@ -6,14 +6,15 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 const debugLog = (...args: unknown[]) => {
   try {
     const showDebug = (appConfig as { showDebug?: boolean }).showDebug
-    const fromStorage = typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
+    const fromStorage =
+      typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
     if (showDebug || fromStorage) console.log(...args)
   } catch (_) {}
 }
 
 // Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
 const rawBase = appConfig.apiBaseUrl || ''
-const baseURL = rawBase.endsWith('/v1') ? rawBase : rawBase.replace(/\/?$/, '') + '/v1'
+const baseURL = rawBase.endsWith('/v1') ? rawBase : `${rawBase.replace(/\/?$/, '')}/v1`
 
 /** Query-Params: Nur & und = escapen, damit usage/ai und summarize so aussehen: .../usage/ai?from_date=2026-01-31T00:00:00.000Z (kein %3A). */
 function serializeParams(params: Record<string, unknown>): string {

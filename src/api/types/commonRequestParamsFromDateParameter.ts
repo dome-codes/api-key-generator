@@ -9,4 +9,4 @@
 /**
  * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
  */
-export type CommonRequestParamsFromDateParameter = string;
+export type CommonRequestParamsFromDateParameter = string

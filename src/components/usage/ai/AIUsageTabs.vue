@@ -1,177 +1,3 @@
-<template>
-  <div>
-    <!-- Tabs Navigation -->
-    <div class="border-b border-gray-200 mb-6">
-      <nav class="-mb-px flex space-x-8">
-        <button
-          @click="activeTab = 'own'"
-          :class="[
-            activeTab === 'own'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-          ]"
-        >
-          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-          Meine Nutzung
-        </button>
-
-        <button
-          v-if="isApiAdmin"
-          @click="activeTab = 'admin'"
-          :class="[
-            activeTab === 'admin'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
-          ]"
-        >
-          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          Admin-Nutzung (Alle Konten)
-        </button>
-      </nav>
-    </div>
-
-    <!-- Tab Content: Own Usage -->
-    <div v-if="activeTab === 'own'" class="space-y-6">
-      <UsagePricingDisclaimer />
-
-      <!-- Filter Section -->
-      <AIUsageFilters
-        v-model:time-range="ownTimeRange"
-        v-model:model-type="ownModelType"
-        v-model:model="ownModel"
-        v-model:api-key-id="ownApiKeyId"
-        v-model:from-date="ownFromDate"
-        v-model:to-date="ownToDate"
-        @filter-changed="handleOwnFilterChange"
-      />
-
-      <!-- View Toggle -->
-      <UsageViewToggle v-model:view="ownView" />
-
-      <!-- Summary Cards -->
-      <AIUsageSummary
-        title="Meine Nutzungsdaten"
-        description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
-        :summary="ownSummary"
-        :is-loading="isLoading"
-        :error="error"
-        @retry="handleRetry"
-      />
-
-      <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
-      <div v-if="showOwnChart" class="space-y-6">
-        <AIUsageCharts
-          line-chart-title="Nutzungsverlauf"
-          :selected-period="ownChartPeriod"
-          :line-chart-data="chartData"
-          :model-distribution-data="modelDistributionChartData"
-          :tag-usage-data="tagUsageChartData"
-          :has-more-tags="hasMoreTags"
-          :show-all-tags-in-chart="showAllTagsInChart"
-          @update:selected-period="handleChartPeriodChange"
-          @toggle-show-all-tags="toggleShowAllTags"
-        />
-      </div>
-
-      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
-      <UsageDetailedTable
-        v-if="showOwnDetails"
-        :data="usageData"
-        :is-loading="isLoading"
-        :error="error"
-        :pagination="pagination"
-        :sort-field="currentFilter.sort"
-        :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
-        :use-backend-sorting="true"
-        :model-type-filter="ownModelType"
-        @page-change="handlePageChange"
-        @sort-change="handleSortChange"
-        @retry="handleRetry"
-      />
-    </div>
-
-    <!-- Tab Content: Admin Usage -->
-    <div v-else-if="activeTab === 'admin'" class="space-y-6">
-      <UsagePricingDisclaimer />
-
-      <!-- Filter Section -->
-      <AIUsageFilters
-        v-model:time-range="adminTimeRange"
-        v-model:model-type="adminModelType"
-        v-model:model="adminModel"
-        v-model:api-key-id="adminApiKeyId"
-        v-model:from-date="adminFromDate"
-        v-model:to-date="adminToDate"
-        v-model:selected-user="adminUser"
-        v-model:selected-user-group="adminUserGroup"
-        :show-user-filter="true"
-        :users="uniqueUsers"
-        @filter-changed="handleAdminFilterChange"
-      />
-
-      <!-- View Toggle -->
-      <UsageViewToggle v-model:view="adminView" />
-
-      <!-- Summary Cards -->
-      <AIUsageSummary
-        title="Admin-Nutzung - Alle Konten"
-        description="Übersicht über die API-Nutzung aller Benutzer."
-        :summary="adminSummary"
-        :is-loading="isLoading"
-        :error="error"
-        :show-unique-users="true"
-        @retry="handleRetry"
-      />
-
-      <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
-      <div v-if="showAdminChart" class="space-y-6">
-        <AIUsageCharts
-          line-chart-title="Admin-Nutzungsverlauf"
-          selected-period="daily"
-          :line-chart-data="chartData"
-          :model-distribution-data="modelDistributionChartData"
-          :tag-usage-data="tagUsageChartData"
-          :has-more-tags="hasMoreTags"
-          :show-all-tags-in-chart="showAllTagsInChart"
-          @toggle-show-all-tags="toggleShowAllTags"
-        />
-      </div>
-
-      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
-      <UsageDetailedTable
-        v-if="showAdminDetails"
-        :data="usageData"
-        :is-loading="isLoading"
-        :error="error"
-        :pagination="pagination"
-        :sort-field="currentFilter.sort"
-        :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
-        :use-backend-sorting="true"
-        :model-type-filter="adminModelType"
-        @page-change="handlePageChange"
-        @sort-change="handleSortChange"
-        @retry="handleRetry"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
 import { useUsageApi } from '@/composables/useUsageApi'
@@ -265,19 +91,25 @@ const loadFiltersFromUrl = () => {
     // Lade timeRange aus URL oder setze Default auf '30d'
     const urlTimeRange = getQueryParam('timeRange')
     ownTimeRange.value = urlTimeRange || '30d'
-    
-    ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
+
+    ownModelType.value =
+      fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     ownModel.value = getQueryParam('model') || ''
     ownApiKeyId.value = getQueryParam('apiKeyId') || ''
     ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
     ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
-    
+
     // Lade Datumsfelder aus URL
     ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
-    
+
     // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
-    if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+    if (
+      ownTimeRange.value &&
+      ownTimeRange.value !== 'custom' &&
+      !ownFromDate.value &&
+      !ownToDate.value
+    ) {
       const today = new Date()
       let startDate: Date
       switch (ownTimeRange.value) {
@@ -313,20 +145,26 @@ const loadFiltersFromUrl = () => {
     // Lade timeRange aus URL oder setze Default auf '30d'
     const urlTimeRange = getQueryParam('timeRange')
     adminTimeRange.value = urlTimeRange || '30d'
-    
-    adminModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
+
+    adminModelType.value =
+      fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     adminModel.value = getQueryParam('model') || ''
     adminApiKeyId.value = getQueryParam('apiKeyId') || ''
     adminUser.value = getQueryParam('userId') || ''
     adminUserGroup.value = getQueryParam('userGroup') || ''
     adminView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
-    
+
     // Lade Datumsfelder aus URL
     adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
-    
+
     // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
-    if (adminTimeRange.value && adminTimeRange.value !== 'custom' && !adminFromDate.value && !adminToDate.value) {
+    if (
+      adminTimeRange.value &&
+      adminTimeRange.value !== 'custom' &&
+      !adminFromDate.value &&
+      !adminToDate.value
+    ) {
       const today = new Date()
       let startDate: Date
       switch (adminTimeRange.value) {
@@ -368,7 +206,8 @@ const saveFiltersToUrl = () => {
 
   if (activeTab.value === 'own') {
     if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-    if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
+    if (ownModelType.value)
+      params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
     if (ownModel.value) params.model = ownModel.value
     if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
     if (ownView.value) params.view = ownView.value
@@ -377,7 +216,8 @@ const saveFiltersToUrl = () => {
     if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
   } else {
     if (adminTimeRange.value) params.timeRange = adminTimeRange.value
-    if (adminModelType.value) params.usageType = toBackendUsageType(adminModelType.value) || adminModelType.value
+    if (adminModelType.value)
+      params.usageType = toBackendUsageType(adminModelType.value) || adminModelType.value
     if (adminModel.value) params.model = adminModel.value
     if (adminApiKeyId.value) params.apiKey = adminApiKeyId.value
     if (adminUser.value) params.userId = adminUser.value
@@ -398,7 +238,7 @@ const saveFiltersToUrl = () => {
 // Convert date string to ISO format
 const toIsoDate = (dateStr: string): string | undefined => {
   if (!dateStr || dateStr.trim() === '') return undefined
-  return new Date(dateStr + 'T00:00:00Z').toISOString()
+  return new Date(`${dateStr}T00:00:00Z`).toISOString()
 }
 
 // Computed properties
@@ -439,7 +279,7 @@ const handleOwnFilterChange = async () => {
       fromDate: ownFromDate.value,
       toDate: ownToDate.value,
     })
-    
+
     // Setze Filter ohne sofort zu laden
     currentFilter.value = {
       ...currentFilter.value,
@@ -480,7 +320,7 @@ const handleAdminFilterChange = async () => {
       fromDate: adminFromDate.value,
       toDate: adminToDate.value,
     })
-    
+
     // Setze Filter ohne sofort zu laden
     currentFilter.value = {
       ...currentFilter.value,
@@ -599,7 +439,7 @@ onMounted(async () => {
   try {
     // Load from URL first
     loadFiltersFromUrl()
-    
+
     // Set defaults ONLY if no dates were loaded from URL
     // This ensures that if timeRange is set, the dates are set accordingly
     // But if dates are already in URL, we don't override them
@@ -693,3 +533,177 @@ onMounted(async () => {
   }
 })
 </script>
+
+<template>
+  <div>
+    <!-- Tabs Navigation -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="-mb-px flex space-x-8">
+        <button
+          :class="[
+            activeTab === 'own'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
+          ]"
+          @click="activeTab = 'own'"
+        >
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          Meine Nutzung
+        </button>
+
+        <button
+          v-if="isApiAdmin"
+          :class="[
+            activeTab === 'admin'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
+          ]"
+          @click="activeTab = 'admin'"
+        >
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          Admin-Nutzung (Alle Konten)
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab Content: Own Usage -->
+    <div v-if="activeTab === 'own'" class="space-y-6">
+      <UsagePricingDisclaimer />
+
+      <!-- Filter Section -->
+      <AIUsageFilters
+        v-model:time-range="ownTimeRange"
+        v-model:model-type="ownModelType"
+        v-model:model="ownModel"
+        v-model:api-key-id="ownApiKeyId"
+        v-model:from-date="ownFromDate"
+        v-model:to-date="ownToDate"
+        @filter-changed="handleOwnFilterChange"
+      />
+
+      <!-- View Toggle -->
+      <UsageViewToggle v-model:view="ownView" />
+
+      <!-- Summary Cards -->
+      <AIUsageSummary
+        title="Meine Nutzungsdaten"
+        description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
+        :summary="ownSummary"
+        :is-loading="isLoading"
+        :error="error"
+        @retry="handleRetry"
+      />
+
+      <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
+      <div v-if="showOwnChart" class="space-y-6">
+        <AIUsageCharts
+          line-chart-title="Nutzungsverlauf"
+          :selected-period="ownChartPeriod"
+          :line-chart-data="chartData"
+          :model-distribution-data="modelDistributionChartData"
+          :tag-usage-data="tagUsageChartData"
+          :has-more-tags="hasMoreTags"
+          :show-all-tags-in-chart="showAllTagsInChart"
+          @update:selected-period="handleChartPeriodChange"
+          @toggle-show-all-tags="toggleShowAllTags"
+        />
+      </div>
+
+      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
+      <UsageDetailedTable
+        v-if="showOwnDetails"
+        :data="usageData"
+        :is-loading="isLoading"
+        :error="error"
+        :pagination="pagination"
+        :sort-field="currentFilter.sort"
+        :sort-order="currentFilter.order as 'asc' | 'desc' | undefined"
+        :use-backend-sorting="true"
+        :model-type-filter="ownModelType"
+        @page-change="handlePageChange"
+        @sort-change="handleSortChange"
+        @retry="handleRetry"
+      />
+    </div>
+
+    <!-- Tab Content: Admin Usage -->
+    <div v-else-if="activeTab === 'admin'" class="space-y-6">
+      <UsagePricingDisclaimer />
+
+      <!-- Filter Section -->
+      <AIUsageFilters
+        v-model:time-range="adminTimeRange"
+        v-model:model-type="adminModelType"
+        v-model:model="adminModel"
+        v-model:api-key-id="adminApiKeyId"
+        v-model:from-date="adminFromDate"
+        v-model:to-date="adminToDate"
+        v-model:selected-user="adminUser"
+        v-model:selected-user-group="adminUserGroup"
+        :show-user-filter="true"
+        :users="uniqueUsers"
+        @filter-changed="handleAdminFilterChange"
+      />
+
+      <!-- View Toggle -->
+      <UsageViewToggle v-model:view="adminView" />
+
+      <!-- Summary Cards -->
+      <AIUsageSummary
+        title="Admin-Nutzung - Alle Konten"
+        description="Übersicht über die API-Nutzung aller Benutzer."
+        :summary="adminSummary"
+        :is-loading="isLoading"
+        :error="error"
+        :show-unique-users="true"
+        @retry="handleRetry"
+      />
+
+      <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
+      <div v-if="showAdminChart" class="space-y-6">
+        <AIUsageCharts
+          line-chart-title="Admin-Nutzungsverlauf"
+          selected-period="daily"
+          :line-chart-data="chartData"
+          :model-distribution-data="modelDistributionChartData"
+          :tag-usage-data="tagUsageChartData"
+          :has-more-tags="hasMoreTags"
+          :show-all-tags-in-chart="showAllTagsInChart"
+          @toggle-show-all-tags="toggleShowAllTags"
+        />
+      </div>
+
+      <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
+      <UsageDetailedTable
+        v-if="showAdminDetails"
+        :data="usageData"
+        :is-loading="isLoading"
+        :error="error"
+        :pagination="pagination"
+        :sort-field="currentFilter.sort"
+        :sort-order="currentFilter.order as 'asc' | 'desc' | undefined"
+        :use-backend-sorting="true"
+        :model-type-filter="adminModelType"
+        @page-change="handlePageChange"
+        @sort-change="handleSortChange"
+        @retry="handleRetry"
+      />
+    </div>
+  </div>
+</template>

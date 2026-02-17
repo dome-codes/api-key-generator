@@ -1,367 +1,3 @@
-<template>
-  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <!-- Akkumulierte Verbrauchsansicht für Nicht-Admin (Cost + Token-Spalte nutzen dieselben Daten) -->
-    <div v-if="!isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-sm font-medium text-gray-900">Gesamtverbrauch (Aktueller Monat)</h3>
-          <p class="text-xs text-gray-600">Akkumulierte Kosten aller API-Schlüssel</p>
-        </div>
-
-        <!-- Progress Bar mit Tooltip -->
-        <div class="relative flex items-center space-x-3 group">
-          <div class="w-48 bg-gray-200 rounded-full h-3">
-            <div
-              class="h-3 rounded-full transition-all duration-300"
-              :class="totalProgressBarColor"
-              :style="{ width: totalProgressPercentage + '%' }"
-            ></div>
-          </div>
-
-          <!-- Tooltip nur bei Hover -->
-          <div
-            class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-xs z-20 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          >
-            <div>Aktuell: {{ formatCurrency(totalCost) }}</div>
-            <div>Limit: {{ formatCurrency(budgetLimit) }}</div>
-            <div>Verbraucht: {{ totalProgressPercentage.toFixed(1) }}%</div>
-            <div>Verbleibend: {{ formatCurrency(budgetLimit - totalCost) }}</div>
-            <div>
-              Tokens: {{ formatNumber(totalTokensIn) }} In / {{ formatNumber(totalTokensOut) }} Out
-            </div>
-            <div>Aktive Keys: {{ activeKeysCount }}</div>
-            <!-- Tooltip Arrow -->
-            <div
-              class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"
-            ></div>
-          </div>
-
-          <div class="text-sm font-medium text-gray-900">
-            {{ formatCurrency(totalCost) }} / {{ formatCurrency(budgetLimit) }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Admin Filter Section -->
-    <div v-if="isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-2">
-            <label for="user-filter" class="text-sm font-medium text-gray-700"
-              >Benutzer filtern:</label
-            >
-            <div class="relative">
-              <input
-                type="text"
-                id="user-filter"
-                v-model="userSearchQuery"
-                @input="handleUserSearchInput"
-                @focus="handleUserFocus"
-                @blur="handleUserBlur"
-                placeholder="Benutzer suchen..."
-                class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
-              />
-              <div
-                v-if="showUserDropdown && filteredUserOptions.length > 0"
-                class="absolute z-10 mt-1 w-48 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto top-full left-0"
-              >
-                <div
-                  class="px-3 py-2 text-sm text-gray-700 cursor-pointer hover:bg-blue-50"
-                  @click="selectUser('', 'Alle Benutzer')"
-                >
-                  Alle Benutzer
-                </div>
-                <div
-                  v-for="user in filteredUserOptions"
-                  :key="user.userId"
-                  @click="selectUser(user.userId, user.userName)"
-                  class="px-3 py-2 text-sm text-gray-900 cursor-pointer hover:bg-blue-50"
-                  :class="{ 'bg-blue-100': selectedUserFilter === user.userId }"
-                >
-                  {{ user.userName || user.userId }} ({{ user.keyCount }} Key{{
-                    user.keyCount !== 1 ? 's' : ''
-                  }})
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <label for="status-filter" class="text-sm font-medium text-gray-700">Status:</label>
-            <select
-              id="status-filter"
-              v-model="selectedStatusFilter"
-              class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Alle Status</option>
-              <option value="active">Aktiv</option>
-              <option value="revoked">Deaktiviert</option>
-            </select>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <label for="apikey-search" class="text-sm font-medium text-gray-700"
-              >API Key suchen:</label
-            >
-            <input
-              id="apikey-search"
-              v-model="apiKeySearchQuery"
-              type="text"
-              placeholder="Name oder Key-Endung..."
-              class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
-            />
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <button
-            @click="clearFilters"
-            class="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            Filter zurücksetzen
-          </button>
-          <div class="text-sm text-gray-500">
-            {{ isAdmin ? adminGroupedKeys.length : filteredKeys.length }} von
-            {{ isAdmin ? adminGroupedKeys.length : props.keys.length }} Keys
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filter für User-Ansicht: Status + API-Key-Suche -->
-    <div
-      v-if="!isAdmin && props.keys.length > 0"
-      class="p-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-3"
-    >
-      <div class="flex items-center gap-2">
-        <label for="status-filter-user" class="text-sm font-medium text-gray-700">Status:</label>
-        <select
-          id="status-filter-user"
-          v-model="selectedStatusFilter"
-          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">Alle</option>
-          <option value="active">Aktiv</option>
-          <option value="revoked">Inaktiv</option>
-        </select>
-      </div>
-      <div class="flex items-center gap-2">
-        <label for="apikey-search-user" class="text-sm font-medium text-gray-700"
-          >API Key suchen:</label
-        >
-        <input
-          id="apikey-search-user"
-          v-model="apiKeySearchQuery"
-          type="text"
-          placeholder="Name oder Key-Endung (z. B. …abcd)"
-          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
-        />
-      </div>
-      <button
-        v-if="selectedStatusFilter || apiKeySearchQuery"
-        type="button"
-        @click="clearFilters"
-        class="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
-      >
-        Filter zurücksetzen
-      </button>
-    </div>
-
-    <table v-if="paginatedKeys.length" class="w-full text-left border-collapse">
-      <thead>
-        <tr
-          class="text-gray-800 border-b border-gray-200 text-xs uppercase tracking-wider bg-gray-50"
-        >
-          <th v-if="isAdmin" class="py-3 px-2 w-10 text-center font-semibold text-gray-500"> </th>
-          <th
-            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
-            @click="sortBy('name')"
-          >
-            <div class="flex items-center gap-1">
-              Name
-              <svg
-                class="w-3 h-3"
-                :class="
-                  sortField === 'name' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
-                "
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
-            </div>
-          </th>
-          <th class="py-3 px-4 font-semibold">Geheimer Schlüssel</th>
-          <th v-if="isAdmin" class="py-3 px-4 font-semibold">Benutzer</th>
-          <th
-            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
-            @click="sortBy('status')"
-          >
-            <div class="flex items-center gap-1">
-              Status
-              <svg
-                class="w-3 h-3"
-                :class="
-                  sortField === 'status' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
-                "
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
-            </div>
-          </th>
-          <th
-            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
-            @click="sortBy('createdAt')"
-          >
-            <div class="flex items-center gap-1">
-              Erstellt
-              <svg
-                class="w-3 h-3"
-                :class="
-                  sortField === 'createdAt'
-                    ? sortOrder === 'asc'
-                      ? 'rotate-180'
-                      : ''
-                    : 'opacity-30'
-                "
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
-            </div>
-          </th>
-          <th class="py-3 px-4 font-semibold">Zuletzt verwendet</th>
-          <th class="py-3 px-4 font-semibold">Gültig bis</th>
-          <th
-            v-if="isAdmin"
-            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
-            @click="sortBy('cost')"
-          >
-            <div class="flex items-center gap-1">
-              Kostenverbrauch<br /><span class="text-xs text-gray-500 font-normal"
-                >(Aktueller Monat)</span
-              >
-              <svg
-                class="w-3 h-3"
-                :class="
-                  sortField === 'cost' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
-                "
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
-            </div>
-          </th>
-          <th v-if="!isAdmin" class="py-3 px-4 font-semibold">
-            Token-Verbrauch<br /><span class="text-xs text-gray-500 font-normal"
-              >(Aktueller Monat)</span
-            >
-          </th>
-          <th class="py-3 px-4 font-semibold text-right">Aktionen</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template
-          v-for="group in paginatedKeys"
-          :key="getGroupId(group)"
-        >
-          <ApiKeyRow
-            :keyData="isAdmin ? createGroupedKeyData(group) : group"
-            :editing="editingKey === getGroupId(group)"
-            :editingName="editingName"
-            :usageData="usageDataByKeyId[getGroupId(group)] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
-            :budgetLimit="budgetLimit"
-            :isAdmin="isAdmin"
-            :isEntwicklung="isEntwicklung"
-            :adminUsageByUser="adminUsageByUser"
-            :expandable="isAdmin && hasGroupKeys(group)"
-            :expanded="isAdmin && expandedUserId === getGroupId(group)"
-            :child-count="isAdmin ? getGroupKeys(group).length : 0"
-            :is-child-row="false"
-            @toggle-expand="
-              isAdmin &&
-                (expandedUserId =
-                  expandedUserId === getGroupId(group)
-                    ? null
-                    : getGroupId(group))
-            "
-            @edit="$emit('edit', $event)"
-            @save="$emit('save', $event)"
-            @cancel="$emit('cancel')"
-            @revoke="$emit('revoke', $event)"
-            @name-input="$emit('name-input', $event)"
-          />
-          <template
-            v-if="isAdmin && expandedUserId === getGroupId(group) && hasGroupKeys(group)"
-            :key="getGroupId(group) + '-expanded'"
-          >
-            <ApiKeyRow
-              v-for="k in getGroupKeys(group)"
-              :key="k.id"
-              :keyData="k"
-              :editing="editingKey === k.id"
-              :editingName="editingName"
-              :usageData="usageDataByKeyId[k.id] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
-              :budgetLimit="budgetLimit"
-              :isAdmin="isAdmin"
-              :isEntwicklung="isEntwicklung"
-              :adminUsageByUser="adminUsageByUser"
-              :expandable="false"
-              :expanded="false"
-              :child-count="0"
-              :is-child-row="true"
-              @edit="$emit('edit', $event)"
-              @save="$emit('save', $event)"
-              @cancel="$emit('cancel')"
-              @revoke="$emit('revoke', $event)"
-              @name-input="$emit('name-input', $event)"
-            />
-          </template>
-        </template>
-      </tbody>
-    </table>
-    <div v-else class="text-center text-gray-600 py-8">Keine API-Schlüssel verfügbar.</div>
-
-    <!-- Pagination -->
-    <Pagination
-      v-if="(isAdmin ? adminGroupedKeys.length : filteredKeys.length) > itemsPerPage"
-      :current-page="currentPage"
-      :total-items="isAdmin ? adminGroupedKeys.length : filteredKeys.length"
-      :items-per-page="itemsPerPage"
-      @update:current-page="currentPage = $event"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
 import { UserRole } from '@/auth/keycloak'
@@ -599,7 +235,9 @@ if (isDebugLogEnabled()) {
       usageDataKeys: props.usageData ? Object.keys(props.usageData) : [],
       usageDataSample: props.usageData
         ? Object.fromEntries(
-            Object.entries(props.usageData).slice(0, 3).map(([k, v]) => [k, { ...v }]),
+            Object.entries(props.usageData)
+              .slice(0, 3)
+              .map(([k, v]) => [k, { ...v }]),
           )
         : null,
       rowKeyIds: paginatedKeys.value.map((g: ApiKeyDisplay & { userId?: string }) =>
@@ -775,7 +413,9 @@ function getGroupId(group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDispla
 }
 
 // Helper: Hole Keys-Array aus Admin-Gruppe
-function getGroupKeys(group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDisplay[] }): ApiKeyDisplay[] {
+function getGroupKeys(
+  group: ApiKeyDisplay | { userId: string; keys?: ApiKeyDisplay[] },
+): ApiKeyDisplay[] {
   if (isAdmin.value && 'keys' in group && Array.isArray(group.keys)) {
     return group.keys
   }
@@ -885,7 +525,7 @@ const daysInCurrentMonth = computed(() => {
 
 // Helper functions for formatting
 const formatCurrency = (amount: number): string => {
-  return amount.toFixed(2) + ' €'
+  return `${amount.toFixed(2)} €`
 }
 
 const formatNumber = (num: number): string => {
@@ -897,3 +537,363 @@ const formatNumber = (num: number): string => {
   return num.toString()
 }
 </script>
+
+<template>
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <!-- Akkumulierte Verbrauchsansicht für Nicht-Admin (Cost + Token-Spalte nutzen dieselben Daten) -->
+    <div v-if="!isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-medium text-gray-900">Gesamtverbrauch (Aktueller Monat)</h3>
+          <p class="text-xs text-gray-600">Akkumulierte Kosten aller API-Schlüssel</p>
+        </div>
+
+        <!-- Progress Bar mit Tooltip -->
+        <div class="relative flex items-center space-x-3 group">
+          <div class="w-48 bg-gray-200 rounded-full h-3">
+            <div
+              class="h-3 rounded-full transition-all duration-300"
+              :class="totalProgressBarColor"
+              :style="{ width: totalProgressPercentage + '%' }"
+            ></div>
+          </div>
+
+          <!-- Tooltip nur bei Hover -->
+          <div
+            class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-xs z-20 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          >
+            <div>Aktuell: {{ formatCurrency(totalCost) }}</div>
+            <div>Limit: {{ formatCurrency(budgetLimit) }}</div>
+            <div>Verbraucht: {{ totalProgressPercentage.toFixed(1) }}%</div>
+            <div>Verbleibend: {{ formatCurrency(budgetLimit - totalCost) }}</div>
+            <div>
+              Tokens: {{ formatNumber(totalTokensIn) }} In / {{ formatNumber(totalTokensOut) }} Out
+            </div>
+            <div>Aktive Keys: {{ activeKeysCount }}</div>
+            <!-- Tooltip Arrow -->
+            <div
+              class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"
+            ></div>
+          </div>
+
+          <div class="text-sm font-medium text-gray-900">
+            {{ formatCurrency(totalCost) }} / {{ formatCurrency(budgetLimit) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Filter Section -->
+    <div v-if="isAdmin" class="p-4 bg-gray-50 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <label for="user-filter" class="text-sm font-medium text-gray-700"
+              >Benutzer filtern:</label
+            >
+            <div class="relative">
+              <input
+                id="user-filter"
+                v-model="userSearchQuery"
+                type="text"
+                placeholder="Benutzer suchen..."
+                class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
+                @input="handleUserSearchInput"
+                @focus="handleUserFocus"
+                @blur="handleUserBlur"
+              />
+              <div
+                v-if="showUserDropdown && filteredUserOptions.length > 0"
+                class="absolute z-10 mt-1 w-48 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto top-full left-0"
+              >
+                <div
+                  class="px-3 py-2 text-sm text-gray-700 cursor-pointer hover:bg-blue-50"
+                  @click="selectUser('', 'Alle Benutzer')"
+                >
+                  Alle Benutzer
+                </div>
+                <div
+                  v-for="user in filteredUserOptions"
+                  :key="user.userId"
+                  class="px-3 py-2 text-sm text-gray-900 cursor-pointer hover:bg-blue-50"
+                  :class="{ 'bg-blue-100': selectedUserFilter === user.userId }"
+                  @click="selectUser(user.userId, user.userName)"
+                >
+                  {{ user.userName || user.userId }} ({{ user.keyCount }} Key{{
+                    user.keyCount !== 1 ? 's' : ''
+                  }})
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="status-filter" class="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              id="status-filter"
+              v-model="selectedStatusFilter"
+              class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Alle Status</option>
+              <option value="active">Aktiv</option>
+              <option value="revoked">Deaktiviert</option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="apikey-search" class="text-sm font-medium text-gray-700"
+              >API Key suchen:</label
+            >
+            <input
+              id="apikey-search"
+              v-model="apiKeySearchQuery"
+              type="text"
+              placeholder="Name oder Key-Endung..."
+              class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button
+            class="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            @click="clearFilters"
+          >
+            Filter zurücksetzen
+          </button>
+          <div class="text-sm text-gray-500">
+            {{ isAdmin ? adminGroupedKeys.length : filteredKeys.length }} von
+            {{ isAdmin ? adminGroupedKeys.length : props.keys.length }} Keys
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter für User-Ansicht: Status + API-Key-Suche -->
+    <div
+      v-if="!isAdmin && props.keys.length > 0"
+      class="p-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-3"
+    >
+      <div class="flex items-center gap-2">
+        <label for="status-filter-user" class="text-sm font-medium text-gray-700">Status:</label>
+        <select
+          id="status-filter-user"
+          v-model="selectedStatusFilter"
+          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">Alle</option>
+          <option value="active">Aktiv</option>
+          <option value="revoked">Inaktiv</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="apikey-search-user" class="text-sm font-medium text-gray-700"
+          >API Key suchen:</label
+        >
+        <input
+          id="apikey-search-user"
+          v-model="apiKeySearchQuery"
+          type="text"
+          placeholder="Name oder Key-Endung (z. B. …abcd)"
+          class="text-sm border border-gray-300 rounded-lg pl-3 pr-5 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
+        />
+      </div>
+      <button
+        v-if="selectedStatusFilter || apiKeySearchQuery"
+        type="button"
+        class="text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+        @click="clearFilters"
+      >
+        Filter zurücksetzen
+      </button>
+    </div>
+
+    <table v-if="paginatedKeys.length" class="w-full text-left border-collapse">
+      <thead>
+        <tr
+          class="text-gray-800 border-b border-gray-200 text-xs uppercase tracking-wider bg-gray-50"
+        >
+          <th v-if="isAdmin" class="py-3 px-2 w-10 text-center font-semibold text-gray-500"></th>
+          <th
+            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
+            @click="sortBy('name')"
+          >
+            <div class="flex items-center gap-1">
+              Name
+              <svg
+                class="w-3 h-3"
+                :class="
+                  sortField === 'name' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </div>
+          </th>
+          <th class="py-3 px-4 font-semibold">Geheimer Schlüssel</th>
+          <th v-if="isAdmin" class="py-3 px-4 font-semibold">Benutzer</th>
+          <th
+            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
+            @click="sortBy('status')"
+          >
+            <div class="flex items-center gap-1">
+              Status
+              <svg
+                class="w-3 h-3"
+                :class="
+                  sortField === 'status' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </div>
+          </th>
+          <th
+            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
+            @click="sortBy('createdAt')"
+          >
+            <div class="flex items-center gap-1">
+              Erstellt
+              <svg
+                class="w-3 h-3"
+                :class="
+                  sortField === 'createdAt'
+                    ? sortOrder === 'asc'
+                      ? 'rotate-180'
+                      : ''
+                    : 'opacity-30'
+                "
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </div>
+          </th>
+          <th class="py-3 px-4 font-semibold">Zuletzt verwendet</th>
+          <th class="py-3 px-4 font-semibold">Gültig bis</th>
+          <th
+            v-if="isAdmin"
+            class="py-3 px-4 font-semibold cursor-pointer hover:bg-gray-100 select-none"
+            @click="sortBy('cost')"
+          >
+            <div class="flex items-center gap-1">
+              Kostenverbrauch<br /><span class="text-xs text-gray-500 font-normal"
+                >(Aktueller Monat)</span
+              >
+              <svg
+                class="w-3 h-3"
+                :class="
+                  sortField === 'cost' ? (sortOrder === 'asc' ? 'rotate-180' : '') : 'opacity-30'
+                "
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </div>
+          </th>
+          <th v-if="!isAdmin" class="py-3 px-4 font-semibold">
+            Token-Verbrauch<br /><span class="text-xs text-gray-500 font-normal"
+              >(Aktueller Monat)</span
+            >
+          </th>
+          <th class="py-3 px-4 font-semibold text-right">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template v-for="group in paginatedKeys" :key="getGroupId(group)">
+          <ApiKeyRow
+            :keyData="isAdmin ? createGroupedKeyData(group) : group"
+            :editing="editingKey === getGroupId(group)"
+            :editingName="editingName"
+            :usageData="
+              usageDataByKeyId[getGroupId(group)] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }
+            "
+            :budgetLimit="budgetLimit"
+            :isAdmin="isAdmin"
+            :isEntwicklung="isEntwicklung"
+            :adminUsageByUser="adminUsageByUser"
+            :expandable="isAdmin && hasGroupKeys(group)"
+            :expanded="isAdmin && expandedUserId === getGroupId(group)"
+            :child-count="isAdmin ? getGroupKeys(group).length : 0"
+            :is-child-row="false"
+            @toggle-expand="
+              isAdmin &&
+              (expandedUserId = expandedUserId === getGroupId(group) ? null : getGroupId(group))
+            "
+            @edit="$emit('edit', $event)"
+            @save="$emit('save', $event)"
+            @cancel="$emit('cancel')"
+            @revoke="$emit('revoke', $event)"
+            @name-input="$emit('name-input', $event)"
+          />
+          <template
+            v-if="isAdmin && expandedUserId === getGroupId(group) && hasGroupKeys(group)"
+            :key="getGroupId(group) + '-expanded'"
+          >
+            <ApiKeyRow
+              v-for="k in getGroupKeys(group)"
+              :key="k.id"
+              :keyData="k"
+              :editing="editingKey === k.id"
+              :editingName="editingName"
+              :usageData="usageDataByKeyId[k.id] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
+              :budgetLimit="budgetLimit"
+              :isAdmin="isAdmin"
+              :isEntwicklung="isEntwicklung"
+              :adminUsageByUser="adminUsageByUser"
+              :expandable="false"
+              :expanded="false"
+              :child-count="0"
+              :is-child-row="true"
+              @edit="$emit('edit', $event)"
+              @save="$emit('save', $event)"
+              @cancel="$emit('cancel')"
+              @revoke="$emit('revoke', $event)"
+              @name-input="$emit('name-input', $event)"
+            />
+          </template>
+        </template>
+      </tbody>
+    </table>
+    <div v-else class="text-center text-gray-600 py-8">Keine API-Schlüssel verfügbar.</div>
+
+    <!-- Pagination -->
+    <Pagination
+      v-if="(isAdmin ? adminGroupedKeys.length : filteredKeys.length) > itemsPerPage"
+      :current-page="currentPage"
+      :total-items="isAdmin ? adminGroupedKeys.length : filteredKeys.length"
+      :items-per-page="itemsPerPage"
+      @update:current-page="currentPage = $event"
+    />
+  </div>
+</template>

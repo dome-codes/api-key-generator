@@ -1,5 +1,4 @@
 import { useRoute, useRouter } from 'vue-router'
-import { computed, watch } from 'vue'
 
 /**
  * Composable für URL-Query-Parameter-basierte Filter

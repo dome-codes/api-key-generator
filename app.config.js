@@ -4,7 +4,11 @@
  */
 function env(key, fallback = '') {
   try {
-    if (typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env[key] !== 'undefined') {
+    if (
+      typeof import.meta !== 'undefined' &&
+      import.meta.env &&
+      typeof import.meta.env[key] !== 'undefined'
+    ) {
       return import.meta.env[key]
     }
   } catch (_) {}

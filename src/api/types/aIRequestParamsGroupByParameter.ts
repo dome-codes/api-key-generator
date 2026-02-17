@@ -5,9 +5,9 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { AIRequestParamsGroupByParameterItem } from './aIRequestParamsGroupByParameterItem';
+import type { AIRequestParamsGroupByParameterItem } from './aIRequestParamsGroupByParameterItem'
 
 /**
  * Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]
  */
-export type AIRequestParamsGroupByParameter = AIRequestParamsGroupByParameterItem[];
+export type AIRequestParamsGroupByParameter = AIRequestParamsGroupByParameterItem[]

@@ -1,14 +1,27 @@
+<script setup lang="ts">
+interface Props {
+  title?: string
+  description?: string
+  showResetButton?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  title: 'Keine Daten verfügbar',
+  description: 'Für die gewählten Filter wurden keine Daten gefunden.',
+  showResetButton: true,
+})
+
+defineEmits<{
+  'reset-filters': []
+}>()
+</script>
+
 <template>
   <div class="text-center py-12 px-4">
     <div class="max-w-md mx-auto">
       <!-- Icon -->
       <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
-        <svg
-          class="h-8 w-8 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -27,15 +40,10 @@
       <!-- Actions -->
       <div v-if="showResetButton" class="flex justify-center gap-3">
         <button
-          @click="$emit('reset-filters')"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          @click="$emit('reset-filters')"
         >
-          <svg
-            class="w-4 h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -49,21 +57,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-interface Props {
-  title?: string
-  description?: string
-  showResetButton?: boolean
-}
-
-withDefaults(defineProps<Props>(), {
-  title: 'Keine Daten verfügbar',
-  description: 'Für die gewählten Filter wurden keine Daten gefunden.',
-  showResetButton: true,
-})
-
-defineEmits<{
-  'reset-filters': []
-}>()
-</script>

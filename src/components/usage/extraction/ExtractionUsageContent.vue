@@ -1,71 +1,3 @@
-<template>
-  <div class="space-y-6">
-    <!-- Pricing Disclaimer für Document Intelligence -->
-    <UsagePricingDisclaimer variant="extraction" />
-
-    <!-- Filter Section -->
-    <ExtractionUsageFilters
-      v-model:time-range="ownTimeRange"
-      v-model:model-id="ownModelId"
-      v-model:status="ownStatus"
-      v-model:tag="ownTag"
-      v-model:from-date="ownFromDate"
-      v-model:to-date="ownToDate"
-      :show-user-filter="useAdminApi"
-      :users="uniqueUsers"
-      v-model:selected-user="adminUser"
-      v-model:selected-user-group="adminUserGroup"
-      @filter-changed="handleOwnFilterChange"
-    />
-
-    <!-- View Toggle -->
-    <UsageViewToggle v-model:view="ownView" icon-variant="extraction" />
-
-    <!-- Summary Cards -->
-    <ExtractionUsageSummary
-      :title="useAdminApi ? 'Admin Extraction-Nutzung - Alle Konten' : 'Meine Extraction-Nutzungsdaten'"
-      :description="
-        useAdminApi
-          ? 'Übersicht über die Document Intelligence Nutzung aller Benutzer.'
-          : 'Hier sehen Sie Ihre persönlichen Document Intelligence Nutzungsdaten.'
-      "
-      :summary="ownAggregation"
-      :is-loading="isLoading"
-      :error="error"
-      :show-unique-users="useAdminApi"
-      :show-unique-providers="useAdminApi"
-      :show-unique-models="useAdminApi"
-      :show-status-breakdown="useAdminApi"
-      @retry="handleRetry"
-    />
-
-    <!-- Charts -->
-    <div v-if="ownView === 'overview'" class="space-y-6">
-      <ExtractionUsageCharts
-        line-chart-title="Extraction-Nutzungsverlauf"
-        :line-chart-data="chartData"
-        :provider-distribution-data="providerDistributionChartData"
-        :status-distribution-data="statusDistributionChartData"
-      />
-    </div>
-
-    <!-- Detailed Table -->
-    <ExtractionUsageDetailedTable
-      v-if="ownView === 'detailed'"
-      :data="usageData"
-      :is-loading="isLoading"
-      :error="error"
-      :pagination="pagination"
-      :sort-field="currentFilter.sort"
-      :sort-order="(currentFilter.order as 'asc' | 'desc' | undefined)"
-      :use-backend-sorting="true"
-      @page-change="handlePageChange"
-      @sort-change="handleSortChange"
-      @retry="handleRetry"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { useUrlFilters } from '@/composables/useUrlFilters'
@@ -139,7 +71,7 @@ const loadFiltersFromUrl = () => {
   // Lade timeRange aus URL oder setze Default auf '30d'
   const urlTimeRange = getQueryParam('timeRange')
   ownTimeRange.value = urlTimeRange || '30d'
-  
+
   ownModelId.value = getQueryParam('modelId') || ''
   ownStatus.value = (getQueryParam('status') as DocumentIntelligenceOperationStatus | '') || ''
   ownTag.value = getQueryParam('tag') || ''
@@ -150,9 +82,14 @@ const loadFiltersFromUrl = () => {
     adminUser.value = getQueryParam('userId') || ''
     adminUserGroup.value = getQueryParam('userGroup') || ''
   }
-  
+
   // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
-  if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+  if (
+    ownTimeRange.value &&
+    ownTimeRange.value !== 'custom' &&
+    !ownFromDate.value &&
+    !ownToDate.value
+  ) {
     const today = new Date()
     let startDate: Date
     switch (ownTimeRange.value) {
@@ -206,7 +143,7 @@ const saveFiltersToUrl = () => {
 // Convert date string to ISO format
 const toIsoDate = (dateStr: string): string | undefined => {
   if (!dateStr || dateStr.trim() === '') return undefined
-  return new Date(dateStr + 'T00:00:00Z').toISOString()
+  return new Date(`${dateStr}T00:00:00Z`).toISOString()
 }
 
 // Computed aggregations
@@ -307,7 +244,7 @@ watch(ownView, async () => {
 onMounted(async () => {
   try {
     loadFiltersFromUrl()
-    
+
     // Set defaults ONLY if no dates were loaded from URL
     if (!ownFromDate.value && !ownToDate.value) {
       if (ownTimeRange.value && ownTimeRange.value !== 'custom') {
@@ -345,7 +282,7 @@ onMounted(async () => {
         setDefaultDates()
       }
     }
-    
+
     await handleOwnFilterChange()
   } catch (err) {
     console.error('Error initializing ExtractionUsageContent:', err)
@@ -353,3 +290,73 @@ onMounted(async () => {
   }
 })
 </script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Pricing Disclaimer für Document Intelligence -->
+    <UsagePricingDisclaimer variant="extraction" />
+
+    <!-- Filter Section -->
+    <ExtractionUsageFilters
+      v-model:time-range="ownTimeRange"
+      v-model:model-id="ownModelId"
+      v-model:status="ownStatus"
+      v-model:tag="ownTag"
+      v-model:from-date="ownFromDate"
+      v-model:to-date="ownToDate"
+      v-model:selected-user="adminUser"
+      v-model:selected-user-group="adminUserGroup"
+      :show-user-filter="useAdminApi"
+      :users="uniqueUsers"
+      @filter-changed="handleOwnFilterChange"
+    />
+
+    <!-- View Toggle -->
+    <UsageViewToggle v-model:view="ownView" icon-variant="extraction" />
+
+    <!-- Summary Cards -->
+    <ExtractionUsageSummary
+      :title="
+        useAdminApi ? 'Admin Extraction-Nutzung - Alle Konten' : 'Meine Extraction-Nutzungsdaten'
+      "
+      :description="
+        useAdminApi
+          ? 'Übersicht über die Document Intelligence Nutzung aller Benutzer.'
+          : 'Hier sehen Sie Ihre persönlichen Document Intelligence Nutzungsdaten.'
+      "
+      :summary="ownAggregation"
+      :is-loading="isLoading"
+      :error="error"
+      :show-unique-users="useAdminApi"
+      :show-unique-providers="useAdminApi"
+      :show-unique-models="useAdminApi"
+      :show-status-breakdown="useAdminApi"
+      @retry="handleRetry"
+    />
+
+    <!-- Charts -->
+    <div v-if="ownView === 'overview'" class="space-y-6">
+      <ExtractionUsageCharts
+        line-chart-title="Extraction-Nutzungsverlauf"
+        :line-chart-data="chartData"
+        :provider-distribution-data="providerDistributionChartData"
+        :status-distribution-data="statusDistributionChartData"
+      />
+    </div>
+
+    <!-- Detailed Table -->
+    <ExtractionUsageDetailedTable
+      v-if="ownView === 'detailed'"
+      :data="usageData"
+      :is-loading="isLoading"
+      :error="error"
+      :pagination="pagination"
+      :sort-field="currentFilter.sort"
+      :sort-order="currentFilter.order as 'asc' | 'desc' | undefined"
+      :use-backend-sorting="true"
+      @page-change="handlePageChange"
+      @sort-change="handleSortChange"
+      @retry="handleRetry"
+    />
+  </div>
+</template>

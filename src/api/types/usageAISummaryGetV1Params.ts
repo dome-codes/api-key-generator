@@ -5,56 +5,56 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { CommonRequestParamsFromDateParameter } from './commonRequestParamsFromDateParameter';
-import type { CommonRequestParamsToDateParameter } from './commonRequestParamsToDateParameter';
-import type { CommonRequestParamsPageParameter } from './commonRequestParamsPageParameter';
-import type { CommonRequestParamsLimitParameter } from './commonRequestParamsLimitParameter';
-import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUserIdParameter';
-import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter';
-import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter';
-import type { AIRequestParamsModelParameter } from './aIRequestParamsModelParameter';
-import type { AIRequestParamsUsageTypeParameter } from './aIRequestParamsUsageTypeParameter';
-import type { AIRequestParamsGroupByParameter } from './aIRequestParamsGroupByParameter';
+import type { CommonRequestParamsFromDateParameter } from './commonRequestParamsFromDateParameter'
+import type { CommonRequestParamsToDateParameter } from './commonRequestParamsToDateParameter'
+import type { CommonRequestParamsPageParameter } from './commonRequestParamsPageParameter'
+import type { CommonRequestParamsLimitParameter } from './commonRequestParamsLimitParameter'
+import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUserIdParameter'
+import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter'
+import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter'
+import type { AIRequestParamsModelParameter } from './aIRequestParamsModelParameter'
+import type { AIRequestParamsUsageTypeParameter } from './aIRequestParamsUsageTypeParameter'
+import type { AIRequestParamsGroupByParameter } from './aIRequestParamsGroupByParameter'
 
 export type UsageAISummaryGetV1Params = {
-/**
- * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
- */
-from_date?: CommonRequestParamsFromDateParameter;
-/**
- * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
- */
-to_date?: CommonRequestParamsToDateParameter;
-/**
- * Page number for pagination (1-based).
- */
-page?: CommonRequestParamsPageParameter;
-/**
- * The number of items to return per page.
- */
-limit?: CommonRequestParamsLimitParameter;
-/**
- * Filter by user ID.
- */
-userId?: CommonRequestParamsUserIdParameter;
-/**
- * Filter by tag.
- */
-tag?: CommonRequestParamsTagParameter;
-/**
- * Filter by API key ID.
- */
-apiKey?: CommonRequestParamsApiKeyIdParameter;
-/**
- * Filter by model name.
- */
-model?: AIRequestParamsModelParameter;
-/**
- * Filter by usage type (backend enum).
- */
-usageType?: AIRequestParamsUsageTypeParameter;
-/**
- * Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]
- */
-by?: AIRequestParamsGroupByParameter;
-};
+  /**
+   * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
+   */
+  from_date?: CommonRequestParamsFromDateParameter
+  /**
+   * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
+   */
+  to_date?: CommonRequestParamsToDateParameter
+  /**
+   * Page number for pagination (1-based).
+   */
+  page?: CommonRequestParamsPageParameter
+  /**
+   * The number of items to return per page.
+   */
+  limit?: CommonRequestParamsLimitParameter
+  /**
+   * Filter by user ID.
+   */
+  userId?: CommonRequestParamsUserIdParameter
+  /**
+   * Filter by tag.
+   */
+  tag?: CommonRequestParamsTagParameter
+  /**
+   * Filter by API key ID.
+   */
+  apiKey?: CommonRequestParamsApiKeyIdParameter
+  /**
+   * Filter by model name.
+   */
+  model?: AIRequestParamsModelParameter
+  /**
+   * Filter by usage type (backend enum).
+   */
+  usageType?: AIRequestParamsUsageTypeParameter
+  /**
+   * Comma separated list of parameters to group by: day|month|year|[tag|apikey|model|user]
+   */
+  by?: AIRequestParamsGroupByParameter
+}

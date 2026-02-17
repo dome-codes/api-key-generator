@@ -1,10 +1,10 @@
 /**
  * Usage API Service
- * 
+ *
  * Dieser Service implementiert die server-seitige Filterung und Gruppierung
  * über die API. Er läuft parallel zum bestehenden usageAnalyticsService,
  * der die Client-seitige Logik enthält.
- * 
+ *
  * Verwendung:
  * - useUsageApi() Composable nutzt diesen Service
  * - Alle Filterung und Gruppierung erfolgt server-seitig
@@ -51,31 +51,36 @@ function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
   const totalPages = pag.totalPages
 
   // Wenn bereits die Standard-Struktur vorhanden ist, verwende sie direkt
-  if (pag.page !== undefined && pag.limit !== undefined && pag.total !== undefined && pag.totalPages !== undefined) {
+  if (
+    pag.page !== undefined &&
+    pag.limit !== undefined &&
+    pag.total !== undefined &&
+    pag.totalPages !== undefined
+  ) {
     return pag as PaginationInfo
   }
 
   // Mappe Backend-Feldnamen auf Standard-Struktur
   const mapped: PaginationInfo = {}
-  
+
   if (typeof currentPage === 'number') {
     mapped.page = currentPage
   } else if (typeof pag.page === 'number') {
     mapped.page = pag.page
   }
-  
+
   if (typeof pageSize === 'number') {
     mapped.limit = pageSize
   } else if (typeof pag.limit === 'number') {
     mapped.limit = pag.limit
   }
-  
+
   if (typeof totalItems === 'number') {
     mapped.total = totalItems
   } else if (typeof pag.total === 'number') {
     mapped.total = pag.total
   }
-  
+
   if (typeof totalPages === 'number') {
     mapped.totalPages = totalPages
   }
@@ -94,19 +99,24 @@ function diagLog(
   rawResponse: unknown,
   rawDataLength: number,
   firstItem: unknown,
-  afterMap?: { length: number; firstTokens?: { tokensIn: number; tokensOut: number; requests: number } },
+  afterMap?: {
+    length: number
+    firstTokens?: { tokensIn: number; tokensOut: number; requests: number }
+  },
 ) {
   const show =
-    typeof localStorage !== 'undefined' && (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
+    typeof localStorage !== 'undefined' &&
+    (localStorage.getItem('debug') === 'true' || import.meta.env?.DEV)
   if (!show) return
 
-  const responseShape = rawResponse === null
-    ? 'null'
-    : Array.isArray(rawResponse)
-      ? `Array(${rawResponse.length})`
-      : typeof rawResponse === 'object' && rawResponse !== null
-        ? `Object keys: ${Object.keys(rawResponse as object).join(', ')}`
-        : typeof rawResponse
+  const responseShape =
+    rawResponse === null
+      ? 'null'
+      : Array.isArray(rawResponse)
+        ? `Array(${rawResponse.length})`
+        : typeof rawResponse === 'object' && rawResponse !== null
+          ? `Object keys: ${Object.keys(rawResponse as object).join(', ')}`
+          : typeof rawResponse
 
   const firstItemKeys =
     firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)
@@ -116,7 +126,10 @@ function diagLog(
     firstItem && typeof firstItem === 'object'
       ? JSON.stringify(
           Object.fromEntries(
-            Object.entries(firstItem as object).map(([k, v]) => [k, typeof v === 'object' ? '[object]' : v]),
+            Object.entries(firstItem as object).map(([k, v]) => [
+              k,
+              typeof v === 'object' ? '[object]' : v,
+            ]),
           ),
         )
       : '-'
@@ -165,7 +178,6 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (s.includes('T')) return new Date(s).toISOString()
   return `${s}T00:00:00.000Z`
 }
-
 
 /** Nimmt Backend-Response: Array direkt, oder Objekt mit data/items/usage (andere OpenAPI nutzen items oder usage). */
 /** Array aus Backend-Response extrahieren (data, items oder usage). Für getUsageSummaryByApiKey etc. */
@@ -223,13 +235,13 @@ export const usageApiService = {
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
-      
+
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
-        limit: limit,
-        offset: offset, // Backend verwendet offset statt page
+        limit,
+        offset, // Backend verwendet offset statt page
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
@@ -309,8 +321,7 @@ export const usageApiService = {
             year: (item as SummaryUsage).year,
             createDate: (item as { createDate?: string }).createDate,
             apiKeyId:
-              (item as SummaryUsage).apiKeyId ??
-              (item as { api_key_id?: string }).api_key_id,
+              (item as SummaryUsage).apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
             sizeWidth: (item as { sizeWidth?: number }).sizeWidth,
             sizeHeight: (item as { sizeHeight?: number }).sizeHeight,
             quality:
@@ -323,7 +334,12 @@ export const usageApiService = {
 
       // Extrahiere Pagination und mappe Backend-Feldnamen
       let pagination: PaginationInfo | undefined
-      if (response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response) {
+      if (
+        response &&
+        typeof response === 'object' &&
+        !Array.isArray(response) &&
+        'pagination' in response
+      ) {
         const backendPagination = (response as UsagePageResponse).pagination
         pagination = mapPagination(backendPagination) || backendPagination
         debugLog('Pagination mapped:', {
@@ -352,7 +368,7 @@ export const usageApiService = {
         total: enhancedData.length,
         totalPages: 1,
       }
-      
+
       // Wenn die Pagination keine page enthält, aber der Filter eine hat, setze sie
       if (!finalPagination.page && filter.page) {
         finalPagination.page = filter.page
@@ -390,13 +406,13 @@ export const usageApiService = {
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
-      
+
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page: filter.page || 1,
-        limit: limit,
-        offset: offset, // Backend verwendet offset statt page
+        limit,
+        offset, // Backend verwendet offset statt page
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
@@ -433,10 +449,12 @@ export const usageApiService = {
 
           return {
             technicalUserId: item.technicalUserId || '',
-            technicalUserName: item.technicalUserId 
-              ? (item.technicalUserId.startsWith('SVC_') || item.technicalUserId.startsWith('e') || item.technicalUserId.startsWith('b')
-                  ? item.technicalUserId 
-                  : `User ${item.technicalUserId}`)
+            technicalUserName: item.technicalUserId
+              ? item.technicalUserId.startsWith('SVC_') ||
+                item.technicalUserId.startsWith('e') ||
+                item.technicalUserId.startsWith('b')
+                ? item.technicalUserId
+                : `User ${item.technicalUserId}`
               : 'Unknown User',
             modelName: item.model || 'unknown',
             modelType: displayType as ModelUsageType,
@@ -451,8 +469,7 @@ export const usageApiService = {
             month: item.month,
             year: item.year,
             createDate: undefined,
-            apiKeyId:
-              item.apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
+            apiKeyId: item.apiKeyId ?? (item as { api_key_id?: string }).api_key_id,
             sizeWidth: (item as { sizeWidth?: number }).sizeWidth,
             sizeHeight: (item as { sizeHeight?: number }).sizeHeight,
             quality:
@@ -465,7 +482,12 @@ export const usageApiService = {
 
       // Extrahiere Pagination und mappe Backend-Feldnamen
       let pagination: PaginationInfo | undefined
-      if (response && typeof response === 'object' && !Array.isArray(response) && 'pagination' in response) {
+      if (
+        response &&
+        typeof response === 'object' &&
+        !Array.isArray(response) &&
+        'pagination' in response
+      ) {
         const backendPagination = (response as SummaryUsagePageResponse).pagination
         pagination = mapPagination(backendPagination) || backendPagination
       }

@@ -9,8 +9,8 @@
 /**
  * Operation status for Document Intelligence extraction
  */
-export type ExtractionRequestParamsStatusParameter = typeof ExtractionRequestParamsStatusParameter[keyof typeof ExtractionRequestParamsStatusParameter];
-
+export type ExtractionRequestParamsStatusParameter =
+  (typeof ExtractionRequestParamsStatusParameter)[keyof typeof ExtractionRequestParamsStatusParameter]
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExtractionRequestParamsStatusParameter = {
@@ -19,4 +19,4 @@ export const ExtractionRequestParamsStatusParameter = {
   failed: 'failed',
   canceled: 'canceled',
   skipped: 'skipped',
-} as const;
+} as const

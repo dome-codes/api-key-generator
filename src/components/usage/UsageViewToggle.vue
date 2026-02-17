@@ -1,14 +1,29 @@
+<script setup lang="ts">
+interface Props {
+  view: 'overview' | 'detailed'
+  iconVariant?: 'ai' | 'extraction'
+}
+
+withDefaults(defineProps<Props>(), {
+  iconVariant: 'ai',
+})
+
+defineEmits<{
+  'update:view': [value: 'overview' | 'detailed']
+}>()
+</script>
+
 <template>
   <div class="mt-4 flex justify-center">
     <div class="bg-gray-100 rounded-lg p-1 inline-flex">
       <button
-        @click="$emit('update:view', 'overview')"
         :class="[
           view === 'overview'
             ? 'bg-white text-primary shadow-sm'
             : 'text-gray-600 hover:text-gray-900',
           'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
         ]"
+        @click="$emit('update:view', 'overview')"
       >
         <!-- AI Usage: Balkendiagramm-Icon -->
         <svg
@@ -43,13 +58,13 @@
         Übersicht
       </button>
       <button
-        @click="$emit('update:view', 'detailed')"
         :class="[
           view === 'detailed'
             ? 'bg-white text-primary shadow-sm'
             : 'text-gray-600 hover:text-gray-900',
           'px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200',
         ]"
+        @click="$emit('update:view', 'detailed')"
       >
         <!-- AI Usage: Clipboard-Icon -->
         <svg
@@ -86,18 +101,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-interface Props {
-  view: 'overview' | 'detailed'
-  iconVariant?: 'ai' | 'extraction'
-}
-
-withDefaults(defineProps<Props>(), {
-  iconVariant: 'ai',
-})
-
-defineEmits<{
-  'update:view': [value: 'overview' | 'detailed']
-}>()
-</script>

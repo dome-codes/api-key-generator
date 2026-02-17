@@ -5,20 +5,20 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { ModelUsageType } from './modelUsageType';
+import type { ModelUsageType } from './modelUsageType'
 
 export interface AIUsageSummaryRecord {
-  type?: ModelUsageType;
-  tag?: string;
-  model?: string;
-  technicalUserId?: string;
-  apiKeyId?: string;
-  day?: number;
-  month?: number;
-  year?: number;
-  requests?: number;
-  requestTokens?: number;
-  responseTokens?: number;
-  totalTokens?: number;
-  cost?: number;
+  type?: ModelUsageType
+  tag?: string
+  model?: string
+  technicalUserId?: string
+  apiKeyId?: string
+  day?: number
+  month?: number
+  year?: number
+  requests?: number
+  requestTokens?: number
+  responseTokens?: number
+  totalTokens?: number
+  cost?: number
 }

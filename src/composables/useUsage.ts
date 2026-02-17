@@ -1,12 +1,12 @@
 /**
  * @deprecated Dieser Composable wird durch useUsageApi.ts ersetzt.
  * Bitte verwende useUsageApi.ts für neue Features.
- * 
+ *
  * Migration:
  * - useUsageApi.ts verwendet server-seitige Filterung und Gruppierung
  * - Alle Filterung erfolgt über API-Parameter
  * - Bessere Performance durch server-seitige Verarbeitung
- * 
+ *
  * Dieser Composable bleibt für Rückwärtskompatibilität erhalten.
  */
 
@@ -36,7 +36,7 @@ const convertToIsoString = (dateString?: string): string | undefined => {
     }
 
     // Konvertiere YYYY-MM-DD zu ISO-String mit Mitternacht
-    const date = new Date(dateString + 'T00:00:00.000Z')
+    const date = new Date(`${dateString}T00:00:00.000Z`)
     return date.toISOString()
   } catch (error) {
     console.warn('Fehler beim Konvertieren des Datums:', dateString, error)
@@ -115,8 +115,7 @@ export function useUsage() {
       // Zeitraum: Filter oder Standard (aktueller Monat), damit Backend überhaupt Daten liefert
       const fromIso =
         convertToIsoString(currentFilter.value.fromDate) ?? defaultUsageDateRange().from
-      const toIso =
-        convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
+      const toIso = convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
       const summaryData = await usageService.getUsageSummaryByApiKey(fromIso, toIso)
 
       debugLog('🔍 [USE-USAGE] Summary data received:', summaryData)
@@ -128,7 +127,10 @@ export function useUsage() {
       )
       if (validItems.length > 0) {
         // Berechne Aggregation aus den API-Key-Daten
-        const totalRequests = validItems.reduce((sum: number, item: any) => sum + (item.requests || 0), 0)
+        const totalRequests = validItems.reduce(
+          (sum: number, item: any) => sum + (item.requests || 0),
+          0,
+        )
         const totalTokensIn = validItems.reduce(
           (sum: number, item: any) => sum + readTokensFromItem(item).requestTokens,
           0,
@@ -330,7 +332,9 @@ export function useUsage() {
             requestTokens: (r as any).requestTokens,
             responseTokens: (r as any).responseTokens,
           })),
-          'Unique apiKeyIds (erste 10)': [...new Set(response.map((r) => r.apiKeyId).filter(Boolean))].slice(0, 10),
+          'Unique apiKeyIds (erste 10)': [
+            ...new Set(response.map((r) => r.apiKeyId).filter(Boolean)),
+          ].slice(0, 10),
         })
       }
     } catch (err) {
