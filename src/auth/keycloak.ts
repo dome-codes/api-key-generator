@@ -221,9 +221,21 @@ export const getToken = async (): Promise<string | null> => {
   try {
     const cached = getTokenFromStorage()
     const nowSec = Math.floor(Date.now() / 1000)
+    
+    // WICHTIG: Prüfe, ob der gecachte Token zum aktuellen Keycloak-Token passt
+    // Wenn Keycloak einen neuen Token hat (z.B. nach Login als anderer User),
+    // muss der Cache geleert werden, damit der neue Token verwendet wird
+    const currentKeycloakToken = keycloak.token
     if (cached && cached.exp > nowSec + TOKEN_VALIDITY_BUFFER_SEC) {
-      debugLog('Token aus sessionStorage (noch gültig)')
-      return cached.token
+      // Cache-Token passt zu Keycloak-Token → verwende Cache
+      if (cached.token === currentKeycloakToken) {
+        debugLog('Token aus sessionStorage (noch gültig und stimmt mit Keycloak überein)')
+        return cached.token
+      } else {
+        // Cache-Token passt NICHT zu Keycloak-Token → Cache ist veraltet, leere ihn
+        debugLog('⚠️ Cache-Token stimmt nicht mit Keycloak-Token überein, leere Cache...')
+        clearTokenStorage()
+      }
     }
 
     debugLog('Token abgelaufen oder nicht im Storage, erneuere...')

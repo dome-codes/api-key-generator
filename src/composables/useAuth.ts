@@ -1,4 +1,4 @@
-import { getHighestRole, getUserInfo, UserRole, hasPermission, keycloak } from '@/auth/keycloak'
+import { getHighestRole, getUserInfo, UserRole, hasPermission, keycloak, clearTokenStorage } from '@/auth/keycloak'
 import { computed } from 'vue'
 
 export function useAuth() {
@@ -30,6 +30,10 @@ export function useAuth() {
 
   // Logout-Funktion: wirft nie – bei fehlendem Keycloak/Token immer Fallback (Session leeren, Reload)
   const handleLogout = () => {
+    // WICHTIG: Token-Cache explizit leeren BEVOR Keycloak logout aufgerufen wird
+    // Verhindert, dass nach neuem Login der alte Token verwendet wird
+    clearTokenStorage()
+    
     const doFallback = () => {
       try {
         sessionStorage.clear()
