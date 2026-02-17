@@ -176,14 +176,14 @@ export const usageService = {
         return { data: [], pagination: undefined }
       }
 
-      // Backend: by=apikey (lowercase), from_date/to_date als date-time (ISO)
+      // Backend: by=apiKey (camelCase, laut generierten TypeScript-Typen), from_date/to_date als date-time (ISO)
       const params = {
-        by: ['apikey'],
+        by: ['apiKey'],
         from_date: toIsoDateTime(fromDate),
         to_date: toIsoDateTime(toDate),
       } as unknown as UsageAISummaryGetV1Params
 
-      debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apikey params:', params)
+      debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apiKey params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
       const body = response.data
       debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)

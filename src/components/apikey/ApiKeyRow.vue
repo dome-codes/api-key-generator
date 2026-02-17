@@ -1,9 +1,10 @@
 <template>
   <tr
     :class="[
-      'border-b border-gray-200 last:border-0 group',
+      'border-b border-gray-200 last:border-0 group transition-colors',
       keyData.status === 'revoked' ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50',
-      isChildRow ? 'bg-gray-50/70' : '',
+      isChildRow ? 'bg-gray-50/50 border-l-4 border-l-blue-300' : '',
+      expandable && expanded ? 'bg-blue-50/30' : '',
     ]"
   >
     <td v-if="isAdmin" class="py-3 px-2 w-10 text-center align-middle">
@@ -25,8 +26,9 @@
     <td class="py-3 px-4 text-sm" :class="isChildRow ? 'pl-10' : ''">
       <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
         <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
+        <!-- Badge nur bei Parent-Rows anzeigen, nicht bei Child-Rows -->
         <span
-          v-if="keyData.status === 'revoked'"
+          v-if="keyData.status === 'revoked' && !isChildRow"
           class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded"
         >
           Deaktiviert
@@ -40,34 +42,54 @@
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
     <td v-if="isAdmin" class="py-3 px-4 text-xs">
-      <div class="flex items-center space-x-2">
-        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <div>
-          <div class="font-medium text-gray-900">
-            {{ keyData.userName || keyData.userId || 'Unbekannt' }}
-          </div>
-          <div class="text-gray-500 text-xs">{{ keyData.userId || 'N/A' }}</div>
-          <div
-            v-if="keyData.userId && adminUsageByUser && adminUsageByUser[keyData.userId]"
-            class="text-xs text-blue-600"
-          >
-            {{ adminUsageByUser[keyData.userId].keys.length }} Key(s)
+      <!-- Bei Child-Rows: User-Info ausblenden (wird bereits in Parent-Row angezeigt) -->
+      <template v-if="!isChildRow">
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <div>
+            <div class="font-medium text-gray-900">
+              {{ keyData.userName || keyData.userId || 'Unbekannt' }}
+            </div>
+            <div class="text-gray-500 text-xs">{{ keyData.userId || 'N/A' }}</div>
+            <div
+              v-if="keyData.userId && adminUsageByUser && adminUsageByUser[keyData.userId]"
+              class="text-xs text-blue-600"
+            >
+              {{ adminUsageByUser[keyData.userId].keys.length }} Key(s)
+            </div>
           </div>
         </div>
-      </div>
+      </template>
+      <!-- Bei Child-Rows: Leer lassen für bessere visuelle Gruppierung -->
+      <span v-else class="text-gray-300">—</span>
     </td>
     <td class="py-3 px-4 text-xs">
-      <span
-        v-if="keyData.status === 'active'"
-        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-      >
-        Aktiv
-      </span>
+      <!-- Status-Badge: Bei Child-Rows kompakter anzeigen -->
+      <template v-if="!isChildRow">
+        <span
+          v-if="keyData.status === 'active'"
+          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+        >
+          Aktiv
+        </span>
+        <span
+          v-else
+          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+        >
+          Deaktiviert
+        </span>
+      </template>
+      <!-- Bei Child-Rows: Kompaktere Anzeige -->
       <span
         v-else
-        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+        :class="[
+          'inline-flex items-center px-1.5 py-0.5 rounded text-xs',
+          keyData.status === 'active'
+            ? 'bg-green-50 text-green-700'
+            : 'bg-red-50 text-red-700',
+        ]"
       >
-        Deaktiviert
+        {{ keyData.status === 'active' ? '✓' : '✗' }}
       </span>
     </td>
     <td class="py-3 px-4 text-xs text-gray-700">
