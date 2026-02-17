@@ -371,8 +371,10 @@ import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
 import { UserRole } from '@/auth/keycloak'
 import Pagination from '@/components/ui/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ApiKeyRow from './ApiKeyRow.vue'
+
+const LOG_USAGE_DEBUG = true // Logging für usageData-Debug (ApiKeyTable)
 
 const props = defineProps<{
   keys: ApiKeyDisplay[]
@@ -595,6 +597,36 @@ const paginatedKeys = computed(() => {
   return sortedKeys.value.slice(startIndex, endIndex)
 })
 
+// Debug: Log wenn usageData oder Keys ankommen (Vergleich Home apiKeyUsageData vs. Table)
+if (LOG_USAGE_DEBUG) {
+  watch(
+    () => ({
+      usageDataKeys: props.usageData ? Object.keys(props.usageData) : [],
+      usageDataSample: props.usageData
+        ? Object.fromEntries(
+            Object.entries(props.usageData).slice(0, 3).map(([k, v]) => [k, { ...v }]),
+          )
+        : null,
+      rowKeyIds: paginatedKeys.value.map((g: ApiKeyDisplay & { userId?: string }) =>
+        isAdmin.value ? g.userId : g.id,
+      ),
+      keysFromProps: props.keys.slice(0, 5).map((k) => k.id),
+      isAdmin: isAdmin.value,
+    }),
+    (val) => {
+      console.log('[ApiKeyTable] usageData / rows Update', {
+        'usageData Keys (Anzahl)': val.usageDataKeys.length,
+        'usageData Keys': val.usageDataKeys,
+        'usageData Sample (erste 3)': val.usageDataSample,
+        'rowKeyIds (aktuelle Seite)': val.rowKeyIds,
+        'keys aus props (erste 5 .id)': val.keysFromProps,
+        isAdmin: val.isAdmin,
+      })
+    },
+    { deep: true },
+  )
+}
+
 // Methods
 const sortBy = (field: string) => {
   if (sortField.value === field) {
@@ -694,6 +726,14 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
 
   const data = props.usageData?.[keyId]
   if (!data) {
+    if (LOG_USAGE_DEBUG && props.usageData && Object.keys(props.usageData).length > 0) {
+      console.log('[ApiKeyTable] getUsageDataForKey: kein Eintrag für keyId', keyId, {
+        'usageData Keys': Object.keys(props.usageData),
+        'keyId === erste Key?': keyId === Object.keys(props.usageData)[0],
+        'keyId (repr)': JSON.stringify(keyId),
+        'erste Key (repr)': JSON.stringify(Object.keys(props.usageData)[0]),
+      })
+    }
     return { cost: 0, tokensIn: 0, tokensOut: 0 }
   }
   return { cost: data.cost, tokensIn: data.tokensIn, tokensOut: data.tokensOut }
