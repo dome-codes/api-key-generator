@@ -739,15 +739,30 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
   const data = props.usageData?.[keyId]
   if (!data) {
     if (isDebugLogEnabled() && props.usageData && Object.keys(props.usageData).length > 0) {
-      debugLog('[ApiKeyTable] getUsageDataForKey: kein Eintrag für keyId', keyId, {
+      debugLog('[ApiKeyTable] getUsageDataForKey: ❌ kein Eintrag für keyId', keyId, {
         'usageData Keys': Object.keys(props.usageData),
         'keyId === erste Key?': keyId === Object.keys(props.usageData)[0],
         'keyId (repr)': JSON.stringify(keyId),
         'erste Key (repr)': JSON.stringify(Object.keys(props.usageData)[0]),
+        'Alle usageData Keys (normalized)': Object.keys(props.usageData).map((k) => ({
+          original: k,
+          normalized: k.toLowerCase().replace(/-/g, ''),
+        })),
+        'keyId normalized': keyId.toLowerCase().replace(/-/g, ''),
       })
     }
     return { cost: 0, tokensIn: 0, tokensOut: 0 }
   }
+
+  // DEBUG: Zeige gefundene Daten
+  if (isDebugLogEnabled()) {
+    debugLog(`[ApiKeyTable] getUsageDataForKey: ✅ Key ${keyId} gefunden:`, {
+      cost: data.cost,
+      tokensIn: data.tokensIn,
+      tokensOut: data.tokensOut,
+    })
+  }
+
   return { cost: data.cost, tokensIn: data.tokensIn, tokensOut: data.tokensOut }
 }
 

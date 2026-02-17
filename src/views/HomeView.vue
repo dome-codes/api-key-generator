@@ -16,7 +16,7 @@ import { useModals } from '@/composables/useModals'
 import { useUsage } from '@/composables/useUsage'
 import { buildApiKeyUsageMap } from '@/services/apiKeyUsageMapping'
 import { apiKeyService } from '@/services/apiService'
-import { debugLog } from '@/utils/debugLog'
+import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 import { computed, onMounted, ref } from 'vue'
 
 // Composables verwenden
@@ -82,7 +82,22 @@ const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSum
 // Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert
 const apiKeyUsageData = computed(() => {
   const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId, status: k.status }))
-  return buildApiKeyUsageMap(detailedUsageData.value, keys)
+  const result = buildApiKeyUsageMap(detailedUsageData.value, keys)
+
+  // DEBUG: Zeige finales Mapping-Ergebnis
+  if (isDebugLogEnabled()) {
+    debugLog('[HomeView] apiKeyUsageData computed:', {
+      'Anzahl Keys': keys.length,
+      'Anzahl detailedUsageData Records': detailedUsageData.value.length,
+      'Erste 3 Keys mit Daten': keys.slice(0, 3).map((k) => ({
+        keyId: k.id,
+        usage: result[k.id],
+      })),
+      'Komplette Map': result,
+    })
+  }
+
+  return result
 })
 
 // Sidebar state

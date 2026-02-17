@@ -23,7 +23,7 @@ import { readTokensFromItem } from '@/services/usageApiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { computed, ref } from 'vue'
 
-import { debugLog } from '@/utils/debugLog'
+import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 
 // Hilfsfunktion um Datumswerte in ISO-Strings zu konvertieren
 const convertToIsoString = (dateString?: string): string | undefined => {
@@ -298,6 +298,23 @@ export function useUsage() {
 
       debugLog('Detailed usage data loaded successfully:', response.length, 'records')
       debugLog('✅ [FRONTEND] Detailed usage data loaded:', response.length, 'records')
+
+      // DEBUG: Zeige erste Records mit apiKeyId für Mapping-Debugging
+      if (isDebugLogEnabled() && response.length > 0) {
+        debugLog('[useUsage] Erste 5 detailedUsageData Records (für Mapping-Debug):', {
+          'Anzahl Records': response.length,
+          'Erste 5 Records': response.slice(0, 5).map((r) => ({
+            apiKeyId: r.apiKeyId ?? 'null',
+            technicalUserId: r.technicalUserId ?? 'null',
+            cost: r.cost ?? 0,
+            tokensIn: r.tokensIn ?? 0,
+            tokensOut: r.tokensOut ?? 0,
+            requestTokens: (r as any).requestTokens,
+            responseTokens: (r as any).responseTokens,
+          })),
+          'Unique apiKeyIds (erste 10)': [...new Set(response.map((r) => r.apiKeyId).filter(Boolean))].slice(0, 10),
+        })
+      }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'

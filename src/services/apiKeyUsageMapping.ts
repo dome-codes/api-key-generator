@@ -87,19 +87,63 @@ export function buildApiKeyUsageMap(
       keyIdMatchesUsage(keyId, r.apiKeyId ?? r.api_key_id ?? undefined),
     )
 
+    // DEBUG: Zeige Matching-Ergebnisse für jeden Key
+    if (isDebugLogEnabled()) {
+      debugLog(`[buildApiKeyUsageMap] Key ${keyId}:`, {
+        'Gefundene Records': keyUsage.length,
+        'Erste 3 Record apiKeyIds': keyUsage.slice(0, 3).map((r) => r.apiKeyId ?? r.api_key_id ?? 'null'),
+        'Alle Record apiKeyIds (unique)': [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? 'null'))].slice(0, 10),
+      })
+    }
+
     if (keyUsage.length > 0) {
       let cost = 0
       let tokensIn = 0
       let tokensOut = 0
       for (const u of keyUsage) {
         const t = getTokensFromRecord(u)
-        cost += Number(u.cost) || 0
+        const recordCost = Number(u.cost) || 0
+        cost += recordCost
         tokensIn += t.tokensIn
         tokensOut += t.tokensOut
+
+        // DEBUG: Zeige jeden Record der aggregiert wird
+        if (isDebugLogEnabled()) {
+          debugLog(`[buildApiKeyUsageMap] Aggregiere Record für Key ${keyId}:`, {
+            'apiKeyId': u.apiKeyId ?? u.api_key_id ?? 'null',
+            'cost': recordCost,
+            'tokensIn': t.tokensIn,
+            'tokensOut': t.tokensOut,
+            'requestTokens': u.requestTokens,
+            'responseTokens': u.responseTokens,
+            'tokensIn (raw)': u.tokensIn,
+            'tokensOut (raw)': u.tokensOut,
+          })
+        }
       }
       map[keyId] = { cost, tokensIn, tokensOut }
+
+      // DEBUG: Zeige finales Ergebnis für diesen Key
+      if (isDebugLogEnabled()) {
+        debugLog(`[buildApiKeyUsageMap] ✅ Key ${keyId} final:`, {
+          cost,
+          tokensIn,
+          tokensOut,
+        })
+      }
     } else {
       map[keyId] = { cost: 0, tokensIn: 0, tokensOut: 0 }
+      // DEBUG: Zeige wenn kein Match gefunden wurde
+      if (isDebugLogEnabled()) {
+        debugLog(`[buildApiKeyUsageMap] ❌ Key ${keyId}: KEIN MATCH gefunden`, {
+          'keyId': keyId,
+          'normalizedKeyId': normalizeId(keyId),
+          'Erste 5 Record apiKeyIds zum Vergleich': safeRecords.slice(0, 5).map((r) => ({
+            apiKeyId: r.apiKeyId ?? r.api_key_id ?? 'null',
+            normalized: r.apiKeyId ? normalizeId(r.apiKeyId) : r.api_key_id ? normalizeId(r.api_key_id) : 'null',
+          })),
+        })
+      }
     }
   }
 
