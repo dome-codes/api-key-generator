@@ -40,7 +40,7 @@ export const apiKeyService = {
     return response.data as any[]
   },
 
-  // Neuen API-Key erstellen (rollenbasiert)
+  // Neuen API-Key erstellen (rollenbasiert). Response normalisieren: Backend kann secret, api_key, value, key liefern.
   async createApiKey(name: string, permissions: string[]): Promise<any> {
     // Prüfe Berechtigung
     if (!hasPermission('canCreateKeys')) {
@@ -49,7 +49,18 @@ export const apiKeyService = {
 
     const request = { name, permissions }
     const response = await api.post('/apikeys', request)
-    return response.data as any
+    const data = response.data as Record<string, unknown>
+    if (data && typeof data === 'object') {
+      const secret =
+        (data.secret as string) ??
+        (data.api_key as string) ??
+        (data.apiKey as string) ??
+        (data.value as string) ??
+        (data.key as string) ??
+        ''
+      return { ...data, secret }
+    }
+    return data
   },
 
   // API-Key deaktivieren (rollenbasiert)

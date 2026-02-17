@@ -5,6 +5,7 @@
  */
 
 import type { ApiKeyUsageData } from '@/api/types/frontend'
+import { isDebugLogEnabled } from '@/utils/debugLog'
 
 /**
  * Record mit API-Key-ID und Verbrauchsfeldern.
@@ -55,8 +56,6 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
   return { tokensIn, tokensOut }
 }
 
-const DEBUG_MAPPING = true // Logging: warum Records nicht auf Keys matchen
-
 /**
  * Baut die Map keyId → ApiKeyUsageData aus Usage-Records.
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
@@ -71,7 +70,7 @@ export function buildApiKeyUsageMap(
   const safeRecords = records.filter((r) => r != null && typeof r === 'object')
   const map: Record<string, ApiKeyUsageData> = {}
 
-  if (DEBUG_MAPPING && safeRecords.length > 0 && keys.length > 0) {
+  if (isDebugLogEnabled() && safeRecords.length > 0 && keys.length > 0) {
     const recordIds = [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? r.technicalUserId ?? '').filter(Boolean))]
     console.log('[buildApiKeyUsageMap] Format-Check', {
       'key.ids (erste 3)': keys.slice(0, 3).map((k) => k.id),

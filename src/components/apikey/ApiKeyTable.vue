@@ -371,10 +371,9 @@ import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
 import { UserRole } from '@/auth/keycloak'
 import Pagination from '@/components/ui/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'
+import { isDebugLogEnabled } from '@/utils/debugLog'
 import { computed, ref, watch } from 'vue'
 import ApiKeyRow from './ApiKeyRow.vue'
-
-const LOG_USAGE_DEBUG = true // Logging für usageData-Debug (ApiKeyTable)
 
 const props = defineProps<{
   keys: ApiKeyDisplay[]
@@ -597,8 +596,8 @@ const paginatedKeys = computed(() => {
   return sortedKeys.value.slice(startIndex, endIndex)
 })
 
-// Debug: Log wenn usageData oder Keys ankommen (Vergleich Home apiKeyUsageData vs. Table)
-if (LOG_USAGE_DEBUG) {
+// Debug: Log wenn usageData oder Keys ankommen (nur bei Debug-Modus)
+if (isDebugLogEnabled()) {
   watch(
     () => ({
       usageDataKeys: props.usageData ? Object.keys(props.usageData) : [],
@@ -743,7 +742,7 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
 
   const data = props.usageData?.[keyId]
   if (!data) {
-    if (LOG_USAGE_DEBUG && props.usageData && Object.keys(props.usageData).length > 0) {
+    if (isDebugLogEnabled() && props.usageData && Object.keys(props.usageData).length > 0) {
       console.log('[ApiKeyTable] getUsageDataForKey: kein Eintrag für keyId', keyId, {
         'usageData Keys': Object.keys(props.usageData),
         'keyId === erste Key?': keyId === Object.keys(props.usageData)[0],
