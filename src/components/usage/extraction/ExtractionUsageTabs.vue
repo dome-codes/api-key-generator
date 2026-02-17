@@ -203,6 +203,7 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
 import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
+import { useUrlFilters } from '@/composables/useUrlFilters'
 import { computed, onMounted, ref, watch } from 'vue'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
@@ -210,8 +211,14 @@ import ExtractionUsageFilters from './ExtractionUsageFilters.vue'
 import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
 import ExtractionUsageDetailedTable from './ExtractionUsageDetailedTable.vue'
 
+// URL Filters Composable
+const { getQueryParam } = useUrlFilters()
+
 const activeTab = ref('own')
 const isApiAdmin = computed(() => hasPermission('canUseAdminFeatures'))
+
+// URL Filters Composable
+const { getQueryParam } = useUrlFilters()
 
 // Extraction Usage Composable mit API-basierter Filterung
 const {
@@ -252,13 +259,22 @@ const adminToDate = ref('')
 // Unique users for admin filter (would come from API in real implementation)
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 
-// Initialize default dates - Standardmäßig KEINE Datumsfilterung (leer = alle Daten)
+// Initialize default dates - Standardmäßig letzte 30 Tage
 const setDefaultDates = () => {
-  // Leer lassen = keine Datumsfilterung, zeigt alle verfügbaren Daten
-  ownFromDate.value = ''
-  ownToDate.value = ''
-  adminFromDate.value = ''
-  adminToDate.value = ''
+  const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - 30)
+  const fromStr = startDate.toISOString().split('T')[0]
+  const toStr = today.toISOString().split('T')[0]
+
+  if (!ownFromDate.value && !ownToDate.value) {
+    ownFromDate.value = fromStr
+    ownToDate.value = toStr
+  }
+  if (!adminFromDate.value && !adminToDate.value) {
+    adminFromDate.value = fromStr
+    adminToDate.value = toStr
+  }
 }
 
 // Computed aggregations
@@ -338,9 +354,178 @@ watch(activeTab, async (newTab) => {
   }
 })
 
+// Load filters from URL
+const loadFiltersFromUrl = () => {
+  ownTimeRange.value = getQueryParam('timeRange') || '30d'
+  ownModelId.value = getQueryParam('modelId') || ''
+  ownStatus.value = (getQueryParam('status') as DocumentIntelligenceOperationStatus | '') || ''
+  ownTag.value = getQueryParam('tag') || ''
+  ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
+  ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
+  ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+  
+  if (activeTab.value === 'admin') {
+    adminTimeRange.value = getQueryParam('timeRange') || '30d'
+    adminModelId.value = getQueryParam('modelId') || ''
+    adminStatus.value = (getQueryParam('status') as DocumentIntelligenceOperationStatus | '') || ''
+    adminTag.value = getQueryParam('tag') || ''
+    adminUser.value = getQueryParam('userId') || ''
+    adminUserGroup.value = getQueryParam('userGroup') || ''
+    adminView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
+    adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
+    adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+  }
+  
+  // Wenn timeRange gesetzt ist, aber keine expliziten Daten, dann Datum entsprechend setzen
+  if (activeTab.value === 'own' && ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+    const today = new Date()
+    let startDate: Date
+    switch (ownTimeRange.value) {
+      case '7d':
+        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case '30d':
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case '90d':
+        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'thisMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        break
+      case 'lastMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+        ownToDate.value = lastDay.toISOString().split('T')[0]
+        break
+      default:
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    }
+    if (ownTimeRange.value !== 'lastMonth') {
+      ownFromDate.value = startDate.toISOString().split('T')[0]
+      ownToDate.value = today.toISOString().split('T')[0]
+    } else {
+      ownFromDate.value = startDate.toISOString().split('T')[0]
+    }
+  }
+  
+  if (activeTab.value === 'admin' && adminTimeRange.value && adminTimeRange.value !== 'custom' && !adminFromDate.value && !adminToDate.value) {
+    const today = new Date()
+    let startDate: Date
+    switch (adminTimeRange.value) {
+      case '7d':
+        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case '30d':
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case '90d':
+        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'thisMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        break
+      case 'lastMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+        adminToDate.value = lastDay.toISOString().split('T')[0]
+        break
+      default:
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    }
+    if (adminTimeRange.value !== 'lastMonth') {
+      adminFromDate.value = startDate.toISOString().split('T')[0]
+      adminToDate.value = today.toISOString().split('T')[0]
+    } else {
+      adminFromDate.value = startDate.toISOString().split('T')[0]
+    }
+  }
+}
+
 // Initialize
-onMounted(() => {
-  setDefaultDates()
-  handleOwnFilterChange()
+onMounted(async () => {
+  try {
+    loadFiltersFromUrl()
+    
+    // Set defaults ONLY if no dates were loaded from URL
+    if (activeTab.value === 'own') {
+      if (!ownFromDate.value && !ownToDate.value) {
+        if (ownTimeRange.value && ownTimeRange.value !== 'custom') {
+          const today = new Date()
+          let startDate: Date
+          switch (ownTimeRange.value) {
+            case '7d':
+              startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              break
+            case '30d':
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              break
+            case '90d':
+              startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+              break
+            case 'thisMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+              break
+            case 'lastMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+              const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+              ownToDate.value = lastDay.toISOString().split('T')[0]
+              break
+            default:
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          }
+          if (ownTimeRange.value !== 'lastMonth') {
+            ownFromDate.value = startDate.toISOString().split('T')[0]
+            ownToDate.value = today.toISOString().split('T')[0]
+          } else {
+            ownFromDate.value = startDate.toISOString().split('T')[0]
+          }
+        } else {
+          setDefaultDates()
+        }
+      }
+    } else if (activeTab.value === 'admin') {
+      if (!adminFromDate.value && !adminToDate.value) {
+        if (adminTimeRange.value && adminTimeRange.value !== 'custom') {
+          const today = new Date()
+          let startDate: Date
+          switch (adminTimeRange.value) {
+            case '7d':
+              startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              break
+            case '30d':
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              break
+            case '90d':
+              startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+              break
+            case 'thisMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+              break
+            case 'lastMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+              const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+              adminToDate.value = lastDay.toISOString().split('T')[0]
+              break
+            default:
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          }
+          if (adminTimeRange.value !== 'lastMonth') {
+            adminFromDate.value = startDate.toISOString().split('T')[0]
+            adminToDate.value = today.toISOString().split('T')[0]
+          } else {
+            adminFromDate.value = startDate.toISOString().split('T')[0]
+          }
+        } else {
+          setDefaultDates()
+        }
+      }
+    }
+    
+    await handleOwnFilterChange()
+  } catch (err) {
+    console.error('Error initializing ExtractionUsageTabs:', err)
+    error.value = err instanceof Error ? err.message : 'Fehler beim Initialisieren'
+  }
 })
 </script>

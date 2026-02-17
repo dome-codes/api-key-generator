@@ -112,19 +112,23 @@ const ownChartPeriod = ref('daily')
 const ownFromDate = ref('')
 const ownToDate = ref('')
 
-// Default-Zeitraum: aktueller Monat (1. bis heute), damit der erste API-Call Filter im Query hat
+// Default-Zeitraum: letzte 30 Tage, damit der erste API-Call Filter im Query hat
 const setDefaultDates = () => {
   if (!ownFromDate.value || !ownToDate.value) {
-    const now = new Date()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    if (!ownFromDate.value) ownFromDate.value = firstOfMonth.toISOString().split('T')[0]
-    if (!ownToDate.value) ownToDate.value = now.toISOString().split('T')[0]
+    const today = new Date()
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() - 30)
+    if (!ownFromDate.value) ownFromDate.value = startDate.toISOString().split('T')[0]
+    if (!ownToDate.value) ownToDate.value = today.toISOString().split('T')[0]
   }
 }
 
 // Load filters from URL (usageType = COMPLETION_USAGE etc.)
 const loadFiltersFromUrl = () => {
-  ownTimeRange.value = getQueryParam('timeRange') || ''
+  // Lade timeRange aus URL oder setze Default auf '30d'
+  const urlTimeRange = getQueryParam('timeRange')
+  ownTimeRange.value = urlTimeRange || '30d'
+  
   ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
   ownModel.value = getQueryParam('model') || ''
   ownTag.value = getQueryParam('tag') || ''
@@ -133,6 +137,39 @@ const loadFiltersFromUrl = () => {
   ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
   ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
+  
+  // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
+  if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
+    const today = new Date()
+    let startDate: Date
+    switch (ownTimeRange.value) {
+      case '7d':
+        startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case '30d':
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case '90d':
+        startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'thisMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+        break
+      case 'lastMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+        ownToDate.value = lastDay.toISOString().split('T')[0]
+        break
+      default:
+        startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    }
+    if (ownTimeRange.value !== 'lastMonth') {
+      ownFromDate.value = startDate.toISOString().split('T')[0]
+      ownToDate.value = today.toISOString().split('T')[0]
+    } else {
+      ownFromDate.value = startDate.toISOString().split('T')[0]
+    }
+  }
 }
 
 // Save filters to URL
@@ -278,7 +315,45 @@ watch(
 onMounted(async () => {
   try {
     loadFiltersFromUrl()
-    setDefaultDates()
+    
+    // Set defaults ONLY if no dates were loaded from URL
+    if (!ownFromDate.value && !ownToDate.value) {
+      if (ownTimeRange.value && ownTimeRange.value !== 'custom') {
+        const today = new Date()
+        let startDate: Date
+        switch (ownTimeRange.value) {
+          case '7d':
+            startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+            break
+          case '30d':
+            startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+            break
+          case '90d':
+            startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+            break
+          case 'thisMonth':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+            break
+          case 'lastMonth':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+            const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+            ownToDate.value = lastDay.toISOString().split('T')[0]
+            break
+          default:
+            startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+        }
+        if (ownTimeRange.value !== 'lastMonth') {
+          ownFromDate.value = startDate.toISOString().split('T')[0]
+          ownToDate.value = today.toISOString().split('T')[0]
+        } else {
+          ownFromDate.value = startDate.toISOString().split('T')[0]
+        }
+      } else {
+        // Fallback: set default 30 days if no timeRange
+        setDefaultDates()
+      }
+    }
+    
     await handleOwnFilterChange()
   } catch (err) {
     console.error('Error initializing AIUsageContent:', err)

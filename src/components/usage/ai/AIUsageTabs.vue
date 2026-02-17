@@ -233,11 +233,11 @@ const adminToDate = ref('')
 // Unique users for admin filter
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 
-// Standard-Zeitraum: letzte 90 Tage, nur wenn noch keine Daten aus URL gesetzt sind
+// Standard-Zeitraum: letzte 30 Tage, nur wenn noch keine Daten aus URL gesetzt sind
 const setDefaultDates = () => {
   const today = new Date()
   const startDate = new Date(today)
-  startDate.setDate(startDate.getDate() - 90)
+  startDate.setDate(startDate.getDate() - 30)
   const fromStr = startDate.toISOString().split('T')[0]
   const toStr = today.toISOString().split('T')[0]
 
@@ -257,18 +257,22 @@ const loadFiltersFromUrl = () => {
   activeTab.value = tabParam === 'admin' ? 'admin' : 'own'
 
   if (activeTab.value === 'own') {
-    ownTimeRange.value = getQueryParam('timeRange') || '30d' // Default: 30 Tage wenn nicht in URL
+    // Lade timeRange aus URL oder setze Default auf '30d'
+    const urlTimeRange = getQueryParam('timeRange')
+    ownTimeRange.value = urlTimeRange || '30d'
+    
     ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     ownModel.value = getQueryParam('model') || ''
     ownTag.value = getQueryParam('tag') || ''
     ownApiKeyId.value = getQueryParam('apiKeyId') || ''
     ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
     ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
-    // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
+    
+    // Lade Datumsfelder aus URL
     ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
     
-    // Wenn timeRange gesetzt ist, aber keine expliziten Daten, dann Datum entsprechend setzen
+    // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
     if (ownTimeRange.value && ownTimeRange.value !== 'custom' && !ownFromDate.value && !ownToDate.value) {
       const today = new Date()
       let startDate: Date
@@ -302,7 +306,10 @@ const loadFiltersFromUrl = () => {
     }
   }
   if (activeTab.value === 'admin') {
-    adminTimeRange.value = getQueryParam('timeRange') || '30d' // Default: 30 Tage wenn nicht in URL
+    // Lade timeRange aus URL oder setze Default auf '30d'
+    const urlTimeRange = getQueryParam('timeRange')
+    adminTimeRange.value = urlTimeRange || '30d'
+    
     adminModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
     adminModel.value = getQueryParam('model') || ''
     adminTag.value = getQueryParam('tag') || ''
@@ -310,11 +317,12 @@ const loadFiltersFromUrl = () => {
     adminUser.value = getQueryParam('userId') || ''
     adminUserGroup.value = getQueryParam('userGroup') || ''
     adminView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
-    // Nur aus URL laden wenn vorhanden, sonst leer lassen (keine Filterung)
+    
+    // Lade Datumsfelder aus URL
     adminFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
     adminToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
     
-    // Wenn timeRange gesetzt ist, aber keine expliziten Daten, dann Datum entsprechend setzen
+    // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
     if (adminTimeRange.value && adminTimeRange.value !== 'custom' && !adminFromDate.value && !adminToDate.value) {
       const today = new Date()
       let startDate: Date
@@ -570,9 +578,89 @@ watch(adminView, async () => {
 // Initialize
 onMounted(async () => {
   try {
-    // Load from URL first, then set defaults for missing values
+    // Load from URL first
     loadFiltersFromUrl()
-    setDefaultDates()
+    
+    // Set defaults ONLY if no dates were loaded from URL
+    // This ensures that if timeRange is set, the dates are set accordingly
+    // But if dates are already in URL, we don't override them
+    if (activeTab.value === 'own') {
+      if (!ownFromDate.value && !ownToDate.value) {
+        // If no dates from URL, set default dates based on timeRange
+        if (ownTimeRange.value && ownTimeRange.value !== 'custom') {
+          const today = new Date()
+          let startDate: Date
+          switch (ownTimeRange.value) {
+            case '7d':
+              startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              break
+            case '30d':
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              break
+            case '90d':
+              startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+              break
+            case 'thisMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+              break
+            case 'lastMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+              const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+              ownToDate.value = lastDay.toISOString().split('T')[0]
+              break
+            default:
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          }
+          if (ownTimeRange.value !== 'lastMonth') {
+            ownFromDate.value = startDate.toISOString().split('T')[0]
+            ownToDate.value = today.toISOString().split('T')[0]
+          } else {
+            ownFromDate.value = startDate.toISOString().split('T')[0]
+          }
+        } else {
+          // Fallback: set default 30 days if no timeRange
+          setDefaultDates()
+        }
+      }
+    } else if (activeTab.value === 'admin') {
+      if (!adminFromDate.value && !adminToDate.value) {
+        // If no dates from URL, set default dates based on timeRange
+        if (adminTimeRange.value && adminTimeRange.value !== 'custom') {
+          const today = new Date()
+          let startDate: Date
+          switch (adminTimeRange.value) {
+            case '7d':
+              startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              break
+            case '30d':
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              break
+            case '90d':
+              startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000)
+              break
+            case 'thisMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+              break
+            case 'lastMonth':
+              startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+              const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
+              adminToDate.value = lastDay.toISOString().split('T')[0]
+              break
+            default:
+              startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          }
+          if (adminTimeRange.value !== 'lastMonth') {
+            adminFromDate.value = startDate.toISOString().split('T')[0]
+            adminToDate.value = today.toISOString().split('T')[0]
+          } else {
+            adminFromDate.value = startDate.toISOString().split('T')[0]
+          }
+        } else {
+          // Fallback: set default 30 days if no timeRange
+          setDefaultDates()
+        }
+      }
+    }
 
     // Apply loaded filters
     if (activeTab.value === 'own') {
