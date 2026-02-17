@@ -14,7 +14,7 @@ import { useBudget } from '@/composables/useBudget'
 import { useDebug } from '@/composables/useDebug'
 import { useModals } from '@/composables/useModals'
 import { useUsage } from '@/composables/useUsage'
-import { buildApiKeyUsageMapFromSummary } from '@/services/apiKeyUsageMapping'
+import { buildApiKeyUsageMap } from '@/services/apiKeyUsageMapping'
 import { apiKeyService } from '@/services/apiService'
 import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref } from 'vue'
@@ -76,14 +76,13 @@ const {
 const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
 
 // Usage data for detailed breakdown
-const { usageAggregation, detailedUsageData, apiKeySummaryData, loadDetailedUsageData, loadUsageSummary } = useUsage()
+const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
 
-// API-Key-Verbrauch: VEREINFACHTES Mapping aus bereits aggregierten Summary-Daten
-// Das Backend liefert bereits pro API Key aggregierte Daten (getUsageSummaryByApiKey),
-// daher ist das Mapping viel einfacher als das komplexe buildApiKeyUsageMap mit detailedUsageData
+// API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
+// Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert
 const apiKeyUsageData = computed(() => {
-  const keys = apiKeys.value.map((k) => ({ id: k.id }))
-  return buildApiKeyUsageMapFromSummary(apiKeySummaryData.value, keys)
+  const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId, status: k.status }))
+  return buildApiKeyUsageMap(detailedUsageData.value, keys)
 })
 
 // Sidebar state

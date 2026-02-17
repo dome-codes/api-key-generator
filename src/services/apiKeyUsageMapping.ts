@@ -57,66 +57,7 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
 }
 
 /**
- * EINFACHE VERSION: Baut Map direkt aus bereits aggregierten Summary-Daten (von getUsageSummaryByApiKey).
- * Diese Funktion ist viel einfacher, da das Backend bereits pro API Key aggregiert hat.
- *
- * @param summaryRecords AIUsageSummaryRecord[] von getUsageSummaryByApiKey (bereits nach apiKeyId gruppiert)
- * @param keys Liste der Keys mit id (für Initialisierung mit 0-Werten)
- */
-export function buildApiKeyUsageMapFromSummary(
-  summaryRecords: Array<{ apiKeyId?: string | null; requestTokens?: number; responseTokens?: number; cost?: number }>,
-  keys: { id: string }[],
-): Record<string, ApiKeyUsageData> {
-  const map: Record<string, ApiKeyUsageData> = {}
-
-  // Initialisiere alle Keys mit 0
-  for (const key of keys) {
-    map[key.id] = { cost: 0, tokensIn: 0, tokensOut: 0 }
-  }
-
-  // Fülle Map aus Summary-Daten
-  // Hinweis: Backend liefert bereits aggregiert pro apiKeyId, aber es können mehrere Records
-  // für denselben apiKeyId existieren (z.B. unterschiedliche Models), daher summieren wir alle
-  for (const record of summaryRecords) {
-    const apiKeyId = record.apiKeyId
-    if (!apiKeyId) continue
-
-    // Normalisiere ID für Matching (wie in keyIdMatchesUsage)
-    const normalizedRecordId = normalizeId(apiKeyId)
-
-    // Finde passenden Key (mit Normalisierung) und summiere alle Records für diesen Key
-    for (const key of keys) {
-      const normalizedKeyId = normalizeId(key.id)
-      if (normalizedKeyId === normalizedRecordId || key.id === apiKeyId) {
-        const existing = map[key.id]
-        const tokensIn = Number(record.requestTokens ?? 0) || 0
-        const tokensOut = Number(record.responseTokens ?? 0) || 0
-        const cost = Number(record.cost ?? 0) || 0
-
-        map[key.id] = {
-          cost: existing.cost + cost,
-          tokensIn: existing.tokensIn + tokensIn,
-          tokensOut: existing.tokensOut + tokensOut,
-        }
-        break // Key gefunden, weiter zum nächsten Record
-      }
-    }
-  }
-
-  if (isDebugLogEnabled() && summaryRecords.length > 0) {
-    debugLog('[buildApiKeyUsageMapFromSummary] Vereinfachtes Mapping', {
-      'Summary Records': summaryRecords.length,
-      'Keys': keys.length,
-      'Belegte Keys': Object.values(map).filter((v) => v.cost > 0 || v.tokensIn > 0 || v.tokensOut > 0).length,
-    })
-  }
-
-  return map
-}
-
-/**
- * KOMPLEXE VERSION: Baut die Map keyId → ApiKeyUsageData aus einzelnen Usage-Records.
- * Wird verwendet, wenn keine Summary-Daten verfügbar sind (z. B. für detaillierte Analyse).
+ * Baut die Map keyId → ApiKeyUsageData aus Usage-Records.
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
