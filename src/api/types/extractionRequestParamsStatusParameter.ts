@@ -12,7 +12,6 @@
 export type ExtractionRequestParamsStatusParameter =
   (typeof ExtractionRequestParamsStatusParameter)[keyof typeof ExtractionRequestParamsStatusParameter]
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExtractionRequestParamsStatusParameter = {
   processing: 'processing',
   completed: 'completed',

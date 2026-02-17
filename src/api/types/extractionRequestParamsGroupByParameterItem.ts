@@ -9,7 +9,6 @@
 export type ExtractionRequestParamsGroupByParameterItem =
   (typeof ExtractionRequestParamsGroupByParameterItem)[keyof typeof ExtractionRequestParamsGroupByParameterItem]
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExtractionRequestParamsGroupByParameterItem = {
   day: 'day',
   month: 'month',

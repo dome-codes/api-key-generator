@@ -8,7 +8,6 @@
 
 export type ModelUsageType = (typeof ModelUsageType)[keyof typeof ModelUsageType]
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ModelUsageType = {
   CompletionModelUsage: 'CompletionModelUsage',
   EmbeddingModelUsage: 'EmbeddingModelUsage',

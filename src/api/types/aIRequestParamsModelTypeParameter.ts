@@ -9,7 +9,6 @@
 export type AIRequestParamsModelTypeParameter =
   (typeof AIRequestParamsModelTypeParameter)[keyof typeof AIRequestParamsModelTypeParameter]
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AIRequestParamsModelTypeParameter = {
   CompletionModelUsage: 'CompletionModelUsage',
   EmbeddingModelUsage: 'EmbeddingModelUsage',

@@ -9,7 +9,6 @@
 export type AIRequestParamsGroupByParameterItem =
   (typeof AIRequestParamsGroupByParameterItem)[keyof typeof AIRequestParamsGroupByParameterItem]
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AIRequestParamsGroupByParameterItem = {
   day: 'day',
   month: 'month',
