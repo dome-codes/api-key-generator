@@ -216,7 +216,8 @@ export function useUsageApi() {
     const tagMap = new Map<string, number>()
 
     data.forEach((item) => {
-      const tag = item.tag && String(item.tag).trim() ? item.tag : 'Ohne Tag'
+      const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
+      if (!tag) return // Überspringe Items ohne Tag für Chart
       const currentCount = tagMap.get(tag) || 0
       tagMap.set(tag, currentCount + getRequestCount(item))
     })

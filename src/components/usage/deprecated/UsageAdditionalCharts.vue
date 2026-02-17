@@ -131,7 +131,8 @@ const tagUsageData = computed(() => {
   const tagGroups = new Map<string, number>()
 
   props.usageData.forEach((item) => {
-    const tag = item.tag || 'Unknown'
+    const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
+    if (!tag) return // Überspringe Items ohne Tag für Chart
     const currentCount = tagGroups.get(tag) || 0
     tagGroups.set(tag, currentCount + (item.requests || 1))
   })
