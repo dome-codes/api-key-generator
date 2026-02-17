@@ -298,7 +298,7 @@
             :keyData="isAdmin ? createGroupedKeyData(group) : group"
             :editing="editingKey === (isAdmin ? group.userId : group.id)"
             :editingName="editingName"
-            :usageData="getUsageDataForKey(isAdmin ? group.userId : group.id)"
+            :usageData="usageDataByKeyId[isAdmin ? (group as { userId: string }).userId : (group as { id: string }).id] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
             :budgetLimit="budgetLimit"
             :isAdmin="isAdmin"
             :isEntwicklung="isEntwicklung"
@@ -334,7 +334,7 @@
               :keyData="k"
               :editing="editingKey === k.id"
               :editingName="editingName"
-              :usageData="getUsageDataForKey(k.id)"
+              :usageData="usageDataByKeyId[k.id] ?? { cost: 0, tokensIn: 0, tokensOut: 0 }"
               :budgetLimit="budgetLimit"
               :isAdmin="isAdmin"
               :isEntwicklung="isEntwicklung"
@@ -755,6 +755,21 @@ const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
   }
   return { cost: data.cost, tokensIn: data.tokensIn, tokensOut: data.tokensOut }
 }
+
+// Reaktive Map keyId → usageData für die sichtbaren Zeilen, damit ApiKeyRow sicher die aktuellen Werte bekommt
+const usageDataByKeyId = computed(() => {
+  const out: Record<string, ApiKeyUsageData> = {}
+  for (const group of paginatedKeys.value) {
+    const id = isAdmin.value ? (group as { userId?: string }).userId : (group as { id: string }).id
+    if (id) out[id] = getUsageDataForKey(id)
+    if (isAdmin.value && (group as { keys?: ApiKeyDisplay[] }).keys) {
+      for (const k of (group as { keys: ApiKeyDisplay[] }).keys) {
+        out[k.id] = getUsageDataForKey(k.id)
+      }
+    }
+  }
+  return out
+})
 
 // Berechne akkumulierte Verbrauchsdaten für Entwicklung-Nutzer
 const totalCost = computed(() => {
