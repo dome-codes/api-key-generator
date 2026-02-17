@@ -47,14 +47,17 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Chart wird geladen...',
+  // Corporate Design Farbpalette basierend auf Primary (#e00) und Corporate-Farben
   colors: () => [
-    'rgba(59, 130, 246, 0.8)',
-    'rgba(34, 197, 94, 0.8)',
-    'rgba(168, 85, 247, 0.8)',
-    'rgba(251, 146, 60, 0.8)',
-    'rgba(239, 68, 68, 0.8)',
-    'rgba(16, 185, 129, 0.8)',
-    'rgba(139, 92, 246, 0.8)',
+    'rgba(238, 0, 0, 0.8)',      // Primary Rot (#e00)
+    'rgba(13, 128, 147, 0.8)',    // Corporate Blue/Green (#0d8093)
+    'rgba(255, 168, 46, 0.8)',    // Corporate Yellow (#ffa82e)
+    'rgba(255, 135, 22, 0.8)',    // Corporate Orange (#ff8716)
+    'rgba(153, 29, 103, 0.8)',    // Corporate Red/Magenta (#991d67)
+    'rgba(213, 0, 0, 0.8)',       // Primary Hover (#d50000)
+    'rgba(186, 0, 0, 0.8)',       // Primary Active (#ba0000)
+    'rgba(13, 128, 147, 0.6)',    // Blue Variante (heller)
+    'rgba(238, 0, 0, 0.6)',       // Red Variante (heller)
   ],
 })
 

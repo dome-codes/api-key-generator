@@ -65,22 +65,22 @@ const lineChartDatasets = computed(() => {
     {
       label: 'Operationen',
       data: data.operations || [],
-      borderColor: 'rgb(59, 130, 246)',
-      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      borderColor: 'rgb(238, 0, 0)',        // Primary Rot (#e00)
+      backgroundColor: 'rgba(238, 0, 0, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Seiten',
       data: data.pages || [],
-      borderColor: 'rgb(34, 197, 94)',
-      backgroundColor: 'rgba(34, 197, 94, 0.2)',
+      borderColor: 'rgb(13, 128, 147)',     // Corporate Blue/Green (#0d8093)
+      backgroundColor: 'rgba(13, 128, 147, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Kosten (€)',
       data: data.cost || [],
-      borderColor: 'rgb(251, 146, 60)',
-      backgroundColor: 'rgba(251, 146, 60, 0.2)',
+      borderColor: 'rgb(255, 135, 22)',     // Corporate Orange (#ff8716)
+      backgroundColor: 'rgba(255, 135, 22, 0.15)',
       yAxisID: 'y1',
     },
   ]

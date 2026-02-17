@@ -75,26 +75,27 @@ const defaultDatasets = computed(() => {
   const data = props.chartData
   if (!data) return []
 
+  // Corporate Design Farben für Line Chart
   return [
     {
       label: 'Tokens In',
       data: data.tokensIn || [],
-      borderColor: 'rgb(59, 130, 246)',
-      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      borderColor: 'rgb(238, 0, 0)',        // Primary Rot (#e00)
+      backgroundColor: 'rgba(238, 0, 0, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Tokens Out',
       data: data.tokensOut || [],
-      borderColor: 'rgb(34, 197, 94)',
-      backgroundColor: 'rgba(34, 197, 94, 0.2)',
+      borderColor: 'rgb(13, 128, 147)',     // Corporate Blue/Green (#0d8093)
+      backgroundColor: 'rgba(13, 128, 147, 0.15)',
       yAxisID: 'y',
     },
     {
       label: 'Anfragen',
       data: data.requests || [],
-      borderColor: 'rgb(168, 85, 247)',
-      backgroundColor: 'rgba(168, 85, 247, 0.2)',
+      borderColor: 'rgb(255, 168, 46)',     // Corporate Yellow (#ffa82e)
+      backgroundColor: 'rgba(255, 168, 46, 0.15)',
       yAxisID: 'y1',
     },
   ]

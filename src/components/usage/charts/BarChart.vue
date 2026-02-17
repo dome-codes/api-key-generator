@@ -52,14 +52,16 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Chart wird geladen...',
   label: 'Verwendung',
   yAxisLabel: 'Anzahl',
+  // Corporate Design Farbpalette - harmonische Abstufungen für Bar Charts
   colors: () => [
-    'rgba(59, 130, 246, 0.8)',
-    'rgba(34, 197, 94, 0.8)',
-    'rgba(168, 85, 247, 0.8)',
-    'rgba(251, 146, 60, 0.8)',
-    'rgba(239, 68, 68, 0.8)',
-    'rgba(16, 185, 129, 0.8)',
-    'rgba(139, 92, 246, 0.8)',
+    'rgba(238, 0, 0, 0.85)',      // Primary Rot (#e00) - Hauptfarbe
+    'rgba(13, 128, 147, 0.85)',    // Corporate Blue/Green (#0d8093)
+    'rgba(255, 168, 46, 0.85)',    // Corporate Yellow (#ffa82e)
+    'rgba(255, 135, 22, 0.85)',    // Corporate Orange (#ff8716)
+    'rgba(153, 29, 103, 0.85)',    // Corporate Red/Magenta (#991d67)
+    'rgba(213, 0, 0, 0.85)',       // Primary Hover (#d50000)
+    'rgba(186, 0, 0, 0.85)',       // Primary Active (#ba0000)
+    'rgba(13, 128, 147, 0.7)',     // Blue Variante (heller)
   ],
 })
 
