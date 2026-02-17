@@ -45,7 +45,7 @@ export function showWelcomeMessage(): void {
 ║   ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝     ║
 ║                                                                ║
 ║              API Key Generator & Management                    ║
-║       Version ${version}${' '.repeat(47 - version.length)}║
+║         Version ${version}${' '.repeat(47 - version.length)}║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 `
@@ -61,14 +61,13 @@ export function showWelcomeMessage(): void {
 
   console.log(`%c${asciiArt}`, styles[0])
   console.log(`%c🚀 App gestartet (Development Mode)`, styles[1])
-  console.log(`%c🐛 Bugs oder Anregungen?`, styles[2])
-  // Links für Kontakt (klickbar in modernen Browsern)
+  console.log(`%c🐛 Bei Bugs oder Anregungen melde dich gerne:`, styles[2])
+  // Teams-Link für Kontakt
   const linkStyle = `color: ${primaryColor}; text-decoration: underline; cursor: pointer; font-size: 11px;`
-  console.log('%c📧 Mail: domenic.schumacher@deka.de', linkStyle)
   console.log('%c💬 Teams: Teams-Link kopieren und öffnen', linkStyle)
-  // Zusätzlich: Link als Text für einfaches Kopieren
+  // Link als Text für einfaches Kopieren
   console.log(
-    `%c   → Teams: https://teams.microsoft.com/l/chat/0/0?users=domenic.schumacher@deka.de`,
+    `%c   → https://teams.microsoft.com/l/chat/0/0?users=domenic.schumacher@deka.de`,
     'color: #6b7280; font-size: 10px; font-family: monospace;',
   )
   console.log('─'.repeat(63))
