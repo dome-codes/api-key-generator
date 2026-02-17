@@ -1,15 +1,40 @@
 <script setup lang="ts">
+import { hasPermission } from '@/auth/keycloak'
+import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
 interface Props {
-  activeSidebar: 'api' | 'usage'
-  canViewUsage: boolean
+  activeSidebar?: 'api' | 'usage'
+  canViewUsage?: boolean
 }
 
 interface Emits {
   (e: 'update:activeSidebar', value: 'api' | 'usage'): void
 }
 
-defineProps<Props>()
-defineEmits<Emits>()
+const props = withDefaults(defineProps<Props>(), {
+  activeSidebar: 'api',
+  canViewUsage: true,
+})
+
+const emit = defineEmits<Emits>()
+
+const router = useRouter()
+const route = useRoute()
+
+const isAdmin = computed(() => hasPermission('canUseAdminFeatures'))
+
+const navigateTo = (path: string) => {
+  router.push(path)
+}
+
+const handleSidebarClick = (value: 'api' | 'usage') => {
+  if (route.name === 'home') {
+    emit('update:activeSidebar', value)
+  } else {
+    router.push({ name: 'home', query: { sidebar: value } })
+  }
+}
 </script>
 
 <template>
@@ -19,9 +44,11 @@ defineEmits<Emits>()
     </div>
     <nav class="flex-1 flex flex-col gap-2">
       <button
-        @click="$emit('update:activeSidebar', 'api')"
+        @click="handleSidebarClick('api')"
         :class="
-          activeSidebar === 'api' ? 'bg-primary-100 text-primary font-semibold' : 'text-gray-700'
+          activeSidebar === 'api' && route.name === 'home'
+            ? 'bg-primary-100 text-primary font-semibold'
+            : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >
@@ -37,9 +64,11 @@ defineEmits<Emits>()
       </button>
       <button
         v-if="canViewUsage"
-        @click="$emit('update:activeSidebar', 'usage')"
+        @click="handleSidebarClick('usage')"
         :class="
-          activeSidebar === 'usage' ? 'bg-primary-100 text-primary font-semibold' : 'text-gray-700'
+          activeSidebar === 'usage' && route.name === 'home'
+            ? 'bg-primary-100 text-primary font-semibold'
+            : 'text-gray-700'
         "
         class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
       >
@@ -52,6 +81,29 @@ defineEmits<Emits>()
         </svg>
         Nutzung
       </button>
+      
+      <!-- Admin-Bereich -->
+      <div v-if="isAdmin" class="mt-4 pt-4 border-t border-gray-200">
+        <p class="text-xs font-semibold text-gray-500 uppercase mb-2 px-3">Administration</p>
+        <button
+          @click="navigateTo('/admin/preise')"
+          :class="
+            route.name === 'PricingManagement'
+              ? 'bg-primary-100 text-primary font-semibold'
+              : 'text-gray-700'
+          "
+          class="flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          Preisverwaltung
+        </button>
+      </div>
     </nav>
   </aside>
 </template>

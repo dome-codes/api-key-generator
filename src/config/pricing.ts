@@ -21,7 +21,8 @@ export interface EmbeddingModelPricing {
   pricePer1000Tokens: number // € pro 1000 Tokens
 }
 
-export const AZURE_MODEL_PRICING: ModelPricing[] = [
+// Default Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
+const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
   // GPT-4o Serie (Stand: 2026)
   {
     modelName: 'gpt-4o-mini',
@@ -81,8 +82,8 @@ export const AZURE_MODEL_PRICING: ModelPricing[] = [
   },
 ]
 
-// Image-Modell Preise (pro 100 Bilder)
-export const AZURE_IMAGE_MODEL_PRICING: ImageModelPricing[] = [
+// Default Image-Modell Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
+const DEFAULT_AZURE_IMAGE_MODEL_PRICING: ImageModelPricing[] = [
   {
     modelName: 'dall-e-3',
     standardPrice: 3.472, // € pro 100 Bilder (1024x1024)
@@ -108,8 +109,8 @@ export const AZURE_IMAGE_MODEL_PRICING: ImageModelPricing[] = [
   },
 ]
 
-// Embedding-Modell Preise (pro 1000 Tokens)
-export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
+// Default Embedding-Modell Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
+const DEFAULT_AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
   {
     modelName: 'text-embedding-ada-002',
     pricePer1000Tokens: 0.000087,
@@ -129,8 +130,80 @@ export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
   },
 ]
 
-// FITS-Aufschlag (9%)
-export const SERVICE_MARKUP_PERCENTAGE = 0.09
+// FITS-Aufschlag (9%) - kann aus localStorage geladen werden
+const DEFAULT_SERVICE_MARKUP_PERCENTAGE = 0.09
+
+// Lade Preise aus localStorage oder verwende Defaults
+// WICHTIG: Diese Funktionen werden verwendet wenn pricing.ts direkt importiert wird
+// Für Admin-Verwaltung sollte usePricingManagement verwendet werden, das über API lädt
+function loadPricingFromStorage<T>(key: string, defaults: T[]): T[] {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) {
+      return JSON.parse(stored) as T[]
+    }
+  } catch (error) {
+    console.error(`[pricing] Error loading ${key}:`, error)
+  }
+  return defaults
+}
+
+function loadMarkupFromStorage(): number {
+  try {
+    const stored = localStorage.getItem('pricing:markup')
+    if (stored) {
+      return parseFloat(stored)
+    }
+  } catch (error) {
+    console.error('[pricing] Error loading markup:', error)
+  }
+  return DEFAULT_SERVICE_MARKUP_PERCENTAGE
+}
+
+// Exportierte Preise - werden aus localStorage geladen oder verwenden Defaults
+// Diese werden verwendet wenn calculateCost aufgerufen wird
+// localStorage wird automatisch von pricingService aktualisiert wenn Admin Preise ändert
+export const AZURE_MODEL_PRICING: ModelPricing[] = loadPricingFromStorage(
+  'pricing:model',
+  DEFAULT_AZURE_MODEL_PRICING,
+)
+
+export const AZURE_IMAGE_MODEL_PRICING: ImageModelPricing[] = loadPricingFromStorage(
+  'pricing:image',
+  DEFAULT_AZURE_IMAGE_MODEL_PRICING,
+)
+
+export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = loadPricingFromStorage(
+  'pricing:embedding',
+  DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+)
+
+export const SERVICE_MARKUP_PERCENTAGE = loadMarkupFromStorage()
+
+// Helper: Lade aktuelle Preise dynamisch (wird bei jedem calculateCost-Aufruf verwendet)
+function getCurrentModelPricing(): ModelPricing[] {
+  return loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
+}
+
+function getCurrentImagePricing(): ImageModelPricing[] {
+  return loadPricingFromStorage('pricing:image', DEFAULT_AZURE_IMAGE_MODEL_PRICING)
+}
+
+function getCurrentEmbeddingPricing(): EmbeddingModelPricing[] {
+  return loadPricingFromStorage('pricing:embedding', DEFAULT_AZURE_EMBEDDING_MODEL_PRICING)
+}
+
+function getCurrentMarkup(): number {
+  return loadMarkupFromStorage()
+}
+
+// Exportiere auch die Defaults für Reset-Funktionalität
+export {
+  DEFAULT_AZURE_MODEL_PRICING,
+  DEFAULT_AZURE_IMAGE_MODEL_PRICING,
+  DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+  DEFAULT_SERVICE_MARKUP_PERCENTAGE,
+}
 
 // Erweiterte Preisberechnung mit Unterstützung für verschiedene ModelUsageTypes
 export function calculateCost(
@@ -182,10 +255,14 @@ function calculateCompletionCost(
   serviceMarkup: number
   finalCost: number
 } {
+  // Lade aktuelle Preise dynamisch (können sich geändert haben)
+  const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
+  const currentMarkup = loadMarkupFromStorage()
+  
   // Finde das Modell in der Preisliste
   const model =
-    AZURE_MODEL_PRICING.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    AZURE_MODEL_PRICING.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
+    currentPricing.find((m) => m.modelName === 'unknown')!
 
   // Berechne Kosten pro Token (Preise sind pro 1M Tokens)
   const inputPricePerToken =
@@ -198,8 +275,8 @@ function calculateCompletionCost(
   const outputCost = tokensOut * outputPricePerToken
   const totalCost = inputCost + outputCost
 
-  // Berechne FITS-Aufschlag
-  const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
+  // Berechne FITS-Aufschlag (dynamisch geladen)
+  const serviceMarkup = totalCost * currentMarkup
   const finalCost = totalCost + serviceMarkup
 
   return {
@@ -223,11 +300,15 @@ function calculateEmbeddingCost(
   serviceMarkup: number
   finalCost: number
 } {
+  // Lade aktuelle Preise dynamisch (können sich geändert haben)
+  const currentPricing = loadPricingFromStorage('pricing:embedding', DEFAULT_AZURE_EMBEDDING_MODEL_PRICING)
+  const currentMarkup = loadMarkupFromStorage()
+  
   // Finde das Modell in der Preisliste
   const model =
-    AZURE_EMBEDDING_MODEL_PRICING.find(
+    currentPricing.find(
       (m) => m.modelName.toLowerCase() === modelName.toLowerCase(),
-    ) || AZURE_EMBEDDING_MODEL_PRICING.find((m) => m.modelName === 'unknown')!
+    ) || currentPricing.find((m) => m.modelName === 'unknown')!
 
   // Berechne Kosten pro Token (Preise sind pro 1000 Tokens)
   const pricePerToken = model.pricePer1000Tokens / 1000
@@ -237,8 +318,8 @@ function calculateEmbeddingCost(
   const outputCost = 0 // Embedding-Modelle haben keine Output-Tokens
   const totalCost = inputCost + outputCost
 
-  // Berechne FITS-Aufschlag
-  const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
+  // Berechne FITS-Aufschlag (dynamisch geladen)
+  const serviceMarkup = totalCost * currentMarkup
   const finalCost = totalCost + serviceMarkup
 
   return {
@@ -264,10 +345,14 @@ function calculateImageCost(
   serviceMarkup: number
   finalCost: number
 } {
+  // Lade aktuelle Preise dynamisch (können sich geändert haben)
+  const currentPricing = getCurrentImagePricing()
+  const currentMarkup = getCurrentMarkup()
+  
   // Finde das Image-Modell in der Preisliste
   const model =
-    AZURE_IMAGE_MODEL_PRICING.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    AZURE_IMAGE_MODEL_PRICING.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
+    currentPricing.find((m) => m.modelName === 'unknown')!
 
   // Bestimme den Preis basierend auf der Qualität und Größe
   let pricePer100Images: number
@@ -300,8 +385,8 @@ function calculateImageCost(
   const outputCost = pricePerImage * imageCount
   const totalCost = inputCost + outputCost
 
-  // Berechne FITS-Aufschlag
-  const serviceMarkup = totalCost * SERVICE_MARKUP_PERCENTAGE
+  // Berechne FITS-Aufschlag (dynamisch geladen)
+  const serviceMarkup = totalCost * currentMarkup
   const finalCost = totalCost + serviceMarkup
 
   return {

@@ -41,6 +41,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/NichtAutorisiert.vue'),
         meta: { requiresAuth: false },
       },
+      {
+        path: 'admin/preise',
+        name: 'PricingManagement',
+        component: () => import('../views/admin/PricingManagementView.vue'),
+        meta: {
+          requiresAuth: true,
+          requiredPermissions: ['canUseAdminFeatures'],
+        },
+      },
     ],
   },
   // Admin-Console – gleicher AuthGuard, Redirect „nicht autorisiert“ → /

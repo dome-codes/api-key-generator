@@ -1,0 +1,95 @@
+{
+  "modelPricing": [
+    {
+      "modelName": "gpt-4o-mini",
+      "inputPrice": 0.138,
+      "outputPrice": 0.552
+    },
+    {
+      "modelName": "gpt-4o",
+      "inputPrice": 2.30,
+      "outputPrice": 9.20
+    },
+    {
+      "modelName": "gpt-4.1",
+      "inputPrice": 1.84,
+      "outputPrice": 7.36,
+      "cachedInputPrice": 0.46
+    },
+    {
+      "modelName": "gpt-4.1-mini",
+      "inputPrice": 0.32,
+      "outputPrice": 1.28,
+      "cachedInputPrice": 0.08
+    },
+    {
+      "modelName": "gpt-4.1-nano",
+      "inputPrice": 0.08,
+      "outputPrice": 0.32,
+      "cachedInputPrice": 0.02
+    },
+    {
+      "modelName": "gpt-3.5-turbo",
+      "inputPrice": 0.15,
+      "outputPrice": 0.2
+    },
+    {
+      "modelName": "claude-3-sonnet",
+      "inputPrice": 3.0,
+      "outputPrice": 15.0
+    },
+    {
+      "modelName": "claude-3-haiku",
+      "inputPrice": 0.25,
+      "outputPrice": 1.25
+    },
+    {
+      "modelName": "unknown",
+      "inputPrice": 1.0,
+      "outputPrice": 3.0
+    }
+  ],
+  "imagePricing": [
+    {
+      "modelName": "dall-e-3",
+      "standardPrice": 3.472,
+      "hdPrice": 6.943,
+      "standardPriceLarge": 6.943,
+      "hdPriceLarge": 10.415
+    },
+    {
+      "modelName": "dall-e-2",
+      "standardPrice": 0.0,
+      "hdPrice": 0.0
+    },
+    {
+      "modelName": "midjourney-v6",
+      "standardPrice": 5.0,
+      "hdPrice": 8.0
+    },
+    {
+      "modelName": "unknown",
+      "standardPrice": 3.472,
+      "hdPrice": 6.943
+    }
+  ],
+  "embeddingPricing": [
+    {
+      "modelName": "text-embedding-ada-002",
+      "pricePer1000Tokens": 0.000087
+    },
+    {
+      "modelName": "text-embedding-3-large",
+      "pricePer1000Tokens": 0.000113
+    },
+    {
+      "modelName": "text-embedding-3-small",
+      "pricePer1000Tokens": 0.000018
+    },
+    {
+      "modelName": "unknown",
+      "pricePer1000Tokens": 0.0001
+    }
+  ],
+  "markupPercentage": 0.09
+}
