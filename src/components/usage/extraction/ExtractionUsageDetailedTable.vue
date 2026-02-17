@@ -238,7 +238,7 @@
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">{{ item.technicalUserName }}</div>
-                    <div class="text-sm text-gray-500">{{ item.technicalUserId }}</div>
+                    <div class="text-sm text-gray-500">{{ item.technicalUserId || '–' }}</div>
                   </div>
                 </div>
               </td>

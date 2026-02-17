@@ -124,11 +124,15 @@ export const extractionUsageApiService = {
         month: item.month,
         year: item.year,
         technicalUserId: item.technicalUserId || '',
-        technicalUserName: item.technicalUserId 
-          ? (item.technicalUserId.startsWith('SVC_') || item.technicalUserId.startsWith('e') || item.technicalUserId.startsWith('b')
-              ? item.technicalUserId 
-              : `User ${item.technicalUserId}`)
-          : 'Unknown User',
+        technicalUserName: (() => {
+          const userId = item.technicalUserId || ''
+          if (!userId || userId.trim() === '') return 'Unknown User'
+          // Für technische User (SVC_*, e*, b*) zeige die ID direkt
+          if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
+            return userId
+          }
+          return `User ${userId}`
+        })(),
         apiKeyId: item.apiKeyId,
         tag: item.tag || '',
         provider: item.provider || '',

@@ -210,15 +210,25 @@ export const usageApiService = {
           )
 
           return {
-            technicalUserId:
-              (item as SummaryUsage).technicalUserId ||
-              (item as { technicalUSerid?: string }).technicalUSerid ||
-              '',
-            technicalUserName: (() => {
-              const userId = (item as SummaryUsage).technicalUserId ||
+            technicalUserId: (() => {
+              // Prüfe verschiedene mögliche Felder für technicalUserId
+              const userId =
+                (item as AIUsageRecord).technicalUserId ||
+                (item as AIUsageSummaryRecord).technicalUserId ||
+                (item as SummaryUsage).technicalUserId ||
                 (item as { technicalUSerid?: string }).technicalUSerid ||
                 ''
-              if (!userId) return 'Unknown User'
+              return userId
+            })(),
+            technicalUserName: (() => {
+              // Prüfe verschiedene mögliche Felder für technicalUserId
+              const userId =
+                (item as AIUsageRecord).technicalUserId ||
+                (item as AIUsageSummaryRecord).technicalUserId ||
+                (item as SummaryUsage).technicalUserId ||
+                (item as { technicalUSerid?: string }).technicalUSerid ||
+                ''
+              if (!userId || userId.trim() === '') return 'Unknown User'
               // Für technische User (SVC_*, e*, b*) zeige die ID direkt
               if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
                 return userId

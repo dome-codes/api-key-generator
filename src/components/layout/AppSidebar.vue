@@ -39,7 +39,13 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
 
 <template>
   <aside class="w-56 bg-white border-r flex flex-col py-6 px-6 min-h-screen">
-    <div class="mb-8">
+    <div class="mb-8 flex items-center gap-3">
+      <!-- Logo SVG -->
+      <img
+        src="/admin-console/rag.svg"
+        alt="RAG Logo"
+        class="w-8 h-8 text-primary"
+      />
       <span class="text-xl font-bold text-primary">API-Dashboard</span>
     </div>
     <nav class="flex-1 flex flex-col gap-2">

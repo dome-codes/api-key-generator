@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
-        <span v-if="pagination" class="text-sm text-gray-500">
+        <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
           {{ pagination.total }} Einträge (Seite {{ pagination.page }} von {{ pagination.totalPages }})
         </span>
         <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
@@ -282,7 +282,7 @@
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900">{{ item.technicalUserName }}</div>
-                  <div class="text-sm text-gray-500">{{ item.technicalUserId }}</div>
+                  <div class="text-sm text-gray-500">{{ item.technicalUserId || '–' }}</div>
                 </div>
               </div>
             </td>
@@ -330,7 +330,7 @@
 
       <!-- Pagination: Backend-Pagination hat Priorität, sonst Client-seitige Pagination -->
       <!-- Backend-Pagination -->
-      <div v-if="pagination && (pagination.totalPages ?? 0) > 1" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
+      <div v-if="pagination && (pagination.totalPages ?? 0) > 1 && displayData.length > 0" class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200">
         <div class="text-sm text-gray-700">
           Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
         </div>
