@@ -1,4 +1,4 @@
-// Azure OpenAI Preise (Stand: 2025) - pro 1 Million Tokens
+// Azure OpenAI Preise (Stand: 2026) - pro 1 Million Tokens
 export interface ModelPricing {
   modelName: string
   inputPrice: number // € pro 1M Tokens
@@ -22,36 +22,36 @@ export interface EmbeddingModelPricing {
 }
 
 export const AZURE_MODEL_PRICING: ModelPricing[] = [
-  // GPT-4o Serie
+  // GPT-4o Serie (Stand: 2026)
   {
     modelName: 'gpt-4o-mini',
-    inputPrice: 0.94,
-    outputPrice: 3.76,
+    inputPrice: 0.138, // $0.15 * 0.92 EUR/USD
+    outputPrice: 0.552, // $0.60 * 0.92 EUR/USD
   },
   {
     modelName: 'gpt-4o',
-    inputPrice: 2.17,
-    outputPrice: 8.68,
+    inputPrice: 2.30, // $2.50 * 0.92 EUR/USD
+    outputPrice: 9.20, // $10.00 * 0.92 EUR/USD
   },
 
-  // GPT-4.1 Serie
+  // GPT-4.1 Serie (Stand: 2026)
   {
     modelName: 'gpt-4.1',
-    inputPrice: 1.71,
-    outputPrice: 6.84,
-    cachedInputPrice: 0.43,
+    inputPrice: 1.84, // $2.00 * 0.92 EUR/USD
+    outputPrice: 7.36, // $8.00 * 0.92 EUR/USD
+    cachedInputPrice: 0.46, // Geschätzt basierend auf Verhältnis
   },
   {
     modelName: 'gpt-4.1-mini',
-    inputPrice: 0.35,
-    outputPrice: 1.37,
-    cachedInputPrice: 0.09,
+    inputPrice: 0.32, // Geschätzt basierend auf Verhältnis
+    outputPrice: 1.28, // Geschätzt basierend auf Verhältnis
+    cachedInputPrice: 0.08, // Geschätzt basierend auf Verhältnis
   },
   {
     modelName: 'gpt-4.1-nano',
-    inputPrice: 0.09,
-    outputPrice: 0.35,
-    cachedInputPrice: 0.03,
+    inputPrice: 0.08, // Geschätzt basierend auf Verhältnis
+    outputPrice: 0.32, // Geschätzt basierend auf Verhältnis
+    cachedInputPrice: 0.02, // Geschätzt basierend auf Verhältnis
   },
 
   // GPT-3.5 Serie
@@ -425,7 +425,7 @@ export function removeModel(
 export const PRICING_DISCLAIMER = `
 **Preisberechnung basierend auf Azure OpenAI Tarifen**
 
-Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2025) plus einem Service-Aufschlag von 9%.
+Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2026) plus einem Service-Aufschlag von 9%.
 
 **Wichtige Hinweise:**
 - **Completion Models**: Preise sind pro 1 Million Tokens berechnet
@@ -435,8 +435,8 @@ Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2
 - Alle Preise in Euro (€) inklusive Service-Aufschlag
 
 **Preisbeispiele:**
-- **GPT-4o-mini**: Eingabe €0,94 / Ausgabe €3,76 (pro 1M Tokens)
-- **GPT-4o**: Eingabe €2,17 / Ausgabe €8,68 (pro 1M Tokens)
+- **GPT-4o-mini**: Eingabe €0,14 / Ausgabe €0,55 (pro 1M Tokens)
+- **GPT-4o**: Eingabe €2,30 / Ausgabe €9,20 (pro 1M Tokens)
 - **DALL-E-3**: Standard €3,47 / HD €6,94 (pro 100 Bilder)
 - **text-embedding-3-small**: €0,000018 (pro 1000 Tokens)
 

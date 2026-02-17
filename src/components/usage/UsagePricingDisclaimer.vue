@@ -30,7 +30,7 @@
                 rel="noopener noreferrer"
                 class="text-link hover:text-primary-hover underline"
               >
-                Azure OpenAI Preisen (2025)
+                Azure OpenAI Preisen (2026)
               </a>
               plus 9% Service-Aufschlag.
             </p>
@@ -45,12 +45,12 @@
             <p class="mb-1">
               <strong>Preisberechnung:</strong> Basierend auf
               <a
-                href="https://azure.microsoft.com/de-de/pricing/details/form-recognizer/"
+                href="https://azure.microsoft.com/de-de/pricing/details/ai-document-intelligence/"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-link hover:text-primary-hover underline"
               >
-                Azure Form Recognizer Preisen
+                Azure Document Intelligence Preisen
               </a>
               plus 9% Service-Aufschlag.
             </p>
@@ -110,9 +110,9 @@
                   <strong>Preisbeispiele:</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
-                      • <strong>GPT-4o-mini:</strong> Eingabe €0,94 / Ausgabe €3,76 (pro 1M Tokens)
+                      • <strong>GPT-4o-mini:</strong> Eingabe €0,14 / Ausgabe €0,55 (pro 1M Tokens)
                     </li>
-                    <li>• <strong>GPT-4o:</strong> Eingabe €2,17 / Ausgabe €8,68 (pro 1M Tokens)</li>
+                    <li>• <strong>GPT-4o:</strong> Eingabe €2,30 / Ausgabe €9,20 (pro 1M Tokens)</li>
                     <li>• <strong>DALL-E-3:</strong> Standard €3,47 / HD €6,94 (pro 100 Bilder)</li>
                     <li>• <strong>text-embedding-3-small:</strong> €0,000018 (pro 1000 Tokens)</li>
                   </ul>
@@ -125,7 +125,7 @@
                   <strong>Wichtige Hinweise:</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
-                      • <strong>Azure Form Recognizer:</strong> Preise basieren auf der Anzahl der
+                      • <strong>Azure Document Intelligence:</strong> Preise basieren auf der Anzahl der
                       verarbeiteten Seiten/Dokumente. Der Service-Aufschlag von 9% wird auf die Azure
                       Preise aufgeschlagen.
                     </li>
@@ -136,17 +136,17 @@
                     </li>
                     <li>
                       • Für aktuelle Preise konsultieren Sie bitte die offiziellen Pricing-Seiten von
-                      Azure Form Recognizer
+                      Azure Document Intelligence
                     </li>
                   </ul>
                 </div>
 
                 <div class="mt-3">
-                  <strong>Preisbeispiele (pro 1000 Seiten, inkl. 9% Service-Aufschlag):</strong>
+                  <strong>Preisbeispiele (pro 100 Seiten, inkl. 9% Service-Aufschlag):</strong>
                   <ul class="mt-1 ml-4 space-y-1">
                     <li>
-                      • <strong>Azure Form Recognizer:</strong> Standard-Modelle (Prebuilt) ab ca. €1,64
-                      / Custom Modelle ab ca. €2,18
+                      • <strong>Azure Document Intelligence:</strong> Standard-Modelle (Prebuilt) ab ca. €1,15
+                      pro 100 Seiten / Custom Modelle ab ca. €1,50 pro 100 Seiten
                     </li>
                   </ul>
                   <p class="text-xs text-gray-600 italic mt-2">
