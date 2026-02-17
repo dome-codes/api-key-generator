@@ -20,14 +20,26 @@
       />
 
       <!-- Tag Usage Bar Chart -->
-      <BarChart
-        v-if="tagUsageData.labels.length > 0"
-        title="Tag-Verwendung"
-        :chart-data="tagUsageData"
-        label="Anfragen"
-        y-axis-label="Anzahl Anfragen"
-        placeholder="Tag-Verwendung wird geladen..."
-      />
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">Tag-Verwendung</h3>
+          <button
+            v-if="hasMoreTags"
+            @click="toggleShowAllTags"
+            class="text-xs text-primary hover:text-primary-hover font-medium"
+          >
+            {{ showAllTagsInChart ? 'Weniger anzeigen' : 'Alle Tags anzeigen' }}
+          </button>
+        </div>
+        <BarChart
+          v-if="tagUsageData.labels.length > 0"
+          title=""
+          :chart-data="tagUsageData"
+          label="Anfragen"
+          y-axis-label="Anzahl Anfragen"
+          placeholder="Tag-Verwendung wird geladen..."
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -56,11 +68,18 @@ interface Props {
     labels: string[]
     data: number[]
   }
+  hasMoreTags?: boolean
+  showAllTagsInChart?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:selectedPeriod': [value: string]
+  'toggle-show-all-tags': []
 }>()
+
+const toggleShowAllTags = () => {
+  emit('toggle-show-all-tags')
+}
 </script>

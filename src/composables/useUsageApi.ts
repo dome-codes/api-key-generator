@@ -205,7 +205,8 @@ export function useUsageApi() {
     }
   })
 
-  // Chart data für Tag-Verwendung (Bar Chart)
+  // Chart data für Tag-Verwendung (Bar Chart) - zeigt standardmäßig Top 10
+  const showAllTagsInChart = ref(false)
   const tagUsageChartData = computed(() => {
     const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
 
@@ -222,11 +223,35 @@ export function useUsageApi() {
       tagMap.set(tag, currentCount + getRequestCount(item))
     })
 
+    // Sortiere nach Anzahl (absteigend) und nehme Top 10 oder alle
+    const sortedTags = Array.from(tagMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, showAllTagsInChart.value ? tagMap.size : 10)
+
     return {
-      labels: Array.from(tagMap.keys()),
-      data: Array.from(tagMap.values()),
+      labels: sortedTags.map(([tag]) => tag),
+      data: sortedTags.map(([, count]) => count),
     }
   })
+
+  const hasMoreTags = computed(() => {
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
+    if (data.length === 0) return false
+
+    const tagMap = new Map<string, number>()
+    data.forEach((item) => {
+      const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
+      if (!tag) return
+      const currentCount = tagMap.get(tag) || 0
+      tagMap.set(tag, currentCount + getRequestCount(item))
+    })
+
+    return tagMap.size > 10
+  })
+
+  const toggleShowAllTags = () => {
+    showAllTagsInChart.value = !showAllTagsInChart.value
+  }
 
   // Actions
   const loadUsageData = async (filter?: Partial<UsageFilterApi>, useAdminApi: boolean = false) => {
@@ -411,6 +436,8 @@ export function useUsageApi() {
     chartData,
     modelDistributionChartData,
     tagUsageChartData,
+    hasMoreTags,
+    showAllTagsInChart,
 
     // Actions
     loadUsageData,
@@ -421,5 +448,6 @@ export function useUsageApi() {
     updateFilter,
     resetFilter,
     updateSort,
+    toggleShowAllTags,
   }
 }

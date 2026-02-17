@@ -8,7 +8,6 @@
       v-model:time-range="ownTimeRange"
       v-model:model-type="ownModelType"
       v-model:model="ownModel"
-      v-model:tag="ownTag"
       v-model:api-key-id="ownApiKeyId"
       v-model:from-date="ownFromDate"
       v-model:to-date="ownToDate"
@@ -36,7 +35,10 @@
         :line-chart-data="chartData"
         :model-distribution-data="modelDistributionChartData"
         :tag-usage-data="tagUsageChartData"
+        :has-more-tags="hasMoreTags"
+        :show-all-tags-in-chart="showAllTagsInChart"
         @update:selected-period="handleChartPeriodChange"
+        @toggle-show-all-tags="toggleShowAllTags"
       />
     </div>
 
@@ -93,19 +95,21 @@ const {
   chartData,
   modelDistributionChartData,
   tagUsageChartData,
+  hasMoreTags,
+  showAllTagsInChart,
   loadUsageData,
   loadUsageSummary,
   updateFilter,
   goToPage,
   updateSort,
   currentFilter,
+  toggleShowAllTags,
 } = useUsageApi()
 
 // Filter State
 const ownTimeRange = ref('')
 const ownModelType = ref('')
 const ownModel = ref('')
-const ownTag = ref('')
 const ownApiKeyId = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownChartPeriod = ref('daily')
@@ -131,7 +135,6 @@ const loadFiltersFromUrl = () => {
   
   ownModelType.value = fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
   ownModel.value = getQueryParam('model') || ''
-  ownTag.value = getQueryParam('tag') || ''
   ownApiKeyId.value = getQueryParam('apiKeyId') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
@@ -178,8 +181,7 @@ const saveFiltersToUrl = () => {
   if (ownTimeRange.value) params.timeRange = ownTimeRange.value
   if (ownModelType.value) params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
   if (ownModel.value) params.model = ownModel.value
-  if (ownTag.value) params.tag = ownTag.value
-    if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
+  if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
   if (ownView.value) params.view = ownView.value
   if (ownChartPeriod.value) params.chartPeriod = ownChartPeriod.value
   if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
@@ -239,7 +241,6 @@ const handleOwnFilterChange = async () => {
       toDate: toIsoDate(ownToDate.value),
       modelType: ownModelType.value || undefined,
       model: ownModel.value || undefined,
-      tag: ownTag.value || undefined,
       apiKey: ownApiKeyId.value || undefined,
       groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
       page: 1,

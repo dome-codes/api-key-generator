@@ -74,43 +74,6 @@
         </select>
       </div>
 
-      <!-- Tag Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
-        <select
-          v-model="localTagInput"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-          @change="handleFilterChange"
-        >
-          <option value="">Alle Tags</option>
-          <option
-            v-for="(tagInfo, index) in displayedTags"
-            :key="`tag-${index}-${tagInfo.tag}`"
-            :value="tagInfo.tag"
-          >
-            {{ tagInfo.tag }} ({{ tagInfo.count }})
-          </option>
-          <option v-if="!showAllTags && availableTags.length > 10" value="__show_more__" disabled class="text-gray-400">
-            ────────────────
-          </option>
-          <option
-            v-if="!showAllTags && availableTags.length > 10"
-            value=""
-            @click.stop="showAllTags = true"
-            class="text-primary font-medium"
-          >
-            + {{ availableTags.length - 10 }} weitere anzeigen
-          </option>
-        </select>
-        <button
-          v-if="showAllTags && availableTags.length > 10"
-          @click="showAllTags = false"
-          class="mt-1 text-xs text-primary hover:text-primary-hover"
-        >
-          Weniger anzeigen
-        </button>
-      </div>
-
       <!-- User Filter (nur für Admin) -->
       <div v-if="showUserFilter">
         <label class="block text-sm font-medium text-gray-700 mb-2">Benutzer</label>
@@ -153,16 +116,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
-import { getTopExtractionTags, getAllExtractionTags, type TagInfo } from '@/services/tagsService'
 
 // Props
 interface Props {
   timeRange: string
   modelId?: string
   status?: DocumentIntelligenceOperationStatus | ''
-  tag?: string
   fromDate?: string
   toDate?: string
   selectedUser?: string
@@ -181,7 +142,6 @@ const emit = defineEmits<{
   'update:timeRange': [value: string]
   'update:modelId': [value: string]
   'update:status': [value: DocumentIntelligenceOperationStatus | '']
-  'update:tag': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
@@ -205,21 +165,6 @@ const status = computed({
     set: (value) => emit('update:status', value as DocumentIntelligenceOperationStatus | ''),
 })
 
-// Local Tag Input (wird erst beim Button-Klick oder Enter aktualisiert)
-const localTagInput = ref(props.tag || '')
-const availableTags = ref<TagInfo[]>([])
-const showAllTags = ref(false)
-const isLoadingTags = ref(false)
-
-// Sync props changes back to local input
-watch(
-  () => props.tag,
-  (newValue) => {
-    if (newValue !== localTagInput.value) {
-      localTagInput.value = newValue || ''
-    }
-  },
-)
 
 const fromDate = computed({
   get: () => props.fromDate || '',
@@ -320,59 +265,10 @@ const handleDateChange = () => {
   handleFilterChange()
 }
 
-const displayedTags = computed(() => {
-  if (showAllTags.value) {
-    return availableTags.value
-  }
-  return availableTags.value.slice(0, 10)
-})
-
-// Lade Tags beim Mount und wenn sich Datum ändert
-const loadTags = async () => {
-  isLoadingTags.value = true
-  try {
-    const fromDateISO = props.fromDate ? new Date(props.fromDate + 'T00:00:00').toISOString() : undefined
-    const toDateISO = props.toDate ? new Date(props.toDate + 'T23:59:59').toISOString() : undefined
-
-    if (showAllTags.value) {
-      // Lade alle Tags
-      availableTags.value = await getAllExtractionTags(fromDateISO, toDateISO, props.showUserFilter)
-    } else {
-      // Lade nur Top 10
-      availableTags.value = await getTopExtractionTags(fromDateISO, toDateISO, 10, props.showUserFilter)
-    }
-  } catch (error) {
-    console.error('Error loading tags:', error)
-    availableTags.value = []
-  } finally {
-    isLoadingTags.value = false
-  }
-}
-
-// Watch für Datum-Änderungen
-watch([() => props.fromDate, () => props.toDate], () => {
-  loadTags()
-})
-
-// Watch für showAllTags
-watch(showAllTags, (newValue) => {
-  if (newValue) {
-    loadTags()
-  } else {
-    // Zurück zu Top 10
-    loadTags()
-  }
-})
-
 const handleFilterChange = () => {
   // Aktualisiere alle Werte bevor der Filter ausgelöst wird
-  emit('update:tag', localTagInput.value)
   emit('filter-changed')
 }
-
-onMounted(() => {
-  loadTags()
-})
 
 // Watcher für Gruppenänderungen
 watch(selectedUserGroup, (newGroup) => {

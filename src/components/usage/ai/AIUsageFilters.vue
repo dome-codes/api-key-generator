@@ -1,14 +1,10 @@
 <template>
   <BaseFilters
     :time-range="timeRange"
-    :tag="tag"
     :api-key-id="apiKeyId"
     :from-date="fromDate"
     :to-date="toDate"
-    tag-type="ai"
-    :use-admin-api="showUserFilter"
     @update:time-range="$emit('update:timeRange', $event)"
-    @update:tag="$emit('update:tag', $event)"
     @update:api-key-id="$emit('update:apiKeyId', $event)"
     @update:from-date="$emit('update:fromDate', $event)"
     @update:to-date="$emit('update:toDate', $event)"
@@ -86,7 +82,6 @@ interface Props {
   timeRange: string
   modelType: string
   model?: string
-  tag?: string
   apiKeyId?: string
   fromDate?: string
   toDate?: string
@@ -105,7 +100,6 @@ const emit = defineEmits<{
   'update:timeRange': [value: string]
   'update:modelType': [value: string]
   'update:model': [value: string]
-  'update:tag': [value: string]
   'update:apiKeyId': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
