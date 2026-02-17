@@ -87,6 +87,7 @@ export interface EnhancedUsageRecord {
   year?: number
   createDate?: string
   apiKey?: string
+  apiKeyId?: string
   /** Nur bei ImageModelUsage: Bildbreite */
   sizeWidth?: number
   /** Nur bei ImageModelUsage: Bildhöhe */
