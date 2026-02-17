@@ -24,8 +24,13 @@ export interface UsageRecordForApiKey {
   reasoningTokens?: number
 }
 
+/** Normalisiert ID für Vergleich (Trim, Lowercase, Bindestriche optional entfernen). */
+function normalizeId(id: string): string {
+  return String(id).trim().toLowerCase().replace(/-/g, '')
+}
+
 /**
- * Prüft, ob Key-ID und Usage-apiKeyId zusammenpassen (Trim + optional case-insensitiv).
+ * Prüft, ob Key-ID und Usage-apiKeyId zusammenpassen (Trim, case-insensitiv, Bindestriche ignoriert).
  * Berücksichtigt, dass Backend api_key_id oder anderes Format liefern kann.
  */
 export function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefined): boolean {
@@ -33,7 +38,9 @@ export function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefin
   const a = String(keyId).trim()
   const b = String(usageApiKeyId).trim()
   if (a === b) return true
-  return a.toLowerCase() === b.toLowerCase()
+  if (a.toLowerCase() === b.toLowerCase()) return true
+  if (normalizeId(a) === normalizeId(b)) return true
+  return false
 }
 
 /**
@@ -47,6 +54,8 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
   const tokensOut = response + reasoning
   return { tokensIn, tokensOut }
 }
+
+const DEBUG_MAPPING = true // Logging: warum Records nicht auf Keys matchen
 
 /**
  * Baut die Map keyId → ApiKeyUsageData aus Usage-Records.
@@ -62,9 +71,19 @@ export function buildApiKeyUsageMap(
   const safeRecords = records.filter((r) => r != null && typeof r === 'object')
   const map: Record<string, ApiKeyUsageData> = {}
 
+  if (DEBUG_MAPPING && safeRecords.length > 0 && keys.length > 0) {
+    const recordIds = [...new Set(safeRecords.map((r) => r.apiKeyId ?? r.api_key_id ?? r.technicalUserId ?? '').filter(Boolean))]
+    console.log('[buildApiKeyUsageMap] Format-Check', {
+      'key.ids (erste 3)': keys.slice(0, 3).map((k) => k.id),
+      'Record apiKeyId/technicalUserId (unique, erste 5)': recordIds.slice(0, 5),
+      'Anzahl Records': safeRecords.length,
+      'Anzahl Keys': keys.length,
+    })
+  }
+
   for (const key of keys) {
     const keyId = key.id
-    // 1) Direktes Matching über apiKeyId / api_key_id
+    // 1) Direktes Matching über apiKeyId / api_key_id (inkl. Normalisierung: Trim, Lowercase, ohne Bindestriche)
     const keyUsage = safeRecords.filter((r) =>
       keyIdMatchesUsage(keyId, r.apiKeyId ?? r.api_key_id ?? undefined),
     )
