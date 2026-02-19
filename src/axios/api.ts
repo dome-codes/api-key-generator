@@ -125,27 +125,97 @@ function escapeHtml(s: string): string {
   return div.innerHTML
 }
 
-// Response-Interceptor: 401 Token erneuern; 403 einmal mit frischem Token wiederholen; 500 Meldung mit Tracing-ID
+// Response-Interceptor: 401 Token erneuern; 403 einmal mit frischem Token wiederholen; insufficient_scope behandeln; 500 Meldung mit Tracing-ID
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error.response?.status
     const config = error.config
     const isRetry = config?.__retry403 === true
+    const wwwAuthenticate =
+      error.response?.headers?.['www-authenticate'] || error.response?.headers?.['WWW-Authenticate']
+    const errorData = error.response?.data
+    const errorCode = errorData?.error || errorData?.code
+    // Prüfe sowohl WWW-Authenticate Header als auch Response Body
+    const isInsufficientScope =
+      (wwwAuthenticate &&
+        (wwwAuthenticate.includes('insufficient_scope') ||
+          wwwAuthenticate.includes('error="insufficient_scope"'))) ||
+      errorCode === 'insufficient_scope' ||
+      (typeof errorData === 'string' && errorData.includes('insufficient_scope'))
 
-    if (status === 401) {
-      debugLog('Token abgelaufen, versuche Erneuerung...')
+    // 401 oder insufficient_scope: Token erneuern und erneut versuchen
+    if (status === 401 || (status === 403 && isInsufficientScope)) {
+      if (isInsufficientScope) {
+        debugLog(
+          '⚠️ insufficient_scope Fehler erkannt – Token hat nicht die benötigten Berechtigungen',
+        )
+        debugLog('WWW-Authenticate Header:', wwwAuthenticate)
+      } else {
+        debugLog('Token abgelaufen, versuche Erneuerung...')
+      }
+
       try {
         await whenTokenReadyForApi
+        // Token explizit aktualisieren (mit Scope-Refresh)
         const token = await getToken()
         if (token && config) {
           config.headers.Authorization = `Bearer ${token}`
-          return api(config)
+          // Bei insufficient_scope nur einmal retry, dann Fehler zeigen
+          if (isInsufficientScope && !config.__retryScope) {
+            config.__retryScope = true
+            debugLog('🔄 Retry mit aktualisiertem Token (Scope-Refresh)')
+            return api(config)
+          } else if (!isInsufficientScope) {
+            // Normale 401: Retry ohne Limit
+            return api(config)
+          }
         }
       } catch (refreshError) {
         debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
       }
-    } else if (status === 403 && config && !isRetry) {
+
+      // Bei insufficient_scope: Benutzerfreundliche Fehlermeldung anzeigen
+      if (isInsufficientScope) {
+        if (typeof window !== 'undefined') {
+          const errorDescription =
+            error.response?.data?.error_description ||
+            error.response?.data?.error ||
+            'Der Access Token hat nicht die benötigten Berechtigungen (Scopes).'
+          const errorUri = error.response?.data?.error_uri || ''
+
+          const overlay = document.createElement('div')
+          overlay.setAttribute('role', 'alert')
+          overlay.setAttribute('aria-live', 'assertive')
+          overlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.5); font-family: system-ui, sans-serif;
+          `
+          const box = document.createElement('div')
+          box.style.cssText = `
+            background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            border-left: 4px solid #f59e0b;
+          `
+          box.innerHTML = `
+            <p style="margin: 0 0 0.75rem; font-weight: 600; color: #1f2937;">Unzureichende Berechtigungen</p>
+            <p style="margin: 0 0 0.75rem; font-size: 0.9rem; color: #4b5563;">${escapeHtml(errorDescription)}</p>
+            ${errorUri ? `<p style="margin: 0 0 1rem; font-size: 0.85rem; color: #6b7280;">Weitere Informationen: <a href="${escapeHtml(errorUri)}" target="_blank" style="color: #2563eb;">${escapeHtml(errorUri)}</a></p>` : ''}
+            <p style="margin: 0 0 1rem; font-size: 0.85rem; color: #6b7280;">Bitte kontaktieren Sie Ihren Administrator, um die benötigten Berechtigungen zu erhalten.</p>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+              <button type="button" id="scope-error-close" style="padding: 0.5rem 1rem; background: #6b7280; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Schließen</button>
+            </div>
+          `
+          overlay.appendChild(box)
+
+          const close = () => overlay.remove()
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close()
+          })
+          box.querySelector('#scope-error-close')?.addEventListener('click', close)
+          document.body.appendChild(overlay)
+        }
+      }
+    } else if (status === 403 && config && !isRetry && !isInsufficientScope) {
       debugLog('403 Forbidden – ein Retry mit frischem Token')
       try {
         await whenTokenReadyForApi
