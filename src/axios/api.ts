@@ -213,7 +213,6 @@ api.interceptors.response.use(
           box.querySelector('#scope-error-close')?.addEventListener('click', close)
           document.body.appendChild(overlay)
         }
-      }
     } else if (status === 403 && config && !isRetry && !isInsufficientScope) {
       debugLog('403 Forbidden – ein Retry mit frischem Token')
       try {
