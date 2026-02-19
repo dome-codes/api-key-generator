@@ -42,11 +42,11 @@ export const apiKeyService = {
 
     // Verwende Admin-Endpunkt wenn Admin-Berechtigung vorhanden
     if (hasPermission('canUseAdminFeatures')) {
-      const response = await api.get('/admin/apikeys')
+      const response = await api.get('/v1/admin/apikeys')
       return response.data as ApiKeyDisplay[]
     }
 
-    const response = await api.get('/apikeys')
+    const response = await api.get('/v1/apikeys')
     return response.data as ApiKeyDisplay[]
   },
 
@@ -61,7 +61,7 @@ export const apiKeyService = {
     }
 
     const request = { name, permissions }
-    const response = await api.post('/apikeys', request)
+    const response = await api.post('/v1/apikeys', request)
     const data = response.data as Record<string, unknown>
     if (data && typeof data === 'object') {
       const secret =
@@ -84,7 +84,7 @@ export const apiKeyService = {
       throw new Error('Keine Berechtigung zum Deaktivieren von API-Keys')
     }
 
-    await api.put(`/apikeys/${keyId}/deactivate`)
+    await api.put(`/v1/apikeys/${keyId}/deactivate`)
   },
 
   // API-Key rotieren (rollenbasiert)
@@ -99,7 +99,7 @@ export const apiKeyService = {
     }
 
     const request = { name, permissions }
-    const response = await api.post(`/apikeys/${keyId}/rotate`, request)
+    const response = await api.post(`/v1/apikeys/${keyId}/rotate`, request)
     return response.data as Record<string, unknown>
   },
 
@@ -110,7 +110,7 @@ export const apiKeyService = {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
     }
 
-    const response = await api.get(`/apikeys/${keyId}`)
+    const response = await api.get(`/v1/apikeys/${keyId}`)
     return response.data as ApiKeyDisplay
   },
 
@@ -121,7 +121,7 @@ export const apiKeyService = {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller API-Keys')
     }
 
-    const response = await api.get('/apikeys')
+    const response = await api.get('/v1/apikeys')
     return response.data as ApiKeyDisplay[]
   },
 }
