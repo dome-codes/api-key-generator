@@ -162,21 +162,32 @@ api.interceptors.response.use(
         '⚠️ insufficient_scope Fehler erkannt – Token hat nicht die benötigten Berechtigungen',
       )
       debugLog('WWW-Authenticate Header:', wwwAuthenticate)
-      try {
-        await whenTokenReadyForApi
-        const token = await getToken()
-        if (token) {
-          config.__retryScope = true
-          config.headers.Authorization = `Bearer ${token}`
-          debugLog('🔄 Retry mit aktualisiertem Token (Scope-Refresh)')
-          return api(config)
+      debugLog('Request URL:', config.url)
+      debugLog('Request Method:', config.method)
+      
+      // Prüfe ob es sich um summarize oder AI Endpunkte handelt
+      const isSummarizeOrAIEndpoint = config.url?.includes('/summarize') || config.url?.includes('/usage/ai')
+      if (isSummarizeOrAIEndpoint) {
+        debugLog('⚠️ summarize/AI Endpunkt erkannt - könnte falscher insufficient_scope sein, behandle als normalen 403')
+        // Für summarize/AI Endpunkte: Behandle als normalen 403, nicht als insufficient_scope
+        // Fall-through zu normaler 403-Behandlung
+      } else {
+        try {
+          await whenTokenReadyForApi
+          const token = await getToken()
+          if (token) {
+            config.__retryScope = true
+            config.headers.Authorization = `Bearer ${token}`
+            debugLog('🔄 Retry mit aktualisiertem Token (Scope-Refresh)')
+            return api(config)
+          }
+        } catch (refreshError) {
+          debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
         }
-      } catch (refreshError) {
-        debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
-      }
 
-      // Nach Retry immer noch insufficient_scope: Benutzerfreundliche Fehlermeldung anzeigen
-      if (typeof window !== 'undefined') {
+        // Nach Retry immer noch insufficient_scope: Benutzerfreundliche Fehlermeldung anzeigen
+        debugLog('⚠️ insufficient_scope nach Retry immer noch vorhanden - zeige Overlay')
+        if (typeof window !== 'undefined') {
           const errorDescription =
             error.response?.data?.error_description ||
             error.response?.data?.error ||
@@ -213,14 +224,19 @@ api.interceptors.response.use(
           box.querySelector('#scope-error-close')?.addEventListener('click', close)
           document.body.appendChild(overlay)
         }
+      }
     } else if (status === 403 && config && !isRetry && !isInsufficientScope) {
       debugLog('403 Forbidden – ein Retry mit frischem Token')
+      debugLog('Request URL:', config.url)
+      debugLog('Request Method:', config.method)
+      debugLog('WWW-Authenticate Header:', wwwAuthenticate || '(nicht vorhanden)')
       try {
         await whenTokenReadyForApi
         const token = await getToken()
         if (token) {
           config.__retry403 = true
           config.headers.Authorization = `Bearer ${token}`
+          debugLog('🔄 Retry mit frischem Token für 403')
           return api(config)
         }
       } catch {
