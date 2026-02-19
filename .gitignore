@@ -38,6 +38,10 @@ docs/*
 *.old
 *.tmp
 
+# macOS ZoneIdentifier files (werden beim Download aus dem Browser erstellt)
+*.jsZoneIdentifier
+*.ZoneIdentifier
+
 # Database files
 data/*.db
 data/*.sqlite
