@@ -9,4 +9,4 @@
 /**
  * Filter by user ID.
  */
-export type CommonRequestParamsUserIdParameter = string
+export type CommonRequestParamsUserIdParameter = string;

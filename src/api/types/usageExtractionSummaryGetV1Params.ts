@@ -5,61 +5,61 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { CommonRequestParamsFromDateParameter } from './commonRequestParamsFromDateParameter'
-import type { CommonRequestParamsToDateParameter } from './commonRequestParamsToDateParameter'
-import type { CommonRequestParamsPageParameter } from './commonRequestParamsPageParameter'
-import type { CommonRequestParamsLimitParameter } from './commonRequestParamsLimitParameter'
-import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUserIdParameter'
-import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter'
-import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter'
-import type { ExtractionRequestParamsProviderParameter } from './extractionRequestParamsProviderParameter'
-import type { ExtractionRequestParamsModelIdParameter } from './extractionRequestParamsModelIdParameter'
-import type { ExtractionRequestParamsStatusParameter } from './extractionRequestParamsStatusParameter'
-import type { ExtractionRequestParamsGroupByParameter } from './extractionRequestParamsGroupByParameter'
+import type { CommonRequestParamsFromDateParameter } from './commonRequestParamsFromDateParameter';
+import type { CommonRequestParamsToDateParameter } from './commonRequestParamsToDateParameter';
+import type { CommonRequestParamsPageParameter } from './commonRequestParamsPageParameter';
+import type { CommonRequestParamsLimitParameter } from './commonRequestParamsLimitParameter';
+import type { CommonRequestParamsUserIdParameter } from './commonRequestParamsUserIdParameter';
+import type { CommonRequestParamsTagParameter } from './commonRequestParamsTagParameter';
+import type { CommonRequestParamsApiKeyIdParameter } from './commonRequestParamsApiKeyIdParameter';
+import type { ExtractionRequestParamsProviderParameter } from './extractionRequestParamsProviderParameter';
+import type { ExtractionRequestParamsModelIdParameter } from './extractionRequestParamsModelIdParameter';
+import type { ExtractionRequestParamsStatusParameter } from './extractionRequestParamsStatusParameter';
+import type { ExtractionRequestParamsGroupByParameter } from './extractionRequestParamsGroupByParameter';
 
 export type UsageExtractionSummaryGetV1Params = {
-  /**
-   * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
-   */
-  from_date?: CommonRequestParamsFromDateParameter
-  /**
-   * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
-   */
-  to_date?: CommonRequestParamsToDateParameter
-  /**
-   * Page number for pagination (1-based).
-   */
-  page?: CommonRequestParamsPageParameter
-  /**
-   * The number of items to return per page.
-   */
-  limit?: CommonRequestParamsLimitParameter
-  /**
-   * Filter by user ID.
-   */
-  userId?: CommonRequestParamsUserIdParameter
-  /**
-   * Filter by tag.
-   */
-  tag?: CommonRequestParamsTagParameter
-  /**
-   * Filter by API key ID.
-   */
-  apiKey?: CommonRequestParamsApiKeyIdParameter
-  /**
-   * Filter by extraction provider.
-   */
-  provider?: ExtractionRequestParamsProviderParameter
-  /**
-   * Filter by extraction model ID.
-   */
-  modelId?: ExtractionRequestParamsModelIdParameter
-  /**
-   * Filter by extraction operation status.
-   */
-  status?: ExtractionRequestParamsStatusParameter
-  /**
-   * Comma separated list of parameters to group by: day|month|year|[tag|apikey|provider|modelId|user]
-   */
-  by?: ExtractionRequestParamsGroupByParameter
-}
+/**
+ * Start date of the time interval (UTC). Request format e.g. from_date=2026-01-31T00:00:00.000Z (usage/ai and summarize).
+ */
+from_date?: CommonRequestParamsFromDateParameter;
+/**
+ * End date of the time interval (UTC). Request format e.g. to_date=2026-12-31T23:59:59.000Z (usage/ai and summarize).
+ */
+to_date?: CommonRequestParamsToDateParameter;
+/**
+ * Page number for pagination (1-based).
+ */
+page?: CommonRequestParamsPageParameter;
+/**
+ * The number of items to return per page.
+ */
+limit?: CommonRequestParamsLimitParameter;
+/**
+ * Filter by user ID.
+ */
+userId?: CommonRequestParamsUserIdParameter;
+/**
+ * Filter by tag.
+ */
+tag?: CommonRequestParamsTagParameter;
+/**
+ * Filter by API key ID.
+ */
+apiKey?: CommonRequestParamsApiKeyIdParameter;
+/**
+ * Filter by extraction provider.
+ */
+provider?: ExtractionRequestParamsProviderParameter;
+/**
+ * Filter by extraction model ID.
+ */
+modelId?: ExtractionRequestParamsModelIdParameter;
+/**
+ * Filter by extraction operation status.
+ */
+status?: ExtractionRequestParamsStatusParameter;
+/**
+ * Comma separated list of parameters to group by: day|month|year|[tag|apikey|provider|modelId|user]
+ */
+by?: ExtractionRequestParamsGroupByParameter;
+};

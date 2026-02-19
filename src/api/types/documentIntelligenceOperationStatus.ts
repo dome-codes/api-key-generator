@@ -9,13 +9,14 @@
 /**
  * Operation status for Document Intelligence extraction
  */
-export type DocumentIntelligenceOperationStatus =
-  (typeof DocumentIntelligenceOperationStatus)[keyof typeof DocumentIntelligenceOperationStatus]
+export type DocumentIntelligenceOperationStatus = typeof DocumentIntelligenceOperationStatus[keyof typeof DocumentIntelligenceOperationStatus];
 
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const DocumentIntelligenceOperationStatus = {
   processing: 'processing',
   completed: 'completed',
   failed: 'failed',
   canceled: 'canceled',
   skipped: 'skipped',
-} as const
+} as const;

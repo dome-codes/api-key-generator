@@ -4,17 +4,19 @@ info:
   version: 1.0.0
   description: API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
 servers:
-  - url: http://localhost:3001/v1
+  - url: http://localhost:3001
     description: Local development server
-  - url: https://api.example.com/v1
+  - url: https://api.example.com
     description: Production server
 
 paths:
   # ============================================
   # AI USAGE ENDPOINTS (User)
   # ============================================
-  
-  /usage/ai:
+  # Alle Pfade haben /v1 prefix, damit Orval URLs wie /v1/usage/ai generiert
+  # und api.ts baseURL ohne /v1 bleibt → kein doppeltes /v1/v1
+
+  /v1/usage/ai:
     get:
       tags:
         - usage
@@ -47,7 +49,7 @@ paths:
         '500':
           description: Internal server error
 
-  /usage/ai/summarize:
+  /v1/usage/ai/summarize:
     get:
       tags:
         - usage
@@ -85,7 +87,7 @@ paths:
   # AI USAGE ENDPOINTS (Admin)
   # ============================================
 
-  /admin/usage/ai:
+  /v1/admin/usage/ai:
     get:
       tags:
         - admin
@@ -120,7 +122,7 @@ paths:
         '500':
           description: Internal server error
 
-  /admin/usage/ai/summarize:
+  /v1/admin/usage/ai/summarize:
     get:
       tags:
         - admin
@@ -160,7 +162,7 @@ paths:
   # EXTRACTION USAGE ENDPOINTS (User)
   # ============================================
 
-  /usage/extraction:
+  /v1/usage/extraction:
     get:
       tags:
         - usage
@@ -194,7 +196,7 @@ paths:
         '500':
           description: Internal server error
 
-  /usage/extraction/summarize:
+  /v1/usage/extraction/summarize:
     get:
       tags:
         - usage
@@ -233,7 +235,7 @@ paths:
   # EXTRACTION USAGE ENDPOINTS (Admin)
   # ============================================
 
-  /admin/usage/extraction:
+  /v1/admin/usage/extraction:
     get:
       tags:
         - admin
@@ -269,7 +271,7 @@ paths:
         '500':
           description: Internal server error
 
-  /admin/usage/extraction/summarize:
+  /v1/admin/usage/extraction/summarize:
     get:
       tags:
         - admin
@@ -321,7 +323,7 @@ components:
     # ============================================
     # COMMON REQUEST PARAMETERS
     # ============================================
-    
+
     Common.RequestParams.FromDate:
       name: from_date
       in: query

@@ -9,4 +9,4 @@
 /**
  * The number of items to return per page.
  */
-export type CommonRequestParamsLimitParameter = number
+export type CommonRequestParamsLimitParameter = number;

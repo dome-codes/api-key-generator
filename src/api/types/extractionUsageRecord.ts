@@ -5,34 +5,34 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { DocumentIntelligenceOperationStatus } from './documentIntelligenceOperationStatus'
-import type { ExtractedField } from './extractedField'
+import type { DocumentIntelligenceOperationStatus } from './documentIntelligenceOperationStatus';
+import type { ExtractedField } from './extractedField';
 
 export interface ExtractionUsageRecord {
   /** Unique identifier for the extraction operation */
-  id?: string
+  id?: string;
   /** Operation ID for tracking */
-  operationId?: string
-  status?: DocumentIntelligenceOperationStatus
-  createDate?: string
+  operationId?: string;
+  status?: DocumentIntelligenceOperationStatus;
+  createDate?: string;
   /** @nullable */
-  completedDate?: string | null
-  day?: number
-  month?: number
-  year?: number
-  technicalUserId?: string
-  apiKeyId?: string
-  tag?: string
-  provider?: string
-  modelId?: string
-  documentType?: string
-  pages?: number
-  extractedFields?: ExtractedField[]
+  completedDate?: string | null;
+  day?: number;
+  month?: number;
+  year?: number;
+  technicalUserId?: string;
+  apiKeyId?: string;
+  tag?: string;
+  provider?: string;
+  modelId?: string;
+  documentType?: string;
+  pages?: number;
+  extractedFields?: ExtractedField[];
   /**
    * Overall confidence score for the extraction
    * @minimum 0
    * @maximum 1
    */
-  confidenceScore?: number
-  cost?: number
+  confidenceScore?: number;
+  cost?: number;
 }

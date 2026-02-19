@@ -6,9 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ExtractionRequestParamsGroupByParameterItem =
-  (typeof ExtractionRequestParamsGroupByParameterItem)[keyof typeof ExtractionRequestParamsGroupByParameterItem]
+export type ExtractionRequestParamsGroupByParameterItem = typeof ExtractionRequestParamsGroupByParameterItem[keyof typeof ExtractionRequestParamsGroupByParameterItem];
 
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ExtractionRequestParamsGroupByParameterItem = {
   day: 'day',
   month: 'month',
@@ -18,4 +19,4 @@ export const ExtractionRequestParamsGroupByParameterItem = {
   provider: 'provider',
   modelId: 'modelId',
   user: 'user',
-} as const
+} as const;

@@ -9,4 +9,4 @@
 /**
  * Filter by model name.
  */
-export type AIRequestParamsModelParameter = string
+export type AIRequestParamsModelParameter = string;

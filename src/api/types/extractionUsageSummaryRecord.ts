@@ -5,23 +5,23 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { DocumentIntelligenceOperationStatus } from './documentIntelligenceOperationStatus'
+import type { DocumentIntelligenceOperationStatus } from './documentIntelligenceOperationStatus';
 
 export interface ExtractionUsageSummaryRecord {
-  status?: DocumentIntelligenceOperationStatus
-  tag?: string
-  provider?: string
-  modelId?: string
-  technicalUserId?: string
-  apiKeyId?: string
-  day?: number
-  month?: number
-  year?: number
+  status?: DocumentIntelligenceOperationStatus;
+  tag?: string;
+  provider?: string;
+  modelId?: string;
+  technicalUserId?: string;
+  apiKeyId?: string;
+  day?: number;
+  month?: number;
+  year?: number;
   /** Number of extraction operations */
-  operations?: number
+  operations?: number;
   /** Total number of pages processed */
-  totalPages?: number
+  totalPages?: number;
   /** Average confidence score */
-  averageConfidence?: number
-  cost?: number
+  averageConfidence?: number;
+  cost?: number;
 }

@@ -9,4 +9,4 @@
 /**
  * Filter by extraction model ID.
  */
-export type ExtractionRequestParamsModelIdParameter = string
+export type ExtractionRequestParamsModelIdParameter = string;

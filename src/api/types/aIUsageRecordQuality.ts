@@ -9,9 +9,11 @@
 /**
  * Image quality (only for ImageModelUsage)
  */
-export type AIUsageRecordQuality = (typeof AIUsageRecordQuality)[keyof typeof AIUsageRecordQuality]
+export type AIUsageRecordQuality = typeof AIUsageRecordQuality[keyof typeof AIUsageRecordQuality];
 
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AIUsageRecordQuality = {
   standard: 'standard',
   hd: 'hd',
-} as const
+} as const;

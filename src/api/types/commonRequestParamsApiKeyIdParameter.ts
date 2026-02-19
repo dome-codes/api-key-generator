@@ -9,4 +9,4 @@
 /**
  * Filter by API key ID.
  */
-export type CommonRequestParamsApiKeyIdParameter = string
+export type CommonRequestParamsApiKeyIdParameter = string;

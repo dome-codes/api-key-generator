@@ -9,4 +9,4 @@
 /**
  * Filter by tag.
  */
-export type CommonRequestParamsTagParameter = string
+export type CommonRequestParamsTagParameter = string;

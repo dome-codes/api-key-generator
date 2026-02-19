@@ -5,9 +5,9 @@
  * API für API-Key-Verwaltung, Usage-Tracking und Document Intelligence
  * OpenAPI spec version: 1.0.0
  */
-import type { ExtractionRequestParamsGroupByParameterItem } from './extractionRequestParamsGroupByParameterItem'
+import type { ExtractionRequestParamsGroupByParameterItem } from './extractionRequestParamsGroupByParameterItem';
 
 /**
  * Comma separated list of parameters to group by: day|month|year|[tag|apikey|provider|modelId|user]
  */
-export type ExtractionRequestParamsGroupByParameter = ExtractionRequestParamsGroupByParameterItem[]
+export type ExtractionRequestParamsGroupByParameter = ExtractionRequestParamsGroupByParameterItem[];
