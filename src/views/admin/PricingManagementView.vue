@@ -87,6 +87,41 @@ const startEditing = (modelName: string, field: string, originalValue: number | 
   }
 }
 
+// Type guard helpers
+const isImageModelPricing = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+): model is ImageModelPricing => {
+  return 'standardPrice' in model
+}
+
+const getModelFieldValue = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+): number | undefined => {
+  if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+    if (isImageModelPricing(model)) {
+      return model[field as 'standardPriceLarge' | 'hdPriceLarge']
+    }
+    return undefined
+  }
+  const value = (model as unknown as Record<string, unknown>)[field]
+  return typeof value === 'number' ? value : undefined
+}
+
+const setModelFieldValue = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+  value: number | undefined,
+): void => {
+  if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+    if (isImageModelPricing(model)) {
+      model[field as 'standardPriceLarge' | 'hdPriceLarge'] = value
+    }
+  } else {
+    ;(model as unknown as Record<string, unknown>)[field] = value
+  }
+}
+
 const handleInputChange = (
   model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
   field: string,
@@ -96,7 +131,8 @@ const handleInputChange = (
   if (editingState.value[key]) {
     editingState.value[key].currentValue = value
   } else {
-    startEditing(model.modelName, field, model[field])
+    const fieldValue = getModelFieldValue(model, field)
+    startEditing(model.modelName, field, fieldValue)
     const fallbackKey = getEditingKey(model.modelName, field)
     if (editingState.value[fallbackKey]) {
       editingState.value[fallbackKey].currentValue = value
@@ -114,7 +150,7 @@ const confirmEdit = (
 
   const num = parseFloat(editing.currentValue)
   if (!isNaN(num) && num >= 0) {
-    model[field] = num
+    setModelFieldValue(model, field, num)
   } else if (
     editing.currentValue === '' ||
     editing.currentValue === null ||
@@ -122,20 +158,33 @@ const confirmEdit = (
   ) {
     // Optional fields können leer sein
     if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
-      model[field] = undefined
+      setModelFieldValue(model, field, undefined)
+    } else if (field === 'cachedInputPrice' || field === 'reasoningPrice') {
+      setModelFieldValue(model, field, undefined)
     } else {
-      model[field] = 0
+      setModelFieldValue(model, field, 0)
     }
   } else {
     // Ungültiger Wert, zurücksetzen auf Original
-    model[field] = editing.originalValue ?? 0
+    const originalValue = editing.originalValue
+    if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+      setModelFieldValue(
+        model,
+        field,
+        typeof originalValue === 'number' ? originalValue : undefined,
+      )
+    } else {
+      setModelFieldValue(model, field, typeof originalValue === 'number' ? originalValue : 0)
+    }
   }
 
   // Automatisch speichern basierend auf Modell-Typ
-  if ('standardPrice' in model || 'hdPrice' in model) {
+  if (isImageModelPricing(model)) {
     updateImagePricing(model)
   } else if ('pricePer1000Tokens' in model) {
-    updateEmbeddingPricing(model)
+    updateEmbeddingPricing(model as EmbeddingModelPricing)
+  } else {
+    updateModelPricing(model as ModelPricing)
   }
 
   // Editing-State entfernen
@@ -168,7 +217,7 @@ const setInputValue = (
   field: string,
   value: string,
 ) => {
-  ;(model as Record<string, unknown>)[field] = value
+  ;(model as unknown as Record<string, unknown>)[field] = value
 }
 
 // Für Modal-Inputs: Konvertiert String zu Number, speichert aber nicht automatisch
@@ -176,12 +225,13 @@ const handleModalInputBlur = (
   model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
   field: string,
 ) => {
-  const value = model[field]
-  if (typeof value === 'string') {
-    const num = parseFloat(value)
+  const value = getModelFieldValue(model, field)
+  const stringValue = (model as unknown as Record<string, unknown>)[field]
+  if (typeof stringValue === 'string') {
+    const num = parseFloat(stringValue)
     if (!isNaN(num) && num >= 0) {
-      model[field] = num
-    } else if (value === '' || value === null || value === undefined) {
+      setModelFieldValue(model, field, num)
+    } else if (stringValue === '' || stringValue === null || stringValue === undefined) {
       // Optional fields können leer sein
       if (
         field === 'cachedInputPrice' ||
@@ -189,14 +239,17 @@ const handleModalInputBlur = (
         field === 'standardPriceLarge' ||
         field === 'hdPriceLarge'
       ) {
-        model[field] = undefined
+        setModelFieldValue(model, field, undefined)
       } else {
-        model[field] = 0
+        setModelFieldValue(model, field, 0)
       }
     } else {
       // Ungültiger Wert, zurücksetzen
-      const current = model[field]
-      model[field] = typeof current === 'number' ? current : 0
+      if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
+        setModelFieldValue(model, field, typeof value === 'number' ? value : undefined)
+      } else {
+        setModelFieldValue(model, field, typeof value === 'number' ? value : 0)
+      }
     }
   }
 }
