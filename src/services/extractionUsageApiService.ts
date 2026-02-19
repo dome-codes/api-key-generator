@@ -134,7 +134,6 @@ export const extractionUsageApiService = {
       } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page,
         limit,
         offset, // Backend verwendet offset statt page
         provider: filter.provider,

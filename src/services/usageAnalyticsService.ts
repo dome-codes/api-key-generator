@@ -12,6 +12,20 @@ import {
   ImageModelUsageType as ImageModelUsageTypeEnum,
 } from '@/api/types/frontend'
 import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
+
+// Helper to get the correct enum value - handles both old and new enum formats
+const getModelUsageTypeValue = (value: string): ModelUsageType | undefined => {
+  if (value === 'CompletionModelUsage' || value === ModelUsageTypeEnum.CompletionModelUsage) {
+    return ModelUsageTypeEnum.CompletionModelUsage
+  }
+  if (value === 'EmbeddingModelUsage' || value === ModelUsageTypeEnum.EmbeddingModelUsage) {
+    return ModelUsageTypeEnum.EmbeddingModelUsage
+  }
+  if (value === 'ImageModelUsage' || value === ModelUsageTypeEnum.ImageModelUsage) {
+    return ModelUsageTypeEnum.ImageModelUsage
+  }
+  return undefined
+}
 import { calculateCost } from '@/config/pricing'
 import { debugLog } from '@/utils/debugLog'
 import { usageService } from './apiService'
@@ -43,31 +57,35 @@ export const usageAnalyticsService = {
     // Falls keine Token-Informationen verfügbar sind, versuche basierend auf dem Typ zu schätzen
     if (requestTokens === 0 && responseTokens === 0) {
       const requests = item.requests || 0
+      const typeValue = item.type as string | undefined
 
-      switch (item.type) {
-        case CompletionModelUsageTypeEnum.CompletionModelUsage:
-          // Für Completion Models können wir keine genauen Token-Zahlen schätzen
-          // aber wir können basierend auf requests eine grobe Schätzung machen
-          if (requests && requests > 0) {
-            // Grobe Schätzung: durchschnittlich 1000 tokens pro request
-            requestTokens = requests * 1000
-            responseTokens = requests * 500
-          }
-          break
-        case EmbeddingModelUsageTypeEnum.EmbeddingModelUsage:
-          // Für Embedding Models haben wir nur requestTokens
-          if (requests && requests > 0) {
-            // Grobe Schätzung: durchschnittlich 1000 tokens pro request
-            requestTokens = requests * 1000
-            responseTokens = 0
-          }
-          break
-        case ImageModelUsageTypeEnum.ImageModelUsage:
-        default:
-          // Image Models und unbekannte Modelltypen haben keine Token-Informationen
-          requestTokens = 0
+      if (
+        typeValue === CompletionModelUsageTypeEnum.CompletionModelUsage ||
+        typeValue === ModelUsageTypeEnum.CompletionModelUsage ||
+        typeValue === 'CompletionModelUsage'
+      ) {
+        // Für Completion Models können wir keine genauen Token-Zahlen schätzen
+        // aber wir können basierend auf requests eine grobe Schätzung machen
+        if (requests && requests > 0) {
+          // Grobe Schätzung: durchschnittlich 1000 tokens pro request
+          requestTokens = requests * 1000
+          responseTokens = requests * 500
+        }
+      } else if (
+        typeValue === EmbeddingModelUsageTypeEnum.EmbeddingModelUsage ||
+        typeValue === ModelUsageTypeEnum.EmbeddingModelUsage ||
+        typeValue === 'EmbeddingModelUsage'
+      ) {
+        // Für Embedding Models haben wir nur requestTokens
+        if (requests && requests > 0) {
+          // Grobe Schätzung: durchschnittlich 1000 tokens pro request
+          requestTokens = requests * 1000
           responseTokens = 0
-          break
+        }
+      } else {
+        // Image Models und unbekannte Modelltypen haben keine Token-Informationen
+        requestTokens = 0
+        responseTokens = 0
       }
     }
 
@@ -121,18 +139,32 @@ export const usageAnalyticsService = {
         let requestTokens = 0
         let responseTokens = 0
 
-        if (item.type === ModelUsageTypeEnum.CompletionModelUsage) {
+        const typeValue = item.type as string | undefined
+        if (
+          typeValue === ModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === CompletionModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === 'CompletionModelUsage'
+        ) {
           const completionItem = item as ModelUsage & {
             requestTokens?: number
             responseTokens?: number
           }
           requestTokens = completionItem.requestTokens || 0
           responseTokens = completionItem.responseTokens || 0
-        } else if (item.type === ModelUsageTypeEnum.EmbeddingModelUsage) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === EmbeddingModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === 'EmbeddingModelUsage'
+        ) {
           const embeddingItem = item as ModelUsage & { requestTokens?: number }
           requestTokens = embeddingItem.requestTokens || 0
           responseTokens = 0
-        } else if (item.type === ModelUsageTypeEnum.ImageModelUsage || !item.type) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === ImageModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === 'ImageModelUsage' ||
+          !typeValue
+        ) {
           // Image Models und unbekannte Modelltypen haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
@@ -162,7 +194,7 @@ export const usageAnalyticsService = {
             (item as ModelUsage & { technicalUserName?: string }).technicalUserName ||
             'Unknown User',
           modelName: item.model || 'unknown',
-          modelType: item.type || ModelUsageTypeEnum.CompletionModelUsage, // Verwende den type als modelType
+          modelType: (item.type || CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType, // Verwende den type als modelType
           requests: 'requests' in item ? (item as SummaryUsage).requests || 0 : 0,
           tokensIn: requestTokens,
           tokensOut: responseTokens,
@@ -277,18 +309,32 @@ export const usageAnalyticsService = {
         let requestTokens = 0
         let responseTokens = 0
 
-        if (item.type === ModelUsageTypeEnum.CompletionModelUsage) {
+        const typeValue = item.type as string | undefined
+        if (
+          typeValue === ModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === CompletionModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === 'CompletionModelUsage'
+        ) {
           const completionItem = item as ModelUsage & {
             requestTokens?: number
             responseTokens?: number
           }
           requestTokens = completionItem.requestTokens || 0
           responseTokens = completionItem.responseTokens || 0
-        } else if (item.type === ModelUsageTypeEnum.EmbeddingModelUsage) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === EmbeddingModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === 'EmbeddingModelUsage'
+        ) {
           const embeddingItem = item as ModelUsage & { requestTokens?: number }
           requestTokens = embeddingItem.requestTokens || 0
           responseTokens = 0
-        } else if (item.type === ModelUsageTypeEnum.ImageModelUsage || !item.type) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === ImageModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === 'ImageModelUsage' ||
+          !typeValue
+        ) {
           // Image Models und unbekannte Modelltypen haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
@@ -305,18 +351,32 @@ export const usageAnalyticsService = {
         let requestTokens = 0
         let responseTokens = 0
 
-        if (item.type === ModelUsageTypeEnum.CompletionModelUsage) {
+        const typeValue = item.type as string | undefined
+        if (
+          typeValue === ModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === CompletionModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === 'CompletionModelUsage'
+        ) {
           const completionItem = item as ModelUsage & {
             requestTokens?: number
             responseTokens?: number
           }
           requestTokens = completionItem.requestTokens || 0
           responseTokens = completionItem.responseTokens || 0
-        } else if (item.type === ModelUsageTypeEnum.EmbeddingModelUsage) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === EmbeddingModelUsageTypeEnum.EmbeddingModelUsage ||
+          typeValue === 'EmbeddingModelUsage'
+        ) {
           const embeddingItem = item as ModelUsage & { requestTokens?: number }
           requestTokens = embeddingItem.requestTokens || 0
           responseTokens = 0
-        } else if (item.type === ModelUsageTypeEnum.ImageModelUsage || !item.type) {
+        } else if (
+          typeValue === ModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === ImageModelUsageTypeEnum.ImageModelUsage ||
+          typeValue === 'ImageModelUsage' ||
+          !typeValue
+        ) {
           // Image Models und unbekannte Modelltypen haben keine Token-Informationen
           requestTokens = 0
           responseTokens = 0
@@ -428,7 +488,7 @@ export const usageAnalyticsService = {
 
       detailedData.forEach((item) => {
         const modelName = item.modelName || 'Unknown'
-        const modelType = item.modelType || ModelUsageTypeEnum.CompletionModelUsage
+        const modelType = (item.modelType || CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType
         const requests = 1 // Jedes Objekt repräsentiert einen Request
         const technicalUserId = item.technicalUserId || 'unknown'
         const tag = item.tag || ''
