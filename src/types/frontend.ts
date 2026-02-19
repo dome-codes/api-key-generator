@@ -15,12 +15,12 @@ import type { ModelUsageType } from '@/api/types/modelUsageType'
 
 // Re-export Orval types used by frontend (conditional - available after generation)
 export type {
-  AIUsagePage,
+  AiUsagePage,
   AIUsageSummaryPage,
   ExtractionUsagePage,
   ExtractionUsageSummaryPage,
+  ModelUsageType,
 } from '@/api/types/index'
-export type { ModelUsageType } from '@/api/types/index'
 // Page wird direkt aus @/api/types importiert (nicht über frontend.ts)
 
 // Aliases for API records (used as SummaryUsage | ModelUsage in analytics)
@@ -42,10 +42,12 @@ export const ImageModelUsageType = {
 } as const
 
 // Page response types (Orval uses .data + .pagination) – import via barrel to avoid casing conflicts on Linux
-export type { AIUsagePage as UsagePageResponse } from '@/api/types'
-export type { AIUsageSummaryPage as SummaryUsagePageResponse } from '@/api/types'
-export type { ExtractionUsagePage as ExtractionUsagePageResponse } from '@/api/types'
-export type { ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse } from '@/api/types'
+export type {
+  ExtractionUsagePage as ExtractionUsagePageResponse,
+  ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse,
+  AIUsageSummaryPage as SummaryUsagePageResponse,
+  AiUsagePage as UsagePageResponse,
+} from '@/api/types'
 
 /** Filter params for AI usage API (maps to UsageAIGetV1Params + optional sort/order) */
 export interface UsageFilterApi {
