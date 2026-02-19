@@ -4,8 +4,15 @@ import appConfig from '@root/app.config.js'
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
 // Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
-const rawBase = appConfig.apiBaseUrl || ''
-const baseURL = rawBase.endsWith('/v1') ? rawBase : `${rawBase.replace(/\/?$/, '')}/v1`
+// Wichtig: Orval generiert URLs wie '/usage/ai' (relativ), daher muss baseURL /v1 enthalten
+// Verhindert /v1/v1: Wenn apiBaseUrl bereits /v1 enthält (am Ende), nicht nochmal anhängen
+const rawBase = (appConfig.apiBaseUrl || '').trim()
+// Entferne trailing slash für saubere Prüfung
+const baseWithoutTrailingSlash = rawBase.replace(/\/+$/, '')
+// Prüfe ob bereits /v1 am Ende vorhanden ist (nach Entfernen von trailing slashes)
+const baseURL = baseWithoutTrailingSlash.endsWith('/v1')
+  ? baseWithoutTrailingSlash
+  : `${baseWithoutTrailingSlash || ''}/v1`
 
 /** Query-Params: Nur & und = escapen, damit usage/ai und summarize so aussehen: .../usage/ai?from_date=2026-01-31T00:00:00.000Z (kein %3A). */
 function serializeParams(params: Record<string, unknown>): string {

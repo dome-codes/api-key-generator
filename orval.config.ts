@@ -20,6 +20,9 @@ export default {
         generate: {
           schemas: true,
         },
+        // Ignoriere Server-URLs aus OpenAPI, da baseURL in axios/api.ts gesetzt wird
+        // Verhindert, dass Orval /v1 aus der Server-URL in die generierten URLs einbaut
+        baseUrl: undefined,
       },
     },
   },
