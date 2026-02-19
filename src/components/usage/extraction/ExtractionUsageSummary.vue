@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ExtractionUsageAggregation } from '@/api/types/frontend'
+import type { ExtractionUsageAggregation } from '@/types/frontend'
 import ErrorState from '../shared/ErrorState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 

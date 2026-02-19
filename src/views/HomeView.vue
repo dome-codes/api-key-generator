@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiKeyDisplay } from '@/api/types/frontend'
+import type { ApiKeyDisplay } from '@/types/frontend'
 import ApiKeyCreateModal from '@/components/apikey/ApiKeyCreateModal.vue'
 import ApiKeyEditModal from '@/components/apikey/ApiKeyEditModal.vue'
 import ApiKeyTable from '@/components/apikey/ApiKeyTable.vue'

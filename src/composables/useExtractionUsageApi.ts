@@ -9,7 +9,7 @@ import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
   ExtractionUsageAggregation,
-} from '@/api/types/frontend'
+} from '@/types/frontend'
 import type { PaginationInfo } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'

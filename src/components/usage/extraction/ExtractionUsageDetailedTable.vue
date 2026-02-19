@@ -2,7 +2,7 @@
 import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
-import type { EnhancedExtractionUsageRecord } from '@/api/types/frontend'
+import type { EnhancedExtractionUsageRecord } from '@/types/frontend'
 import type { DocumentIntelligenceOperationStatus, PaginationInfo } from '@/api/types'
 import { computed, ref, watch } from 'vue'
 

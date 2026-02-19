@@ -19,7 +19,7 @@ import {
   type UsageFilter,
   type UserUsageSummary,
   CompletionModelUsageType,
-} from '@/api/types/frontend'
+} from '@/types/frontend'
 import { usageService } from '@/services/apiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { readTokensFromItem } from '@/services/usageApiService'

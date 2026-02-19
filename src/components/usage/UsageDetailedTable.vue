@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EnhancedUsageRecord } from '@/api/types/frontend'
+import type { EnhancedUsageRecord } from '@/types/frontend'
 import type { ModelUsageType } from '@/api/types'
 import { formatCost } from '@/config/pricing'
 import ErrorState from './shared/ErrorState.vue'

@@ -1,4 +1,4 @@
-import type { ApiKeyDisplay } from '@/api/types/frontend'
+import type { ApiKeyDisplay } from '@/types/frontend'
 import { apiKeyService } from '@/services/apiService'
 import { computed, ref } from 'vue'
 

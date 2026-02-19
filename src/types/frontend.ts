@@ -2,20 +2,25 @@
  * Frontend-only types and aliases for UI layer.
  * API response/request types come from Orval (@/api/types); this file adds
  * enhanced records, filter DTOs, and aggregation types used by services.
+ * 
+ * This file is manually maintained and tracked in git, unlike the generated
+ * types in @/api/types which are created during CI/CD.
  */
 
-import type { AIUsageRecord } from './aIUsageRecord'
-import type { AIUsageSummaryRecord } from './aIUsageSummaryRecord'
-import type { ModelUsageType } from './modelUsageType'
+// Conditional imports - these will be available after Orval generation in CI/CD
+// Using type-only imports to avoid runtime dependencies on generated files
+import type { AIUsageRecord } from '@/api/types/aIUsageRecord'
+import type { AIUsageSummaryRecord } from '@/api/types/aIUsageSummaryRecord'
+import type { ModelUsageType } from '@/api/types/modelUsageType'
 
-// Re-export Orval types used by frontend
+// Re-export Orval types used by frontend (conditional - available after generation)
 export type {
   AIUsagePage,
   AIUsageSummaryPage,
   ExtractionUsagePage,
   ExtractionUsageSummaryPage,
-} from './index'
-export type { PaginationInfo, ModelUsageType } from './index'
+} from '@/api/types/index'
+export type { PaginationInfo, ModelUsageType } from '@/api/types/index'
 
 // Aliases for API records (used as SummaryUsage | ModelUsage in analytics)
 export type SummaryUsage = AIUsageSummaryRecord
@@ -27,10 +32,10 @@ export const EmbeddingModelUsageType = { EmbeddingModelUsage: 'EmbeddingModelUsa
 export const ImageModelUsageType = { ImageModelUsage: 'ImageModelUsage' } as const
 
 // Page response types (Orval uses .data + .pagination)
-export type { AIUsagePage as UsagePageResponse } from './aIUsagePage'
-export type { AIUsageSummaryPage as SummaryUsagePageResponse } from './aIUsageSummaryPage'
-export type { ExtractionUsagePage as ExtractionUsagePageResponse } from './extractionUsagePage'
-export type { ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse } from './extractionUsageSummaryPage'
+export type { AIUsagePage as UsagePageResponse } from '@/api/types/aIUsagePage'
+export type { AIUsageSummaryPage as SummaryUsagePageResponse } from '@/api/types/aIUsageSummaryPage'
+export type { ExtractionUsagePage as ExtractionUsagePageResponse } from '@/api/types/extractionUsagePage'
+export type { ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse } from '@/api/types/extractionUsageSummaryPage'
 
 /** Filter params for AI usage API (maps to UsageAIGetV1Params + optional sort/order) */
 export interface UsageFilterApi {

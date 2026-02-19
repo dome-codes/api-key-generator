@@ -19,7 +19,7 @@ import type {
   ExtractionUsagePageResponse,
   ExtractionUsageSummaryPageResponse,
   PaginationInfo,
-} from '@/api/types/frontend'
+} from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
@@ -130,21 +130,32 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params: (AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params) & {
-        offset?: number
-      } = {
+      // Erstelle Basis-Params
+      const baseParams = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         limit,
         offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status as
-          | import('@/api/types').ExtractionRequestParamsStatusParameter
-          | undefined,
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
+      }
+
+      // Füge status hinzu, wenn es definiert ist
+      // Verwende Type-Assertion, da die generierten Types auf verschiedenen Systemen unterschiedlich sein können
+      const params = (
+        filter.status
+          ? {
+              ...baseParams,
+              status: filter.status as
+                | import('@/api/types').ExtractionRequestParamsStatusParameter
+                | undefined,
+            }
+          : baseParams
+      ) as (AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params) & {
+        offset?: number
       }
 
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary

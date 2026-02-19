@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
+import type { ApiKeyDisplay, ApiKeyUsageData } from '@/types/frontend'
 import CostProgressBarTable from '@/components/usage/CostProgressBarTable.vue'
 import { computed, ref } from 'vue'
 

@@ -17,8 +17,8 @@
  */
 
 import type { PaginationInfo } from '@/api/types'
-import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/api/types/frontend'
-import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/api/types/frontend'
+import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
+import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
 import { usageApiService } from '@/services/usageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'

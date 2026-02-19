@@ -1,4 +1,4 @@
-import type { ApiKeyDisplay } from '@/api/types/frontend'
+import type { ApiKeyDisplay } from '@/types/frontend'
 import { ref } from 'vue'
 
 export function useModals() {

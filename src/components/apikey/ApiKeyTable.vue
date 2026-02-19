@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiKeyDisplay, ApiKeyUsageData } from '@/api/types/frontend'
+import type { ApiKeyDisplay, ApiKeyUsageData } from '@/types/frontend'
 import { UserRole } from '@/auth/keycloak'
 import Pagination from '@/components/ui/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'

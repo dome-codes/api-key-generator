@@ -4,7 +4,7 @@
  * aggregiert pro Key für die API-Key-Liste (ApiKeyTable / ApiKeyRow).
  */
 
-import type { ApiKeyUsageData } from '@/api/types/frontend'
+import type { ApiKeyUsageData } from '@/types/frontend'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 
 /**

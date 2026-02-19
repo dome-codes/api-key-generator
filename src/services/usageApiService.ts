@@ -21,7 +21,7 @@ import type {
   SummaryUsagePageResponse,
   UsageFilterApi,
   UsagePageResponse,
-} from '@/api/types/frontend'
+} from '@/types/frontend'
 import type {
   AIRequestParamsGroupByParameterItem,
   AIUsageRecord,

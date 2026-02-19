@@ -8,7 +8,7 @@ import type {
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
-import type { ApiKeyDisplay } from '@/api/types/frontend'
+import type { ApiKeyDisplay } from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'

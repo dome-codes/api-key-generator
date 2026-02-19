@@ -10,7 +10,7 @@ import {
   CompletionModelUsageType as CompletionModelUsageTypeEnum,
   EmbeddingModelUsageType as EmbeddingModelUsageTypeEnum,
   ImageModelUsageType as ImageModelUsageTypeEnum,
-} from '@/api/types/frontend'
+} from '@/types/frontend'
 import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
 
 // Helper to get the correct enum value - handles both old and new enum formats
