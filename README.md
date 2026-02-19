@@ -153,6 +153,11 @@ api-key-generator/
 │   ├── auth/               # Authentifizierung (Keycloak)
 │   ├── axios/              # Axios-Konfiguration
 │   ├── components/         # Vue-Komponenten
+│   │   ├── admin/          # Admin-Komponenten
+│   │   │   └── pricing/    # Preisverwaltung-Komponenten
+│   │   ├── apikey/         # API-Key-Komponenten
+│   │   ├── layout/         # Layout-Komponenten
+│   │   └── usage/          # Usage-Komponenten
 │   ├── composables/        # Vue Composables
 │   ├── config/             # Konfigurationen
 │   ├── router/             # Vue Router
@@ -175,6 +180,7 @@ api-key-generator/
 
 - **`server/`**: Mock-API-Server für Entwicklung und Testing
 - **`src/`**: Frontend-Quellcode (Vue.js 3 + TypeScript)
+- **`src/components/admin/pricing/`**: Preisverwaltung-Komponenten (aufgeteilt für bessere Wartbarkeit)
 - **`data/`**: SQLite-Datenbank-Dateien
 - **`docs/`**: Projekt-Dokumentation nach Kategorien organisiert
 - **`scripts/`**: Utility-Scripts für Datenbank und Entwicklung

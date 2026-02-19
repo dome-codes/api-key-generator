@@ -3,6 +3,11 @@ import { usePricingManagement } from '@/composables/usePricingManagement'
 import type { ModelPricing, ImageModelPricing, EmbeddingModelPricing } from '@/config/pricing'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import ModelPricingTable from '@/components/admin/pricing/ModelPricingTable.vue'
+import PricingUpload from '@/components/admin/pricing/PricingUpload.vue'
+import PricingMarkupInput from '@/components/admin/pricing/PricingMarkupInput.vue'
+import DeleteConfirmModal from '@/components/admin/pricing/DeleteConfirmModal.vue'
+import ResetConfirmModal from '@/components/admin/pricing/ResetConfirmModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDebug } from '@/composables/useDebug'
 import { ref, onMounted, computed, watch } from 'vue'
@@ -44,20 +49,16 @@ const {
   uploadPricing,
 } = usePricingManagement()
 
-const localMarkup = ref(markupPercentage.value)
-const localMarkupString = ref(String(markupPercentage.value))
-const fileInputRef = ref<HTMLInputElement | null>(null)
 const showResetConfirm = ref(false)
 const showDeleteConfirmModal = ref(false)
 const deleteModelType = ref<'model' | 'image' | 'embedding' | null>(null)
 const deleteModelName = ref<string>('')
-const showAddModelModal = ref(false)
 const showAddImageModal = ref(false)
 const showAddEmbeddingModal = ref(false)
 const uploadError = ref<string | null>(null)
 const uploadSuccess = ref(false)
 
-// State für Editing-Management
+// State für Editing-Management (nur noch für Image und Embedding)
 interface EditingState {
   originalValue: number | undefined
   currentValue: string
@@ -65,7 +66,7 @@ interface EditingState {
 const editingState = ref<Record<string, EditingState>>({})
 const inputRefs = ref<Record<string, HTMLInputElement | null>>({})
 
-// Helper-Funktionen für Editing
+// Helper-Funktionen für Editing (nur noch für Image und Embedding)
 const getEditingKey = (modelName: string, field: string) => `${modelName}::${field}`
 const isEditing = (modelName: string, field: string) =>
   !!editingState.value[getEditingKey(modelName, field)]
@@ -90,7 +91,6 @@ const handleInputChange = (model: any, field: string, value: string) => {
   if (editingState.value[key]) {
     editingState.value[key].currentValue = value
   } else {
-    // Fallback für den Fall, dass startEditing nicht aufgerufen wurde
     startEditing(model.modelName, field, model[field])
     const fallbackKey = getEditingKey(model.modelName, field)
     if (editingState.value[fallbackKey]) {
@@ -113,12 +113,7 @@ const confirmEdit = (model: any, field: string) => {
     editing.currentValue === undefined
   ) {
     // Optional fields können leer sein
-    if (
-      field === 'cachedInputPrice' ||
-      field === 'reasoningPrice' ||
-      field === 'standardPriceLarge' ||
-      field === 'hdPriceLarge'
-    ) {
+    if (field === 'standardPriceLarge' || field === 'hdPriceLarge') {
       model[field] = undefined
     } else {
       model[field] = 0
@@ -129,9 +124,7 @@ const confirmEdit = (model: any, field: string) => {
   }
 
   // Automatisch speichern basierend auf Modell-Typ
-  if ('inputPrice' in model || 'outputPrice' in model) {
-    updateModelPricing(model)
-  } else if ('standardPrice' in model || 'hdPrice' in model) {
+  if ('standardPrice' in model || 'hdPrice' in model) {
     updateImagePricing(model)
   } else if ('pricePer1000Tokens' in model) {
     updateEmbeddingPricing(model)
@@ -144,20 +137,11 @@ const confirmEdit = (model: any, field: string) => {
 const cancelEdit = (modelName: string, field: string) => {
   const key = getEditingKey(modelName, field)
   delete editingState.value[key]
-  // Input-Feld fokussieren entfernen
   const inputRef = inputRefs.value[key]
   if (inputRef) {
     inputRef.blur()
   }
 }
-
-const newModel = ref<ModelPricing>({
-  modelName: '',
-  inputPrice: 0,
-  outputPrice: 0,
-  cachedInputPrice: undefined,
-  reasoningPrice: undefined,
-})
 
 const newImageModel = ref<ImageModelPricing>({
   modelName: '',
@@ -173,22 +157,6 @@ const newEmbeddingModel = ref<EmbeddingModelPricing>({
 // Hilfsfunktion für Input-Zuweisung (umgeht TypeScript-Fehler)
 const setInputValue = (model: any, field: string, value: string) => {
   model[field] = value
-}
-
-// Konvertiert String zu Number und speichert automatisch
-const handleMarkupEnter = () => {
-  const num = parseFloat(localMarkupString.value)
-  if (!isNaN(num) && num >= 0 && num <= 1) {
-    localMarkup.value = num
-    markupPercentage.value = num
-    localMarkupString.value = String(num)
-  } else {
-    localMarkupString.value = String(localMarkup.value)
-  }
-}
-
-const handleMarkupBlur = () => {
-  handleMarkupEnter()
 }
 
 // Für Modal-Inputs: Konvertiert String zu Number, speichert aber nicht automatisch
@@ -239,102 +207,52 @@ const handleDeleteConfirm = () => {
   deleteModelName.value = ''
 }
 
-const handleFileUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-
+const handleFileUpload = async (file: File) => {
   uploadError.value = null
   uploadSuccess.value = false
 
   // Prüfe Dateityp
   if (!file.name.endsWith('.json')) {
     uploadError.value = 'Ungültiger Dateityp: Bitte laden Sie eine JSON-Datei hoch (.json)'
-    if (fileInputRef.value) {
-      fileInputRef.value.value = ''
-    }
+    setTimeout(() => {
+      uploadError.value = null
+    }, 10000)
     return
   }
 
   try {
     await uploadPricing(file)
-    // Cache zurücksetzen, damit neue Daten geladen werden
     pricingService.reloadPricing()
     uploadSuccess.value = true
-    // Erfolgsmeldung nach 3 Sekunden ausblenden
     setTimeout(() => {
       uploadSuccess.value = false
     }, 3000)
-    // File input zurücksetzen
-    if (fileInputRef.value) {
-      fileInputRef.value.value = ''
-    }
   } catch (error) {
     console.error('Fehler beim Hochladen:', error)
     uploadError.value = error instanceof Error ? error.message : 'Fehler beim Hochladen der Datei'
-    // Fehlermeldung nach 10 Sekunden ausblenden
     setTimeout(() => {
       uploadError.value = null
     }, 10000)
-    // File input zurücksetzen
-    if (fileInputRef.value) {
-      fileInputRef.value.value = ''
-    }
   }
 }
 
 const handleReset = async () => {
   await resetToDefaults()
-  localMarkup.value = markupPercentage.value
   showResetConfirm.value = false
 }
 
-const handleAddModel = () => {
-  // Konvertiere Strings zu Numbers
-  const inputPrice =
-    typeof newModel.value.inputPrice === 'string'
-      ? parseFloat(newModel.value.inputPrice)
-      : newModel.value.inputPrice
-  const outputPrice =
-    typeof newModel.value.outputPrice === 'string'
-      ? parseFloat(newModel.value.outputPrice)
-      : newModel.value.outputPrice
-  const cachedInputPrice =
-    typeof newModel.value.cachedInputPrice === 'string'
-      ? newModel.value.cachedInputPrice === ''
-        ? undefined
-        : parseFloat(newModel.value.cachedInputPrice)
-      : newModel.value.cachedInputPrice
-  const reasoningPrice =
-    typeof newModel.value.reasoningPrice === 'string'
-      ? newModel.value.reasoningPrice === ''
-        ? undefined
-        : parseFloat(newModel.value.reasoningPrice)
-      : newModel.value.reasoningPrice
+const handleModelUpdate = (model: ModelPricing) => {
+  updateModelPricing(model)
+}
 
-  if (
-    newModel.value.modelName &&
-    !isNaN(inputPrice) &&
-    inputPrice > 0 &&
-    !isNaN(outputPrice) &&
-    outputPrice > 0
-  ) {
-    addModelPricing({
-      modelName: newModel.value.modelName,
-      inputPrice,
-      outputPrice,
-      cachedInputPrice: isNaN(cachedInputPrice as number) ? undefined : cachedInputPrice,
-      reasoningPrice: isNaN(reasoningPrice as number) ? undefined : reasoningPrice,
-    })
-    newModel.value = {
-      modelName: '',
-      inputPrice: 0,
-      outputPrice: 0,
-      cachedInputPrice: undefined,
-      reasoningPrice: undefined,
-    }
-    showAddModelModal.value = false
-  }
+const handleModelDelete = (modelName: string) => {
+  deleteModelType.value = 'model'
+  deleteModelName.value = modelName
+  showDeleteConfirmModal.value = true
+}
+
+const handleModelAdd = (model: ModelPricing) => {
+  addModelPricing(model)
 }
 
 const handleAddImageModel = () => {
@@ -380,17 +298,13 @@ const handleAddEmbeddingModel = () => {
   }
 }
 
-// Watch für automatisches Speichern des Markup
-watch(localMarkup, (newValue) => {
-  markupPercentage.value = newValue
-})
+const handleMarkupUpdate = (value: number) => {
+  markupPercentage.value = value
+}
 
 onMounted(async () => {
   // Preise werden bereits von usePricingManagement geladen
-  // Warte kurz bis sie geladen sind
   await new Promise((resolve) => setTimeout(resolve, 100))
-  localMarkup.value = markupPercentage.value
-  localMarkupString.value = String(markupPercentage.value)
 })
 </script>
 
@@ -420,71 +334,6 @@ onMounted(async () => {
           >
             Erneut versuchen
           </button>
-        </div>
-
-        <!-- Upload Error/Success Messages -->
-        <div v-if="uploadError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div class="flex items-start">
-            <svg
-              class="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <div class="flex-1">
-              <h3 class="text-sm font-medium text-red-800">Fehler beim Hochladen</h3>
-              <p class="mt-1 text-sm text-red-700">{{ uploadError }}</p>
-            </div>
-            <button class="ml-2 text-red-600 hover:text-red-800" @click="uploadError = null">
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div v-if="uploadSuccess" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <div class="flex items-start">
-            <svg
-              class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            <div class="flex-1">
-              <h3 class="text-sm font-medium text-green-800">Erfolgreich hochgeladen</h3>
-              <p class="mt-1 text-sm text-green-700">
-                Die Preise wurden erfolgreich aus der JSON-Datei geladen.
-              </p>
-            </div>
-            <button class="ml-2 text-green-600 hover:text-green-800" @click="uploadSuccess = false">
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
         </div>
 
         <!-- Content -->
@@ -529,411 +378,25 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="flex items-center justify-between">
-            <div></div>
-            <div class="flex gap-2">
-              <label
-                class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover cursor-pointer flex items-center gap-2"
-              >
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept=".json"
-                  class="hidden"
-                  @change="handleFileUpload"
-                />
-                <svg
-                  class="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                Preise hochladen
-              </label>
-              <button
-                class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover flex items-center gap-2"
-                @click="savePricing"
-              >
-                <svg
-                  class="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Preise herunterladen
-              </button>
-              <button
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                @click="showResetConfirm = true"
-              >
-                Auf Standard zurücksetzen
-              </button>
-            </div>
-          </div>
+          <PricingUpload
+            :upload-error="uploadError"
+            :upload-success="uploadSuccess"
+            @upload="handleFileUpload"
+            @download="savePricing"
+            @reset="showResetConfirm = true"
+            @clear-error="uploadError = null"
+            @clear-success="uploadSuccess = false"
+          />
 
-          <!-- FITS-Aufschlag -->
-          <div class="bg-white rounded-xl shadow p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">FITS-Aufschlag</h2>
-            <div class="flex items-center gap-4">
-              <label class="text-sm font-medium text-gray-700">Aufschlag:</label>
-              <input
-                :value="localMarkupString"
-                type="text"
-                pattern="[0-9]*\.?[0-9]*"
-                inputmode="decimal"
-                class="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                @input="localMarkupString = ($event.target as HTMLInputElement).value"
-                @keyup.enter="handleMarkupEnter"
-                @blur="handleMarkupBlur"
-              />
-              <span class="text-sm text-gray-600">{{ (localMarkup * 100).toFixed(1) }}%</span>
-            </div>
-          </div>
+          <PricingMarkupInput :markup="markupPercentage" @update="handleMarkupUpdate" />
 
-          <!-- Completion Models -->
-          <div class="bg-white rounded-xl shadow overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-800">Completion Models</h2>
-              <button
-                class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover"
-                @click="showAddModelModal = true"
-              >
-                + Modell hinzufügen
-              </button>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Modell
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Eingabe (€/1M Tokens)
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Ausgabe (€/1M Tokens)
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Cached Eingabe (€/1M Tokens)
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Reasoning (€/1M Tokens)
-                    </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Aktionen
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr v-for="model in modelPricing" :key="model.modelName">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {{ model.modelName }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="relative inline-block">
-                        <input
-                          :ref="(el) => setInputRef(model.modelName, 'inputPrice', el)"
-                          :value="
-                            getEditingValue(model.modelName, 'inputPrice') ??
-                            (model.inputPrice?.toString() || '')
-                          "
-                          type="text"
-                          pattern="[0-9]*\.?[0-9]*"
-                          inputmode="decimal"
-                          class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
-                          @input="
-                            handleInputChange(
-                              model,
-                              'inputPrice',
-                              ($event.target as HTMLInputElement).value,
-                            )
-                          "
-                          @focus="startEditing(model.modelName, 'inputPrice', model.inputPrice)"
-                          @keyup.enter="confirmEdit(model, 'inputPrice')"
-                          @keyup.escape="cancelEdit(model.modelName, 'inputPrice')"
-                        />
-                        <div
-                          v-if="isEditing(model.modelName, 'inputPrice')"
-                          class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1"
-                        >
-                          <button
-                            class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                            title="Bestätigen"
-                            @click="confirmEdit(model, 'inputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                            title="Abbrechen"
-                            @click="cancelEdit(model.modelName, 'inputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="relative inline-block">
-                        <input
-                          :ref="(el) => setInputRef(model.modelName, 'outputPrice', el)"
-                          :value="
-                            getEditingValue(model.modelName, 'outputPrice') ??
-                            (model.outputPrice?.toString() || '')
-                          "
-                          type="text"
-                          pattern="[0-9]*\.?[0-9]*"
-                          inputmode="decimal"
-                          class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
-                          @input="
-                            handleInputChange(
-                              model,
-                              'outputPrice',
-                              ($event.target as HTMLInputElement).value,
-                            )
-                          "
-                          @focus="startEditing(model.modelName, 'outputPrice', model.outputPrice)"
-                        />
-                        <div
-                          v-if="isEditing(model.modelName, 'outputPrice')"
-                          class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1"
-                        >
-                          <button
-                            class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                            title="Bestätigen"
-                            @click="confirmEdit(model, 'outputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                            title="Abbrechen"
-                            @click="cancelEdit(model.modelName, 'outputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="relative inline-block">
-                        <input
-                          :ref="(el) => setInputRef(model.modelName, 'cachedInputPrice', el)"
-                          :value="
-                            getEditingValue(model.modelName, 'cachedInputPrice') ??
-                            (model.cachedInputPrice?.toString() || '')
-                          "
-                          type="text"
-                          pattern="[0-9]*\.?[0-9]*"
-                          inputmode="decimal"
-                          class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
-                          placeholder="Optional"
-                          @input="
-                            handleInputChange(
-                              model,
-                              'cachedInputPrice',
-                              ($event.target as HTMLInputElement).value,
-                            )
-                          "
-                          @focus="
-                            startEditing(
-                              model.modelName,
-                              'cachedInputPrice',
-                              model.cachedInputPrice,
-                            )
-                          "
-                        />
-                        <div
-                          v-if="isEditing(model.modelName, 'cachedInputPrice')"
-                          class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1"
-                        >
-                          <button
-                            class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                            title="Bestätigen"
-                            @click="confirmEdit(model, 'cachedInputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                            title="Abbrechen"
-                            @click="cancelEdit(model.modelName, 'cachedInputPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="relative inline-block">
-                        <input
-                          :ref="(el) => setInputRef(model.modelName, 'reasoningPrice', el)"
-                          :value="
-                            getEditingValue(model.modelName, 'reasoningPrice') ??
-                            (model.reasoningPrice?.toString() || '')
-                          "
-                          type="text"
-                          pattern="[0-9]*\.?[0-9]*"
-                          inputmode="decimal"
-                          class="w-32 border border-gray-300 rounded px-8 py-1 text-sm pr-8"
-                          placeholder="Optional"
-                          @input="
-                            handleInputChange(
-                              model,
-                              'reasoningPrice',
-                              ($event.target as HTMLInputElement).value,
-                            )
-                          "
-                          @focus="
-                            startEditing(model.modelName, 'reasoningPrice', model.reasoningPrice)
-                          "
-                        />
-                        <div
-                          v-if="isEditing(model.modelName, 'reasoningPrice')"
-                          class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1"
-                        >
-                          <button
-                            class="p-0.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                            title="Bestätigen"
-                            @click="confirmEdit(model, 'reasoningPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            class="p-0.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                            title="Abbrechen"
-                            @click="cancelEdit(model.modelName, 'reasoningPrice')"
-                          >
-                            <svg
-                              class="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        v-if="model.modelName !== 'unknown'"
-                        class="text-red-600 hover:text-red-900"
-                        @click="showDeleteConfirm('model', model.modelName)"
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ModelPricingTable
+            :models="modelPricing"
+            :is-loading="isLoading"
+            @update="handleModelUpdate"
+            @delete="handleModelDelete"
+            @add="handleModelAdd"
+          />
 
           <!-- Image Models -->
           <div class="bg-white rounded-xl shadow overflow-hidden">
@@ -1392,187 +855,19 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Delete Confirmation Modal -->
-          <div
-            v-if="showDeleteConfirmModal"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            @click.self="showDeleteConfirmModal = false"
-          >
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Modell wirklich löschen?</h3>
-              <p class="text-sm text-gray-600 mb-6">
-                Möchten Sie das Modell <strong>{{ deleteModelName }}</strong> wirklich löschen?
-                Diese Aktion kann nicht rückgängig gemacht werden.
-              </p>
-              <div class="flex justify-end gap-2">
-                <button
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  @click="showDeleteConfirmModal = false"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                  @click="handleDeleteConfirm"
-                >
-                  Löschen
-                </button>
-              </div>
-            </div>
-          </div>
+          <DeleteConfirmModal
+            :show="showDeleteConfirmModal"
+            :model-name="deleteModelName"
+            :model-type="deleteModelType || 'model'"
+            @confirm="handleDeleteConfirm"
+            @cancel="showDeleteConfirmModal = false"
+          />
 
-          <!-- Reset Confirmation Modal -->
-          <div
-            v-if="showResetConfirm"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            @click.self="showResetConfirm = false"
-          >
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Auf Standard zurücksetzen?</h3>
-              <p class="text-sm text-gray-600 mb-6">
-                Alle angepassten Preise werden auf die Standardwerte zurückgesetzt. Diese Aktion
-                kann nicht rückgängig gemacht werden.
-              </p>
-              <div class="flex justify-end gap-2">
-                <button
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  @click="showResetConfirm = false"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                  @click="handleReset"
-                >
-                  Zurücksetzen
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add Model Modal -->
-          <div
-            v-if="showAddModelModal"
-            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            @click.self="showAddModelModal = false"
-          >
-            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                Neues Completion-Modell hinzufügen
-              </h3>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Modellname</label>
-                  <input
-                    v-model="newModel.modelName"
-                    type="text"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    placeholder="z.B. gpt-4-turbo"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Eingabe-Preis (€/1M Tokens)
-                  </label>
-                  <input
-                    :value="newModel.inputPrice?.toString() || ''"
-                    type="text"
-                    pattern="[0-9]*\.?[0-9]*"
-                    inputmode="decimal"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    @input="
-                      setInputValue(
-                        newModel,
-                        'inputPrice',
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                    @keyup.enter="handleModalInputBlur(newModel, 'inputPrice')"
-                    @blur="handleModalInputBlur(newModel, 'inputPrice')"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Ausgabe-Preis (€/1M Tokens)
-                  </label>
-                  <input
-                    :value="newModel.outputPrice?.toString() || ''"
-                    type="text"
-                    pattern="[0-9]*\.?[0-9]*"
-                    inputmode="decimal"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    @input="
-                      setInputValue(
-                        newModel,
-                        'outputPrice',
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                    @keyup.enter="handleModalInputBlur(newModel, 'outputPrice')"
-                    @blur="handleModalInputBlur(newModel, 'outputPrice')"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Cached Eingabe-Preis (€/1M Tokens, optional)
-                  </label>
-                  <input
-                    :value="newModel.cachedInputPrice?.toString() || ''"
-                    type="text"
-                    pattern="[0-9]*\.?[0-9]*"
-                    inputmode="decimal"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    placeholder="Optional"
-                    @input="
-                      setInputValue(
-                        newModel,
-                        'cachedInputPrice',
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                    @keyup.enter="handleModalInputBlur(newModel, 'cachedInputPrice')"
-                    @blur="handleModalInputBlur(newModel, 'cachedInputPrice')"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Reasoning-Preis (€/1M Tokens, optional)
-                  </label>
-                  <input
-                    :value="newModel.reasoningPrice?.toString() || ''"
-                    type="text"
-                    pattern="[0-9]*\.?[0-9]*"
-                    inputmode="decimal"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    placeholder="Falls Reasoning-Tokens separat berechnet werden sollen"
-                    @input="
-                      setInputValue(
-                        newModel,
-                        'reasoningPrice',
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                    @keyup.enter="handleModalInputBlur(newModel, 'reasoningPrice')"
-                    @blur="handleModalInputBlur(newModel, 'reasoningPrice')"
-                  />
-                </div>
-              </div>
-              <div class="flex justify-end gap-2 mt-6">
-                <button
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  @click="showAddModelModal = false"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover"
-                  @click="handleAddModel"
-                >
-                  Hinzufügen
-                </button>
-              </div>
-            </div>
-          </div>
+          <ResetConfirmModal
+            :show="showResetConfirm"
+            @confirm="handleReset"
+            @cancel="showResetConfirm = false"
+          />
 
           <!-- Add Image Model Modal -->
           <div
