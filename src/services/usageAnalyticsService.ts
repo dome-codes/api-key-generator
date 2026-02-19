@@ -194,7 +194,8 @@ export const usageAnalyticsService = {
             (item as ModelUsage & { technicalUserName?: string }).technicalUserName ||
             'Unknown User',
           modelName: item.model || 'unknown',
-          modelType: (item.type || CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType, // Verwende den type als modelType
+          modelType: (item.type ||
+            CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType, // Verwende den type als modelType
           requests: 'requests' in item ? (item as SummaryUsage).requests || 0 : 0,
           tokensIn: requestTokens,
           tokensOut: responseTokens,
@@ -488,7 +489,8 @@ export const usageAnalyticsService = {
 
       detailedData.forEach((item) => {
         const modelName = item.modelName || 'Unknown'
-        const modelType = (item.modelType || CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType
+        const modelType = (item.modelType ||
+          CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType
         const requests = 1 // Jedes Objekt repräsentiert einen Request
         const technicalUserId = item.technicalUserId || 'unknown'
         const tag = item.tag || ''

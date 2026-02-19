@@ -10,18 +10,19 @@
  * Dieser Composable bleibt für Rückwärtskompatibilität erhalten.
  */
 
-import type {
-  EnhancedUsageRecord,
-  ModelUsageSummary,
-  ModelUsageType,
-  SummaryUsage,
-  UsageAggregation,
-  UsageFilter,
-  UserUsageSummary,
+import {
+  type EnhancedUsageRecord,
+  type ModelUsageSummary,
+  type ModelUsageType,
+  type SummaryUsage,
+  type UsageAggregation,
+  type UsageFilter,
+  type UserUsageSummary,
+  CompletionModelUsageType,
 } from '@/api/types/frontend'
 import { usageService } from '@/services/apiService'
-import { readTokensFromItem } from '@/services/usageApiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
+import { readTokensFromItem } from '@/services/usageApiService'
 import { computed, ref } from 'vue'
 
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
@@ -183,8 +184,8 @@ export function useUsage() {
         }
 
         // Konvertiere zu EnhancedUsageRecord für Progress Bars (apiKeyId aus allen Backend-Varianten)
-        const enhancedData = await Promise.all(
-          validItems.map(async (item: EnhancedUsageRecord) => {
+        const enhancedData: EnhancedUsageRecord[] = await Promise.all(
+          validItems.map(async (item: EnhancedUsageRecord): Promise<EnhancedUsageRecord> => {
             // DEBUG: Zeige rohes Item vor Extraktion
             if (isDebugLogEnabled()) {
               debugLog('[useUsage] Rohes Item vor apiKeyId-Extraktion:', {
@@ -219,8 +220,11 @@ export function useUsage() {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
               modelName: item.modelName || 'unknown',
-              modelType: (item.type || 'CompletionModelUsage') as ModelUsageType,
-              type: (item.type || 'CompletionModelUsage') as ModelUsageType | undefined,
+              modelType: (item.type ||
+                CompletionModelUsageType.CompletionModelUsage) as ModelUsageType,
+              type: (item.type || CompletionModelUsageType.CompletionModelUsage) as
+                | ModelUsageType
+                | undefined,
               requests: item.requests || 0,
               tokensIn: requestTokens,
               tokensOut: responseTokens,
@@ -370,8 +374,8 @@ export function useUsage() {
 
       if (summaryResponse.data && summaryResponse.data.length > 0) {
         // Konvertiere SummaryUsage zu EnhancedUsageRecord für Kompatibilität
-        const enhancedData = await Promise.all(
-          summaryResponse.data.map(async (item: SummaryUsage) => {
+        const enhancedData: EnhancedUsageRecord[] = await Promise.all(
+          summaryResponse.data.map(async (item: SummaryUsage): Promise<EnhancedUsageRecord> => {
             // Berechne Kosten über pricing.ts
             const { calculateCost } = await import('@/config/pricing')
             const costResult = calculateCost(
@@ -386,8 +390,11 @@ export function useUsage() {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
               modelName: item.model || 'unknown',
-              modelType: (item.type || 'CompletionModelUsage') as ModelUsageType,
-              type: (item.type || 'CompletionModelUsage') as ModelUsageType | undefined,
+              modelType: (item.type ||
+                CompletionModelUsageType.CompletionModelUsage) as ModelUsageType,
+              type: (item.type || CompletionModelUsageType.CompletionModelUsage) as
+                | ModelUsageType
+                | undefined,
               requests: item.requests || 0,
               tokensIn: item.requestTokens || 0,
               tokensOut: item.responseTokens || 0,

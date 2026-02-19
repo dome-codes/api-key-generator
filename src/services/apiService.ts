@@ -163,7 +163,7 @@ export const usageService = {
       const response = await getUsage().usageAISummaryGetV1(params)
       debugLog('🔍 [API-SERVICE] API response:', response.data)
 
-      return (response.data ?? { data: [], pagination: undefined }) as AIUsageSummaryPage
+      return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
       debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary:', error)
       return { data: [], pagination: undefined }
@@ -231,7 +231,7 @@ export const usageService = {
       if (toDate) params.to_date = toIsoDateTime(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
-      return (response.data ?? { data: [], pagination: undefined }) as AIUsageSummaryPage
+      return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
       debugLog('Fehler beim Laden der Admin-Usage-Daten:', error)
       return { data: [], pagination: undefined }
@@ -251,7 +251,7 @@ export const usageService = {
       if (toDate) params.to_date = toIsoDateTime(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
-      return (response.data ?? { data: [], pagination: undefined }) as AIUsageSummaryPage
+      return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
       debugLog('Fehler beim Laden der Admin-Usage-Summary:', error)
       return { data: [], pagination: undefined }
