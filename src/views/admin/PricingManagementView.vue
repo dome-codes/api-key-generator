@@ -73,7 +73,7 @@ const isEditing = (modelName: string, field: string) =>
   !!editingState.value[getEditingKey(modelName, field)]
 const getEditingValue = (modelName: string, field: string) =>
   editingState.value[getEditingKey(modelName, field)]?.currentValue
-const setInputRef = (modelName: string, field: string, el: HTMLElement | null) => {
+const setInputRef = (modelName: string, field: string, el: unknown) => {
   if (el && el instanceof HTMLInputElement) {
     inputRefs.value[getEditingKey(modelName, field)] = el
   }

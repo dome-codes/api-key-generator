@@ -137,10 +137,11 @@ async function saveEditModal() {
     )
 
     // Show the new key modal with the rotated key data
-    createdSecret.value = data.secret || ''
-    createdKeyName.value = data.name
-    createdKeyPermissions.value = data.permissions
-    createdKeyValidUntil.value = data.expires_at || 'Never'
+    createdSecret.value = (data.secret as string) || ''
+    createdKeyName.value = (data.name as string) || ''
+    createdKeyPermissions.value = (data.permissions as string[]) || []
+    createdKeyValidUntil.value =
+      (data.expires_at as string) || (data.expiresAt as string) || 'Never'
     createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
 
     await loadKeys()

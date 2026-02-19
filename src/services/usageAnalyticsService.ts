@@ -395,20 +395,21 @@ export const usageAnalyticsService = {
         }
 
         const user = userMap.get(technicalUserId)
-        if (!user) continue
-        user.totalRequests += requests
+        if (user) {
+          user.totalRequests += requests
 
-        if (!user.modelBreakdown[modelName]) {
-          user.modelBreakdown[modelName] = {
-            requests: 0,
-            tokensIn: 0,
-            tokensOut: 0,
-            totalTokens: 0,
-            cost: 0,
-            tag,
+          if (!user.modelBreakdown[modelName]) {
+            user.modelBreakdown[modelName] = {
+              requests: 0,
+              tokensIn: 0,
+              tokensOut: 0,
+              totalTokens: 0,
+              cost: 0,
+              tag,
+            }
           }
+          user.modelBreakdown[modelName].requests += requests
         }
-        user.modelBreakdown[modelName].requests += requests
       })
 
       return Array.from(userMap.values())
@@ -445,20 +446,21 @@ export const usageAnalyticsService = {
         }
 
         const model = modelMap.get(modelName)
-        if (!model) continue
-        model.totalRequests += requests
+        if (model) {
+          model.totalRequests += requests
 
-        if (!model.userBreakdown[technicalUserId]) {
-          model.userBreakdown[technicalUserId] = {
-            requests: 0,
-            tokensIn: 0,
-            tokensOut: 0,
-            totalTokens: 0,
-            cost: 0,
-            tag,
+          if (!model.userBreakdown[technicalUserId]) {
+            model.userBreakdown[technicalUserId] = {
+              requests: 0,
+              tokensIn: 0,
+              tokensOut: 0,
+              totalTokens: 0,
+              cost: 0,
+              tag,
+            }
           }
+          model.userBreakdown[technicalUserId].requests += requests
         }
-        model.userBreakdown[technicalUserId].requests += requests
       })
 
       return Array.from(modelMap.values())

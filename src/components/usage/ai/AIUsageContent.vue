@@ -146,6 +146,10 @@ const toIsoDate = (dateStr: string): string | undefined => {
 // Computed properties
 const showOwnChart = computed(() => ownView.value === 'overview')
 const showOwnDetails = computed(() => ownView.value === 'detailed')
+const sortOrder = computed(() => {
+  const order = currentFilter.value.order
+  return order === 'asc' || order === 'desc' ? order : undefined
+})
 
 const ownSummary = computed(() => {
   const agg = usageAggregation.value
@@ -373,7 +377,7 @@ onMounted(async () => {
       :error="error"
       :pagination="pagination"
       :sort-field="currentFilter.sort"
-      :sort-order="currentFilter.order"
+      :sort-order="sortOrder"
       :use-backend-sorting="true"
       :model-type-filter="ownModelType"
       @page-change="handlePageChange"

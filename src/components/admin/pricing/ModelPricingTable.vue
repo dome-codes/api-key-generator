@@ -33,7 +33,7 @@ const isEditing = (modelName: string, field: string) =>
   !!editingState.value[getEditingKey(modelName, field)]
 const getEditingValue = (modelName: string, field: string) =>
   editingState.value[getEditingKey(modelName, field)]?.currentValue
-const setInputRef = (modelName: string, field: string, el: HTMLElement | null) => {
+const setInputRef = (modelName: string, field: string, el: unknown) => {
   if (el && el instanceof HTMLInputElement) {
     inputRefs.value[getEditingKey(modelName, field)] = el
   }
@@ -117,27 +117,28 @@ const setInputValue = (
   field: string,
   value: string,
 ) => {
-  ;(model as Record<string, unknown>)[field] = value
+  ;(model as unknown as Record<string, unknown>)[field] = value
 }
 
 const handleModalInputBlur = (
   model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
   field: string,
 ) => {
-  const value = model[field]
+  const modelRecord = model as unknown as Record<string, unknown>
+  const value = modelRecord[field]
   if (typeof value === 'string') {
     const num = parseFloat(value)
     if (!isNaN(num) && num >= 0) {
-      model[field] = num
+      modelRecord[field] = num
     } else if (value === '' || value === null || value === undefined) {
       if (field === 'cachedInputPrice' || field === 'reasoningPrice') {
-        model[field] = undefined
+        modelRecord[field] = undefined
       } else {
-        model[field] = 0
+        modelRecord[field] = 0
       }
     } else {
-      const current = model[field]
-      model[field] = typeof current === 'number' ? current : 0
+      const current = modelRecord[field]
+      modelRecord[field] = typeof current === 'number' ? current : 0
     }
   }
 }

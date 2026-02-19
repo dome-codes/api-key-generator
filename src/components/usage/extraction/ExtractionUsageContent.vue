@@ -148,6 +148,10 @@ const toIsoDate = (dateStr: string): string | undefined => {
 
 // Computed aggregations
 const ownAggregation = computed(() => usageAggregation.value)
+const sortOrder = computed(() => {
+  const order = currentFilter.value.order
+  return order === 'asc' || order === 'desc' ? order : undefined
+})
 
 // Handle filter changes
 // Flag um doppelte Calls zu vermeiden
@@ -353,7 +357,7 @@ onMounted(async () => {
       :error="error"
       :pagination="pagination"
       :sort-field="currentFilter.sort"
-      :sort-order="currentFilter.order"
+      :sort-order="sortOrder"
       :use-backend-sorting="true"
       @page-change="handlePageChange"
       @sort-change="handleSortChange"

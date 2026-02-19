@@ -180,32 +180,33 @@ export const pricingService = {
             if (!model || typeof model !== 'object') {
               throw new Error(`Ungültiges Modell in modelPricing[${index}]: Muss ein Objekt sein.`)
             }
-            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+            const modelObj = model as ModelPricing
+            if (typeof modelObj.modelName !== 'string' || !modelObj.modelName.trim()) {
               throw new Error(
                 `Ungültiges Modell in modelPricing[${index}]: "modelName" muss ein nicht-leerer String sein.`,
               )
             }
-            if (typeof model.inputPrice !== 'number' || model.inputPrice < 0) {
+            if (typeof modelObj.inputPrice !== 'number' || modelObj.inputPrice < 0) {
               throw new Error(
                 `Ungültiges Modell in modelPricing[${index}]: "inputPrice" muss eine positive Zahl sein.`,
               )
             }
-            if (typeof model.outputPrice !== 'number' || model.outputPrice < 0) {
+            if (typeof modelObj.outputPrice !== 'number' || modelObj.outputPrice < 0) {
               throw new Error(
                 `Ungültiges Modell in modelPricing[${index}]: "outputPrice" muss eine positive Zahl sein.`,
               )
             }
             if (
-              model.cachedInputPrice !== undefined &&
-              (typeof model.cachedInputPrice !== 'number' || model.cachedInputPrice < 0)
+              modelObj.cachedInputPrice !== undefined &&
+              (typeof modelObj.cachedInputPrice !== 'number' || modelObj.cachedInputPrice < 0)
             ) {
               throw new Error(
                 `Ungültiges Modell in modelPricing[${index}]: "cachedInputPrice" muss eine positive Zahl oder undefined sein.`,
               )
             }
             if (
-              model.reasoningPrice !== undefined &&
-              (typeof model.reasoningPrice !== 'number' || model.reasoningPrice < 0)
+              modelObj.reasoningPrice !== undefined &&
+              (typeof modelObj.reasoningPrice !== 'number' || modelObj.reasoningPrice < 0)
             ) {
               throw new Error(
                 `Ungültiges Modell in modelPricing[${index}]: "reasoningPrice" muss eine positive Zahl oder undefined sein.`,
@@ -218,32 +219,33 @@ export const pricingService = {
             if (!model || typeof model !== 'object') {
               throw new Error(`Ungültiges Modell in imagePricing[${index}]: Muss ein Objekt sein.`)
             }
-            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+            const modelObj = model as ImageModelPricing
+            if (typeof modelObj.modelName !== 'string' || !modelObj.modelName.trim()) {
               throw new Error(
                 `Ungültiges Modell in imagePricing[${index}]: "modelName" muss ein nicht-leerer String sein.`,
               )
             }
-            if (typeof model.standardPrice !== 'number' || model.standardPrice < 0) {
+            if (typeof modelObj.standardPrice !== 'number' || modelObj.standardPrice < 0) {
               throw new Error(
                 `Ungültiges Modell in imagePricing[${index}]: "standardPrice" muss eine positive Zahl sein.`,
               )
             }
-            if (typeof model.hdPrice !== 'number' || model.hdPrice < 0) {
+            if (typeof modelObj.hdPrice !== 'number' || modelObj.hdPrice < 0) {
               throw new Error(
                 `Ungültiges Modell in imagePricing[${index}]: "hdPrice" muss eine positive Zahl sein.`,
               )
             }
             if (
-              model.standardPriceLarge !== undefined &&
-              (typeof model.standardPriceLarge !== 'number' || model.standardPriceLarge < 0)
+              modelObj.standardPriceLarge !== undefined &&
+              (typeof modelObj.standardPriceLarge !== 'number' || modelObj.standardPriceLarge < 0)
             ) {
               throw new Error(
                 `Ungültiges Modell in imagePricing[${index}]: "standardPriceLarge" muss eine positive Zahl oder undefined sein.`,
               )
             }
             if (
-              model.hdPriceLarge !== undefined &&
-              (typeof model.hdPriceLarge !== 'number' || model.hdPriceLarge < 0)
+              modelObj.hdPriceLarge !== undefined &&
+              (typeof modelObj.hdPriceLarge !== 'number' || modelObj.hdPriceLarge < 0)
             ) {
               throw new Error(
                 `Ungültiges Modell in imagePricing[${index}]: "hdPriceLarge" muss eine positive Zahl oder undefined sein.`,
@@ -258,12 +260,16 @@ export const pricingService = {
                 `Ungültiges Modell in embeddingPricing[${index}]: Muss ein Objekt sein.`,
               )
             }
-            if (typeof model.modelName !== 'string' || !model.modelName.trim()) {
+            const modelObj = model as EmbeddingModelPricing
+            if (typeof modelObj.modelName !== 'string' || !modelObj.modelName.trim()) {
               throw new Error(
                 `Ungültiges Modell in embeddingPricing[${index}]: "modelName" muss ein nicht-leerer String sein.`,
               )
             }
-            if (typeof model.pricePer1000Tokens !== 'number' || model.pricePer1000Tokens < 0) {
+            if (
+              typeof modelObj.pricePer1000Tokens !== 'number' ||
+              modelObj.pricePer1000Tokens < 0
+            ) {
               throw new Error(
                 `Ungültiges Modell in embeddingPricing[${index}]: "pricePer1000Tokens" muss eine positive Zahl sein.`,
               )

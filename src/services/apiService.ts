@@ -200,10 +200,6 @@ export const usageService = {
           'Erste 3 Records': rawData.slice(0, 3).map((r: AIUsageSummaryRecord) => ({
             'Alle Keys': Object.keys(r),
             apiKeyId: r.apiKeyId,
-            api_key_id: r.api_key_id,
-            api_key: r.api_key,
-            key_id: r.key_id,
-            keyId: r.keyId,
             'Komplettes Record': r,
           })),
         })

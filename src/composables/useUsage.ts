@@ -132,11 +132,13 @@ export function useUsage() {
           0,
         )
         const totalTokensIn = validItems.reduce(
-          (sum: number, item: EnhancedUsageRecord) => sum + readTokensFromItem(item).requestTokens,
+          (sum: number, item: EnhancedUsageRecord) =>
+            sum + readTokensFromItem(item as unknown as Record<string, unknown>).requestTokens,
           0,
         )
         const totalTokensOut = validItems.reduce(
-          (sum: number, item: EnhancedUsageRecord) => sum + readTokensFromItem(item).responseTokens,
+          (sum: number, item: EnhancedUsageRecord) =>
+            sum + readTokensFromItem(item as unknown as Record<string, unknown>).responseTokens,
           0,
         )
         const totalTokens = totalTokensIn + totalTokensOut
@@ -145,11 +147,13 @@ export function useUsage() {
         const costs = await Promise.all(
           validItems.map(async (item: EnhancedUsageRecord) => {
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(item)
+            const { requestTokens, responseTokens } = readTokensFromItem(
+              item as unknown as Record<string, unknown>,
+            )
             return calculateCost(
               requestTokens,
               responseTokens,
-              item.model || 'gpt-4o',
+              item.modelName || 'gpt-4o',
               false,
               item.type || 'CompletionModelUsage',
             ).finalCost
@@ -166,7 +170,7 @@ export function useUsage() {
           totalCost,
           uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.technicalUserId))
             .size,
-          uniqueModels: new Set(validItems.map((item: EnhancedUsageRecord) => item.model)).size,
+          uniqueModels: new Set(validItems.map((item: EnhancedUsageRecord) => item.modelName)).size,
           averageRequestsPerUser:
             totalRequests /
             Math.max(
@@ -186,23 +190,21 @@ export function useUsage() {
                 'Item Keys': Object.keys(item),
                 'Item komplett': item,
                 'item.apiKeyId': item.apiKeyId,
-                'item.api_key_id': item.api_key_id,
-                'item.api_key': item.api_key,
-                'item.key_id': item.key_id,
-                'item.keyId': item.keyId,
               })
             }
 
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(item)
+            const { requestTokens, responseTokens } = readTokensFromItem(
+              item as unknown as Record<string, unknown>,
+            )
             const costResult = calculateCost(
               requestTokens,
               responseTokens,
-              item.model || 'gpt-4o',
+              item.modelName || 'gpt-4o',
               false,
               item.type || 'CompletionModelUsage',
             )
-            const apiKeyId = getApiKeyIdFromItem(item)
+            const apiKeyId = getApiKeyIdFromItem(item as unknown as Record<string, unknown>)
 
             // DEBUG: Zeige Extraktions-Ergebnis
             if (isDebugLogEnabled()) {
@@ -215,9 +217,9 @@ export function useUsage() {
             return {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
-              modelName: item.model || 'unknown',
+              modelName: item.modelName || 'unknown',
               modelType: item.type || 'CompletionModelUsage',
-              type: item.type,
+              type: item.type || 'CompletionModelUsage',
               requests: item.requests || 0,
               tokensIn: requestTokens,
               tokensOut: responseTokens,
@@ -384,7 +386,7 @@ export function useUsage() {
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
               modelName: item.model || 'unknown',
               modelType: item.type || 'CompletionModelUsage',
-              type: item.type,
+              type: item.type || 'CompletionModelUsage',
               requests: item.requests || 0,
               tokensIn: item.requestTokens || 0,
               tokensOut: item.responseTokens || 0,

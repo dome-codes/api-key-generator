@@ -148,24 +148,26 @@ export function convertToPeriod(
       })
     } else {
       const existing = periodMap.get(periodKey)
-      // Aggregiere Werte (z.B. requests, tokens, cost)
-      if (typeof existing.requests === 'number' && typeof item.requests === 'number') {
-        existing.requests += item.requests
-      }
-      if (typeof existing.tokensIn === 'number' && typeof item.tokensIn === 'number') {
-        existing.tokensIn += item.tokensIn
-      }
-      if (typeof existing.tokensOut === 'number' && typeof item.tokensOut === 'number') {
-        existing.tokensOut += item.tokensOut
-      }
-      if (typeof existing.cost === 'number' && typeof item.cost === 'number') {
-        existing.cost += item.cost
-      }
-      if (typeof existing.operations === 'number' && typeof item.operations === 'number') {
-        existing.operations += item.operations
-      }
-      if (typeof existing.pages === 'number' && typeof item.pages === 'number') {
-        existing.pages += item.pages
+      if (existing) {
+        // Aggregiere Werte (z.B. requests, tokens, cost)
+        if (typeof existing.requests === 'number' && typeof item.requests === 'number') {
+          existing.requests += item.requests
+        }
+        if (typeof existing.tokensIn === 'number' && typeof item.tokensIn === 'number') {
+          existing.tokensIn += item.tokensIn
+        }
+        if (typeof existing.tokensOut === 'number' && typeof item.tokensOut === 'number') {
+          existing.tokensOut += item.tokensOut
+        }
+        if (typeof existing.cost === 'number' && typeof item.cost === 'number') {
+          existing.cost += item.cost
+        }
+        if (typeof existing.operations === 'number' && typeof item.operations === 'number') {
+          existing.operations += item.operations
+        }
+        if (typeof existing.pages === 'number' && typeof item.pages === 'number') {
+          existing.pages += item.pages
+        }
       }
     }
   })
