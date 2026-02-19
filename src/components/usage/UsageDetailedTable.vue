@@ -16,11 +16,7 @@ const emit = defineEmits<{
 const currentPage = ref(1)
 const pageSize = ref(10)
 
-// Handle page size change
-const handlePageSizeChange = () => {
-  currentPage.value = 1
-  pageSize.value = Number(pageSize.value)
-}
+// Page size change handled inline in template
 
 // Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
 const sortField = ref('date')

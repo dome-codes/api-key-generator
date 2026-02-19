@@ -16,7 +16,7 @@ interface Props {
   showResetButton?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   emptyStateTitle: 'Keine Daten verfügbar',
   emptyStateDescription: 'Für die gewählten Filter wurden keine Daten gefunden.',
   showResetButton: false,

@@ -20,16 +20,14 @@ import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 import { computed, onMounted, ref } from 'vue'
 
 // Composables verwenden
-const { userProfile, highestRole, isAdmin, canCreateKeys, canSeeOwnUsage, handleLogout } = useAuth()
+const { userProfile, highestRole, canCreateKeys, canSeeOwnUsage, handleLogout } = useAuth()
 const userRolesForHeader = computed(() => [String(highestRole.value)])
 const { isDevelopment, showDebugMode, showDebugInfo, debugTokenInfo } = useDebug()
 const {
   keys,
-  isLoading,
   error,
   isCreating,
   newKeyName,
-  newKeyPermissions,
   createdSecret,
   createdKeyName,
   createdKeyPermissions,
@@ -66,10 +64,10 @@ const {
 } = useModals()
 
 // Budget management
-const { budgetConfig, currentMonthCost, loadBudgetData } = useBudget()
+const { budgetConfig, loadBudgetData } = useBudget()
 
 // Usage data for detailed breakdown
-const { usageAggregation, detailedUsageData, loadDetailedUsageData, loadUsageSummary } = useUsage()
+const { detailedUsageData, loadUsageSummary } = useUsage()
 
 // API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
 // Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert

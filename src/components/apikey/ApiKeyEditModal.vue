@@ -4,7 +4,7 @@ const props = defineProps<{
   modelValue: boolean
   name: string
 }>()
-const emits = defineEmits(['update:name', 'cancel', 'save'])
+defineEmits(['update:name', 'cancel', 'save'])
 const localName = ref(props.name)
 watch(
   () => props.name,

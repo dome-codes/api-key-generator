@@ -279,4 +279,3 @@ export function getExtractionUsageSummaryByDay(filters = {}) {
   const rows = database.prepare(query).all(...params)
   return rows
 }
-

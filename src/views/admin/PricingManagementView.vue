@@ -191,41 +191,6 @@ const handleMarkupBlur = () => {
   handleMarkupEnter()
 }
 
-// Konvertiert String-Input zu Number für alle Preis-Felder
-const handleInputBlur = (model: any, field: string) => {
-  const value = model[field]
-  if (typeof value === 'string') {
-    const num = parseFloat(value)
-    if (!isNaN(num) && num >= 0) {
-      model[field] = num
-    } else if (value === '' || value === null || value === undefined) {
-      // Optional fields können leer sein
-      if (
-        field === 'cachedInputPrice' ||
-        field === 'reasoningPrice' ||
-        field === 'standardPriceLarge' ||
-        field === 'hdPriceLarge'
-      ) {
-        model[field] = undefined
-      } else {
-        model[field] = 0
-      }
-    } else {
-      // Ungültiger Wert, zurücksetzen
-      const current = model[field]
-      model[field] = typeof current === 'number' ? current : 0
-    }
-  }
-  // Automatisch speichern basierend auf Modell-Typ
-  if ('inputPrice' in model || 'outputPrice' in model) {
-    updateModelPricing(model)
-  } else if ('standardPrice' in model || 'hdPrice' in model) {
-    updateImagePricing(model)
-  } else if ('pricePer1000Tokens' in model) {
-    updateEmbeddingPricing(model)
-  }
-}
-
 // Für Modal-Inputs: Konvertiert String zu Number, speichert aber nicht automatisch
 const handleModalInputBlur = (model: any, field: string) => {
   const value = model[field]

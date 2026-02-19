@@ -15,7 +15,7 @@ interface Props {
   showStatusBreakdown?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showUniqueUsers: false,
   showUniqueProviders: false,
   showUniqueModels: false,

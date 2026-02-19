@@ -1,7 +1,23 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
-import { computed } from 'vue'
+import { api } from '@/axios/api'
+import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+
+const isDev = import.meta.env.DEV
+const test500Loading = ref(false)
+
+async function triggerTest500() {
+  if (test500Loading.value) return
+  test500Loading.value = true
+  try {
+    await api.get('/dev/test-500')
+  } catch {
+    // 500 wird erwartet – Popup mit Tracing-ID wird vom Axios-Interceptor angezeigt
+  } finally {
+    test500Loading.value = false
+  }
+}
 
 interface Props {
   activeSidebar?: 'api' | 'usage'
@@ -12,7 +28,7 @@ interface Emits {
   (e: 'update:activeSidebar', value: 'api' | 'usage'): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   activeSidebar: 'api',
   canViewUsage: true,
 })
@@ -111,6 +127,17 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
           Preisverwaltung
         </button>
       </div>
+
+      <!-- Dev: 500-Popup testen (nur in Entwicklung sichtbar) -->
+      <button
+        v-if="isDev"
+        type="button"
+        class="mt-4 flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left text-amber-700 bg-amber-50 hover:bg-amber-100 text-xs"
+        :disabled="test500Loading"
+        @click="triggerTest500"
+      >
+        {{ test500Loading ? '…' : '🧪 500-Popup testen' }}
+      </button>
     </nav>
   </aside>
 </template>

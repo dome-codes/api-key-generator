@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useAuth } from '@/composables/useAuth'
 import { formatCost } from '@/config/pricing'
 import { computed } from 'vue'
 
@@ -16,8 +15,6 @@ const props = withDefaults(defineProps<Props>(), {
   tokensOut: 0,
   showDetailedInfo: false,
 })
-
-const { isAdmin: isApiAdmin } = useAuth()
 
 // Computed
 const progressPercentage = computed(() => {

@@ -25,7 +25,7 @@ interface Props {
   showAllTagsInChart?: boolean
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   'update:selectedPeriod': [value: string]

@@ -5,7 +5,7 @@ const props = defineProps<{
   name: string
   isCreating: boolean
 }>()
-const emits = defineEmits(['update:name', 'cancel', 'create'])
+defineEmits(['update:name', 'cancel', 'create'])
 const localName = ref(props.name)
 watch(
   () => props.name,

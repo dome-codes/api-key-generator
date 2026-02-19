@@ -7,14 +7,12 @@ import {
   redirectToKeycloakLogin,
   setTokenReadyForApi,
 } from '@/auth/keycloak'
-import { useAuth } from '@/composables/useAuth'
 import { debugLog } from '@/utils/debugLog'
 import { useRoute, useRouter, RouterView } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
-const { userProfile, highestRole, isAdmin } = useAuth()
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
 const tokenReady = ref(false) // erst true, wenn getToken() erfolgreich – verhindert API-Calls vor Token

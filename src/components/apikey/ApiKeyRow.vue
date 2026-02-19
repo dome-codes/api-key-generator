@@ -34,7 +34,7 @@ const props = withDefaults(
   },
 )
 
-const emits = defineEmits<{
+defineEmits<{
   edit: [key: ApiKeyDisplay]
   save: [apiKey: string]
   cancel: []
@@ -61,17 +61,6 @@ const formatNumber = (num: number): string => {
     return `${(num / 1000).toFixed(1)}K`
   }
   return num.toString()
-}
-
-// Helper function for token ratio formatting
-const formatTokenRatio = (tokensIn: number, tokensOut: number): string => {
-  if (tokensIn === 0) return '0:0'
-  const ratio = tokensOut / tokensIn
-  if (ratio >= 1) {
-    return `1:${ratio.toFixed(1)}`
-  } else {
-    return `${(1 / ratio).toFixed(1)}:1`
-  }
 }
 </script>
 

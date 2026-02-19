@@ -1,6 +1,6 @@
+import { debugLog } from '@/utils/debugLog'
 import appConfig from '@root/app.config.js'
 import Keycloak from 'keycloak-js'
-import { debugLog } from '@/utils/debugLog'
 
 // Keycloak-Konfiguration aus zentraler appConfig.js (env-basiert möglich)
 const keycloakConfig = {
@@ -198,15 +198,17 @@ const getTokenFromStorage = (): { token: string; exp: number } | null => {
 const setTokenInStorage = (token: string, exp: number): void => {
   try {
     sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify({ token, exp }))
-  } catch (_) {
-    // Quota oder private mode
+  } catch {
+    void 0 // ignore quota or private mode error
   }
 }
 
 export const clearTokenStorage = (): void => {
   try {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY)
-  } catch (_) {}
+  } catch {
+    void 0 // ignore quota or private mode error
+  }
 }
 
 // Token-Handling: zuerst aus Storage, nur bei Ablauf Keycloak-Refresh
@@ -246,7 +248,7 @@ export const getToken = async (): Promise<string | null> => {
     debugLog('Aktuelles Token:', token ? '(gespeichert)' : null)
     return token
   } catch (error) {
-    console.error('Fehler beim Token-Update:', error)
+    debugLog('Fehler beim Token-Update:', error)
     clearTokenStorage()
     return null
   }
@@ -332,7 +334,7 @@ export const redirectToKeycloakLogin = (): void => {
       k.login()
     }
   } catch (_) {
-    console.error('Redirect zu Keycloak Login fehlgeschlagen')
+    debugLog('Redirect zu Keycloak Login fehlgeschlagen')
   }
 }
 

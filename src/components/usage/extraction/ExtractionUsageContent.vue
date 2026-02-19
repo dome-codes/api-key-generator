@@ -34,7 +34,6 @@ const {
   statusDistributionChartData,
   loadUsageData,
   loadUsageSummary,
-  updateFilter,
   updateSort,
   goToPage,
   currentFilter,

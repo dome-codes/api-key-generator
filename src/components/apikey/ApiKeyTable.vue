@@ -23,7 +23,7 @@ const isEntwicklung = computed(() => {
   return highestRole.value === UserRole.USER
 })
 
-const emits = defineEmits<{
+defineEmits<{
   edit: [key: ApiKeyDisplay]
   save: [apiKey: string]
   cancel: []
@@ -500,27 +500,9 @@ const totalProgressBarColor = computed(() => {
   return 'bg-green-500'
 })
 
-const totalStatusTextColor = computed(() => {
-  const percentage = totalProgressPercentage.value
-  if (percentage >= 100) return 'text-red-600'
-  if (percentage >= 80) return 'text-yellow-600'
-  return 'text-green-600'
-})
-
 // Additional computed properties for enhanced UI
 const activeKeysCount = computed(() => {
   return props.keys.filter((key) => key.status === 'active').length
-})
-
-const averageCostPerKey = computed(() => {
-  const activeKeys = props.keys.filter((key) => key.status === 'active')
-  if (activeKeys.length === 0) return 0
-  return totalCost.value / activeKeys.length
-})
-
-const daysInCurrentMonth = computed(() => {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
 })
 
 // Helper functions for formatting

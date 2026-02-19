@@ -28,7 +28,6 @@ const {
   statusDistributionChartData,
   loadUsageData,
   loadUsageSummary,
-  updateFilter,
   goToPage,
   currentFilter,
 } = useExtractionUsageApi()

@@ -66,7 +66,7 @@ export function useExtractionUsageApi() {
     >()
 
     data.forEach((item) => {
-      let dateKey = ''
+      let dateKey: string
       if (item.day && item.month && item.year) {
         dateKey = `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
       } else if (item.createDate) {
