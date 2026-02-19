@@ -146,6 +146,13 @@ export default [
       ],
     },
   },
+  // Spezielle Regeln für generierte API-Dateien (Orval)
+  {
+    files: ['src/api/**/*.ts'],
+    rules: {
+      'no-duplicate-imports': 'off', // Orval generiert mehrere Imports vom selben Modul
+    },
+  },
   // Explizite Deaktivierung von no-useless-assignment für alle Dateien (muss am Ende stehen)
   {
     files: ['**/*'],

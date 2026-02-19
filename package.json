@@ -17,6 +17,7 @@
     "dev:all:debug": "SHOW_DEBUG=true npm-run-all2 --parallel dev frontend:dev",
     "type-check": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint . --fix",
+    "lint:src": "eslint src --fix",
     "format": "prettier --write src/",
     "db:init": "node scripts/init-database.js",
     "db:generate": "node scripts/generate-mock-data.js",
