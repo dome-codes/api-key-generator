@@ -11,6 +11,7 @@ import type {
   ExtractionRequestParamsGroupByParameterItem,
   UsageExtractionGetV1Params,
   UsageExtractionSummaryGetV1Params,
+  UsageExtractionSummaryGetV1ByItem,
 } from '@/api/types'
 import type {
   EnhancedExtractionUsageRecord,
@@ -256,18 +257,32 @@ export const extractionUsageApiService = {
       const params: UsageExtractionSummaryGetV1Params & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
-        page,
-        limit,
         offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
-        status: filter.status as
-          | import('@/api/types').ExtractionRequestParamsStatusParameter
-          | undefined,
-        userId: filter.userId,
         tag: filter.tag,
-        apiKey: filter.apiKey,
-        by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
+        by: filter.groupBy
+          ? filter.groupBy
+              .map((item) => {
+                // Mappe alte Werte zu neuen Werten
+                if (item === 'apikey') return undefined // apikey wird nicht mehr unterstützt
+                if (item === 'user') return 'userId' as UsageExtractionSummaryGetV1ByItem
+                // Prüfe ob der Wert im neuen Enum enthalten ist
+                const validValues: UsageExtractionSummaryGetV1ByItem[] = [
+                  'day',
+                  'month',
+                  'year',
+                  'tag',
+                  'modelId',
+                  'userId',
+                  'provider',
+                ]
+                return validValues.includes(item as UsageExtractionSummaryGetV1ByItem)
+                  ? (item as UsageExtractionSummaryGetV1ByItem)
+                  : undefined
+              })
+              .filter((item): item is UsageExtractionSummaryGetV1ByItem => item !== undefined)
+          : undefined,
       }
 
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
