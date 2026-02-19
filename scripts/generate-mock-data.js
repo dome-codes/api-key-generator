@@ -4,7 +4,7 @@ import { dirname, join } from 'path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const dbPath = join(__dirname, '..', 'mock-data.db')
+const dbPath = join(__dirname, '..', 'data', 'mock-data.db')
 
 const db = new Database(dbPath)
 console.log('Öffne Datenbank:', dbPath)

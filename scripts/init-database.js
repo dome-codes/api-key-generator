@@ -5,7 +5,7 @@ import { existsSync, unlinkSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const dbPath = join(__dirname, '..', 'mock-data.db')
+const dbPath = join(__dirname, '..', 'data', 'mock-data.db')
 
 // Lösche alte Datenbank falls vorhanden
 if (existsSync(dbPath)) {

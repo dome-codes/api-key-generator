@@ -37,3 +37,8 @@ docs/*
 *.backup*
 *.old
 *.tmp
+
+# Database files
+data/*.db
+data/*.sqlite
+!data/.gitkeep

@@ -9,7 +9,7 @@ import {
   getExtractionUsageSummaryByDay,
   getExtractionUsageSummaryByTag,
   closeDatabase,
-} from './scripts/db-helper.js'
+} from '../scripts/db-helper.js'
 
 // Mock usage data functions
 const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days = 30) => {
@@ -1167,7 +1167,7 @@ app.listen(port, () => {
   console.log(`[${timestamp}] ========================================`)
   console.log(`[${timestamp}] Mock API Server gestartet`)
   console.log(`[${timestamp}] Server läuft auf http://localhost:${port}`)
-  console.log(`[${timestamp}] SQLite Datenbank: mock-data.db`)
+  console.log(`[${timestamp}] SQLite Datenbank: data/mock-data.db`)
   console.log(`[${timestamp}] ========================================`)
   console.log(`[${timestamp}] Verfügbare Endpunkte:`)
   console.log(`[${timestamp}]   GET  http://localhost:${port}/v1/apikeys - List API keys`)
