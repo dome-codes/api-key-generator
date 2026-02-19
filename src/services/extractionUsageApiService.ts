@@ -8,7 +8,6 @@
 import { getAdmin } from '@/api/admin/admin'
 import type {
   AdminUsageExtractionGetV1Params,
-  ExtractionRequestParamsGroupByParameterItem,
   UsageExtractionGetV1Params,
   UsageExtractionSummaryGetV1Params,
   UsageExtractionSummaryGetV1ByItem,
@@ -16,8 +15,6 @@ import type {
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
-  ExtractionUsagePageResponse,
-  ExtractionUsageSummaryPageResponse,
 } from '@/types/frontend'
 import type { Page } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
@@ -107,6 +104,51 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
+/** Minimale Form der Extraction-API-Response (unabhängig von generierten Typnamen) */
+interface ExtractionPageResponseShape {
+  data?: unknown[]
+  pagination?: unknown
+}
+
+/** Minimale Form eines Extraction-Usage-Records (unabhängig von generierten Typnamen) */
+interface ExtractionUsageRecordShape {
+  id?: string
+  operationId?: string
+  status?: string
+  createDate?: string
+  completedDate?: string | null
+  day?: number
+  month?: number
+  year?: number
+  technicalUserId?: string
+  apiKeyId?: string
+  tag?: string
+  provider?: string
+  modelId?: string
+  documentType?: string
+  pages?: number
+  extractedFields?: Array<{ fieldName?: string; value?: string; confidence?: number }>
+  confidenceScore?: number
+  cost?: number
+}
+
+/** Minimale Form eines Extraction-Summary-Records */
+interface ExtractionUsageSummaryRecordShape {
+  status?: string
+  tag?: string
+  provider?: string
+  modelId?: string
+  technicalUserId?: string
+  apiKeyId?: string
+  day?: number
+  month?: number
+  year?: number
+  operations?: number
+  totalPages?: number
+  averageConfidence?: number
+  cost?: number
+}
+
 export const extractionUsageApiService = {
   /**
    * Lädt Extraction Usage-Daten mit server-seitiger Filterung und Pagination
@@ -135,16 +177,10 @@ export const extractionUsageApiService = {
         apiKey: filter.apiKey,
       }
 
-      // Füge status hinzu, wenn es definiert ist
-      // Verwende Type-Assertion, da die generierten Types auf verschiedenen Systemen unterschiedlich sein können
+      // Füge status hinzu, wenn es definiert ist (string reicht – andere OpenAPI kann andere Enums haben)
       const params = (
         filter.status
-          ? {
-              ...baseParams,
-              status: filter.status as
-                | import('@/api/types').ExtractionRequestParamsStatusParameter
-                | undefined,
-            }
+          ? { ...baseParams, status: filter.status }
           : baseParams
       ) as (AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params) & {
         offset?: number
@@ -154,16 +190,14 @@ export const extractionUsageApiService = {
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionGetV1(params)
         : await getUsage().usageExtractionGetV1(params)
-      const response = apiResponse.data as
-        | ExtractionUsagePageResponse
-        | import('@/api/types').ExtractionUsageRecord[]
-      const rawData = getDataArray<import('@/api/types').ExtractionUsageRecord>(response)
+      const response = apiResponse.data as ExtractionPageResponseShape | ExtractionUsageRecordShape[]
+      const rawData = getDataArray<ExtractionUsageRecordShape>(response)
 
       debugLog('API response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageData (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere zu EnhancedExtractionUsageRecord
-      const enhancedData = rawData.map((item: import('@/api/types').ExtractionUsageRecord) => ({
+      const enhancedData = rawData.map((item: ExtractionUsageRecordShape) => ({
         id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
         operationId: item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
         status: item.status || 'completed',
@@ -205,8 +239,8 @@ export const extractionUsageApiService = {
         !Array.isArray(response) &&
         'pagination' in response
       ) {
-        const backendPagination = (response as ExtractionUsagePageResponse).pagination
-        pagination = mapPagination(backendPagination) || backendPagination
+        const backendPagination = (response as ExtractionPageResponseShape).pagination
+        pagination = mapPagination(backendPagination) ?? (backendPagination as Page)
       }
 
       return {
@@ -291,16 +325,16 @@ export const extractionUsageApiService = {
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
       const apiResponse = await getUsage().usageExtractionSummaryGetV1(params)
       const response = apiResponse.data as
-        | ExtractionUsageSummaryPageResponse
-        | import('@/api/types').ExtractionUsageSummaryRecord[]
-      const rawData = getDataArray<import('@/api/types').ExtractionUsageSummaryRecord>(response)
+        | ExtractionPageResponseShape
+        | ExtractionUsageSummaryRecordShape[]
+      const rawData = getDataArray<ExtractionUsageSummaryRecordShape>(response)
 
       debugLog('API summary response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere Summary zu EnhancedExtractionUsageRecord
       const enhancedData = rawData.map(
-        (item: import('@/api/types').ExtractionUsageSummaryRecord) => ({
+        (item: ExtractionUsageSummaryRecordShape) => ({
           id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
           operationId: `${item.provider}-${item.modelId}`,
           status: item.status || 'completed',
@@ -330,13 +364,14 @@ export const extractionUsageApiService = {
         length: enhancedData.length,
       })
 
-      const pagination =
+      const backendPagination =
         response &&
         typeof response === 'object' &&
         !Array.isArray(response) &&
         'pagination' in response
-          ? (response as ExtractionUsageSummaryPageResponse).pagination
+          ? (response as ExtractionPageResponseShape).pagination
           : undefined
+      const pagination = mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
 
       return {
         data: enhancedData,

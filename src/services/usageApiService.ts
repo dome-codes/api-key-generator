@@ -332,7 +332,7 @@ export const usageApiService = {
         'pagination' in response
       ) {
         const backendPagination = (response as UsagePageResponse).pagination
-        pagination = mapPagination(backendPagination) || backendPagination
+        pagination = mapPagination(backendPagination) ?? (backendPagination as Page)
         debugLog('Pagination mapped:', {
           backend: backendPagination,
           mapped: pagination,
@@ -477,7 +477,7 @@ export const usageApiService = {
         'pagination' in response
       ) {
         const backendPagination = (response as SummaryUsagePageResponse).pagination
-        pagination = mapPagination(backendPagination) || backendPagination
+        pagination = mapPagination(backendPagination) ?? (backendPagination as Page)
       }
 
       diagLog('getUsageSummary (after map)', response, rawData.length, rawData[0], {

@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
-  AIUsagePage,
+  AiUsagePage,
   AIUsageSummaryPage,
   ExtractionUsagePage,
   ExtractionUsageSummaryPage,
@@ -16,10 +16,12 @@ import type {
   UsageExtractionSummaryGetV1Params,
 } from '.././types'
 
-import usageAIGetV1Mutator from '../../axios/api'
-import usageAISummaryGetV1Mutator from '../../axios/api'
-import usageExtractionGetV1Mutator from '../../axios/api'
-import usageExtractionSummaryGetV1Mutator from '../../axios/api'
+import {
+  default as usageAIGetV1Mutator,
+  default as usageAISummaryGetV1Mutator,
+  default as usageExtractionGetV1Mutator,
+  default as usageExtractionSummaryGetV1Mutator,
+} from '../../axios/api'
 
 export const getUsage = () => {
   /**
@@ -27,7 +29,7 @@ export const getUsage = () => {
    * @summary Tracks the usage of the AI service
    */
   const usageAIGetV1 = (params?: UsageAIGetV1Params) => {
-    return usageAIGetV1Mutator<AIUsagePage>({ url: `/usage/ai`, method: 'GET', params })
+    return usageAIGetV1Mutator<AiUsagePage>({ url: `/usage/ai`, method: 'GET', params })
   }
   /**
    * Returns the usage summary grouped by specified parameters with server-side filtering and pagination.

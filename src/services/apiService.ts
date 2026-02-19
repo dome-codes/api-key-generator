@@ -1,19 +1,27 @@
 import { getAdmin } from '@/api/admin/admin'
 import type {
   AdminUsageAISummaryGetV1Params,
-  AIUsagePage,
+  AiUsagePage,
   AIUsageSummaryPage,
   AIUsageSummaryRecord,
+  Page,
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
-import type { Page } from '@/api/types'
-import type { ApiKeyDisplay } from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
-import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
-import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
+import { api } from '@/axios/api'
 import { getDataArray } from '@/services/usageApiService'
+import type { ApiKeyDisplay } from '@/types/frontend'
+import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
+
+/** Default-Pagination wenn Backend keine liefert (vermeidet "undefined is not assignable to type Page") */
+const defaultPage: Page = {
+  totalItems: 0,
+  totalPages: 0,
+  currentPage: 1,
+  pageSize: 20,
+}
 
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
@@ -121,13 +129,13 @@ export const apiKeyService = {
 // Usage-Service für Verbrauchsdaten (Orval-generierte Usage/Admin-APIs)
 export const usageService = {
   // Eigene Usage-Daten abrufen
-  async getOwnUsage(fromDate?: string, toDate?: string): Promise<AIUsagePage> {
+  async getOwnUsage(fromDate?: string, toDate?: string): Promise<AiUsagePage> {
     try {
       debugLog('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
         debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
 
       const params: UsageAIGetV1Params = {}
@@ -138,10 +146,10 @@ export const usageService = {
       const response = await getUsage().usageAIGetV1(params)
       debugLog('🔍 [API-SERVICE] API response:', response.data)
 
-      return (response.data ?? { data: [], pagination: undefined }) as AIUsageSummaryPage
+      return (response.data ?? { data: [], pagination: defaultPage }) as AIUsageSummaryPage
     } catch (error) {
       debugLog('🔍 [API-SERVICE] Fehler beim Laden der eigenen Usage-Daten:', error)
-      return { data: [], pagination: undefined }
+      return { data: [], pagination: defaultPage }
     }
   },
 
@@ -152,7 +160,7 @@ export const usageService = {
 
       if (!hasPermission('canSeeOwnUsage')) {
         debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
 
       const params: UsageAISummaryGetV1Params = {}
@@ -164,13 +172,13 @@ export const usageService = {
       debugLog('🔍 [API-SERVICE] API response:', response.data)
 
       if (!response.data) {
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
       // Type assertion für Kompatibilität mit verschiedenen generierten Typen
       return response.data as AIUsageSummaryPage
     } catch (error) {
       debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary:', error)
-      return { data: [], pagination: undefined }
+      return { data: [], pagination: defaultPage }
     }
   },
 
@@ -181,7 +189,7 @@ export const usageService = {
 
       if (!hasPermission('canSeeOwnUsage')) {
         debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
 
       // Backend: by=apiKey (camelCase, laut generierten TypeScript-Typen), from_date/to_date als date-time (ISO)
@@ -211,14 +219,14 @@ export const usageService = {
 
       // Backend kann data, items oder usage liefern
       const data = getDataArray<AIUsageSummaryRecord>(body)
-const pagination: Page | undefined =
-          body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
-          ? (body as { pagination?: Page }).pagination
-          : undefined
+      const pagination: Page =
+        body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
+          ? ((body as { pagination?: Page }).pagination ?? defaultPage)
+          : defaultPage
       return { data, pagination }
     } catch (error) {
       debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
-      return { data: [], pagination: undefined }
+      return { data: [], pagination: defaultPage }
     }
   },
 
@@ -227,7 +235,7 @@ const pagination: Page | undefined =
     try {
       if (!hasPermission('canUseAdminFeatures')) {
         debugLog('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Daten')
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
 
       const params: AdminUsageAISummaryGetV1Params = {}
@@ -236,13 +244,13 @@ const pagination: Page | undefined =
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       if (!response.data) {
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
       // Type assertion für Kompatibilität mit verschiedenen generierten Typen
       return response.data as AIUsageSummaryPage
     } catch (error) {
       debugLog('Fehler beim Laden der Admin-Usage-Daten:', error)
-      return { data: [], pagination: undefined }
+      return { data: [], pagination: defaultPage }
     }
   },
 
@@ -251,7 +259,7 @@ const pagination: Page | undefined =
     try {
       if (!hasPermission('canUseAdminFeatures')) {
         debugLog('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
 
       const params: AdminUsageAISummaryGetV1Params = {}
@@ -260,13 +268,13 @@ const pagination: Page | undefined =
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       if (!response.data) {
-        return { data: [], pagination: undefined }
+        return { data: [], pagination: defaultPage }
       }
       // Type assertion für Kompatibilität mit verschiedenen generierten Typen
       return response.data as AIUsageSummaryPage
     } catch (error) {
       debugLog('Fehler beim Laden der Admin-Usage-Summary:', error)
-      return { data: [], pagination: undefined }
+      return { data: [], pagination: defaultPage }
     }
   },
 }

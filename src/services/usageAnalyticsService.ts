@@ -1,10 +1,9 @@
+import type { AIUsageRecord, AIUsageSummaryRecord } from '@/api/types'
 import {
   type EnhancedUsageRecord,
   type ImageModelUsage,
-  type ModelUsage,
   type ModelUsageSummary,
   type ModelUsageType,
-  type SummaryUsage,
   type UsageAggregation,
   type UserUsageSummary,
   CompletionModelUsageType as CompletionModelUsageTypeEnum,
@@ -12,6 +11,10 @@ import {
   ImageModelUsageType as ImageModelUsageTypeEnum,
 } from '@/types/frontend'
 import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
+
+/** Aliase für Usage-Records (kommen aus API; andere OpenAPI kann andere Typen generieren) */
+type ModelUsage = AIUsageRecord
+type SummaryUsage = AIUsageSummaryRecord
 
 // Helper to get the correct enum value - handles both old and new enum formats
 const getModelUsageTypeValue = (value: string): ModelUsageType | undefined => {
