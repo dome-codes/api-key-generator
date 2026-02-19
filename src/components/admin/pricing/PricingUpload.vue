@@ -14,7 +14,7 @@ interface Emits {
   (e: 'clear-success'): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
