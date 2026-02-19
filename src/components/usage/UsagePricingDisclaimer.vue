@@ -14,16 +14,68 @@ const props = withDefaults(defineProps<Props>(), {
 
 const showDetails = ref(false)
 
-// Formatiere den vollständigen Disclaimer für HTML-Anzeige
-const formattedFullDisclaimer = computed(() => {
-  if (!props.useFullDisclaimer) return ''
+// Formatiere den vollständigen Disclaimer für Template-Anzeige (ohne v-html)
+interface TextPart {
+  text: string
+  bold: boolean
+  italic?: boolean
+}
 
-  // Konvertiere Markdown-ähnliche Formatierung zu HTML
-  return PRICING_DISCLAIMER.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n\n/g, '</p><p class="mt-2">')
-    .replace(/\n/g, '<br>')
-    .replace(/^- (.*?)(?=\n|$)/gm, '• $1')
-    .replace(/^<p>/, '<p class="mb-2">')
+interface FormattedLine {
+  parts: TextPart[]
+  isListItem: boolean
+}
+
+const formattedFullDisclaimer = computed(() => {
+  if (!props.useFullDisclaimer) return []
+
+  // Teile den Text in Absätze auf
+  const paragraphs = PRICING_DISCLAIMER.split(/\n\n+/).filter((p) => p.trim())
+
+  return paragraphs.map((paragraph): FormattedLine[] => {
+    const lines = paragraph.split('\n').filter((l) => l.trim())
+    return lines.map((line): FormattedLine => {
+      const isListItem = line.trim().startsWith('- ')
+      const lineText = isListItem ? line.trim().substring(2) : line.trim()
+
+      // Ersetze **text** und *text* mit Markern für späteres Rendering
+      const parts: TextPart[] = []
+      const remaining = lineText
+      let lastIndex = 0
+
+      // Kombiniere Regex für **bold** und *italic*
+      const formatRegex = /\*\*([^*]+)\*\*|\*([^*]+)\*/g
+      let match
+
+      while ((match = formatRegex.exec(remaining)) !== null) {
+        // Text vor dem Format
+        if (match.index > lastIndex) {
+          parts.push({ text: remaining.slice(lastIndex, match.index), bold: false, italic: false })
+        }
+        // Formatierter Text
+        if (match[1]) {
+          // **bold**
+          parts.push({ text: match[1], bold: true, italic: false })
+        } else if (match[2]) {
+          // *italic*
+          parts.push({ text: match[2], bold: false, italic: true })
+        }
+        lastIndex = match.index + match[0].length
+      }
+
+      // Restlicher Text
+      if (lastIndex < remaining.length) {
+        parts.push({ text: remaining.slice(lastIndex), bold: false, italic: false })
+      }
+
+      // Wenn keine Format-Marker gefunden wurden, gesamte Zeile als normal
+      if (parts.length === 0) {
+        parts.push({ text: lineText, bold: false, italic: false })
+      }
+
+      return { parts, isListItem }
+    })
+  })
 })
 </script>
 
@@ -44,7 +96,32 @@ const formattedFullDisclaimer = computed(() => {
       <div class="flex-1">
         <!-- Vollständiger Disclaimer aus pricing.ts -->
         <div v-if="useFullDisclaimer" class="text-sm text-gray-700">
-          <div class="space-y-2" v-html="formattedFullDisclaimer"></div>
+          <div class="space-y-2">
+            <template v-for="(paragraph, pIdx) in formattedFullDisclaimer" :key="pIdx">
+              <div
+                v-if="paragraph.length > 0"
+                :class="{ 'mb-2': pIdx < formattedFullDisclaimer.length - 1 }"
+              >
+                <template v-for="(line, lIdx) in paragraph" :key="lIdx">
+                  <p v-if="!line.isListItem" class="mb-1">
+                    <template v-for="(part, partIdx) in line.parts" :key="partIdx">
+                      <strong v-if="part.bold">{{ part.text }}</strong>
+                      <em v-else-if="part.italic">{{ part.text }}</em>
+                      <template v-else>{{ part.text }}</template>
+                    </template>
+                  </p>
+                  <div v-else class="ml-4 mb-1">
+                    <span class="mr-2">•</span>
+                    <template v-for="(part, partIdx) in line.parts" :key="partIdx">
+                      <strong v-if="part.bold">{{ part.text }}</strong>
+                      <em v-else-if="part.italic">{{ part.text }}</em>
+                      <template v-else>{{ part.text }}</template>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- Kompakter Disclaimer (Standard) -->

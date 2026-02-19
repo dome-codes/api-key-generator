@@ -5,8 +5,10 @@
  * Einfache Implementierung für lokales Testen
  */
 
-import type { ModelPricing, ImageModelPricing, EmbeddingModelPricing } from '@/config/pricing'
 import {
+  type ModelPricing,
+  type ImageModelPricing,
+  type EmbeddingModelPricing,
   DEFAULT_AZURE_MODEL_PRICING,
   DEFAULT_AZURE_IMAGE_MODEL_PRICING,
   DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
@@ -174,7 +176,7 @@ export const pricingService = {
           }
 
           // Validiere jedes ModelPricing-Element
-          data.modelPricing.forEach((model: any, index: number) => {
+          data.modelPricing.forEach((model: unknown, index: number) => {
             if (!model || typeof model !== 'object') {
               throw new Error(`Ungültiges Modell in modelPricing[${index}]: Muss ein Objekt sein.`)
             }
@@ -212,7 +214,7 @@ export const pricingService = {
           })
 
           // Validiere jedes ImageModelPricing-Element
-          data.imagePricing.forEach((model: any, index: number) => {
+          data.imagePricing.forEach((model: unknown, index: number) => {
             if (!model || typeof model !== 'object') {
               throw new Error(`Ungültiges Modell in imagePricing[${index}]: Muss ein Objekt sein.`)
             }
@@ -250,7 +252,7 @@ export const pricingService = {
           })
 
           // Validiere jedes EmbeddingModelPricing-Element
-          data.embeddingPricing.forEach((model: any, index: number) => {
+          data.embeddingPricing.forEach((model: unknown, index: number) => {
             if (!model || typeof model !== 'object') {
               throw new Error(
                 `Ungültiges Modell in embeddingPricing[${index}]: Muss ein Objekt sein.`,

@@ -173,7 +173,7 @@ export const initKeycloak = async (): Promise<boolean> => {
     _resolveWhenKeycloakInit?.()
     return authenticated
   } catch (error) {
-    console.error('Fehler bei Keycloak-Initialisierung!', error)
+    debugLog('Fehler bei Keycloak-Initialisierung!', error)
     _resolveWhenKeycloakInit?.()
     return false
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { debugLog } from '@/utils/debugLog'
 
 interface ChartData {
   labels: string[]
@@ -172,7 +173,7 @@ const createChart = async () => {
 
     chartLoaded.value = true
   } catch (error) {
-    console.error('Fehler beim Erstellen des Charts:', error)
+    debugLog('Fehler beim Erstellen des Charts:', error)
     chartLoaded.value = false
   }
 }

@@ -3,14 +3,13 @@ import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
 import type { EnhancedExtractionUsageRecord } from '@/api/types/frontend'
-import type { DocumentIntelligenceOperationStatus } from '@/api/types'
-import type { PaginationInfo } from '@/api/types'
+import type { DocumentIntelligenceOperationStatus, PaginationInfo } from '@/api/types'
 import { computed, ref, watch } from 'vue'
 
 interface Props {
   data: EnhancedExtractionUsageRecord[]
-  isLoading: boolean
-  error: string | null
+  isLoading?: boolean
+  error?: string | null
   pagination?: PaginationInfo
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend

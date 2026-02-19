@@ -200,19 +200,33 @@ export function readTokensFromItem(item: Record<string, unknown>): {
   responseTokens: number
 } {
   const requestTokens =
-    Number(item.requestTokens) ??
-    Number((item as { requestsTokens?: number }).requestsTokens) ??
-    Number((item as { request_tokens?: number }).request_tokens) ??
+    (item.requestTokens != null ? Number(item.requestTokens) : NaN) ||
+    ((item as { requestsTokens?: number }).requestsTokens != null
+      ? Number((item as { requestsTokens?: number }).requestsTokens)
+      : NaN) ||
+    ((item as { request_tokens?: number }).request_tokens != null
+      ? Number((item as { request_tokens?: number }).request_tokens)
+      : NaN) ||
     0
   const responseTokens =
-    Number(item.responseTokens) ??
-    Number((item as { reponseTokens?: number }).reponseTokens) ??
-    Number((item as { response_tokens?: number }).response_tokens) ??
+    (item.responseTokens != null ? Number(item.responseTokens) : NaN) ||
+    ((item as { reponseTokens?: number }).reponseTokens != null
+      ? Number((item as { reponseTokens?: number }).reponseTokens)
+      : NaN) ||
+    ((item as { response_tokens?: number }).response_tokens != null
+      ? Number((item as { response_tokens?: number }).response_tokens)
+      : NaN) ||
     0
   const reasoning =
-    Number((item as { reasoningTokens?: number }).reasoningTokens) ??
-    Number((item as { reisoningTokens?: number }).reisoningTokens) ??
-    Number((item as { reasoning_tokens?: number }).reasoning_tokens) ??
+    ((item as { reasoningTokens?: number }).reasoningTokens != null
+      ? Number((item as { reasoningTokens?: number }).reasoningTokens)
+      : NaN) ||
+    ((item as { reisoningTokens?: number }).reisoningTokens != null
+      ? Number((item as { reisoningTokens?: number }).reisoningTokens)
+      : NaN) ||
+    ((item as { reasoning_tokens?: number }).reasoning_tokens != null
+      ? Number((item as { reasoning_tokens?: number }).reasoning_tokens)
+      : NaN) ||
     0
   return {
     requestTokens: Number(requestTokens) || 0,
@@ -379,7 +393,7 @@ export const usageApiService = {
         pagination: finalPagination,
       }
     } catch (error) {
-      console.error('Error loading usage data via API:', error)
+      debugLog('Error loading usage data via API:', error)
       return {
         data: [],
         pagination: {
@@ -514,7 +528,7 @@ export const usageApiService = {
         },
       }
     } catch (error) {
-      console.error('Error loading usage summary via API:', error)
+      debugLog('Error loading usage summary via API:', error)
       return {
         data: [],
         pagination: {

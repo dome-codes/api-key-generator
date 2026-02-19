@@ -172,10 +172,10 @@ const sortedKeys = computed(() => {
       case 'createdAt':
         if (isAdmin.value) {
           // Sortiere nach dem neuesten Key pro Benutzer
-          const aLatestKey = a.keys.reduce((latest: any, key: any) =>
+          const aLatestKey = a.keys.reduce((latest: ApiKeyDisplay, key: ApiKeyDisplay) =>
             new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
           )
-          const bLatestKey = b.keys.reduce((latest: any, key: any) =>
+          const bLatestKey = b.keys.reduce((latest: ApiKeyDisplay, key: ApiKeyDisplay) =>
             new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
           )
           comparison =
@@ -339,8 +339,19 @@ const handleUserBlur = () => {
 }
 
 // Erstelle KeyData für gruppierte Benutzer
-const createGroupedKeyData = (groupedKey: any): ApiKeyDisplay => {
-  const latestKey = groupedKey.keys.reduce((latest: any, key: any) =>
+interface GroupedKey {
+  userId: string
+  userName: string
+  keys: ApiKeyDisplay[]
+  totalCost: number
+  totalTokensIn: number
+  totalTokensOut: number
+  activeKeys: number
+  inactiveKeys: number
+}
+
+const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
+  const latestKey = groupedKey.keys.reduce((latest: ApiKeyDisplay, key: ApiKeyDisplay) =>
     new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
   )
 
@@ -838,10 +849,7 @@ const formatNumber = (num: number): string => {
             @revoke="$emit('revoke', $event)"
             @name-input="$emit('name-input', $event)"
           />
-          <template
-            v-if="isAdmin && expandedUserId === getGroupId(group) && hasGroupKeys(group)"
-            :key="getGroupId(group) + '-expanded'"
-          >
+          <template v-if="isAdmin && expandedUserId === getGroupId(group) && hasGroupKeys(group)">
             <ApiKeyRow
               v-for="k in getGroupKeys(group)"
               :key="k.id"

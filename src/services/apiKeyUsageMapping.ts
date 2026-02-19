@@ -71,7 +71,7 @@ export function buildApiKeyUsageMap(
   const map: Record<string, ApiKeyUsageData> = {}
 
   if (isDebugLogEnabled() && safeRecords.length > 0 && keys.length > 0) {
-    const recordIds = [
+    const _recordIds = [
       ...new Set(safeRecords.map((r) => r.apiKeyId ?? r.technicalUserId ?? '').filter(Boolean)),
     ]
     const apiKeyIds = keys.map((k) => k.id)

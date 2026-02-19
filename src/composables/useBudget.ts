@@ -1,5 +1,6 @@
 import { onMounted, ref } from 'vue'
 import { useUsage } from './useUsage'
+import { debugLog } from '@/utils/debugLog'
 
 export interface BudgetConfig {
   monthlyLimit: number
@@ -49,7 +50,6 @@ export function useBudget() {
 
         // Vereinfachte Berechnung für Woche und Tag (proportional)
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-        const currentDay = now.getDate()
 
         currentWeekCost.value = (currentMonthCost.value / daysInMonth) * 7
         currentDayCost.value = currentMonthCost.value / daysInMonth
@@ -58,7 +58,7 @@ export function useBudget() {
       // Lade gespeicherte Budget-Konfiguration aus localStorage
       loadBudgetConfig()
     } catch (error) {
-      console.error('Fehler beim Laden der Budget-Daten:', error)
+      debugLog('Fehler beim Laden der Budget-Daten:', error)
     } finally {
       isLoadingBudget.value = false
     }
@@ -78,7 +78,7 @@ export function useBudget() {
         const config = JSON.parse(saved)
         budgetConfig.value = { ...budgetConfig.value, ...config }
       } catch (error) {
-        console.warn('Fehler beim Laden der Budget-Konfiguration:', error)
+        debugLog('Fehler beim Laden der Budget-Konfiguration:', error)
       }
     }
   }

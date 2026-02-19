@@ -101,11 +101,12 @@ const loadFiltersFromUrl = () => {
       case 'thisMonth':
         startDate = new Date(today.getFullYear(), today.getMonth(), 1)
         break
-      case 'lastMonth':
+      case 'lastMonth': {
         startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
         const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
         ownToDate.value = lastDay.toISOString().split('T')[0]
         break
+      }
       default:
         startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
     }
@@ -204,7 +205,7 @@ const handleOwnFilterChange = async () => {
 
     saveFiltersToUrl()
   } catch (err) {
-    console.error('[AIUsageContent] Error in handleOwnFilterChange:', err)
+    debugLog('[AIUsageContent] Error in handleOwnFilterChange:', err)
     error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Daten'
   } finally {
     isHandlingFilterChange = false
@@ -291,11 +292,12 @@ onMounted(async () => {
           case 'thisMonth':
             startDate = new Date(today.getFullYear(), today.getMonth(), 1)
             break
-          case 'lastMonth':
+          case 'lastMonth': {
             startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
             const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
             ownToDate.value = lastDay.toISOString().split('T')[0]
             break
+          }
           default:
             startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
         }
@@ -313,7 +315,7 @@ onMounted(async () => {
 
     await handleOwnFilterChange()
   } catch (err) {
-    console.error('Error initializing AIUsageContent:', err)
+    debugLog('Error initializing AIUsageContent:', err)
     error.value = err instanceof Error ? err.message : 'Fehler beim Initialisieren'
   }
 })
@@ -371,7 +373,7 @@ onMounted(async () => {
       :error="error"
       :pagination="pagination"
       :sort-field="currentFilter.sort"
-      :sort-order="currentFilter.order as 'asc' | 'desc' | undefined"
+      :sort-order="currentFilter.order"
       :use-backend-sorting="true"
       :model-type-filter="ownModelType"
       @page-change="handlePageChange"

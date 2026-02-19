@@ -1,18 +1,7 @@
 import { getToken, whenTokenReadyForApi } from '@/auth/keycloak'
+import { debugLog } from '@/utils/debugLog'
 import appConfig from '@root/app.config.js'
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
-
-// Debug-Log (nur im Debug-Modus); kein import.meta hier, damit Orval in Node laufen kann
-const debugLog = (...args: unknown[]) => {
-  try {
-    const showDebug = (appConfig as { showDebug?: boolean }).showDebug
-    const fromStorage =
-      typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
-    if (showDebug || fromStorage) console.log(...args)
-  } catch {
-    void 0 // debugLog must not throw (e.g. when appConfig or localStorage is unavailable)
-  }
-}
 
 // Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
 const rawBase = appConfig.apiBaseUrl || ''
@@ -169,7 +158,7 @@ api.interceptors.response.use(
 
 // Orval Mutator-Funktion (Default Export für Orval)
 // Diese Funktion wird von Orval verwendet, um API-Calls zu machen
-const orvalMutator = async <T = any, D = any>(
+const orvalMutator = async <T = unknown, D = unknown>(
   config: AxiosRequestConfig<D>,
 ): Promise<AxiosResponse<T>> => {
   return api.request<T, AxiosResponse<T>, D>(config)

@@ -9,7 +9,7 @@ interface UserProfile {
 }
 
 export function useApiKeys(userProfile: UserProfile) {
-  const keys = ref<any[]>([])
+  const keys = ref<ApiKeyDisplay[]>([])
   const isLoading = ref(false)
   const error = ref('')
   const isCreating = ref(false)
@@ -26,16 +26,16 @@ export function useApiKeys(userProfile: UserProfile) {
   const showRevokeSuccessMessage = ref(false)
 
   const apiKeys = computed<ApiKeyDisplay[]>(() => {
-    return keys.value.map((key: any) => ({
+    return keys.value.map((key: ApiKeyDisplay) => ({
       id: key.id,
-      apiKey: key.id,
+      apiKey: key.apiKey || key.id,
       name: key.name,
-      permissions: 'api-access',
+      permissions: key.permissions || 'api-access',
       createdAt: key.createdAt,
-      createdBy: userProfile.value?.name || 'Unknown',
-      validUntil: key.expiresAt || 'Never',
-      lastUsed: 'Never',
-      status: key.active ? 'active' : 'revoked',
+      createdBy: key.createdBy || userProfile.value?.name || 'Unknown',
+      validUntil: key.validUntil || 'Never',
+      lastUsed: key.lastUsed || 'Never',
+      status: key.status || 'active',
       userId: key.userId,
       userName: key.userName,
     }))
@@ -60,10 +60,11 @@ export function useApiKeys(userProfile: UserProfile) {
     try {
       const data = await apiKeyService.createApiKey(newKeyName.value, newKeyPermissions.value)
 
-      createdSecret.value = data.token || ''
-      createdKeyName.value = data.name
+      createdSecret.value = (data.secret as string) || (data.token as string) || ''
+      createdKeyName.value = (data.name as string) || newKeyName.value
       createdKeyPermissions.value = ['api-access']
-      createdKeyValidUntil.value = data.expiresAt || 'Never'
+      createdKeyValidUntil.value =
+        (data.expiresAt as string) || (data.validUntil as string) || 'Never'
       createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
       await loadKeys()
     } catch (err) {
@@ -91,7 +92,7 @@ export function useApiKeys(userProfile: UserProfile) {
     try {
       await navigator.clipboard.writeText(apiKey)
       return true
-    } catch (err) {
+    } catch (_err) {
       error.value = 'Fehler beim Kopieren'
       return false
     }

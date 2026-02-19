@@ -39,7 +39,7 @@ const convertToIsoString = (dateString?: string): string | undefined => {
     const date = new Date(`${dateString}T00:00:00.000Z`)
     return date.toISOString()
   } catch (error) {
-    console.warn('Fehler beim Konvertieren des Datums:', dateString, error)
+    debugLog('Fehler beim Konvertieren des Datums:', dateString, error)
     return dateString
   }
 }
@@ -83,9 +83,8 @@ export function useUsage() {
     }
 
     if (currentFilter.value.technicalUserIds && currentFilter.value.technicalUserIds.length > 0) {
-      filtered = filtered.filter((item) =>
-        currentFilter.value.technicalUserIds!.includes(item.technicalUserId ?? ''),
-      )
+      const userIds = currentFilter.value.technicalUserIds
+      filtered = filtered.filter((item) => userIds.includes(item.technicalUserId ?? ''))
     }
 
     return filtered
@@ -123,27 +122,28 @@ export function useUsage() {
 
       // Extrahiere Aggregation aus den API-Key-Daten (ohne undefined-Einträge → verhindert Index-Fehler)
       const validItems = (summaryData.data || []).filter(
-        (item: any) => item != null && typeof item === 'object',
+        (item: unknown): item is EnhancedUsageRecord => item != null && typeof item === 'object',
       )
       if (validItems.length > 0) {
         // Berechne Aggregation aus den API-Key-Daten
         const totalRequests = validItems.reduce(
-          (sum: number, item: any) => sum + (item.requests || 0),
+          (sum: number, item: EnhancedUsageRecord) =>
+            sum + ((item as EnhancedUsageRecord & { requests?: number }).requests || 0),
           0,
         )
         const totalTokensIn = validItems.reduce(
-          (sum: number, item: any) => sum + readTokensFromItem(item).requestTokens,
+          (sum: number, item: EnhancedUsageRecord) => sum + readTokensFromItem(item).requestTokens,
           0,
         )
         const totalTokensOut = validItems.reduce(
-          (sum: number, item: any) => sum + readTokensFromItem(item).responseTokens,
+          (sum: number, item: EnhancedUsageRecord) => sum + readTokensFromItem(item).responseTokens,
           0,
         )
         const totalTokens = totalTokensIn + totalTokensOut
 
         // Berechne Kosten für jedes Item
         const costs = await Promise.all(
-          validItems.map(async (item: any) => {
+          validItems.map(async (item: EnhancedUsageRecord) => {
             const { calculateCost } = await import('@/config/pricing')
             const { requestTokens, responseTokens } = readTokensFromItem(item)
             return calculateCost(
@@ -164,18 +164,22 @@ export function useUsage() {
           totalTokensOut,
           totalTokens,
           totalCost,
-          uniqueUsers: new Set(validItems.map((item: any) => item.technicalUserId)).size,
-          uniqueModels: new Set(validItems.map((item: any) => item.model)).size,
+          uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.technicalUserId))
+            .size,
+          uniqueModels: new Set(validItems.map((item: EnhancedUsageRecord) => item.model)).size,
           averageRequestsPerUser:
             totalRequests /
-            Math.max(new Set(validItems.map((item: any) => item.technicalUserId)).size, 1),
+            Math.max(
+              new Set(validItems.map((item: EnhancedUsageRecord) => item.technicalUserId)).size,
+              1,
+            ),
           averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
           averageCostPerRequest: totalCost / Math.max(totalRequests, 1),
         }
 
         // Konvertiere zu EnhancedUsageRecord für Progress Bars (apiKeyId aus allen Backend-Varianten)
         const enhancedData = await Promise.all(
-          validItems.map(async (item: any) => {
+          validItems.map(async (item: EnhancedUsageRecord) => {
             // DEBUG: Zeige rohes Item vor Extraktion
             if (isDebugLogEnabled()) {
               debugLog('[useUsage] Rohes Item vor apiKeyId-Extraktion:', {
@@ -264,7 +268,7 @@ export function useUsage() {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
       debugLog('Error loading usage summary:', err)
-      console.error('❌ [FRONTEND] Error loading usage summary:', err)
+      debugLog('❌ [FRONTEND] Error loading usage summary:', err)
     } finally {
       isLoading.value = false
     }
@@ -329,8 +333,8 @@ export function useUsage() {
             cost: r.cost ?? 0,
             tokensIn: r.tokensIn ?? 0,
             tokensOut: r.tokensOut ?? 0,
-            requestTokens: (r as any).requestTokens,
-            responseTokens: (r as any).responseTokens,
+            requestTokens: (r as EnhancedUsageRecord & { requestTokens?: number }).requestTokens,
+            responseTokens: (r as EnhancedUsageRecord & { responseTokens?: number }).responseTokens,
           })),
           'Unique apiKeyIds (erste 10)': [
             ...new Set(response.map((r) => r.apiKeyId).filter(Boolean)),
@@ -341,14 +345,14 @@ export function useUsage() {
       error.value =
         err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Nutzungsdaten'
       debugLog('Error loading detailed usage data:', err)
-      console.error('❌ [FRONTEND] Error loading detailed usage data:', err)
+      debugLog('❌ [FRONTEND] Error loading detailed usage data:', err)
     } finally {
       isLoading.value = false
     }
   }
 
   // Neue Funktion: Lade Usage-Daten nach API Key gruppiert (für Progress Bar)
-  const loadUsageDataByApiKey = async (fromDate?: string, toDate?: string) => {
+  const _loadUsageDataByApiKey = async (fromDate?: string, toDate?: string) => {
     isLoading.value = true
     error.value = null
 
@@ -404,7 +408,7 @@ export function useUsage() {
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der API Key Usage-Daten'
-      console.error('🔍 [FRONTEND] Error loading API Key usage data:', err)
+      debugLog('🔍 [FRONTEND] Error loading API Key usage data:', err)
       detailedUsageData.value = []
     } finally {
       isLoading.value = false
@@ -459,7 +463,7 @@ export function useUsage() {
       }
     } catch (err) {
       error.value = 'Fehler beim Exportieren der Daten'
-      console.error('Fehler beim Exportieren:', err)
+      debugLog('Fehler beim Exportieren:', err)
     }
   }
 

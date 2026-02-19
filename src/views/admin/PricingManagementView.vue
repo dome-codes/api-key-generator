@@ -10,6 +10,7 @@ import DeleteConfirmModal from '@/components/admin/pricing/DeleteConfirmModal.vu
 import ResetConfirmModal from '@/components/admin/pricing/ResetConfirmModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDebug } from '@/composables/useDebug'
+import { debugLog } from '@/utils/debugLog'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { hasPermission } from '@/auth/keycloak'
@@ -72,7 +73,7 @@ const isEditing = (modelName: string, field: string) =>
   !!editingState.value[getEditingKey(modelName, field)]
 const getEditingValue = (modelName: string, field: string) =>
   editingState.value[getEditingKey(modelName, field)]?.currentValue
-const setInputRef = (modelName: string, field: string, el: any) => {
+const setInputRef = (modelName: string, field: string, el: HTMLElement | null) => {
   if (el && el instanceof HTMLInputElement) {
     inputRefs.value[getEditingKey(modelName, field)] = el
   }
@@ -86,7 +87,11 @@ const startEditing = (modelName: string, field: string, originalValue: number | 
   }
 }
 
-const handleInputChange = (model: any, field: string, value: string) => {
+const handleInputChange = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+  value: string,
+) => {
   const key = getEditingKey(model.modelName, field)
   if (editingState.value[key]) {
     editingState.value[key].currentValue = value
@@ -99,7 +104,10 @@ const handleInputChange = (model: any, field: string, value: string) => {
   }
 }
 
-const confirmEdit = (model: any, field: string) => {
+const confirmEdit = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+) => {
   const key = getEditingKey(model.modelName, field)
   const editing = editingState.value[key]
   if (!editing) return
@@ -155,12 +163,19 @@ const newEmbeddingModel = ref<EmbeddingModelPricing>({
 })
 
 // Hilfsfunktion für Input-Zuweisung (umgeht TypeScript-Fehler)
-const setInputValue = (model: any, field: string, value: string) => {
-  model[field] = value
+const setInputValue = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+  value: string,
+) => {
+  ;(model as Record<string, unknown>)[field] = value
 }
 
 // Für Modal-Inputs: Konvertiert String zu Number, speichert aber nicht automatisch
-const handleModalInputBlur = (model: any, field: string) => {
+const handleModalInputBlur = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+) => {
   const value = model[field]
   if (typeof value === 'string') {
     const num = parseFloat(value)
@@ -228,7 +243,7 @@ const handleFileUpload = async (file: File) => {
       uploadSuccess.value = false
     }, 3000)
   } catch (error) {
-    console.error('Fehler beim Hochladen:', error)
+    debugLog('Fehler beim Hochladen:', error)
     uploadError.value = error instanceof Error ? error.message : 'Fehler beim Hochladen der Datei'
     setTimeout(() => {
       uploadError.value = null

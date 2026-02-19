@@ -46,7 +46,7 @@ export async function getTopAITags(
     debugLog('[tagsService] Top AI tags loaded:', tags)
     return tags
   } catch (error) {
-    console.error('[tagsService] Error loading top AI tags:', error)
+    debugLog('[tagsService] Error loading top AI tags:', error)
     return []
   }
 }
@@ -84,7 +84,7 @@ export async function getTopExtractionTags(
     debugLog('[tagsService] Top extraction tags loaded:', tags)
     return tags
   } catch (error) {
-    console.error('[tagsService] Error loading top extraction tags:', error)
+    debugLog('[tagsService] Error loading top extraction tags:', error)
     return []
   }
 }

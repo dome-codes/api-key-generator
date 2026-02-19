@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ModelPricing } from '@/config/pricing'
+import type { ModelPricing, ImageModelPricing, EmbeddingModelPricing } from '@/config/pricing'
 import { ref } from 'vue'
 
 interface Props {
@@ -13,7 +13,7 @@ interface Emits {
   (e: 'add', model: ModelPricing): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   isLoading: false,
 })
 
@@ -33,7 +33,7 @@ const isEditing = (modelName: string, field: string) =>
   !!editingState.value[getEditingKey(modelName, field)]
 const getEditingValue = (modelName: string, field: string) =>
   editingState.value[getEditingKey(modelName, field)]?.currentValue
-const setInputRef = (modelName: string, field: string, el: any) => {
+const setInputRef = (modelName: string, field: string, el: HTMLElement | null) => {
   if (el && el instanceof HTMLInputElement) {
     inputRefs.value[getEditingKey(modelName, field)] = el
   }
@@ -112,11 +112,18 @@ const newModel = ref<ModelPricing>({
   reasoningPrice: undefined,
 })
 
-const setInputValue = (model: any, field: string, value: string) => {
-  model[field] = value
+const setInputValue = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+  value: string,
+) => {
+  ;(model as Record<string, unknown>)[field] = value
 }
 
-const handleModalInputBlur = (model: any, field: string) => {
+const handleModalInputBlur = (
+  model: ModelPricing | ImageModelPricing | EmbeddingModelPricing,
+  field: string,
+) => {
   const value = model[field]
   if (typeof value === 'string') {
     const num = parseFloat(value)

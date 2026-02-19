@@ -8,6 +8,7 @@ import type {
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
+import type { ApiKeyDisplay } from '@/api/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
 import { hasPermission } from '@/auth/keycloak'
@@ -25,7 +26,7 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
 // API-Service für API-Keys
 export const apiKeyService = {
   // Alle API-Keys abrufen (rollenbasiert)
-  async getApiKeys(): Promise<any[]> {
+  async getApiKeys(): Promise<ApiKeyDisplay[]> {
     // Prüfe Berechtigung (canCreateKeys erlaubt auch View)
     if (!hasPermission('canCreateKeys') && !hasPermission('canSeeOwnUsage')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
@@ -34,15 +35,18 @@ export const apiKeyService = {
     // Verwende Admin-Endpunkt wenn Admin-Berechtigung vorhanden
     if (hasPermission('canUseAdminFeatures')) {
       const response = await api.get('/admin/apikeys')
-      return response.data as any[]
+      return response.data as ApiKeyDisplay[]
     }
 
     const response = await api.get('/apikeys')
-    return response.data as any[]
+    return response.data as ApiKeyDisplay[]
   },
 
   // Neuen API-Key erstellen (rollenbasiert). Response normalisieren: Backend kann secret, token, api_key, value, key liefern.
-  async createApiKey(name: string, permissions: string[]): Promise<any> {
+  async createApiKey(
+    name: string,
+    permissions: string[],
+  ): Promise<Record<string, unknown> & { secret: string }> {
     // Prüfe Berechtigung
     if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Erstellen von API-Keys')
@@ -76,7 +80,11 @@ export const apiKeyService = {
   },
 
   // API-Key rotieren (rollenbasiert)
-  async rotateApiKey(keyId: string, name: string, permissions: string[]): Promise<any> {
+  async rotateApiKey(
+    keyId: string,
+    name: string,
+    permissions: string[],
+  ): Promise<Record<string, unknown>> {
     // Prüfe Berechtigung
     if (!hasPermission('canCreateKeys')) {
       throw new Error('Keine Berechtigung zum Bearbeiten von API-Keys')
@@ -84,29 +92,29 @@ export const apiKeyService = {
 
     const request = { name, permissions }
     const response = await api.post(`/apikeys/${keyId}/rotate`, request)
-    return response.data as any
+    return response.data as Record<string, unknown>
   },
 
   // Einzelnen API-Key abrufen
-  async getApiKey(keyId: string): Promise<any> {
+  async getApiKey(keyId: string): Promise<ApiKeyDisplay> {
     // Prüfe Berechtigung (canCreateKeys erlaubt auch View)
     if (!hasPermission('canCreateKeys') && !hasPermission('canSeeOwnUsage')) {
       throw new Error('Keine Berechtigung zum Anzeigen von API-Keys')
     }
 
     const response = await api.get(`/apikeys/${keyId}`)
-    return response.data as any
+    return response.data as ApiKeyDisplay
   },
 
   // Admin: Alle API-Keys aller Benutzer abrufen (gleiche Funktion wie getApiKeys, da alle Benutzer alle Keys sehen)
-  async getAllApiKeys(): Promise<any[]> {
+  async getAllApiKeys(): Promise<ApiKeyDisplay[]> {
     // Prüfe Admin-Berechtigung
     if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller API-Keys')
     }
 
     const response = await api.get('/apikeys')
-    return response.data as any[]
+    return response.data as ApiKeyDisplay[]
   },
 }
 
@@ -118,7 +126,7 @@ export const usageService = {
       debugLog('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
-        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
+        debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
 
@@ -132,7 +140,7 @@ export const usageService = {
 
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
-      console.warn('🔍 [API-SERVICE] Fehler beim Laden der eigenen Usage-Daten:', error)
+      debugLog('🔍 [API-SERVICE] Fehler beim Laden der eigenen Usage-Daten:', error)
       return { data: [], pagination: undefined }
     }
   },
@@ -143,7 +151,7 @@ export const usageService = {
       debugLog('🔍 [API-SERVICE] getUsageSummary called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
-        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
+        debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
 
@@ -157,7 +165,7 @@ export const usageService = {
 
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
-      console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary:', error)
+      debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary:', error)
       return { data: [], pagination: undefined }
     }
   },
@@ -168,7 +176,7 @@ export const usageService = {
       debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
 
       if (!hasPermission('canSeeOwnUsage')) {
-        console.warn('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
+        debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: undefined }
       }
 
@@ -189,7 +197,7 @@ export const usageService = {
         const rawData = getDataArray<AIUsageSummaryRecord>(body)
         debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
           'Anzahl Records': rawData.length,
-          'Erste 3 Records': rawData.slice(0, 3).map((r: any) => ({
+          'Erste 3 Records': rawData.slice(0, 3).map((r: AIUsageSummaryRecord) => ({
             'Alle Keys': Object.keys(r),
             apiKeyId: r.apiKeyId,
             api_key_id: r.api_key_id,
@@ -209,7 +217,7 @@ export const usageService = {
           : undefined
       return { data, pagination }
     } catch (error) {
-      console.warn('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
+      debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
       return { data: [], pagination: undefined }
     }
   },
@@ -218,7 +226,7 @@ export const usageService = {
   async getAdminUsage(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
       if (!hasPermission('canUseAdminFeatures')) {
-        console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Daten')
+        debugLog('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Daten')
         return { data: [], pagination: undefined }
       }
 
@@ -229,7 +237,7 @@ export const usageService = {
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
-      console.warn('Fehler beim Laden der Admin-Usage-Daten:', error)
+      debugLog('Fehler beim Laden der Admin-Usage-Daten:', error)
       return { data: [], pagination: undefined }
     }
   },
@@ -238,7 +246,7 @@ export const usageService = {
   async getAdminUsageSummary(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {
       if (!hasPermission('canUseAdminFeatures')) {
-        console.warn('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
+        debugLog('Keine Admin-Berechtigung zum Anzeigen der Admin-Usage-Summary')
         return { data: [], pagination: undefined }
       }
 
@@ -249,7 +257,7 @@ export const usageService = {
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       return response.data ?? { data: [], pagination: undefined }
     } catch (error) {
-      console.warn('Fehler beim Laden der Admin-Usage-Summary:', error)
+      debugLog('Fehler beim Laden der Admin-Usage-Summary:', error)
       return { data: [], pagination: undefined }
     }
   },
@@ -269,7 +277,7 @@ export const userService = {
   },
 
   // Benutzer-Rolle ändern
-  async updateUserRole(userId: string, role: string) {
+  async updateUserRole(_userId: string, _role: string) {
     // Prüfe Admin-Berechtigung
     if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Ändern von Benutzer-Rollen')
@@ -280,7 +288,7 @@ export const userService = {
   },
 
   // Benutzer deaktivieren
-  async deactivateUser(userId: string) {
+  async deactivateUser(_userId: string) {
     // Prüfe Admin-Berechtigung
     if (!hasPermission('canUseAdminFeatures')) {
       throw new Error('Keine Admin-Berechtigung zum Deaktivieren von Benutzern')

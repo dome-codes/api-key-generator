@@ -4,7 +4,8 @@ import type { ModelUsageType } from '@/api/types'
 import { formatCost } from '@/config/pricing'
 import ErrorState from './shared/ErrorState.vue'
 import SkeletonLoader from './shared/SkeletonLoader.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { debugLog } from '@/utils/debugLog'
 
 const emit = defineEmits<{
   'page-change': [page: number]
@@ -17,10 +18,6 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 // Page size change handled inline in template
-
-// Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
-const sortField = ref('date')
-const sortOrder = ref<'asc' | 'desc'>('desc')
 
 // Props für Backend-Sortierung (optional)
 interface Props {
@@ -50,6 +47,10 @@ const props = withDefaults(defineProps<Props>(), {
   modelTypeFilter: undefined,
 })
 
+// Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
+const localSortField = ref('date')
+const localSortOrder = ref<'asc' | 'desc'>('desc')
+
 // Größe/Qualität nur bei Image-Nutzung oder wenn kein Filter gesetzt
 const showImageColumns = computed(() => {
   const f = (props.modelTypeFilter || '').toLowerCase()
@@ -74,18 +75,19 @@ const sortedData = computed(() => {
   return data.sort((a, b) => {
     let comparison = 0
 
-    switch (sortField.value) {
+    switch (localSortField.value) {
       case 'technicalUserName':
         comparison = (a.technicalUserName || '').localeCompare(b.technicalUserName || '')
         break
       case 'modelName':
         comparison = (a.modelName || '').localeCompare(b.modelName || '')
         break
-      case 'modelType':
+      case 'modelType': {
         const typeA = a.type || a.modelType || ''
         const typeB = b.type || b.modelType || ''
         comparison = typeA.localeCompare(typeB)
         break
+      }
       case 'requests':
         comparison = (a.requests || 0) - (b.requests || 0)
         break
@@ -101,12 +103,13 @@ const sortedData = computed(() => {
       case 'cost':
         comparison = (a.cost || 0) - (b.cost || 0)
         break
-      case 'date':
+      case 'date': {
         // Sortiere nach Datum (Jahr, Monat, Tag)
         const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
         const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
         comparison = dateA.getTime() - dateB.getTime()
         break
+      }
       case 'apiKeyId':
         comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
         break
@@ -114,17 +117,17 @@ const sortedData = computed(() => {
         comparison = 0
     }
 
-    return sortOrder.value === 'asc' ? comparison : -comparison
+    return localSortOrder.value === 'asc' ? comparison : -comparison
   })
 })
 
 // Aktuelles Sortierfeld für Anzeige
 const currentSortField = computed(() => {
-  return props.useBackendSorting && props.sortField ? props.sortField : sortField.value
+  return props.useBackendSorting && props.sortField ? props.sortField : localSortField.value
 })
 
 const currentSortOrder = computed(() => {
-  return props.useBackendSorting && props.sortOrder ? props.sortOrder : sortOrder.value
+  return props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value
 })
 
 const paginationPage = computed(() => props.pagination?.page ?? 1)
@@ -228,13 +231,13 @@ const sortBy = (field: string) => {
     emit('sort-change', field, newOrder)
   } else {
     // Client-seitige Sortierung (Fallback)
-    if (sortField.value === field) {
+    if (localSortField.value === field) {
       // Toggle sort order if same field
-      sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+      localSortOrder.value = localSortOrder.value === 'asc' ? 'desc' : 'asc'
     } else {
       // Set new field and default to desc
-      sortField.value = field
-      sortOrder.value = 'desc'
+      localSortField.value = field
+      localSortOrder.value = 'desc'
     }
     currentPage.value = 1 // Reset to first page when sorting changes
   }
@@ -291,12 +294,11 @@ const exportTableData = async () => {
     link.download = `detailed-usage-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   } catch (err) {
-    console.error('Fehler beim Exportieren:', err)
+    debugLog('Fehler beim Exportieren:', err)
   }
 }
 
 // Reset pagination when data changes
-import { watch } from 'vue'
 watch(
   () => props.data,
   () => {

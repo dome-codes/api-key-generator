@@ -16,8 +16,10 @@ export function isDebugLogEnabled(): boolean {
  * Zentrale Debug-Log-Funktion: Loggt nur wenn Debug-Modus aktiviert ist.
  * Verwendet isDebugLogEnabled() für die Prüfung.
  */
+
 export function debugLog(...args: unknown[]): void {
   if (isDebugLogEnabled()) {
+    // eslint-disable-next-line no-console
     console.log(...args)
   }
 }
@@ -60,16 +62,22 @@ export function showWelcomeMessage(): void {
     `color: ${primaryColor}; font-size: 11px; font-weight: bold;`,
   ]
 
+  // eslint-disable-next-line no-console
   console.log(`%c${asciiArt}`, styles[0])
+  // eslint-disable-next-line no-console
   console.log(`%c🚀 App gestartet (Development Mode)`, styles[1])
+  // eslint-disable-next-line no-console
   console.log(`%c🐛 Bei Bugs oder Anregungen melde dich gerne:`, styles[2])
   // Teams-Link für Kontakt
   const linkStyle = `color: ${primaryColor}; text-decoration: underline; cursor: pointer; font-size: 11px;`
+  // eslint-disable-next-line no-console
   console.log('%c💬 Teams: Teams-Link kopieren und öffnen', linkStyle)
   // Link als Text für einfaches Kopieren
+  // eslint-disable-next-line no-console
   console.log(
     `%c   → https://teams.microsoft.com/l/chat/0/0?users=domenic.schumacher@deka.de`,
     'color: #6b7280; font-size: 10px; font-family: monospace;',
   )
+  // eslint-disable-next-line no-console
   console.log('─'.repeat(63))
 }

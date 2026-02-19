@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Chart } from 'chart.js/auto'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { debugLog } from '@/utils/debugLog'
 
 interface Props {
   title: string
@@ -97,7 +98,7 @@ const createChart = async () => {
 
     chartLoaded.value = true
   } catch (error) {
-    console.error('Fehler beim Erstellen des Pie-Charts:', error)
+    debugLog('Fehler beim Erstellen des Pie-Charts:', error)
     chartLoaded.value = false
   }
 }

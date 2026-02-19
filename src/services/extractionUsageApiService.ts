@@ -218,7 +218,7 @@ export const extractionUsageApiService = {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (useAdminApi && status === 403) {
-        console.warn(
+        debugLog(
           '403 bei admin/usage/extraction – Backend verweigert Admin-Extraction. Rolle/Scope prüfen.',
         )
         const error = new Error(
@@ -227,7 +227,7 @@ export const extractionUsageApiService = {
         ;(error as { cause?: unknown }).cause = err
         throw error
       }
-      console.error('Error loading extraction usage data via API:', err)
+      debugLog('Error loading extraction usage data via API:', err)
       return {
         data: [],
         pagination: {
@@ -333,16 +333,14 @@ export const extractionUsageApiService = {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (useAdminApi && status === 403) {
-        console.warn(
-          '403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.',
-        )
+        debugLog('403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.')
         const error = new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
         )
         ;(error as { cause?: unknown }).cause = err
         throw error
       }
-      console.error('Error loading extraction usage summary via API:', err)
+      debugLog('Error loading extraction usage summary via API:', err)
       return {
         data: [],
         pagination: {

@@ -5,8 +5,10 @@
  * Änderungen werden nur im State gehalten (nicht gespeichert)
  */
 
-import type { ModelPricing, ImageModelPricing, EmbeddingModelPricing } from '@/config/pricing'
 import {
+  type ModelPricing,
+  type ImageModelPricing,
+  type EmbeddingModelPricing,
   DEFAULT_AZURE_MODEL_PRICING,
   DEFAULT_AZURE_IMAGE_MODEL_PRICING,
   DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
@@ -42,7 +44,7 @@ export function usePricingManagement() {
       debugLog('[PricingManagement] Loaded pricing from JSON file')
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Preise'
-      console.error('[PricingManagement] Error loading pricing:', err)
+      debugLog('[PricingManagement] Error loading pricing:', err)
       // Fallback zu Defaults
       modelPricing.value = [...DEFAULT_AZURE_MODEL_PRICING]
       imagePricing.value = [...DEFAULT_AZURE_IMAGE_MODEL_PRICING]
@@ -162,7 +164,7 @@ export function usePricingManagement() {
       debugLog('[PricingManagement] Pricing uploaded from JSON file')
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Hochladen der Preise'
-      console.error('[PricingManagement] Error uploading pricing:', err)
+      debugLog('[PricingManagement] Error uploading pricing:', err)
       throw err
     } finally {
       isLoading.value = false

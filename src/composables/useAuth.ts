@@ -45,7 +45,9 @@ export function useAuth() {
       try {
         sessionStorage.clear()
         localStorage.removeItem('bypassKeycloak')
-      } catch (_) {}
+      } catch {
+        // Ignore errors when clearing storage
+      }
       window.location.href = window.location.pathname || '/'
       window.location.reload()
     }

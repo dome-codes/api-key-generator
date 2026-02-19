@@ -109,9 +109,9 @@ export function useUsageApi() {
       return `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`
     }
     const raw = item.createDate != null ? String(item.createDate).trim() : ''
-    if (raw) {
+    if (raw && item.createDate != null) {
       try {
-        const date = new Date(item.createDate!)
+        const date = new Date(item.createDate)
         if (!Number.isNaN(date.getTime())) return date.toISOString().split('T')[0]
       } catch {
         // ungültiges Datum → Fallback
@@ -146,11 +146,13 @@ export function useUsageApi() {
         dateMap.set(dateKey, { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 })
       }
 
-      const entry = dateMap.get(dateKey)!
-      entry.tokensIn += item.tokensIn || 0
-      entry.tokensOut += item.tokensOut || 0
-      entry.requests += item.requests ?? (item.tokensIn || item.tokensOut ? 1 : 0)
-      entry.cost += item.cost || 0
+      const entry = dateMap.get(dateKey)
+      if (entry) {
+        entry.tokensIn += item.tokensIn || 0
+        entry.tokensOut += item.tokensOut || 0
+        entry.requests += item.requests ?? (item.tokensIn || item.tokensOut ? 1 : 0)
+        entry.cost += item.cost || 0
+      }
     })
 
     const sortedEntries = Array.from(dateMap.entries()).sort((a, b) => {
@@ -269,7 +271,7 @@ export function useUsageApi() {
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungsdaten'
-      console.error('Error loading usage data:', err)
+      debugLog('Error loading usage data:', err)
       usageData.value = []
       pagination.value = {
         page: currentFilter.value.page || 1,
@@ -342,7 +344,7 @@ export function useUsageApi() {
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
-      console.error('Error loading usage summary:', err)
+      debugLog('Error loading usage summary:', err)
       // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
       summaryData.value = []
       pagination.value = {
@@ -394,7 +396,7 @@ export function useUsageApi() {
         tags: tagSummaryData.value.map((item) => item.tag),
       })
     } catch (err) {
-      console.error('Error loading tag summary:', err)
+      debugLog('Error loading tag summary:', err)
       // Fehler beim Laden der Tag-Daten sollte nicht die gesamte Summary blockieren
       tagSummaryData.value = []
     }

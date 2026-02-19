@@ -685,7 +685,7 @@ function applySorting(data, sort, order) {
     let comparison = 0
 
     switch (sort) {
-      case 'date':
+      case 'date': {
         const dateA = a.createDate
           ? new Date(a.createDate)
           : a.day && a.month && a.year
@@ -698,6 +698,7 @@ function applySorting(data, sort, order) {
             : new Date(0)
         comparison = dateA.getTime() - dateB.getTime()
         break
+      }
       case 'cost':
         comparison = (a.cost || 0) - (b.cost || 0)
         break
@@ -738,11 +739,12 @@ function applySorting(data, sort, order) {
       case 'confidenceScore':
         comparison = (a.confidenceScore || 0) - (b.confidenceScore || 0)
         break
-      case 'createDate':
+      case 'createDate': {
         const createDateA = a.createDate ? new Date(a.createDate) : new Date(0)
         const createDateB = b.createDate ? new Date(b.createDate) : new Date(0)
         comparison = createDateA.getTime() - createDateB.getTime()
         break
+      }
       case 'apiKeyId':
         comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
         break

@@ -1,14 +1,12 @@
-import type {
-  EnhancedUsageRecord,
-  ImageModelUsage,
-  ModelUsage,
-  ModelUsageSummary,
-  ModelUsageType,
-  SummaryUsage,
-  UsageAggregation,
-  UserUsageSummary,
-} from '@/api/types/frontend'
 import {
+  type EnhancedUsageRecord,
+  type ImageModelUsage,
+  type ModelUsage,
+  type ModelUsageSummary,
+  type ModelUsageType,
+  type SummaryUsage,
+  type UsageAggregation,
+  type UserUsageSummary,
   CompletionModelUsageType as CompletionModelUsageTypeEnum,
   EmbeddingModelUsageType as EmbeddingModelUsageTypeEnum,
   ImageModelUsageType as ImageModelUsageTypeEnum,
@@ -183,7 +181,7 @@ export const usageAnalyticsService = {
 
       return enhancedData
     } catch (error) {
-      console.error('Error in getDetailedUsageData:', error)
+      debugLog('Error in getDetailedUsageData:', error)
       return []
     }
   },
@@ -353,7 +351,7 @@ export const usageAnalyticsService = {
       debugLog('Usage aggregation calculated:', aggregation)
       return aggregation
     } catch (error) {
-      console.warn('Fehler beim Laden der Nutzungsaggregation:', error)
+      debugLog('Fehler beim Laden der Nutzungsaggregation:', error)
       return {
         totalRequests: 0,
         totalTokensIn: 0,
@@ -396,7 +394,8 @@ export const usageAnalyticsService = {
           })
         }
 
-        const user = userMap.get(technicalUserId)!
+        const user = userMap.get(technicalUserId)
+        if (!user) continue
         user.totalRequests += requests
 
         if (!user.modelBreakdown[modelName]) {
@@ -414,7 +413,7 @@ export const usageAnalyticsService = {
 
       return Array.from(userMap.values())
     } catch (error) {
-      console.warn('Keine Admin-Berechtigung für Benutzer-Nutzungszusammenfassung:', error)
+      debugLog('Keine Admin-Berechtigung für Benutzer-Nutzungszusammenfassung:', error)
       return []
     }
   },
@@ -445,7 +444,8 @@ export const usageAnalyticsService = {
           })
         }
 
-        const model = modelMap.get(modelName)!
+        const model = modelMap.get(modelName)
+        if (!model) continue
         model.totalRequests += requests
 
         if (!model.userBreakdown[technicalUserId]) {
@@ -463,7 +463,7 @@ export const usageAnalyticsService = {
 
       return Array.from(modelMap.values())
     } catch (error) {
-      console.warn('Keine Admin-Berechtigung für Modell-Nutzungszusammenfassung:', error)
+      debugLog('Keine Admin-Berechtigung für Modell-Nutzungszusammenfassung:', error)
       return []
     }
   },
@@ -516,7 +516,10 @@ export const usageAnalyticsService = {
       if (!userMap.has(userId)) {
         userMap.set(userId, [])
       }
-      userMap.get(userId)!.push(item)
+      const userArray = userMap.get(userId)
+      if (userArray) {
+        userArray.push(item)
+      }
     })
 
     return userMap
@@ -530,7 +533,10 @@ export const usageAnalyticsService = {
       if (!modelMap.has(modelName)) {
         modelMap.set(modelName, [])
       }
-      modelMap.get(modelName)!.push(item)
+      const modelArray = modelMap.get(modelName)
+      if (modelArray) {
+        modelArray.push(item)
+      }
     })
 
     return modelMap
@@ -565,7 +571,10 @@ export const usageAnalyticsService = {
       if (!dateMap.has(key)) {
         dateMap.set(key, [])
       }
-      dateMap.get(key)!.push(item)
+      const dateArray = dateMap.get(key)
+      if (dateArray) {
+        dateArray.push(item)
+      }
     })
 
     return dateMap

@@ -125,11 +125,12 @@ const handleTimeRangeChange = () => {
     case 'thisMonth':
       startDate = new Date(today.getFullYear(), today.getMonth(), 1)
       break
-    case 'lastMonth':
+    case 'lastMonth': {
       startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
       toDate.value = lastDay.toISOString().split('T')[0]
       break
+    }
     default:
       return
   }

@@ -34,7 +34,7 @@ export function useDebounce<T>(source: Ref<T>, delay: number = 300): Ref<T> {
  * @param delay - Verzögerung in Millisekunden (Standard: 300ms)
  * @returns Debounced Funktion
  */
-export function useDebounceFn<T extends (...args: any[]) => any>(
+export function useDebounceFn<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number = 300,
 ): (...args: Parameters<T>) => void {

@@ -128,11 +128,11 @@ function getWeekStart(date: Date): Date {
  * Konvertiert Daten für eine bestimmte Periode
  */
 export function convertToPeriod(
-  data: Array<{ createDate: string; [key: string]: any }>,
+  data: Array<{ createDate: string; [key: string]: unknown }>,
   period: ChartPeriod,
-): Array<{ period: string; date: Date; [key: string]: any }> {
+): Array<{ period: string; date: Date; [key: string]: unknown }> {
   const config = PERIOD_CONFIGS[period]
-  const periodMap = new Map<string, any>()
+  const periodMap = new Map<string, { period: string; date: Date; [key: string]: unknown }>()
 
   data.forEach((item) => {
     const date = new Date(item.createDate)

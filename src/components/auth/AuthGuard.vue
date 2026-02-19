@@ -6,6 +6,8 @@ import {
   hasValidAppUser,
   redirectToKeycloakLogin,
   setTokenReadyForApi,
+  type UserRole,
+  ROLE_PERMISSIONS,
 } from '@/auth/keycloak'
 import { debugLog } from '@/utils/debugLog'
 import { useRoute, useRouter, RouterView } from 'vue-router'
@@ -46,7 +48,7 @@ const initializeAuth = async () => {
       if (route.meta.requiredPermissions && route.meta.requiredPermissions.length > 0) {
         const { hasPermission } = await import('@/auth/keycloak')
         const hasAllPermissions = route.meta.requiredPermissions.every((permission) =>
-          hasPermission(permission as any),
+          hasPermission(permission as keyof (typeof ROLE_PERMISSIONS)[UserRole]),
         )
         if (!hasAllPermissions) {
           router.push({ name: 'NichtAutorisiert' })
@@ -93,7 +95,7 @@ watch(
   () => {
     if (isAuthenticated.value && route.meta.requiredPermissions) {
       const hasAllPermissions = route.meta.requiredPermissions.every((permission) =>
-        hasPermission(permission as any),
+        hasPermission(permission as keyof (typeof ROLE_PERMISSIONS)[UserRole]),
       )
       if (!hasAllPermissions) {
         router.push({ name: 'NichtAutorisiert' })

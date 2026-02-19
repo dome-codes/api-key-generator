@@ -143,8 +143,8 @@ function loadPricingFromStorage<T>(key: string, defaults: T[]): T[] {
     if (stored) {
       return JSON.parse(stored) as T[]
     }
-  } catch (error) {
-    console.error(`[pricing] Error loading ${key}:`, error)
+  } catch (_error) {
+    // Error loading pricing - fallback to defaults
   }
   return defaults
 }
@@ -155,8 +155,8 @@ function loadMarkupFromStorage(): number {
     if (stored) {
       return parseFloat(stored)
     }
-  } catch (error) {
-    console.error('[pricing] Error loading markup:', error)
+  } catch (_error) {
+    // Error loading markup - fallback to default
   }
   return DEFAULT_SERVICE_MARKUP_PERCENTAGE
 }
@@ -182,6 +182,8 @@ export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = loadPricin
 export const SERVICE_MARKUP_PERCENTAGE = loadMarkupFromStorage()
 
 // Helper: Lade aktuelle Preise dynamisch (wird bei jedem calculateCost-Aufruf verwendet)
+// Diese Funktionen werden aktuell nicht verwendet, aber für zukünftige Verwendung bereitgehalten
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getCurrentModelPricing(): ModelPricing[] {
   return loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
 }
@@ -190,6 +192,7 @@ function getCurrentImagePricing(): ImageModelPricing[] {
   return loadPricingFromStorage('pricing:image', DEFAULT_AZURE_IMAGE_MODEL_PRICING)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getCurrentEmbeddingPricing(): EmbeddingModelPricing[] {
   return loadPricingFromStorage('pricing:embedding', DEFAULT_AZURE_EMBEDDING_MODEL_PRICING)
 }
@@ -263,7 +266,11 @@ function calculateCompletionCost(
   // Finde das Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    currentPricing.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName === 'unknown') ||
+    currentPricing[0] // Fallback auf erstes Modell
+  if (!model) {
+    throw new Error(`Model ${modelName} not found in pricing`)
+  }
 
   // Berechne Kosten pro Token (Preise sind pro 1M Tokens)
   const inputPricePerToken =
@@ -293,7 +300,7 @@ function calculateCompletionCost(
 function calculateEmbeddingCost(
   tokensIn: number,
   modelName: string,
-  useCachedInput: boolean = false,
+  _useCachedInput: boolean = false,
 ): {
   inputCost: number
   outputCost: number
@@ -311,7 +318,11 @@ function calculateEmbeddingCost(
   // Finde das Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    currentPricing.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName === 'unknown') ||
+    currentPricing[0] // Fallback auf erstes Modell
+  if (!model) {
+    throw new Error(`Embedding model ${modelName} not found in pricing`)
+  }
 
   // Berechne Kosten pro Token (Preise sind pro 1000 Tokens)
   const pricePerToken = model.pricePer1000Tokens / 1000
@@ -355,7 +366,11 @@ function calculateImageCost(
   // Finde das Image-Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    currentPricing.find((m) => m.modelName === 'unknown')!
+    currentPricing.find((m) => m.modelName === 'unknown') ||
+    currentPricing[0] // Fallback auf erstes Modell
+  if (!model) {
+    throw new Error(`Image model ${modelName} not found in pricing`)
+  }
 
   // Bestimme den Preis basierend auf der Qualität und Größe
   let pricePer100Images: number
@@ -478,7 +493,7 @@ export function removeModel(
   const normalizedName = modelName.toLowerCase()
 
   switch (modelType) {
-    case 'completion':
+    case 'completion': {
       const completionIndex = AZURE_MODEL_PRICING.findIndex(
         (m) => m.modelName.toLowerCase() === normalizedName,
       )
@@ -487,7 +502,8 @@ export function removeModel(
         return true
       }
       break
-    case 'image':
+    }
+    case 'image': {
       const imageIndex = AZURE_IMAGE_MODEL_PRICING.findIndex(
         (m) => m.modelName.toLowerCase() === normalizedName,
       )
@@ -496,7 +512,8 @@ export function removeModel(
         return true
       }
       break
-    case 'embedding':
+    }
+    case 'embedding': {
       const embeddingIndex = AZURE_EMBEDDING_MODEL_PRICING.findIndex(
         (m) => m.modelName.toLowerCase() === normalizedName,
       )
@@ -505,6 +522,7 @@ export function removeModel(
         return true
       }
       break
+    }
   }
   return false
 }

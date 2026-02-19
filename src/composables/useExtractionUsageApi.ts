@@ -80,13 +80,15 @@ export function useExtractionUsageApi() {
         dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0, confidence: 0, confidenceSum: 0 })
       }
 
-      const entry = dateMap.get(dateKey)!
-      // Wenn die Daten bereits gruppiert sind (day/month/year vorhanden), verwende die Werte direkt
-      // Ansonsten zähle jeden Eintrag als 1 Operation
-      entry.operations += 1 // Jeder Eintrag repräsentiert eine Gruppierung
-      entry.pages += item.pages || 0
-      entry.cost += item.cost || 0
-      entry.confidenceSum += item.confidenceScore || 0
+      const entry = dateMap.get(dateKey)
+      if (entry) {
+        // Wenn die Daten bereits gruppiert sind (day/month/year vorhanden), verwende die Werte direkt
+        // Ansonsten zähle jeden Eintrag als 1 Operation
+        entry.operations += 1 // Jeder Eintrag repräsentiert eine Gruppierung
+        entry.pages += item.pages || 0
+        entry.cost += item.cost || 0
+        entry.confidenceSum += item.confidenceScore || 0
+      }
     })
 
     // Sortiere nach Datum
@@ -227,7 +229,7 @@ export function useExtractionUsageApi() {
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Extraction-Nutzungsdaten'
-      console.error('Error loading extraction usage data:', err)
+      debugLog('Error loading extraction usage data:', err)
       usageData.value = []
       pagination.value = {
         page: currentFilter.value.page || 1,
@@ -295,7 +297,7 @@ export function useExtractionUsageApi() {
         err instanceof Error
           ? err.message
           : 'Fehler beim Laden der Extraction-Nutzungszusammenfassung'
-      console.error('Error loading extraction usage summary:', err)
+      debugLog('Error loading extraction usage summary:', err)
       usageData.value = []
       pagination.value = {
         page: currentFilter.value.page || 1,
