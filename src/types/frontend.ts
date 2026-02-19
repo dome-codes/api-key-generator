@@ -21,14 +21,7 @@ export type {
   ExtractionUsageSummaryPage,
 } from '@/api/types/index'
 export type { ModelUsageType } from '@/api/types/index'
-
-/** Pagination wie vom Backend (Page): totalItems, totalPages, currentPage, pageSize */
-export interface Page {
-  totalItems?: number
-  totalPages?: number
-  currentPage?: number
-  pageSize?: number
-}
+// Page wird direkt aus @/api/types importiert (nicht über frontend.ts)
 
 // Aliases for API records (used as SummaryUsage | ModelUsage in analytics)
 export type SummaryUsage = AIUsageSummaryRecord

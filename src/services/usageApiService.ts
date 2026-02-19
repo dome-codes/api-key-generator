@@ -16,12 +16,12 @@ import { getUsage } from '@/api/usage/usage'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
-  Page,
   SummaryUsage,
   SummaryUsagePageResponse,
   UsageFilterApi,
   UsagePageResponse,
 } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import type {
   AIRequestParamsGroupByParameterItem,
   AIUsageRecord,

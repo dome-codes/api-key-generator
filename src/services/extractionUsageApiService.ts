@@ -18,8 +18,8 @@ import type {
   ExtractionUsageFilterApi,
   ExtractionUsagePageResponse,
   ExtractionUsageSummaryPageResponse,
-  Page,
 } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 

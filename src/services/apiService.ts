@@ -7,7 +7,7 @@ import type {
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
-import type { Page } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import type { ApiKeyDisplay } from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'

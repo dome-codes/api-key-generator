@@ -16,7 +16,7 @@
  * - Migration: Schrittweise von useUsage zu useUsageApi wechseln
  */
 
-import type { Page } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
 import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
 import { usageApiService } from '@/services/usageApiService'

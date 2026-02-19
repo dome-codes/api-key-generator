@@ -24,7 +24,7 @@ interface Props {
   data: EnhancedUsageRecord[]
   isLoading?: boolean
   error?: string | null
-  pagination?: import('@/types/frontend').Page
+  pagination?: import('@/api/types').Page
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll

@@ -4,7 +4,7 @@ import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
 import type { EnhancedExtractionUsageRecord } from '@/types/frontend'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
-import type { Page } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import { computed, ref, watch } from 'vue'
 
 interface Props {

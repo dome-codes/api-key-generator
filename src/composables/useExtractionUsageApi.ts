@@ -10,7 +10,7 @@ import type {
   ExtractionUsageFilterApi,
   ExtractionUsageAggregation,
 } from '@/types/frontend'
-import type { Page } from '@/types/frontend'
+import type { Page } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
