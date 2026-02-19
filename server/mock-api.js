@@ -339,12 +339,6 @@ function createApiKeyObject(name, permissions, userId = null) {
 
 // API Endpunkte
 
-// GET /v1/dev/test-500 - Nur zum Testen des Frontend-500-Popups (gibt 500 mit Tracing-ID zurück)
-app.get('/v1/dev/test-500', validateToken, (_req, res) => {
-  const tracingId = `test-trace-${Date.now()}-${uuidv4().slice(0, 8)}`
-  res.status(500).json({ error: tracingId, code: 'TEST_500' })
-})
-
 // POST /v1/apikeys - Create a new API token
 app.post('/v1/apikeys', validateToken, (req, res) => {
   const { name, permissions } = req.body

@@ -1,23 +1,7 @@
 <script setup lang="ts">
 import { hasPermission } from '@/auth/keycloak'
-import { api } from '@/axios/api'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-
-const isDev = import.meta.env.DEV
-const test500Loading = ref(false)
-
-async function triggerTest500() {
-  if (test500Loading.value) return
-  test500Loading.value = true
-  try {
-    await api.get('/dev/test-500')
-  } catch {
-    // 500 wird erwartet – Popup mit Tracing-ID wird vom Axios-Interceptor angezeigt
-  } finally {
-    test500Loading.value = false
-  }
-}
 
 interface Props {
   activeSidebar?: 'api' | 'usage'
@@ -39,12 +23,16 @@ const router = useRouter()
 const route = useRoute()
 
 const isAdmin = computed(() => hasPermission('canUseAdminFeatures'))
+const canCreateKeys = computed(() => hasPermission('canCreateKeys'))
 
 const navigateTo = (path: string) => {
   router.push(path)
 }
 
 const handleSidebarClick = (value: 'api' | 'usage') => {
+  // Speichere aktive Sidebar im localStorage
+  localStorage.setItem('activeSidebar', value)
+
   if (route.name === 'home') {
     emit('update:activeSidebar', value)
   } else {
@@ -61,6 +49,7 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
     </div>
     <nav class="flex-1 flex flex-col gap-2">
       <button
+        v-if="canCreateKeys"
         :class="
           activeSidebar === 'api' && route.name === 'home'
             ? 'bg-primary-100 text-primary font-semibold'
@@ -127,17 +116,6 @@ const handleSidebarClick = (value: 'api' | 'usage') => {
           Preisverwaltung
         </button>
       </div>
-
-      <!-- Dev: 500-Popup testen (nur in Entwicklung sichtbar) -->
-      <button
-        v-if="isDev"
-        type="button"
-        class="mt-4 flex items-center gap-3 px-3 py-2 rounded transition-colors w-full text-left text-amber-700 bg-amber-50 hover:bg-amber-100 text-xs"
-        :disabled="test500Loading"
-        @click="triggerTest500"
-      >
-        {{ test500Loading ? '…' : '🧪 500-Popup testen' }}
-      </button>
     </nav>
   </aside>
 </template>

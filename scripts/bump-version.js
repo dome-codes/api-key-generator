@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Erhöht die Version in version.yaml und package.json
- * 
+ *
  * Verwendung:
  *   node scripts/bump-version.js patch  # 1.3.0 -> 1.3.1
  *   node scripts/bump-version.js minor  # 1.3.0 -> 1.4.0
@@ -18,7 +18,7 @@ const rootDir = join(__dirname, '..')
 
 function bumpVersion(currentVersion, type) {
   const [major, minor, patch] = currentVersion.split('.').map(Number)
-  
+
   switch (type) {
     case 'major':
       return `${major + 1}.0.0`
@@ -54,7 +54,7 @@ console.log(`✅ version.yaml: ${currentVersion} -> ${newVersion}`)
 const packageJsonPath = join(rootDir, 'package.json')
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
 packageJson.version = newVersion
-writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf-8')
+writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf-8')
 console.log(`✅ package.json: ${currentVersion} -> ${newVersion}`)
 
 console.log(`\n🎉 Version erfolgreich erhöht auf ${newVersion}`)

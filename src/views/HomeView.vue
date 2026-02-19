@@ -17,10 +17,12 @@ import { useUsage } from '@/composables/useUsage'
 import { buildApiKeyUsageMap } from '@/services/apiKeyUsageMapping'
 import { apiKeyService } from '@/services/apiService'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 // Composables verwenden
 const { userProfile, highestRole, canCreateKeys, canSeeOwnUsage, handleLogout } = useAuth()
+const route = useRoute()
 const userRolesForHeader = computed(() => [String(highestRole.value)])
 const { isDevelopment, showDebugMode, showDebugInfo, debugTokenInfo } = useDebug()
 const {
@@ -91,8 +93,37 @@ const apiKeyUsageData = computed(() => {
   return result
 })
 
-// Sidebar state
-const activeSidebar = ref<'api' | 'usage'>('api')
+// Sidebar state - lade aus localStorage oder verwende Default
+const getInitialSidebar = (): 'api' | 'usage' => {
+  // Wenn Benutzer keine API-Keys erstellen kann, zeige direkt Usage
+  if (!canCreateKeys.value) {
+    return 'usage'
+  }
+
+  // Lade aus localStorage oder verwende Query-Parameter
+  const saved = localStorage.getItem('activeSidebar') as 'api' | 'usage' | null
+  const query = route.query.sidebar as 'api' | 'usage' | undefined
+
+  return query || saved || 'api'
+}
+
+const activeSidebar = ref<'api' | 'usage'>(getInitialSidebar())
+
+// Watch für Änderungen der aktiven Sidebar und speichere im localStorage
+watch(activeSidebar, (newValue) => {
+  localStorage.setItem('activeSidebar', newValue)
+})
+
+// Watch für canCreateKeys: Wenn Benutzer keine API-Keys erstellen kann und aktive Sidebar 'api' ist, wechsle zu 'usage'
+watch(
+  canCreateKeys,
+  (canCreate) => {
+    if (!canCreate && activeSidebar.value === 'api') {
+      activeSidebar.value = 'usage'
+    }
+  },
+  { immediate: true },
+)
 
 // Modal functions
 async function saveEditModal() {
@@ -211,8 +242,8 @@ onMounted(() => {
 
       <DebugPanel :show-debug-mode="showDebugMode" :show-debug-info="showDebugInfo" />
       <main class="flex-1 bg-gray-50 p-10">
-        <!-- API Keys Section -->
-        <div v-if="activeSidebar === 'api'">
+        <!-- API Keys Section - nur anzeigen wenn Benutzer API-Keys erstellen kann -->
+        <div v-if="activeSidebar === 'api' && canCreateKeys">
           <div class="flex justify-between items-center mb-6">
             <div>
               <h1 class="text-2xl font-bold text-gray-900 mb-1">API-Schlüssel</h1>

@@ -37,8 +37,8 @@ export const ROLE_PERMISSIONS = {
   },
   [UserRole.TECHNICAL]: {
     canUseAdminFeatures: false,
-    canCreateKeys: false,
-    canSeeOwnUsage: true,
+    canCreateKeys: false, // TECHNICAL-Rolle darf keine API-Keys erstellen/sehen/bearbeiten
+    canSeeOwnUsage: true, // Aber darf Usage-Seite sehen
   },
   [UserRole.NONE]: {
     canUseAdminFeatures: false,
