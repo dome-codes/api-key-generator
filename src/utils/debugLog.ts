@@ -32,7 +32,8 @@ export function showWelcomeMessage(): void {
   // Nur im Development-Modus anzeigen
   if (!isDev) return
 
-  const version = '1.0.0'
+  // Version aus version.yaml (zur Build-Zeit eingefügt)
+  const version = import.meta.env.VITE_APP_VERSION || '1.0.0'
 
   const asciiArt = `
 ╔════════════════════════════════════════════════════════════════╗

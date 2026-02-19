@@ -1,12 +1,12 @@
 {
   "name": "Moba-api-generator",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "MobaRAG API Key Generator mit OpenAPI v1 Mock-API",
-  "main": "mock-api.js",
+  "main": "server/mock-api.js",
   "type": "module",
   "scripts": {
-    "start": "node mock-api.js",
-    "dev": "node --watch mock-api.js",
+    "start": "node server/mock-api.js",
+    "dev": "node --watch server/mock-api.js",
     "frontend": "vite",
     "frontend:dev": "vite",
     "frontend:dev:no-debug": "SHOW_DEBUG=false vite",
