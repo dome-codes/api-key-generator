@@ -2,7 +2,7 @@
  * Frontend-only types and aliases for UI layer.
  * API response/request types come from Orval (@/api/types); this file adds
  * enhanced records, filter DTOs, and aggregation types used by services.
- * 
+ *
  * This file is manually maintained and tracked in git, unlike the generated
  * types in @/api/types which are created during CI/CD.
  */
@@ -31,11 +31,11 @@ export const CompletionModelUsageType = { CompletionModelUsage: 'CompletionModel
 export const EmbeddingModelUsageType = { EmbeddingModelUsage: 'EmbeddingModelUsage' } as const
 export const ImageModelUsageType = { ImageModelUsage: 'ImageModelUsage' } as const
 
-// Page response types (Orval uses .data + .pagination)
-export type { AIUsagePage as UsagePageResponse } from '@/api/types/aIUsagePage'
-export type { AIUsageSummaryPage as SummaryUsagePageResponse } from '@/api/types/aIUsageSummaryPage'
-export type { ExtractionUsagePage as ExtractionUsagePageResponse } from '@/api/types/extractionUsagePage'
-export type { ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse } from '@/api/types/extractionUsageSummaryPage'
+// Page response types (Orval uses .data + .pagination) – import via barrel to avoid casing conflicts on Linux
+export type { AIUsagePage as UsagePageResponse } from '@/api/types'
+export type { AIUsageSummaryPage as SummaryUsagePageResponse } from '@/api/types'
+export type { ExtractionUsagePage as ExtractionUsagePageResponse } from '@/api/types'
+export type { ExtractionUsageSummaryPage as ExtractionUsageSummaryPageResponse } from '@/api/types'
 
 /** Filter params for AI usage API (maps to UsageAIGetV1Params + optional sort/order) */
 export interface UsageFilterApi {
