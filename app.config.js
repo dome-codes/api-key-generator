@@ -11,7 +11,9 @@ function env(key, fallback = '') {
     ) {
       return import.meta.env[key]
     }
-  } catch (_) {}
+  } catch {
+    // Ignore error if import.meta is not available (e.g. in Node.js)
+  }
   if (typeof process !== 'undefined' && process.env && process.env[key] !== undefined) {
     return process.env[key]
   }
@@ -19,11 +21,11 @@ function env(key, fallback = '') {
 }
 
 export default {
-  appBasePath: env('VITE_APP_BASE_PATH') || '__VITE_APP_BASE_PATH__' || '/admin-console',
+  appBasePath: env('VITE_APP_BASE_PATH') || '/admin-console',
   apiBaseUrl: env('VITE_API_BASE_URL') || '__VITE_API_BASE_URL__',
   keycloakUrl: env('VITE_KEYCLOAK_URL') || '__VITE_KEYCLOAK_URL__',
   keycloakRealm: env('VITE_KEYCLOAK_REALM') || '__VITE_KEYCLOAK_REALM__',
   keycloakClientId: env('VITE_KEYCLOAK_CLIENT_ID') || '__VITE_KEYCLOAK_CLIENT_ID__',
   keycloakScope: env('VITE_KEYCLOAK_SCOPE') || undefined,
-  showDebug: env('VITE_SHOW_DEBUG') === 'true' || '__VITE_SHOW_DEBUG__' === 'true',
+  showDebug: env('VITE_SHOW_DEBUG') === 'true',
 }

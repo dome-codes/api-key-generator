@@ -168,9 +168,10 @@ export function getRelativeDateRange(
   switch (range) {
     case 'today':
       return { start: startOfDay(today), end }
-    case 'yesterday':
+    case 'yesterday': {
       const yesterday = subtractDays(today, 1)
       return { start: startOfDay(yesterday), end: endOfDay(yesterday) }
+    }
     case 'last7days':
       return { start: startOfDay(subtractDays(today, 6)), end }
     case 'last30days':
@@ -179,9 +180,10 @@ export function getRelativeDateRange(
       return { start: startOfDay(subtractDays(today, 89)), end }
     case 'thisMonth':
       return { start: startOfMonth(today), end }
-    case 'lastMonth':
+    case 'lastMonth': {
       const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) }
+    }
     default:
       return { start: startOfDay(today), end }
   }

@@ -10,7 +10,7 @@ import DeleteConfirmModal from '@/components/admin/pricing/DeleteConfirmModal.vu
 import ResetConfirmModal from '@/components/admin/pricing/ResetConfirmModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDebug } from '@/composables/useDebug'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { hasPermission } from '@/auth/keycloak'
 import { pricingService } from '@/services/pricingService'
