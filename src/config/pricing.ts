@@ -227,9 +227,10 @@ export function calculateCost(
   serviceMarkup: number
   finalCost: number
 } {
-  // Spezielle Behandlung für Image-Modelle
+  // Spezielle Behandlung für Image-Modelle (API: IMAGE_USAGE, alt: ImageModelUsage)
   if (
     modelType === 'ImageModelUsage' ||
+    modelType === 'IMAGE_USAGE' ||
     modelName.toLowerCase().includes('image') ||
     modelName.toLowerCase().includes('dall-e') ||
     modelName.toLowerCase().includes('midjourney')
@@ -237,8 +238,12 @@ export function calculateCost(
     return calculateImageCost(modelName, imageQuality, imageCount, sizeWidth, sizeHeight)
   }
 
-  // Spezielle Behandlung für Embedding-Modelle (nur Input-Tokens)
-  if (modelType === 'EmbeddingModelUsage' || modelName.toLowerCase().includes('embedding')) {
+  // Spezielle Behandlung für Embedding-Modelle (API: EMBEDDING_USAGE, alt: EmbeddingModelUsage)
+  if (
+    modelType === 'EmbeddingModelUsage' ||
+    modelType === 'EMBEDDING_USAGE' ||
+    modelName.toLowerCase().includes('embedding')
+  ) {
     return calculateEmbeddingCost(tokensIn, modelName, useCachedInput)
   }
 

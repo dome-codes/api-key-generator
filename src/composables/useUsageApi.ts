@@ -79,9 +79,16 @@ export function useUsageApi() {
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
     const totalImages = data
       .filter(
-        (item) =>
-          item.type === ImageModelUsageTypeEnum.ImageModelUsage ||
-          item.modelType === ImageModelUsageTypeEnum.ImageModelUsage,
+        (item) => {
+          const t = item.type as string | undefined
+          const m = item.modelType as string | undefined
+          return (
+            t === ImageModelUsageTypeEnum.ImageModelUsage ||
+            t === ImageModelUsageTypeEnum.IMAGE_USAGE ||
+            m === ImageModelUsageTypeEnum.ImageModelUsage ||
+            m === ImageModelUsageTypeEnum.IMAGE_USAGE
+          )
+        },
       )
       .reduce((sum, item) => sum + (item.requests ?? 1), 0)
 

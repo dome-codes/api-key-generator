@@ -27,10 +27,19 @@ export type { ModelUsageType } from '@/api/types/index'
 export type SummaryUsage = AIUsageSummaryRecord
 export type ModelUsage = AIUsageRecord
 
-// Backward-compat enum names (same values as ModelUsageType)
-export const CompletionModelUsageType = { CompletionModelUsage: 'CompletionModelUsage' } as const
-export const EmbeddingModelUsageType = { EmbeddingModelUsage: 'EmbeddingModelUsage' } as const
-export const ImageModelUsageType = { ImageModelUsage: 'ImageModelUsage' } as const
+// Backward-compat + DekaRAG API: beide Schreibweisen (API = COMPLETION_USAGE, alt = CompletionModelUsage)
+export const CompletionModelUsageType = {
+  CompletionModelUsage: 'CompletionModelUsage',
+  COMPLETION_USAGE: 'COMPLETION_USAGE',
+} as const
+export const EmbeddingModelUsageType = {
+  EmbeddingModelUsage: 'EmbeddingModelUsage',
+  EMBEDDING_USAGE: 'EMBEDDING_USAGE',
+} as const
+export const ImageModelUsageType = {
+  ImageModelUsage: 'ImageModelUsage',
+  IMAGE_USAGE: 'IMAGE_USAGE',
+} as const
 
 // Page response types (Orval uses .data + .pagination) – import via barrel to avoid casing conflicts on Linux
 export type { AIUsagePage as UsagePageResponse } from '@/api/types'

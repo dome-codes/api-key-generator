@@ -18,8 +18,10 @@ import {
   type UsageAggregation,
   type UsageFilter,
   type UserUsageSummary,
-  CompletionModelUsageType,
 } from '@/types/frontend'
+
+// Fallback für Modelltyp: API nutzt COMPLETION_USAGE, ältere Specs CompletionModelUsage
+const DEFAULT_MODEL_USAGE_TYPE = 'COMPLETION_USAGE' as ModelUsageType
 import { usageService } from '@/services/apiService'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { readTokensFromItem } from '@/services/usageApiService'
@@ -157,7 +159,7 @@ export function useUsage() {
               responseTokens,
               item.modelName || 'gpt-4o',
               false,
-              item.type || 'CompletionModelUsage',
+              item.type || 'COMPLETION_USAGE',
             ).finalCost
           }),
         )
@@ -204,7 +206,7 @@ export function useUsage() {
               responseTokens,
               item.modelName || 'gpt-4o',
               false,
-              item.type || 'CompletionModelUsage',
+              item.type || 'COMPLETION_USAGE',
             )
             const apiKeyId = getApiKeyIdFromItem(item as unknown as Record<string, unknown>)
 
@@ -220,9 +222,8 @@ export function useUsage() {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
               modelName: item.modelName || 'unknown',
-              modelType: (item.type ||
-                CompletionModelUsageType.CompletionModelUsage) as ModelUsageType,
-              type: (item.type || CompletionModelUsageType.CompletionModelUsage) as
+              modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
+              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
                 | ModelUsageType
                 | undefined,
               requests: item.requests || 0,
@@ -383,16 +384,15 @@ export function useUsage() {
               item.responseTokens || 0, // tokensOut
               item.model || 'gpt-4o', // modelName
               false, // useCachedInput
-              item.type || 'CompletionModelUsage', // modelType
+              item.type || 'COMPLETION_USAGE', // modelType
             )
 
             return {
               technicalUserId: item.technicalUserId || 'unknown',
               technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
               modelName: item.model || 'unknown',
-              modelType: (item.type ||
-                CompletionModelUsageType.CompletionModelUsage) as ModelUsageType,
-              type: (item.type || CompletionModelUsageType.CompletionModelUsage) as
+              modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
+              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
                 | ModelUsageType
                 | undefined,
               requests: item.requests || 0,
