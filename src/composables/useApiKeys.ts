@@ -35,7 +35,11 @@ export function useApiKeys(userProfile: UserProfile) {
       createdBy: key.createdBy || userProfile.value?.name || 'Unknown',
       validUntil: key.validUntil || 'Never',
       lastUsed: key.lastUsed || 'Never',
-      status: key.status || 'active',
+      // API liefert active als boolean; Fallback für ältere Responses mit status-String
+      active:
+        typeof key.active === 'boolean'
+          ? key.active
+          : (key as { status?: string }).status !== 'revoked',
       userId: key.userId,
       userName: key.userName,
     }))

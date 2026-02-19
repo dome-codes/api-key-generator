@@ -68,7 +68,7 @@ const formatNumber = (num: number): string => {
   <tr
     :class="[
       'border-b border-gray-200 last:border-0 group transition-colors',
-      keyData.status === 'revoked' ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50',
+      !keyData.active ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50',
       isChildRow ? 'bg-gray-50/50 border-l-4 border-l-blue-300' : '',
       expandable && expanded ? 'bg-blue-50/30' : '',
     ]"
@@ -90,13 +90,13 @@ const formatNumber = (num: number): string => {
       <span v-else-if="isChildRow" class="inline-block w-4">&nbsp;</span>
     </td>
     <td class="py-3 px-4 text-sm" :class="isChildRow ? 'pl-10' : ''">
-      <div :class="keyData.status === 'revoked' ? 'text-gray-500' : 'text-gray-900'">
-        <span :class="keyData.status === 'revoked' ? 'line-through' : ''">{{ keyData.name }}</span>
+      <div :class="!keyData.active ? 'text-gray-500' : 'text-gray-900'">
+        <span :class="!keyData.active ? 'line-through' : ''">{{ keyData.name }}</span>
         <!-- Badge entfernt - Status wird bereits in eigener Spalte angezeigt -->
       </div>
     </td>
     <td class="py-3 px-4 font-mono text-xs break-all">
-      <span v-if="keyData.status === 'active'" class="text-gray-900"
+      <span v-if="keyData.active" class="text-gray-900"
         >sk-•••{{ keyData.apiKey.slice(-4) }}</span
       >
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
@@ -127,7 +127,7 @@ const formatNumber = (num: number): string => {
       <!-- Status-Badge: Bei Child-Rows kompakter anzeigen -->
       <template v-if="!isChildRow">
         <span
-          v-if="keyData.status === 'active'"
+          v-if="keyData.active"
           class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
         >
           Aktiv
@@ -144,10 +144,10 @@ const formatNumber = (num: number): string => {
         v-else
         :class="[
           'inline-flex items-center px-1.5 py-0.5 rounded text-xs',
-          keyData.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700',
+          keyData.active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700',
         ]"
       >
-        {{ keyData.status === 'active' ? '✓' : '✗' }}
+        {{ keyData.active ? '✓' : '✗' }}
       </span>
     </td>
     <td class="py-3 px-4 text-xs text-gray-700">
@@ -158,7 +158,7 @@ const formatNumber = (num: number): string => {
       {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
     </td>
     <td v-if="isAdmin" class="py-3 px-4 text-xs">
-      <div v-if="keyData.status === 'active'">
+      <div v-if="keyData.active">
         <CostProgressBarTable
           :current-cost="usageData.cost"
           :budget-limit="budgetLimit"
@@ -196,7 +196,7 @@ const formatNumber = (num: number): string => {
       </div>
     </td>
     <td v-if="!isAdmin" class="py-3 px-4 text-xs">
-      <div v-if="keyData.status === 'active'" class="text-center">
+      <div v-if="keyData.active" class="text-center">
         <div class="text-sm text-gray-700">
           {{ formatNumber(usageData.tokensIn) }} In / {{ formatNumber(usageData.tokensOut) }} Out
         </div>
@@ -228,7 +228,7 @@ const formatNumber = (num: number): string => {
     <td class="py-3 px-4 text-xs text-right">
       <div class="flex justify-end gap-1">
         <button
-          v-if="keyData.status === 'active' && shouldShowRotateButton"
+          v-if="keyData.active && shouldShowRotateButton"
           class="p-1 rounded hover:bg-gray-200 text-gray-600 hover:text-orange-600 transition-colors"
           title="Schlüssel rotieren"
           @click="$emit('rotate', keyData)"
@@ -243,7 +243,7 @@ const formatNumber = (num: number): string => {
           </svg>
         </button>
         <button
-          v-if="keyData.status === 'active'"
+          v-if="keyData.active"
           class="p-1 rounded hover:bg-gray-200 text-gray-600 hover:text-red-600 transition-colors"
           title="Deaktivieren"
           @click="$emit('revoke', keyData.id)"

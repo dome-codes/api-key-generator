@@ -173,6 +173,7 @@ export interface ApiKeyUsageData {
  *   und für usageData-Map (key.id → ApiKeyUsageData) verwendet.
  * - **userId**: ID des Benutzers, dem dieser Key gehört. Ermöglicht Verbrauch pro User (über alle
  *   seine Keys) und Admin-Zuordnung (Keys nach User gruppieren).
+ * - **active**: API liefert active als boolean (true/false), nicht als String "active".
  */
 export interface ApiKeyDisplay {
   /** Eindeutige API-Key-ID (PK). Index für usageData[key.id]. */
@@ -184,7 +185,8 @@ export interface ApiKeyDisplay {
   createdBy: string
   validUntil: string
   lastUsed: string
-  status: string
+  /** API liefert active als boolean (true = aktiv, false = deaktiviert/revoked). */
+  active: boolean
   /** Benutzer-ID des Key-Besitzers. Für Admin-Gruppierung und kumulierten Verbrauch pro User. */
   userId?: string
   userName?: string

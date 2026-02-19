@@ -61,11 +61,11 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
- * @param keys Liste der Keys mit id, optional userId und optional status (für Fallback: erstem aktiven Key zuordnen)
+ * @param keys Liste der Keys mit id, optional userId und optional active (für Fallback: erstem aktiven Key zuordnen)
  */
 export function buildApiKeyUsageMap(
   records: UsageRecordForApiKey[],
-  keys: { id: string; userId?: string; status?: string }[],
+  keys: { id: string; userId?: string; active?: boolean }[],
 ): Record<string, ApiKeyUsageData> {
   const safeRecords = records.filter((r) => r != null && typeof r === 'object')
   const map: Record<string, ApiKeyUsageData> = {}
@@ -236,7 +236,7 @@ export function buildApiKeyUsageMap(
     // Fallback wenn Keys kein passendes userId haben: Verbrauch dem ersten aktiven Key zuordnen (sichtbar in der Tabelle)
     const userIdsWithUsage = Object.keys(usageByUserId)
     if (userIdsWithUsage.length > 0 && userIdAlreadyAssigned.size === 0 && keys.length > 0) {
-      const firstActiveKey = keys.find((k) => k.status === 'active') ?? keys[0]
+      const firstActiveKey = keys.find((k) => k.active !== false) ?? keys[0]
       const total: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
       for (const uid of userIdsWithUsage) {
         const u = usageByUserId[uid]

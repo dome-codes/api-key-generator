@@ -91,9 +91,11 @@ const filteredKeys = computed(() => {
     keys = keys.filter((key) => key.userId === selectedUserFilter.value)
   }
 
-  // Status-Filter
-  if (selectedStatusFilter.value) {
-    keys = keys.filter((key) => key.status === selectedStatusFilter.value)
+  // Status-Filter (API liefert active: boolean; Filter-Werte bleiben "active" / "revoked")
+  if (selectedStatusFilter.value === 'active') {
+    keys = keys.filter((key) => key.active === true)
+  } else if (selectedStatusFilter.value === 'revoked') {
+    keys = keys.filter((key) => key.active === false)
   }
 
   // API-Key-Suche (Name, Key-ID, letzte 4 Zeichen des Keys)
@@ -142,8 +144,8 @@ const adminGroupedKeys = computed(() => {
         group.totalTokensOut += usage.tokensOut
       }
 
-      // Zähle aktive/inaktive Keys
-      if (key.status === 'active') {
+      // Zähle aktive/inaktive Keys (API liefert active: boolean)
+      if (key.active) {
         group.activeKeys++
       } else {
         group.inactiveKeys++
@@ -190,8 +192,8 @@ const sortedKeys = computed(() => {
           comparison = a.activeKeys - b.activeKeys
         } else {
           // Aktive Keys zuerst, dann deaktivierte (unabhängig von sortOrder)
-          if (a.status === 'active' && b.status === 'revoked') comparison = -1
-          else if (a.status === 'revoked' && b.status === 'active') comparison = 1
+          if (a.active && !b.active) comparison = -1
+          else if (!a.active && b.active) comparison = 1
           else comparison = 0
         }
         break
@@ -364,7 +366,7 @@ const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
     createdBy: groupedKey.userName,
     validUntil: latestKey.validUntil,
     lastUsed: 'Never',
-    status: groupedKey.activeKeys > 0 ? 'active' : 'revoked',
+    active: groupedKey.activeKeys > 0,
     userId: groupedKey.userId,
     userName: groupedKey.userName,
   }
@@ -513,7 +515,7 @@ const totalProgressBarColor = computed(() => {
 
 // Additional computed properties for enhanced UI
 const activeKeysCount = computed(() => {
-  return props.keys.filter((key) => key.status === 'active').length
+  return props.keys.filter((key) => key.active).length
 })
 
 // Helper functions for formatting
