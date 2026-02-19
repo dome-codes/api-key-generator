@@ -136,16 +136,16 @@ api.interceptors.response.use(
       error.response?.headers?.['www-authenticate'] || error.response?.headers?.['WWW-Authenticate']
     const errorData = error.response?.data
     const errorCode = errorData?.error || errorData?.code
-    // Prüfe sowohl WWW-Authenticate Header als auch Response Body
+    // Prüfe NUR WWW-Authenticate Header für insufficient_scope (nicht Response Body, da zu aggressiv)
+    // insufficient_scope kommt standardmäßig im WWW-Authenticate Header
     const isInsufficientScope =
-      (wwwAuthenticate &&
-        (wwwAuthenticate.includes('insufficient_scope') ||
-          wwwAuthenticate.includes('error="insufficient_scope"'))) ||
-      errorCode === 'insufficient_scope' ||
-      (typeof errorData === 'string' && errorData.includes('insufficient_scope'))
+      wwwAuthenticate &&
+      (wwwAuthenticate.includes('insufficient_scope') ||
+        wwwAuthenticate.includes('error="insufficient_scope"'))
 
-    // 401 oder insufficient_scope: Token erneuern und erneut versuchen
-    if (status === 401 || (status === 403 && isInsufficientScope)) {
+    // 401: Token erneuern und erneut versuchen
+    // insufficient_scope (nur wenn explizit im WWW-Authenticate Header): Token erneuern und einmal retry
+    if (status === 401) {
       if (isInsufficientScope) {
         debugLog(
           '⚠️ insufficient_scope Fehler erkannt – Token hat nicht die benötigten Berechtigungen',
@@ -157,26 +157,35 @@ api.interceptors.response.use(
 
       try {
         await whenTokenReadyForApi
-        // Token explizit aktualisieren (mit Scope-Refresh)
         const token = await getToken()
         if (token && config) {
           config.headers.Authorization = `Bearer ${token}`
-          // Bei insufficient_scope nur einmal retry, dann Fehler zeigen
-          if (isInsufficientScope && !config.__retryScope) {
-            config.__retryScope = true
-            debugLog('🔄 Retry mit aktualisiertem Token (Scope-Refresh)')
-            return api(config)
-          } else if (!isInsufficientScope) {
-            // Normale 401: Retry ohne Limit
-            return api(config)
-          }
+          return api(config)
+        }
+      } catch (refreshError) {
+        debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
+      }
+    } else if (status === 403 && isInsufficientScope && config && !config.__retryScope) {
+      // insufficient_scope: Einmaliger Retry mit aktualisiertem Token
+      debugLog(
+        '⚠️ insufficient_scope Fehler erkannt – Token hat nicht die benötigten Berechtigungen',
+      )
+      debugLog('WWW-Authenticate Header:', wwwAuthenticate)
+      try {
+        await whenTokenReadyForApi
+        const token = await getToken()
+        if (token) {
+          config.__retryScope = true
+          config.headers.Authorization = `Bearer ${token}`
+          debugLog('🔄 Retry mit aktualisiertem Token (Scope-Refresh)')
+          return api(config)
         }
       } catch (refreshError) {
         debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
       }
 
-      // Bei insufficient_scope: Benutzerfreundliche Fehlermeldung anzeigen
-      if (isInsufficientScope) {
+      // Bei insufficient_scope nach Retry: Benutzerfreundliche Fehlermeldung anzeigen
+      if (typeof window !== 'undefined') {
         if (typeof window !== 'undefined') {
           const errorDescription =
             error.response?.data?.error_description ||
