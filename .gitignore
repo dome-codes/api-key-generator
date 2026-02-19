@@ -44,4 +44,4 @@ data/*.sqlite
 !data/.gitkeep
 
 # Version file (wird getrackt, aber nicht ignoriert)
-# version.yaml
+# version.yml wird getrackt, aber nicht ignoriert

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Erhöht die Version in version.yaml und package.json
+ * Erhöht die Version in version.yml und package.json
  *
  * Verwendung:
- *   node scripts/bump-version.js patch  # 1.3.0 -> 1.3.1
- *   node scripts/bump-version.js minor  # 1.3.0 -> 1.4.0
- *   node scripts/bump-version.js major  # 1.3.0 -> 2.0.0
+ *   node scripts/bump-version.js patch  # APIKEY_MANAGEMENT: 1.3.0 -> 1.3.1
+ *   node scripts/bump-version.js minor  # APIKEY_MANAGEMENT: 1.3.0 -> 1.4.0
+ *   node scripts/bump-version.js major  # APIKEY_MANAGEMENT: 1.3.0 -> 2.0.0
+ *
+ * Aktualisiert nur APIKEY_MANAGEMENT, MIDDLEWARE bleibt unverändert
  */
 
 import { readFileSync, writeFileSync } from 'fs'
@@ -31,13 +33,16 @@ function bumpVersion(currentVersion, type) {
   }
 }
 
-// Lese aktuelle Version aus version.yaml
-const versionYamlPath = join(rootDir, 'version.yaml')
-const versionYaml = readFileSync(versionYamlPath, 'utf-8')
-const currentVersion = versionYaml.match(/version:\s*(.+)/)?.[1]?.trim()
+// Lese aktuelle Version aus version.yml
+const versionYmlPath = join(rootDir, 'version.yml')
+const versionYml = readFileSync(versionYmlPath, 'utf-8')
+
+// Extrahiere APIKEY_MANAGEMENT Version
+const apiKeyManagementMatch = versionYml.match(/APIKEY_MANAGEMENT:\s*(.+)/)
+const currentVersion = apiKeyManagementMatch?.[1]?.trim()
 
 if (!currentVersion) {
-  console.error('❌ Konnte Version nicht aus version.yaml lesen')
+  console.error('❌ Konnte APIKEY_MANAGEMENT Version nicht aus version.yml lesen')
   process.exit(1)
 }
 
@@ -45,10 +50,18 @@ if (!currentVersion) {
 const bumpType = process.argv[2] || 'patch'
 const newVersion = bumpVersion(currentVersion, bumpType)
 
-// Aktualisiere version.yaml
-const newVersionYaml = `version: ${newVersion}\n`
-writeFileSync(versionYamlPath, newVersionYaml, 'utf-8')
-console.log(`✅ version.yaml: ${currentVersion} -> ${newVersion}`)
+// Aktualisiere version.yml - behalte MIDDLEWARE unverändert
+const middlewareMatch = versionYml.match(/MIDDLEWARE:\s*(.+)/)
+const middlewareVersion = middlewareMatch?.[1]?.trim() || '2.10.22'
+
+const newVersionYml = `APIKEY_MANAGEMENT: ${newVersion}
+MIDDLEWARE: ${middlewareVersion}
+`
+writeFileSync(versionYmlPath, newVersionYml, 'utf-8')
+console.log(`✅ version.yml: APIKEY_MANAGEMENT ${currentVersion} -> ${newVersion}`)
+if (middlewareVersion) {
+  console.log(`   MIDDLEWARE: ${middlewareVersion} (unverändert)`)
+}
 
 // Aktualisiere package.json
 const packageJsonPath = join(rootDir, 'package.json')
