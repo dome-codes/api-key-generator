@@ -144,17 +144,8 @@ api.interceptors.response.use(
         wwwAuthenticate.includes('error="insufficient_scope"'))
 
     // 401: Token erneuern und erneut versuchen
-    // insufficient_scope (nur wenn explizit im WWW-Authenticate Header): Token erneuern und einmal retry
     if (status === 401) {
-      if (isInsufficientScope) {
-        debugLog(
-          '⚠️ insufficient_scope Fehler erkannt – Token hat nicht die benötigten Berechtigungen',
-        )
-        debugLog('WWW-Authenticate Header:', wwwAuthenticate)
-      } else {
-        debugLog('Token abgelaufen, versuche Erneuerung...')
-      }
-
+      debugLog('Token abgelaufen, versuche Erneuerung...')
       try {
         await whenTokenReadyForApi
         const token = await getToken()
@@ -184,9 +175,8 @@ api.interceptors.response.use(
         debugLog('❌ Token-Erneuerung fehlgeschlagen:', refreshError)
       }
 
-      // Bei insufficient_scope nach Retry: Benutzerfreundliche Fehlermeldung anzeigen
+      // Nach Retry immer noch insufficient_scope: Benutzerfreundliche Fehlermeldung anzeigen
       if (typeof window !== 'undefined') {
-        if (typeof window !== 'undefined') {
           const errorDescription =
             error.response?.data?.error_description ||
             error.response?.data?.error ||
