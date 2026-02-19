@@ -6,7 +6,12 @@
  */
 
 import { getAdmin } from '@/api/admin/admin'
-import type { ExtractionRequestParamsGroupByParameterItem } from '@/api/types'
+import type {
+  AdminUsageExtractionGetV1Params,
+  ExtractionRequestParamsGroupByParameterItem,
+  UsageExtractionGetV1Params,
+  UsageExtractionSummaryGetV1Params,
+} from '@/api/types'
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
@@ -124,7 +129,9 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params = {
+      const params: (AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params) & {
+        offset?: number
+      } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page,
@@ -138,7 +145,7 @@ export const extractionUsageApiService = {
         userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
-      } as typeof params & { offset?: number }
+      }
 
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
@@ -216,6 +223,7 @@ export const extractionUsageApiService = {
         )
         throw new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
+          { cause: err },
         )
       }
       console.error('Error loading extraction usage data via API:', err)
@@ -245,7 +253,7 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params = {
+      const params: UsageExtractionSummaryGetV1Params & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTime(filter.toDate),
         page,
@@ -260,7 +268,7 @@ export const extractionUsageApiService = {
         tag: filter.tag,
         apiKey: filter.apiKey,
         by: filter.groupBy as ExtractionRequestParamsGroupByParameterItem[] | undefined,
-      } as typeof params & { offset?: number }
+      }
 
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
       const apiResponse = await getUsage().usageExtractionSummaryGetV1(params)
@@ -329,6 +337,7 @@ export const extractionUsageApiService = {
         )
         throw new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
+          { cause: err },
         )
       }
       console.error('Error loading extraction usage summary via API:', err)

@@ -109,6 +109,7 @@ export interface EnhancedExtractionUsageRecord {
   technicalUserId?: string
   technicalUserName?: string
   apiKey?: string
+  apiKeyId?: string
   tag?: string
   provider?: string
   modelId?: string
@@ -117,6 +118,7 @@ export interface EnhancedExtractionUsageRecord {
   extractedFields?: Array<{ fieldName?: string; value?: string; confidence?: number }>
   confidenceScore?: number
   cost?: number
+  operations?: number
 }
 
 export interface UsageAggregation {
