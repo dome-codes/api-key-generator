@@ -15,6 +15,7 @@ coverage
 *.local
 .env
 docs/*
+!docs/migration/
 
 /cypress/videos/
 /cypress/screenshots/
@@ -30,3 +31,9 @@ docs/*
 *.sw?
 
 *.tsbuildinfo
+
+# Backup files
+*.backup
+*.backup*
+*.old
+*.tmp
