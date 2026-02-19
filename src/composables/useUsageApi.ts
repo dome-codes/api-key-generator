@@ -18,6 +18,7 @@
 
 import type { PaginationInfo } from '@/api/types'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/api/types/frontend'
+import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
 import { usageApiService } from '@/services/usageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
@@ -77,7 +78,11 @@ export function useUsageApi() {
     const totalTokens = data.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
     const totalImages = data
-      .filter((item) => item.type === 'ImageModelUsage' || item.modelType === 'ImageModelUsage')
+      .filter(
+        (item) =>
+          item.type === ModelUsageTypeEnum.ImageModelUsage ||
+          item.modelType === ModelUsageTypeEnum.ImageModelUsage,
+      )
       .reduce((sum, item) => sum + (item.requests ?? 1), 0)
 
     const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
