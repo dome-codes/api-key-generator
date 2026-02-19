@@ -9,7 +9,9 @@ const debugLog = (...args: unknown[]) => {
     const fromStorage =
       typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
     if (showDebug || fromStorage) console.log(...args)
-  } catch (_) {}
+  } catch {
+    void 0 // debugLog must not throw (e.g. when appConfig or localStorage is unavailable)
+  }
 }
 
 // Base-URL immer mit /v1 (OpenAPI server url), damit alle Routes (/apikeys, /usage/ai, …) korrekt angebunden sind
@@ -60,7 +62,70 @@ api.interceptors.request.use(
   },
 )
 
-// Response-Interceptor: 401 Token erneuern; 403 einmal mit frischem Token wiederholen (Race mit erstem Request)
+/** Zeigt bei 500-Fehlern eine Meldung mit Tracing-ID an (Objekt mit error/code vom Backend). */
+function showServerErrorWithTracingId(data: unknown): void {
+  if (typeof window === 'undefined') return
+  const obj = data && typeof data === 'object' ? (data as { error?: string; code?: string }) : null
+  const tracingId = obj?.error ?? obj?.code ?? '–'
+
+  const overlay = document.createElement('div')
+  overlay.setAttribute('role', 'alert')
+  overlay.setAttribute('aria-live', 'assertive')
+  overlay.style.cssText = `
+    position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.5); font-family: system-ui, sans-serif;
+  `
+  const box = document.createElement('div')
+  box.style.cssText = `
+    background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 420px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border-left: 4px solid #dc2626;
+  `
+  box.innerHTML = `
+    <p style="margin: 0 0 0.75rem; font-weight: 600; color: #1f2937;">Ups, hier ist etwas schief gelaufen.</p>
+    <p style="margin: 0 0 0.75rem; font-size: 0.9rem; color: #4b5563;">Bitte kopieren Sie die folgende Tracing-ID und schicken Sie sie Ihrem Administrator:</p>
+    <code id="axios-tracing-id" style="display: block; padding: 0.5rem; background: #f3f4f6; border-radius: 4px; font-size: 0.85rem; word-break: break-all; margin-bottom: 1rem;">${escapeHtml(String(tracingId))}</code>
+    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+      <button type="button" id="axios-tracing-copy" style="padding: 0.5rem 1rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Kopieren</button>
+      <button type="button" id="axios-tracing-close" style="padding: 0.5rem 1rem; background: #6b7280; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Schließen</button>
+    </div>
+  `
+  overlay.appendChild(box)
+
+  const close = () => {
+    overlay.remove()
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close()
+  })
+
+  const copyBtn = box.querySelector('#axios-tracing-copy')
+  const codeEl = box.querySelector('#axios-tracing-id')
+  if (copyBtn && codeEl?.textContent) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard?.writeText(codeEl.textContent ?? '').then(
+        () => {
+          ;(copyBtn as HTMLButtonElement).textContent = 'Kopiert!'
+          setTimeout(() => {
+            ;(copyBtn as HTMLButtonElement).textContent = 'Kopieren'
+          }, 2000)
+        },
+        () => close(),
+      )
+    })
+  }
+  box.querySelector('#axios-tracing-close')?.addEventListener('click', close)
+
+  document.body.appendChild(overlay)
+}
+
+function escapeHtml(s: string): string {
+  const div = document.createElement('div')
+  div.textContent = s
+  return div.innerHTML
+}
+
+// Response-Interceptor: 401 Token erneuern; 403 einmal mit frischem Token wiederholen; 500 Meldung mit Tracing-ID
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -90,7 +155,12 @@ api.interceptors.response.use(
           config.headers.Authorization = `Bearer ${token}`
           return api(config)
         }
-      } catch (_) {}
+      } catch {
+        void 0 // ignore refresh failure, reject with original error
+      }
+    } else if (status >= 500 && status < 600) {
+      const data = error.response?.data
+      showServerErrorWithTracingId(data)
     }
 
     return Promise.reject(error)
