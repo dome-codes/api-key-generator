@@ -221,10 +221,11 @@ export const extractionUsageApiService = {
         console.warn(
           '403 bei admin/usage/extraction – Backend verweigert Admin-Extraction. Rolle/Scope prüfen.',
         )
-        throw new Error(
+        const error = new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
-          { cause: err },
         )
+        ;(error as { cause?: unknown }).cause = err
+        throw error
       }
       console.error('Error loading extraction usage data via API:', err)
       return {
@@ -335,10 +336,11 @@ export const extractionUsageApiService = {
         console.warn(
           '403 bei admin/usage/extraction/summarize – Backend verweigert Admin-Extraction.',
         )
-        throw new Error(
+        const error = new Error(
           'Keine Berechtigung für Admin Extraction (403). Backend-Rolle bzw. Scope "admin" prüfen.',
-          { cause: err },
         )
+        ;(error as { cause?: unknown }).cause = err
+        throw error
       }
       console.error('Error loading extraction usage summary via API:', err)
       return {
