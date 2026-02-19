@@ -170,7 +170,7 @@ api.interceptors.response.use(
       if (isSummarizeOrAIEndpoint) {
         debugLog('⚠️ summarize/AI Endpunkt erkannt - könnte falscher insufficient_scope sein, behandle als normalen 403')
         // Für summarize/AI Endpunkte: Behandle als normalen 403, nicht als insufficient_scope
-        // Fall-through zu normaler 403-Behandlung
+        // Fall-through zu normaler 403-Behandlung (weiter unten)
       } else {
         try {
           await whenTokenReadyForApi
@@ -225,7 +225,7 @@ api.interceptors.response.use(
           document.body.appendChild(overlay)
         }
       }
-    } else if (status === 403 && config && !isRetry && !isInsufficientScope) {
+    } else if (status === 403 && config && !isRetry && (!isInsufficientScope || (config.url?.includes('/summarize') || config.url?.includes('/usage/ai')))) {
       debugLog('403 Forbidden – ein Retry mit frischem Token')
       debugLog('Request URL:', config.url)
       debugLog('Request Method:', config.method)
