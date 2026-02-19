@@ -24,12 +24,7 @@ interface Props {
   data: EnhancedUsageRecord[]
   isLoading?: boolean
   error?: string | null
-  pagination?: {
-    page?: number
-    limit?: number
-    total?: number
-    totalPages?: number
-  }
+  pagination?: import('@/types/frontend').Page
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
@@ -130,9 +125,9 @@ const currentSortOrder = computed(() => {
   return props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value
 })
 
-const paginationPage = computed(() => props.pagination?.page ?? 1)
+const paginationPage = computed(() => props.pagination?.currentPage ?? 1)
 const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
-const paginationTotal = computed(() => props.pagination?.total ?? 0)
+const paginationTotal = computed(() => props.pagination?.totalItems ?? 0)
 
 // Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
 const totalPages = computed(() => {
@@ -313,7 +308,7 @@ watch(
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
         <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
-          {{ pagination.total }} Einträge (Seite {{ pagination.page }} von
+          {{ pagination.totalItems }} Einträge (Seite {{ pagination.currentPage }} von
           {{ pagination.totalPages }})
         </span>
         <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>

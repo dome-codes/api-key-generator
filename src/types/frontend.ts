@@ -20,7 +20,15 @@ export type {
   ExtractionUsagePage,
   ExtractionUsageSummaryPage,
 } from '@/api/types/index'
-export type { PaginationInfo, ModelUsageType } from '@/api/types/index'
+export type { ModelUsageType } from '@/api/types/index'
+
+/** Pagination wie vom Backend (Page): totalItems, totalPages, currentPage, pageSize */
+export interface Page {
+  totalItems?: number
+  totalPages?: number
+  currentPage?: number
+  pageSize?: number
+}
 
 // Aliases for API records (used as SummaryUsage | ModelUsage in analytics)
 export type SummaryUsage = AIUsageSummaryRecord

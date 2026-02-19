@@ -10,7 +10,7 @@ import type {
   ExtractionUsageFilterApi,
   ExtractionUsageAggregation,
 } from '@/types/frontend'
-import type { PaginationInfo } from '@/api/types'
+import type { Page } from '@/types/frontend'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
@@ -24,10 +24,10 @@ export function useExtractionUsageApi() {
   const error = ref<string | null>(null)
   const usageData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
   const summaryData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
-  const pagination = ref<PaginationInfo>({
-    page: 1,
-    limit: 20,
-    total: 0,
+  const pagination = ref<Page>({
+    currentPage: 1,
+    pageSize: 20,
+    totalItems: 0,
     totalPages: 0,
   })
   const currentFilter = ref<ExtractionUsageFilterApi>({
@@ -37,11 +37,11 @@ export function useExtractionUsageApi() {
 
   // Computed
   const hasMorePages = computed(() => {
-    return (pagination.value.page ?? 1) < (pagination.value.totalPages ?? 0)
+    return (pagination.value.currentPage ?? 1) < (pagination.value.totalPages ?? 0)
   })
 
   const hasPreviousPage = computed(() => {
-    return (pagination.value.page ?? 1) > 1
+    return (pagination.value.currentPage ?? 1) > 1
   })
 
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
@@ -232,9 +232,9 @@ export function useExtractionUsageApi() {
       debugLog('Error loading extraction usage data:', err)
       usageData.value = []
       pagination.value = {
-        page: currentFilter.value.page || 1,
-        limit: currentFilter.value.limit || 20,
-        total: 0,
+        currentPage: currentFilter.value.page || 1,
+        pageSize: currentFilter.value.limit || 20,
+        totalItems: 0,
         totalPages: 0,
       }
     } finally {
@@ -270,9 +270,9 @@ export function useExtractionUsageApi() {
       let allData = [...result.data]
       let currentPage = 1
       const totalPages = result.pagination?.totalPages ?? 0
-      const total = result.pagination?.total ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
 
-      while (currentPage < totalPages && allData.length < total) {
+      while (currentPage < totalPages && allData.length < totalItems) {
         currentPage++
         const pageResult = await extractionUsageApiService.getUsageSummary(
           { ...summaryFilter, page: currentPage },
@@ -285,7 +285,7 @@ export function useExtractionUsageApi() {
       summaryData.value = allData
       pagination.value = {
         ...result.pagination,
-        total: allData.length,
+        totalItems: allData.length,
       }
 
       debugLog('Extraction usage summary loaded:', {
@@ -300,9 +300,9 @@ export function useExtractionUsageApi() {
       debugLog('Error loading extraction usage summary:', err)
       usageData.value = []
       pagination.value = {
-        page: currentFilter.value.page || 1,
-        limit: currentFilter.value.limit || 20,
-        total: 0,
+        currentPage: currentFilter.value.page || 1,
+        pageSize: currentFilter.value.limit || 20,
+        totalItems: 0,
         totalPages: 0,
       }
     } finally {
@@ -313,14 +313,14 @@ export function useExtractionUsageApi() {
   const nextPage = async (useAdminApi: boolean = false) => {
     if (!hasMorePages.value) return
 
-    const newPage = (pagination.value.page ?? 1) + 1
+    const newPage = (pagination.value.currentPage ?? 1) + 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const previousPage = async (useAdminApi: boolean = false) => {
     if (!hasPreviousPage.value) return
 
-    const newPage = (pagination.value.page ?? 1) - 1
+    const newPage = (pagination.value.currentPage ?? 1) - 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 

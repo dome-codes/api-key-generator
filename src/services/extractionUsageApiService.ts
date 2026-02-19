@@ -18,7 +18,7 @@ import type {
   ExtractionUsageFilterApi,
   ExtractionUsagePageResponse,
   ExtractionUsageSummaryPageResponse,
-  PaginationInfo,
+  Page,
 } from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
@@ -26,23 +26,16 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[extractionUsageApiService]', ...args)
 
-/**
- * Mappt Backend-Pagination-Struktur auf die erwartete PaginationInfo-Struktur
- * Backend kann verschiedene Feldnamen verwenden: totalItems, currentPage, pageSize
- */
-function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
+/** Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize) */
+function mapPagination(backendPagination: unknown): Page | undefined {
   if (!backendPagination || typeof backendPagination !== 'object') {
     return undefined
   }
-
   const pag = backendPagination as Record<string, unknown>
-
-  // Prüfe auf verschiedene mögliche Feldnamen
   const totalItems = pag.totalItems ?? pag.total
   const currentPage = pag.currentPage ?? pag.page
   const pageSize = pag.pageSize ?? pag.limit
   const totalPages = pag.totalPages
-
   if (
     totalItems === undefined &&
     currentPage === undefined &&
@@ -51,12 +44,11 @@ function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
   ) {
     return undefined
   }
-
   return {
-    page: typeof currentPage === 'number' ? currentPage : undefined,
-    limit: typeof pageSize === 'number' ? pageSize : undefined,
-    total: typeof totalItems === 'number' ? totalItems : undefined,
+    totalItems: typeof totalItems === 'number' ? totalItems : undefined,
     totalPages: typeof totalPages === 'number' ? totalPages : undefined,
+    currentPage: typeof currentPage === 'number' ? currentPage : undefined,
+    pageSize: typeof pageSize === 'number' ? pageSize : undefined,
   }
 }
 
@@ -122,7 +114,7 @@ export const extractionUsageApiService = {
   async getUsageData(
     filter: ExtractionUsageFilterApi,
     useAdminApi: boolean = false,
-  ): Promise<{ data: EnhancedExtractionUsageRecord[]; pagination: PaginationInfo }> {
+  ): Promise<{ data: EnhancedExtractionUsageRecord[]; pagination: Page }> {
     try {
       debugLog('Loading extraction usage data with filter:', filter)
 
@@ -206,7 +198,7 @@ export const extractionUsageApiService = {
       })
 
       // Extrahiere Pagination und mappe Backend-Feldnamen
-      let pagination: PaginationInfo | undefined
+      let pagination: Page | undefined
       if (
         response &&
         typeof response === 'object' &&
@@ -220,9 +212,9 @@ export const extractionUsageApiService = {
       return {
         data: enhancedData,
         pagination: pagination || {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: enhancedData.length,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: enhancedData.length,
           totalPages: 1,
         },
       }
@@ -242,9 +234,9 @@ export const extractionUsageApiService = {
       return {
         data: [],
         pagination: {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: 0,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: 0,
           totalPages: 0,
         },
       }
@@ -257,7 +249,7 @@ export const extractionUsageApiService = {
   async getUsageSummary(
     filter: ExtractionUsageFilterApi,
     useAdminApi: boolean = false,
-  ): Promise<{ data: EnhancedExtractionUsageRecord[]; pagination: PaginationInfo }> {
+  ): Promise<{ data: EnhancedExtractionUsageRecord[]; pagination: Page }> {
     try {
       debugLog('Loading extraction usage summary with filter:', filter)
 
@@ -349,9 +341,9 @@ export const extractionUsageApiService = {
       return {
         data: enhancedData,
         pagination: pagination || {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: enhancedData.length,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: enhancedData.length,
           totalPages: 1,
         },
       }
@@ -369,9 +361,9 @@ export const extractionUsageApiService = {
       return {
         data: [],
         pagination: {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: 0,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: 0,
           totalPages: 0,
         },
       }

@@ -16,7 +16,7 @@ import { getUsage } from '@/api/usage/usage'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
-  PaginationInfo,
+  Page,
   SummaryUsage,
   SummaryUsagePageResponse,
   UsageFilterApi,
@@ -34,56 +34,33 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 const debugLog = (...args: unknown[]) => baseDebugLog('[usageApiService]', ...args)
 
 /**
- * Mappt Backend-Pagination-Struktur auf die erwartete PaginationInfo-Struktur
- * Backend kann verschiedene Feldnamen verwenden: totalItems, currentPage, pageSize
+ * Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize)
  */
-function mapPagination(backendPagination: unknown): PaginationInfo | undefined {
+function mapPagination(backendPagination: unknown): Page | undefined {
   if (!backendPagination || typeof backendPagination !== 'object') {
     return undefined
   }
 
   const pag = backendPagination as Record<string, unknown>
-
-  // Prüfe auf verschiedene mögliche Feldnamen
   const totalItems = pag.totalItems ?? pag.total
   const currentPage = pag.currentPage ?? pag.page
   const pageSize = pag.pageSize ?? pag.limit
   const totalPages = pag.totalPages
 
-  // Wenn bereits die Standard-Struktur vorhanden ist, verwende sie direkt
   if (
-    pag.page !== undefined &&
-    pag.limit !== undefined &&
-    pag.total !== undefined &&
-    pag.totalPages !== undefined
+    totalItems === undefined &&
+    currentPage === undefined &&
+    pageSize === undefined &&
+    totalPages === undefined
   ) {
-    return pag as PaginationInfo
+    return undefined
   }
 
-  // Mappe Backend-Feldnamen auf Standard-Struktur
-  const mapped: PaginationInfo = {}
-
-  if (typeof currentPage === 'number') {
-    mapped.page = currentPage
-  } else if (typeof pag.page === 'number') {
-    mapped.page = pag.page
-  }
-
-  if (typeof pageSize === 'number') {
-    mapped.limit = pageSize
-  } else if (typeof pag.limit === 'number') {
-    mapped.limit = pag.limit
-  }
-
-  if (typeof totalItems === 'number') {
-    mapped.total = totalItems
-  } else if (typeof pag.total === 'number') {
-    mapped.total = pag.total
-  }
-
-  if (typeof totalPages === 'number') {
-    mapped.totalPages = totalPages
-  }
+  const mapped: Page = {}
+  if (typeof totalItems === 'number') mapped.totalItems = totalItems
+  if (typeof totalPages === 'number') mapped.totalPages = totalPages
+  if (typeof currentPage === 'number') mapped.currentPage = currentPage
+  if (typeof pageSize === 'number') mapped.pageSize = pageSize
 
   // Nur zurückgeben, wenn mindestens ein Feld gesetzt ist
   if (Object.keys(mapped).length === 0) {
@@ -241,7 +218,7 @@ export const usageApiService = {
   async getUsageData(
     filter: UsageFilterApi,
     useAdminApi: boolean = false,
-  ): Promise<{ data: EnhancedUsageRecord[]; pagination: PaginationInfo }> {
+  ): Promise<{ data: EnhancedUsageRecord[]; pagination: Page }> {
     try {
       debugLog('Loading usage data with filter:', filter)
 
@@ -347,7 +324,7 @@ export const usageApiService = {
       )
 
       // Extrahiere Pagination und mappe Backend-Feldnamen
-      let pagination: PaginationInfo | undefined
+      let pagination: Page | undefined
       if (
         response &&
         typeof response === 'object' &&
@@ -375,17 +352,14 @@ export const usageApiService = {
             : undefined,
       })
 
-      // Stelle sicher, dass die Pagination immer die aktuelle Seite enthält
-      const finalPagination: PaginationInfo = pagination || {
-        page: filter.page || 1,
-        limit: filter.limit || 20,
-        total: enhancedData.length,
+      const finalPagination: Page = pagination || {
+        currentPage: filter.page || 1,
+        pageSize: filter.limit || 20,
+        totalItems: enhancedData.length,
         totalPages: 1,
       }
-
-      // Wenn die Pagination keine page enthält, aber der Filter eine hat, setze sie
-      if (!finalPagination.page && filter.page) {
-        finalPagination.page = filter.page
+      if (finalPagination.currentPage == null && filter.page) {
+        finalPagination.currentPage = filter.page
       }
 
       return {
@@ -397,9 +371,9 @@ export const usageApiService = {
       return {
         data: [],
         pagination: {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: 0,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: 0,
           totalPages: 0,
         },
       }
@@ -412,7 +386,7 @@ export const usageApiService = {
   async getUsageSummary(
     filter: UsageFilterApi,
     useAdminApi: boolean = false,
-  ): Promise<{ data: EnhancedUsageRecord[]; pagination: PaginationInfo }> {
+  ): Promise<{ data: EnhancedUsageRecord[]; pagination: Page }> {
     try {
       debugLog('Loading usage summary with filter:', filter)
 
@@ -495,7 +469,7 @@ export const usageApiService = {
       )
 
       // Extrahiere Pagination und mappe Backend-Feldnamen
-      let pagination: PaginationInfo | undefined
+      let pagination: Page | undefined
       if (
         response &&
         typeof response === 'object' &&
@@ -521,9 +495,9 @@ export const usageApiService = {
       return {
         data: enhancedData,
         pagination: pagination || {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: enhancedData.length,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: enhancedData.length,
           totalPages: 1,
         },
       }
@@ -532,9 +506,9 @@ export const usageApiService = {
       return {
         data: [],
         pagination: {
-          page: filter.page || 1,
-          limit: filter.limit || 20,
-          total: 0,
+          currentPage: filter.page || 1,
+          pageSize: filter.limit || 20,
+          totalItems: 0,
           totalPages: 0,
         },
       }

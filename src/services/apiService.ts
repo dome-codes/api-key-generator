@@ -4,10 +4,10 @@ import type {
   AIUsagePage,
   AIUsageSummaryPage,
   AIUsageSummaryRecord,
-  PaginationInfo,
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
+import type { Page } from '@/types/frontend'
 import type { ApiKeyDisplay } from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
 import { api } from '@/axios/api'
@@ -211,9 +211,9 @@ export const usageService = {
 
       // Backend kann data, items oder usage liefern
       const data = getDataArray<AIUsageSummaryRecord>(body)
-      const pagination: PaginationInfo | undefined =
-        body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
-          ? (body as { pagination?: PaginationInfo }).pagination
+const pagination: Page | undefined =
+          body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
+          ? (body as { pagination?: Page }).pagination
           : undefined
       return { data, pagination }
     } catch (error) {

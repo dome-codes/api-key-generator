@@ -3,14 +3,15 @@ import EmptyState from '../shared/EmptyState.vue'
 import SkeletonLoader from '../shared/SkeletonLoader.vue'
 import ErrorState from '../shared/ErrorState.vue'
 import type { EnhancedExtractionUsageRecord } from '@/types/frontend'
-import type { DocumentIntelligenceOperationStatus, PaginationInfo } from '@/api/types'
+import type { DocumentIntelligenceOperationStatus } from '@/api/types'
+import type { Page } from '@/types/frontend'
 import { computed, ref, watch } from 'vue'
 
 interface Props {
   data: EnhancedExtractionUsageRecord[]
   isLoading?: boolean
   error?: string | null
-  pagination?: PaginationInfo
+  pagination?: Page
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
@@ -25,9 +26,9 @@ const props = withDefaults(defineProps<Props>(), {
   useBackendSorting: false,
 })
 
-const paginationPage = computed(() => props.pagination?.page ?? 1)
+const paginationPage = computed(() => props.pagination?.currentPage ?? 1)
 const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
-const paginationTotal = computed(() => props.pagination?.total ?? 0)
+const paginationTotal = computed(() => props.pagination?.totalItems ?? 0)
 
 const emit = defineEmits<{
   'page-change': [page: number]

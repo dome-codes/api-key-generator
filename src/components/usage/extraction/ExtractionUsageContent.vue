@@ -136,7 +136,7 @@ const saveFiltersToUrl = () => {
     if (adminUser.value) params.userId = adminUser.value
     if (adminUserGroup.value) params.userGroup = adminUserGroup.value
   }
-  if ((pagination.value.page ?? 1) > 1) params.page = pagination.value.page
+  if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
   setQueryParams(params)
 }
 

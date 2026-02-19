@@ -16,7 +16,7 @@
  * - Migration: Schrittweise von useUsage zu useUsageApi wechseln
  */
 
-import type { PaginationInfo } from '@/api/types'
+import type { Page } from '@/types/frontend'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
 import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
 import { usageApiService } from '@/services/usageApiService'
@@ -33,10 +33,10 @@ export function useUsageApi() {
   const usageData = ref<EnhancedUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
   const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
-  const pagination = ref<PaginationInfo>({
-    page: 1,
-    limit: 20,
-    total: 0,
+  const pagination = ref<Page>({
+    currentPage: 1,
+    pageSize: 20,
+    totalItems: 0,
     totalPages: 0,
   })
   const currentFilter = ref<UsageFilterApi>({
@@ -46,11 +46,11 @@ export function useUsageApi() {
 
   // Computed
   const hasMorePages = computed(() => {
-    return (pagination.value.page ?? 1) < (pagination.value.totalPages ?? 0)
+    return (pagination.value.currentPage ?? 1) < (pagination.value.totalPages ?? 0)
   })
 
   const hasPreviousPage = computed(() => {
-    return (pagination.value.page ?? 1) > 1
+    return (pagination.value.currentPage ?? 1) > 1
   })
 
   const usageAggregation = computed<UsageAggregation>(() => {
@@ -271,7 +271,7 @@ export function useUsageApi() {
       debugLog('Usage data loaded:', {
         count: result.data.length,
         pagination: result.pagination,
-        currentPage: result.pagination?.page,
+        currentPage: result.pagination?.currentPage,
         totalPages: result.pagination?.totalPages,
       })
     } catch (err) {
@@ -279,9 +279,9 @@ export function useUsageApi() {
       debugLog('Error loading usage data:', err)
       usageData.value = []
       pagination.value = {
-        page: currentFilter.value.page || 1,
-        limit: currentFilter.value.limit || 20,
-        total: 0,
+        currentPage: currentFilter.value.page || 1,
+        pageSize: currentFilter.value.limit || 20,
+        totalItems: 0,
         totalPages: 0,
       }
     } finally {
@@ -317,9 +317,9 @@ export function useUsageApi() {
       let allData = [...result.data]
       let currentPage = 1
       const totalPages = result.pagination?.totalPages ?? 0
-      const total = result.pagination?.total ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
 
-      while (currentPage < totalPages && allData.length < total) {
+      while (currentPage < totalPages && allData.length < totalItems) {
         currentPage++
         const pageResult = await usageApiService.getUsageSummary(
           { ...summaryFilter, page: currentPage },
@@ -334,7 +334,7 @@ export function useUsageApi() {
       // In der Übersicht setzen wir die Pagination hier
       pagination.value = {
         ...result.pagination,
-        total: allData.length,
+        totalItems: allData.length,
       }
 
       debugLog('Usage summary loaded:', {
@@ -353,9 +353,9 @@ export function useUsageApi() {
       // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
       summaryData.value = []
       pagination.value = {
-        page: currentFilter.value.page || 1,
-        limit: currentFilter.value.limit || 20,
-        total: pagination.value.total ?? 0,
+        currentPage: currentFilter.value.page || 1,
+        pageSize: currentFilter.value.limit || 20,
+        totalItems: pagination.value.totalItems ?? 0,
         totalPages: pagination.value.totalPages ?? 0,
       }
     } finally {
@@ -381,9 +381,9 @@ export function useUsageApi() {
       let allTagData = [...result.data]
       let currentPage = 1
       const totalPages = result.pagination?.totalPages ?? 0
-      const total = result.pagination?.total ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
 
-      while (currentPage < totalPages && allTagData.length < total) {
+      while (currentPage < totalPages && allTagData.length < totalItems) {
         currentPage++
         const pageResult = await usageApiService.getUsageSummary(
           { ...tagFilter, page: currentPage },
@@ -410,14 +410,14 @@ export function useUsageApi() {
   const nextPage = async (useAdminApi: boolean = false) => {
     if (!hasMorePages.value) return
 
-    const newPage = (pagination.value.page ?? 1) + 1
+    const newPage = (pagination.value.currentPage ?? 1) + 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 
   const previousPage = async (useAdminApi: boolean = false) => {
     if (!hasPreviousPage.value) return
 
-    const newPage = (pagination.value.page ?? 1) - 1
+    const newPage = (pagination.value.currentPage ?? 1) - 1
     await loadUsageData({ page: newPage }, useAdminApi)
   }
 

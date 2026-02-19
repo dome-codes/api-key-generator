@@ -131,7 +131,7 @@ const saveFiltersToUrl = () => {
   if (ownChartPeriod.value) params.chartPeriod = ownChartPeriod.value
   if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
   if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
-  if ((pagination.value.page ?? 1) > 1) params.page = pagination.value.page
+  if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
   if (currentFilter.value.sort) params.sort = currentFilter.value.sort
   if (currentFilter.value.order) params.order = currentFilter.value.order as 'asc' | 'desc'
   setQueryParams(params)
