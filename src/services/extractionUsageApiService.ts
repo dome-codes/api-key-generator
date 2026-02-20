@@ -10,18 +10,25 @@ import type {
   AdminUsageExtractionGetV1Params,
   UsageExtractionGetV1Params,
   UsageExtractionSummaryGetV1Params,
-  UsageExtractionSummaryGetV1ByItem,
 } from '@/api/types'
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageFilterApi,
 } from '@/types/frontend'
-import type { Page } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[extractionUsageApiService]', ...args)
+
+interface Page {
+  currentPage?: number
+  pageSize?: number
+  totalItems?: number
+  totalPages?: number
+}
+
+type SummaryByItem = 'day' | 'month' | 'year' | 'tag' | 'modelId' | 'user' | 'provider'
 
 /** Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize) */
 function mapPagination(backendPagination: unknown): Page | undefined {
@@ -178,9 +185,7 @@ export const extractionUsageApiService = {
 
       // Backend verwendet nur offset und limit, nicht page
       // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/extraction), nicht bei /v1/usage/extraction
-      const baseApiParams: Omit<AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params, 'page'> & {
-        offset?: number
-      } = {
+      const baseApiParams: Record<string, unknown> = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
@@ -199,8 +204,8 @@ export const extractionUsageApiService = {
       
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
-        ? await getAdmin().adminUsageExtractionGetV1(apiParams)
-        : await getUsage().usageExtractionGetV1(apiParams)
+        ? await getAdmin().adminUsageExtractionGetV1(apiParams as AdminUsageExtractionGetV1Params)
+        : await getUsage().usageExtractionGetV1(apiParams as UsageExtractionGetV1Params)
       const response = apiResponse.data as ExtractionPageResponseShape | ExtractionUsageRecordShape[]
       const rawData = getDataArray<ExtractionUsageRecordShape>(response)
 
@@ -267,6 +272,10 @@ export const extractionUsageApiService = {
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
       }
+      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
+      if (filter.page && finalPagination.currentPage !== filter.page) {
+        finalPagination.currentPage = filter.page
+      }
 
       return {
         data: enhancedData,
@@ -330,22 +339,22 @@ export const extractionUsageApiService = {
               .map((item) => {
                 // Mappe alte Werte zu neuen Werten
                 if (item === 'apikey') return undefined // apikey wird nicht mehr unterstützt
-                if (item === 'user') return 'userId' as UsageExtractionSummaryGetV1ByItem
+                if (item === 'user') return 'user' as SummaryByItem
                 // Prüfe ob der Wert im neuen Enum enthalten ist
-                const validValues: UsageExtractionSummaryGetV1ByItem[] = [
+                const validValues: SummaryByItem[] = [
                   'day',
                   'month',
                   'year',
                   'tag',
                   'modelId',
-                  'userId',
+                  'user',
                   'provider',
                 ]
-                return validValues.includes(item as UsageExtractionSummaryGetV1ByItem)
-                  ? (item as UsageExtractionSummaryGetV1ByItem)
+                return validValues.includes(item as SummaryByItem)
+                  ? (item as SummaryByItem)
                   : undefined
               })
-              .filter((item): item is UsageExtractionSummaryGetV1ByItem => item !== undefined)
+              .filter((item): item is SummaryByItem => item !== undefined)
           : undefined,
       }
       
@@ -411,6 +420,10 @@ export const extractionUsageApiService = {
       // Wenn Backend keine currentPage liefert, berechne aus offset/limit
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
+      }
+      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
+      if (filter.page && finalPagination.currentPage !== filter.page) {
+        finalPagination.currentPage = filter.page
       }
 
       return {

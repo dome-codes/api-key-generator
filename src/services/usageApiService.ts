@@ -12,7 +12,14 @@
  */
 
 import { getAdmin } from '@/api/admin/admin'
+import type {
+  AIRequestParamsGroupByParameterItem,
+  AIRequestParamsUsageTypeParameter,
+  AIUsageRecord,
+  AIUsageSummaryRecord,
+} from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
+import { calculateCost } from '@/config/pricing'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
@@ -21,17 +28,18 @@ import type {
   UsageFilterApi,
   UsagePageResponse,
 } from '@/types/frontend'
-import type { Page } from '@/api/types'
-import type {
-  AIRequestParamsGroupByParameterItem,
-  AIUsageRecord,
-  AIUsageSummaryRecord,
-} from '@/api/types'
-import { calculateCost } from '@/config/pricing'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[usageApiService]', ...args)
+
+// Lokaler Pagination-Typ (Backend liefert currentPage/pageSize/totalItems/totalPages)
+interface Page {
+  currentPage?: number
+  pageSize?: number
+  totalItems?: number
+  totalPages?: number
+}
 
 /**
  * Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize)
@@ -121,9 +129,11 @@ function diagLog(
 }
 
 /** Backend-Standard: usageType mit CAPITAL, z. B. COMPLETION_USAGE. Überall im Projekt für API-Parameter verwenden. */
-export function toBackendUsageType(value: string | undefined): string | undefined {
+export function toBackendUsageType(
+  value: string | undefined,
+): AIRequestParamsUsageTypeParameter | undefined {
   if (!value?.trim()) return undefined
-  const map: Record<string, string> = {
+  const map: Record<string, AIRequestParamsUsageTypeParameter> = {
     CompletionModelUsage: 'COMPLETION_USAGE',
     EmbeddingModelUsage: 'EMBEDDING_USAGE',
     ImageModelUsage: 'IMAGE_USAGE',
@@ -238,13 +248,15 @@ export const usageApiService = {
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
-      
+
       debugLog('[usageApiService] Calculated pagination:', { page, limit, offset })
 
       // Backend verwendet nur offset und limit, nicht page
       // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai), nicht bei /v1/usage/ai
       // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
-      const apiParams: Omit<import('@/api/types').UsageAIGetV1Params, 'page'> & { offset?: number } = {
+      const apiParams: Omit<import('@/api/types').UsageAIGetV1Params, 'page'> & {
+        offset?: number
+      } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
@@ -255,7 +267,7 @@ export const usageApiService = {
         model: filter.model,
         usageType: usageTypeValue,
       }
-      
+
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAIGetV1(apiParams)
         : await getUsage().usageAIGetV1(apiParams)
@@ -381,6 +393,10 @@ export const usageApiService = {
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
       }
+      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
+      if (filter.page && finalPagination.currentPage !== filter.page) {
+        finalPagination.currentPage = filter.page
+      }
 
       return {
         data: enhancedData,
@@ -423,7 +439,9 @@ export const usageApiService = {
       // Backend verwendet nur offset und limit, nicht page
       // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai/summarize), nicht bei /v1/usage/ai/summarize
       // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
-      const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page'> & { offset?: number } = {
+      const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page'> & {
+        offset?: number
+      } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
@@ -435,7 +453,7 @@ export const usageApiService = {
         usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
       }
-      
+
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAISummaryGetV1(apiParams)
         : await getUsage().usageAISummaryGetV1(apiParams)
@@ -530,6 +548,10 @@ export const usageApiService = {
       // Wenn Backend keine currentPage liefert, berechne aus offset/limit
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
+      }
+      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
+      if (filter.page && finalPagination.currentPage !== filter.page) {
+        finalPagination.currentPage = filter.page
       }
 
       return {

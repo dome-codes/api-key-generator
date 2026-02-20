@@ -289,9 +289,11 @@ export function useUsageApi() {
       usageData.value = result.data
       pagination.value = result.pagination
 
-      // Synchronisiere currentFilter.page mit der Backend-Pagination
-      // (Backend könnte die Seite anpassen, z.B. wenn die Seite außerhalb des Bereichs liegt)
-      if (result.pagination?.currentPage) {
+      // Wenn eine Seite explizit angefragt wurde, behalte diese.
+      // Sonst synchronisieren wir mit Backend/Fallback-Pagination.
+      if (filter?.page !== undefined) {
+        currentFilter.value = { ...currentFilter.value, page: filter.page }
+      } else if (result.pagination?.currentPage) {
         currentFilter.value = { ...currentFilter.value, page: result.pagination.currentPage }
       }
 
