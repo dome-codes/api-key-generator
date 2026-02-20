@@ -139,7 +139,8 @@ const saveFiltersToUrl = () => {
   params.chartPeriod = ownChartPeriod.value || undefined
   params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
   params.toDate = ownToDate.value ? toIsoDate(ownToDate.value) : undefined
-  if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
+  // Setze page immer explizit (auch wenn 1), damit die URL korrekt ist
+  params.page = pagination.value.currentPage ?? currentFilter.value.page ?? 1
   params.sort = currentFilter.value.sort || undefined
   params.order = currentFilter.value.order || undefined
   setQueryParams(params)
@@ -226,6 +227,8 @@ const handleOwnFilterChange = async () => {
 
 // Handle page changes
 const handlePageChange = async (page: number) => {
+  // Aktualisiere currentFilter.page explizit, bevor goToPage aufgerufen wird
+  currentFilter.value = { ...currentFilter.value, page }
   await goToPage(page, props.useAdminApi)
   saveFiltersToUrl()
 }

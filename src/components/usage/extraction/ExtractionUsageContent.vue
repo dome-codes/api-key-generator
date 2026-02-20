@@ -140,7 +140,8 @@ const saveFiltersToUrl = () => {
     params.userId = adminUser.value || undefined
     params.userGroup = adminUserGroup.value || undefined
   }
-  if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
+  // Setze page immer explizit (auch wenn 1), damit die URL korrekt ist
+  params.page = pagination.value.currentPage ?? currentFilter.value.page ?? 1
   setQueryParams(params)
 }
 
@@ -212,6 +213,8 @@ const handleOwnFilterChange = async () => {
 
 // Handle page changes
 const handlePageChange = async (page: number) => {
+  // Aktualisiere currentFilter.page explizit, bevor goToPage aufgerufen wird
+  currentFilter.value = { ...currentFilter.value, page }
   await goToPage(page, props.useAdminApi)
   saveFiltersToUrl()
 }

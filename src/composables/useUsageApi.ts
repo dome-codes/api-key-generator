@@ -264,22 +264,35 @@ export function useUsageApi() {
     error.value = null
 
     try {
-      if (filter) {
+      // Aktualisiere Filter explizit (auch wenn filter leer ist, um sicherzustellen dass currentFilter aktuell ist)
+      if (filter && Object.keys(filter).length > 0) {
         currentFilter.value = { ...currentFilter.value, ...filter }
       }
 
-      debugLog('Loading usage data with filter:', currentFilter.value)
+      debugLog('Loading usage data with filter:', {
+        ...currentFilter.value,
+        page: currentFilter.value.page,
+        limit: currentFilter.value.limit,
+        offset: currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : undefined,
+      })
 
       const result = await usageApiService.getUsageData(currentFilter.value, useAdminApi)
 
       usageData.value = result.data
       pagination.value = result.pagination
 
+      // Synchronisiere currentFilter.page mit der Backend-Pagination
+      // (Backend könnte die Seite anpassen, z.B. wenn die Seite außerhalb des Bereichs liegt)
+      if (result.pagination?.currentPage) {
+        currentFilter.value = { ...currentFilter.value, page: result.pagination.currentPage }
+      }
+
       debugLog('Usage data loaded:', {
         count: result.data.length,
         pagination: result.pagination,
         currentPage: result.pagination?.currentPage,
         totalPages: result.pagination?.totalPages,
+        currentFilterPage: currentFilter.value.page,
       })
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungsdaten'

@@ -210,21 +210,33 @@ export function useExtractionUsageApi() {
     error.value = null
 
     try {
-      // Nur aktualisieren wenn Filter-Objekt nicht leer ist und tatsächlich Properties hat
+      // Aktualisiere Filter explizit (auch wenn filter leer ist, um sicherzustellen dass currentFilter aktuell ist)
       if (filter && Object.keys(filter).length > 0) {
         currentFilter.value = { ...currentFilter.value, ...filter }
       }
 
-      debugLog('Loading extraction usage data with filter:', currentFilter.value)
+      debugLog('Loading extraction usage data with filter:', {
+        ...currentFilter.value,
+        page: currentFilter.value.page,
+        limit: currentFilter.value.limit,
+        offset: currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : undefined,
+      })
 
       const result = await extractionUsageApiService.getUsageData(currentFilter.value, useAdminApi)
 
       usageData.value = result.data
       pagination.value = result.pagination
 
+      // Synchronisiere currentFilter.page mit der Backend-Pagination
+      // (Backend könnte die Seite anpassen, z.B. wenn die Seite außerhalb des Bereichs liegt)
+      if (result.pagination?.currentPage) {
+        currentFilter.value = { ...currentFilter.value, page: result.pagination.currentPage }
+      }
+
       debugLog('Extraction usage data loaded:', {
         count: result.data.length,
         pagination: result.pagination,
+        currentFilterPage: currentFilter.value.page,
       })
     } catch (err) {
       error.value =
