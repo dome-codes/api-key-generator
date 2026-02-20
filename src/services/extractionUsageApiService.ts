@@ -255,21 +255,18 @@ export const extractionUsageApiService = {
         pagination = mapPagination(backendPagination) ?? (backendPagination as Page)
       }
 
-      // Stelle sicher, dass currentPage immer gesetzt ist (aus filter.page oder Backend-Pagination)
+      // Backend liefert currentPage im Pagination-Objekt, verwende das direkt
+      // Falls nicht vorhanden, berechne aus offset und limit: currentPage = (offset / limit) + 1
+      const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1
       const finalPagination: Page = pagination || {
-        currentPage: filter.page || 1,
+        currentPage: calculatedPage,
         pageSize: filter.limit || 20,
         totalItems: enhancedData.length,
         totalPages: 1,
       }
-      // Wenn Backend keine currentPage liefert, verwende filter.page
+      // Nur wenn Backend keine currentPage liefert, berechne aus offset/limit
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
-        finalPagination.currentPage = filter.page || 1
-      }
-      // Stelle sicher, dass currentPage mit filter.page übereinstimmt (falls Backend es falsch zurückgibt)
-      if (filter.page && filter.page !== finalPagination.currentPage) {
-        debugLog('⚠️ Pagination mismatch: filter.page =', filter.page, 'but backend returned currentPage =', finalPagination.currentPage)
-        finalPagination.currentPage = filter.page
+        finalPagination.currentPage = calculatedPage
       }
 
       return {
@@ -289,11 +286,16 @@ export const extractionUsageApiService = {
         throw error
       }
       debugLog('Error loading extraction usage data via API:', err)
+      // Berechne currentPage aus offset/limit
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1
       return {
         data: [],
         pagination: {
-          currentPage: filter.page || 1,
-          pageSize: filter.limit || 20,
+          currentPage: calculatedPage,
+          pageSize: limit,
           totalItems: 0,
           totalPages: 0,
         },
@@ -397,14 +399,22 @@ export const extractionUsageApiService = {
           : undefined
       const pagination = mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
 
+      // Berechne currentPage aus offset/limit falls Backend keine Pagination liefert
+      const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1
+      const finalPagination: Page = pagination || {
+        currentPage: calculatedPage,
+        pageSize: filter.limit || 20,
+        totalItems: enhancedData.length,
+        totalPages: 1,
+      }
+      // Wenn Backend keine currentPage liefert, berechne aus offset/limit
+      if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
+        finalPagination.currentPage = calculatedPage
+      }
+
       return {
         data: enhancedData,
-        pagination: pagination || {
-          currentPage: filter.page || 1,
-          pageSize: filter.limit || 20,
-          totalItems: enhancedData.length,
-          totalPages: 1,
-        },
+        pagination: finalPagination,
       }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
@@ -417,11 +427,16 @@ export const extractionUsageApiService = {
         throw error
       }
       debugLog('Error loading extraction usage summary via API:', err)
+      // Berechne currentPage aus offset/limit
+      const page = filter.page || 1
+      const limit = filter.limit || 20
+      const offset = (page - 1) * limit
+      const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1
       return {
         data: [],
         pagination: {
-          currentPage: filter.page || 1,
-          pageSize: filter.limit || 20,
+          currentPage: calculatedPage,
+          pageSize: limit,
           totalItems: 0,
           totalPages: 0,
         },

@@ -242,6 +242,20 @@ const handlePageChange = async (page: number) => {
   saveFiltersToUrl()
 }
 
+// Handle page size changes
+const handlePageSizeChange = async (pageSize: number) => {
+  debugLog('[AIUsageContent] handlePageSizeChange:', { pageSize })
+  // Setze limit und reset page auf 1
+  currentFilter.value = { ...currentFilter.value, limit: pageSize, page: 1 }
+  // Lade Daten neu mit neuem limit
+  if (ownView.value === 'detailed') {
+    await loadUsageData({}, props.useAdminApi)
+  } else {
+    await loadUsageSummary({}, props.useAdminApi)
+  }
+  saveFiltersToUrl()
+}
+
 // Handle sort changes
 const handleSortChange = async (field: string, order: 'asc' | 'desc') => {
   await updateSort(field, order, props.useAdminApi)
@@ -403,6 +417,7 @@ onMounted(async () => {
       :use-backend-sorting="true"
       :model-type-filter="ownModelType"
       @page-change="handlePageChange"
+      @page-size-change="handlePageSizeChange"
       @sort-change="handleSortChange"
       @retry="handleRetry"
     />

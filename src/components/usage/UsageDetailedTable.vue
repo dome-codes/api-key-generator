@@ -9,6 +9,7 @@ import { debugLog } from '@/utils/debugLog'
 
 const emit = defineEmits<{
   'page-change': [page: number]
+  'page-size-change': [pageSize: number]
   'sort-change': [field: string, order: 'asc' | 'desc']
   retry: []
 }>()
@@ -639,8 +640,24 @@ watch(
         v-if="pagination && (pagination.totalPages ?? 0) > 1 && displayData.length > 0"
         class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200"
       >
-        <div class="text-sm text-gray-700">
-          Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-700">
+            Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="page-size-select" class="text-sm text-gray-700">Einträge pro Seite:</label>
+            <select
+              id="page-size-select"
+              :value="pagination.pageSize || 20"
+              class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              @change="$emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
+            >
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+          </div>
         </div>
         <div class="flex space-x-2">
           <button
