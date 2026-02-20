@@ -177,7 +177,7 @@ export const extractionUsageApiService = {
       const offset = (page - 1) * limit
 
       // Backend verwendet nur offset und limit, nicht page
-      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
+      // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/extraction), nicht bei /v1/usage/extraction
       const baseApiParams: Omit<AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params, 'page'> & {
         offset?: number
       } = {
@@ -187,9 +187,9 @@ export const extractionUsageApiService = {
         offset, // offset = (page - 1) * limit
         provider: filter.provider,
         modelId: filter.modelId,
-        userId: filter.userId,
         tag: filter.tag,
         apiKey: filter.apiKey,
+        ...(useAdminApi && filter.userId ? { userId: filter.userId } : {}),
       }
 
       // Füge status hinzu, wenn es definiert ist (string reicht – andere OpenAPI kann andere Enums haben)
