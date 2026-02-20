@@ -33,13 +33,15 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[usageApiService]', ...args)
 
-// Lokaler Pagination-Typ (Backend liefert currentPage/pageSize/totalItems/totalPages)
-interface Page {
-  currentPage?: number
-  pageSize?: number
-  totalItems?: number
-  totalPages?: number
-}
+type OrvalTypes = typeof import('@/api/types')
+type Page = OrvalTypes extends { Page: infer P }
+  ? P
+  : {
+      currentPage?: number
+      pageSize?: number
+      totalItems?: number
+      totalPages?: number
+    }
 
 /**
  * Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize)
@@ -436,16 +438,13 @@ export const usageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Backend verwendet nur offset und limit, nicht page
+      // Summary-Endpoint: verwende nur offiziell unterstützte Summary-Parameter.
+      // Kein page/offset/limit mitsenden.
       // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai/summarize), nicht bei /v1/usage/ai/summarize
       // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
-      const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page'> & {
-        offset?: number
-      } = {
+      const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page' | 'limit'> = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
-        limit,
-        offset, // offset = (page - 1) * limit
         ...(useAdminApi && filter.userId ? { userId: filter.userId } : {}),
         tag: filter.tag,
         apiKey: filter.apiKey,

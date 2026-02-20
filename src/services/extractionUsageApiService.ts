@@ -21,14 +21,15 @@ import { debugLog as baseDebugLog } from '@/utils/debugLog'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[extractionUsageApiService]', ...args)
 
-interface Page {
-  currentPage?: number
-  pageSize?: number
-  totalItems?: number
-  totalPages?: number
-}
-
-type SummaryByItem = 'day' | 'month' | 'year' | 'tag' | 'modelId' | 'user' | 'provider'
+type OrvalTypes = typeof import('@/api/types')
+type Page = OrvalTypes extends { Page: infer P }
+  ? P
+  : {
+      currentPage?: number
+      pageSize?: number
+      totalItems?: number
+      totalPages?: number
+    }
 
 /** Mappt Backend-Pagination auf Page (totalItems, totalPages, currentPage, pageSize) */
 function mapPagination(backendPagination: unknown): Page | undefined {
@@ -325,37 +326,27 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Backend verwendet nur offset und limit, nicht page
-      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
-      const apiParams: Omit<UsageExtractionSummaryGetV1Params, 'page'> & { offset?: number } = {
+      // Summary-Endpoint: verwende nur offiziell unterstützte Summary-Parameter.
+      // Kein page/offset/limit mitsenden.
+      const mappedBy = filter.groupBy
+        ? filter.groupBy
+            .map((item) => {
+              // Mappe alte Werte zu neuen Werten
+              if (item === 'apikey') return undefined // apikey wird nicht mehr unterstützt
+              if (item === 'user') return 'userId'
+              const validValues = ['day', 'month', 'year', 'tag', 'modelId', 'userId', 'provider']
+              return validValues.includes(item) ? item : undefined
+            })
+            .filter((item): item is string => item !== undefined)
+        : undefined
+
+      const apiParams: Omit<UsageExtractionSummaryGetV1Params, 'page' | 'limit'> = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
-        offset, // offset = (page - 1) * limit
         provider: filter.provider,
         modelId: filter.modelId,
         tag: filter.tag,
-        by: filter.groupBy
-          ? filter.groupBy
-              .map((item) => {
-                // Mappe alte Werte zu neuen Werten
-                if (item === 'apikey') return undefined // apikey wird nicht mehr unterstützt
-                if (item === 'user') return 'user' as SummaryByItem
-                // Prüfe ob der Wert im neuen Enum enthalten ist
-                const validValues: SummaryByItem[] = [
-                  'day',
-                  'month',
-                  'year',
-                  'tag',
-                  'modelId',
-                  'user',
-                  'provider',
-                ]
-                return validValues.includes(item as SummaryByItem)
-                  ? (item as SummaryByItem)
-                  : undefined
-              })
-              .filter((item): item is SummaryByItem => item !== undefined)
-          : undefined,
+        by: mappedBy as UsageExtractionSummaryGetV1Params['by'],
       }
       
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
@@ -407,7 +398,8 @@ export const extractionUsageApiService = {
         'pagination' in response
           ? (response as ExtractionPageResponseShape).pagination
           : undefined
-      const pagination = mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
+      const pagination =
+        mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
 
       // Berechne currentPage aus offset/limit falls Backend keine Pagination liefert
       const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1
