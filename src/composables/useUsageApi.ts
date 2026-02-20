@@ -274,11 +274,14 @@ export function useUsageApi() {
         }
       }
 
-      debugLog('Loading usage data with filter:', {
+      const calculatedOffset = currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : 0
+      
+      debugLog('[useUsageApi] Loading usage data with filter:', {
         ...currentFilter.value,
         page: currentFilter.value.page,
         limit: currentFilter.value.limit,
-        offset: currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : undefined,
+        calculatedOffset,
+        filterObject: filter,
       })
 
       const result = await usageApiService.getUsageData(currentFilter.value, useAdminApi)
@@ -449,6 +452,16 @@ export function useUsageApi() {
   const goToPage = async (page: number, useAdminApi: boolean = false) => {
     if (page < 1 || page > (pagination.value.totalPages ?? 0)) return
 
+    debugLog('[useUsageApi] goToPage called:', { 
+      requestedPage: page, 
+      currentFilterPage: currentFilter.value.page,
+      currentLimit: currentFilter.value.limit,
+      calculatedOffset: (page - 1) * (currentFilter.value.limit || 20)
+    })
+    
+    // Stelle sicher, dass page explizit gesetzt wird
+    currentFilter.value = { ...currentFilter.value, page }
+    
     await loadUsageData({ page }, useAdminApi)
   }
 

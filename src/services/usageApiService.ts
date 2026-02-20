@@ -232,21 +232,24 @@ export const usageApiService = {
     useAdminApi: boolean = false,
   ): Promise<{ data: EnhancedUsageRecord[]; pagination: Page }> {
     try {
-      debugLog('Loading usage data with filter:', filter)
+      debugLog('[usageApiService] Loading usage data with filter:', filter)
 
       const usageTypeValue = toBackendUsageType(filter.modelType)
       const page = filter.page || 1
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
+      
+      debugLog('[usageApiService] Calculated pagination:', { page, limit, offset })
 
       // Backend verwendet nur offset und limit, nicht page
+      // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai), nicht bei /v1/usage/ai
       // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
       const apiParams: Omit<import('@/api/types').UsageAIGetV1Params, 'page'> & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
         offset, // offset = (page - 1) * limit
-        userId: filter.userId,
+        ...(useAdminApi && filter.userId ? { userId: filter.userId } : {}),
         tag: filter.tag,
         apiKey: filter.apiKey,
         model: filter.model,
@@ -418,13 +421,14 @@ export const usageApiService = {
       const offset = (page - 1) * limit
 
       // Backend verwendet nur offset und limit, nicht page
+      // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai/summarize), nicht bei /v1/usage/ai/summarize
       // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
       const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page'> & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
         offset, // offset = (page - 1) * limit
-        userId: filter.userId,
+        ...(useAdminApi && filter.userId ? { userId: filter.userId } : {}),
         tag: filter.tag,
         apiKey: filter.apiKey,
         model: filter.model,
