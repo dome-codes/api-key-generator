@@ -239,10 +239,11 @@ export const usageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params = {
+      // Backend verwendet nur offset und limit, nicht page
+      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
+      const apiParams: Omit<import('@/api/types').UsageAIGetV1Params, 'page'> & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
-        // Backend verwendet nur offset und limit, nicht page
         limit,
         offset, // offset = (page - 1) * limit
         userId: filter.userId,
@@ -250,11 +251,11 @@ export const usageApiService = {
         apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
-      } as import('@/api/types').UsageAIGetV1Params & { offset?: number }
-
+      }
+      
       const apiResponse = useAdminApi
-        ? await getAdmin().adminUsageAIGetV1(params)
-        : await getUsage().usageAIGetV1(params)
+        ? await getAdmin().adminUsageAIGetV1(apiParams)
+        : await getUsage().usageAIGetV1(apiParams)
       const response = apiResponse.data as UsagePageResponse | AIUsageRecord[]
       const rawData = getDataArray<AIUsageRecord | AIUsageSummaryRecord>(response)
 
@@ -416,10 +417,11 @@ export const usageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params = {
+      // Backend verwendet nur offset und limit, nicht page
+      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
+      const apiParams: Omit<import('@/api/types').UsageAISummaryGetV1Params, 'page'> & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
-        // Backend verwendet nur offset und limit, nicht page
         limit,
         offset, // offset = (page - 1) * limit
         userId: filter.userId,
@@ -428,11 +430,11 @@ export const usageApiService = {
         model: filter.model,
         usageType: usageTypeValue,
         by: filter.groupBy as AIRequestParamsGroupByParameterItem[] | undefined,
-      } as import('@/api/types').UsageAISummaryGetV1Params & { offset?: number }
-
+      }
+      
       const apiResponse = useAdminApi
-        ? await getAdmin().adminUsageAISummaryGetV1(params)
-        : await getUsage().usageAISummaryGetV1(params)
+        ? await getAdmin().adminUsageAISummaryGetV1(apiParams)
+        : await getUsage().usageAISummaryGetV1(apiParams)
       const response = apiResponse.data as SummaryUsagePageResponse | SummaryUsage[]
       const rawData = getDataArray<SummaryUsage>(response)
 

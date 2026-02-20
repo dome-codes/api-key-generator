@@ -176,12 +176,15 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Erstelle Basis-Params
-      const baseParams = {
+      // Backend verwendet nur offset und limit, nicht page
+      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
+      const baseApiParams: Omit<AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params, 'page'> & {
+        offset?: number
+      } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
-        offset, // Backend verwendet offset statt page
+        offset, // offset = (page - 1) * limit
         provider: filter.provider,
         modelId: filter.modelId,
         userId: filter.userId,
@@ -190,18 +193,14 @@ export const extractionUsageApiService = {
       }
 
       // Füge status hinzu, wenn es definiert ist (string reicht – andere OpenAPI kann andere Enums haben)
-      const params = (
-        filter.status
-          ? { ...baseParams, status: filter.status }
-          : baseParams
-      ) as (AdminUsageExtractionGetV1Params | UsageExtractionGetV1Params) & {
-        offset?: number
-      }
-
+      const apiParams = filter.status
+        ? { ...baseApiParams, status: filter.status }
+        : baseApiParams
+      
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
-        ? await getAdmin().adminUsageExtractionGetV1(params)
-        : await getUsage().usageExtractionGetV1(params)
+        ? await getAdmin().adminUsageExtractionGetV1(apiParams)
+        : await getUsage().usageExtractionGetV1(apiParams)
       const response = apiResponse.data as ExtractionPageResponseShape | ExtractionUsageRecordShape[]
       const rawData = getDataArray<ExtractionUsageRecordShape>(response)
 
@@ -317,10 +316,12 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      const params: UsageExtractionSummaryGetV1Params & { offset?: number } = {
+      // Backend verwendet nur offset und limit, nicht page
+      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
+      const apiParams: Omit<UsageExtractionSummaryGetV1Params, 'page'> & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
-        offset, // Backend verwendet offset statt page
+        offset, // offset = (page - 1) * limit
         provider: filter.provider,
         modelId: filter.modelId,
         tag: filter.tag,
@@ -347,9 +348,9 @@ export const extractionUsageApiService = {
               .filter((item): item is UsageExtractionSummaryGetV1ByItem => item !== undefined)
           : undefined,
       }
-
+      
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
-      const apiResponse = await getUsage().usageExtractionSummaryGetV1(params)
+      const apiResponse = await getUsage().usageExtractionSummaryGetV1(apiParams)
       const response = apiResponse.data as
         | ExtractionPageResponseShape
         | ExtractionUsageSummaryRecordShape[]
