@@ -156,6 +156,21 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
+/** Konvertiert ein Datum zu ISO-DateTime für to_date (Ende des Tages für Overfetching) */
+function toIsoDateTimeEndOfDay(dateStr: string | undefined): string | undefined {
+  if (!dateStr?.trim()) return undefined
+  const s = dateStr.trim()
+  if (s.includes('T')) {
+    // Wenn bereits DateTime, verwende es direkt (kann bereits Ende des Tages sein)
+    return new Date(s).toISOString()
+  }
+  // Für reine Datums-Strings: Setze auf Ende des Tages (23:59:59) für Overfetching
+  // Das stellt sicher, dass alle Daten des Tages enthalten sind
+  const date = new Date(s)
+  date.setHours(23, 59, 59, 999)
+  return date.toISOString()
+}
+
 /** Nimmt Backend-Response: Array direkt, oder Objekt mit data/items/usage (andere OpenAPI nutzen items oder usage). */
 /** Array aus Backend-Response extrahieren (data, items oder usage). Für getUsageSummaryByApiKey etc. */
 export function getDataArray<T>(response: unknown): T[] {
@@ -229,7 +244,7 @@ export const usageApiService = {
 
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
-        to_date: toIsoDateTime(filter.toDate),
+        to_date: toIsoDateTimeEndOfDay(filter.toDate),
         page: filter.page || 1,
         limit,
         offset, // Backend verwendet offset statt page
@@ -397,7 +412,7 @@ export const usageApiService = {
 
       const params = {
         from_date: toIsoDateTime(filter.fromDate),
-        to_date: toIsoDateTime(filter.toDate),
+        to_date: toIsoDateTimeEndOfDay(filter.toDate),
         page: filter.page || 1,
         limit,
         offset, // Backend verwendet offset statt page

@@ -31,6 +31,21 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
+/** Konvertiert ein Datum zu ISO-DateTime für to_date (Ende des Tages für Overfetching) */
+function toIsoDateTimeEndOfDay(dateStr: string | undefined): string | undefined {
+  if (!dateStr?.trim()) return undefined
+  const s = dateStr.trim()
+  if (s.includes('T')) {
+    // Wenn bereits DateTime, verwende es direkt (kann bereits Ende des Tages sein)
+    return new Date(s).toISOString()
+  }
+  // Für reine Datums-Strings: Setze auf Ende des Tages (23:59:59) für Overfetching
+  // Das stellt sicher, dass alle Daten des Tages enthalten sind
+  const date = new Date(s)
+  date.setHours(23, 59, 59, 999)
+  return date.toISOString()
+}
+
 // API-Service für API-Keys
 export const apiKeyService = {
   // Alle API-Keys abrufen (rollenbasiert)
@@ -140,7 +155,7 @@ export const usageService = {
 
       const params: UsageAIGetV1Params = {}
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
-      if (toDate) params.to_date = toIsoDateTime(toDate)
+      if (toDate) params.to_date = toIsoDateTimeEndOfDay(toDate)
 
       debugLog('🔍 [API-SERVICE] Calling usageAIGetV1 with params:', params)
       const response = await getUsage().usageAIGetV1(params)
@@ -165,7 +180,7 @@ export const usageService = {
 
       const params: UsageAISummaryGetV1Params = {}
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
-      if (toDate) params.to_date = toIsoDateTime(toDate)
+      if (toDate) params.to_date = toIsoDateTimeEndOfDay(toDate)
 
       debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with params:', params)
       const response = await getUsage().usageAISummaryGetV1(params)
@@ -196,7 +211,7 @@ export const usageService = {
       const params = {
         by: ['apiKey'],
         from_date: toIsoDateTime(fromDate),
-        to_date: toIsoDateTime(toDate),
+        to_date: toIsoDateTimeEndOfDay(toDate),
       } as unknown as UsageAISummaryGetV1Params
 
       debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apiKey params:', params)
@@ -240,7 +255,7 @@ export const usageService = {
 
       const params: AdminUsageAISummaryGetV1Params = {}
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
-      if (toDate) params.to_date = toIsoDateTime(toDate)
+      if (toDate) params.to_date = toIsoDateTimeEndOfDay(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       if (!response.data) {
@@ -264,7 +279,7 @@ export const usageService = {
 
       const params: AdminUsageAISummaryGetV1Params = {}
       if (fromDate) params.from_date = toIsoDateTime(fromDate)
-      if (toDate) params.to_date = toIsoDateTime(toDate)
+      if (toDate) params.to_date = toIsoDateTimeEndOfDay(toDate)
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       if (!response.data) {

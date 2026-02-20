@@ -60,7 +60,11 @@ const setDefaultDates = () => {
     const startDate = new Date(today)
     startDate.setDate(startDate.getDate() - 30)
     if (!ownFromDate.value) ownFromDate.value = startDate.toISOString().split('T')[0]
-    if (!ownToDate.value) ownToDate.value = today.toISOString().split('T')[0]
+    // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+    if (!ownToDate.value) {
+      const now = new Date()
+      ownToDate.value = now.toISOString().split('T')[0]
+    }
   }
 }
 
@@ -112,7 +116,9 @@ const loadFiltersFromUrl = () => {
     }
     if (ownTimeRange.value !== 'lastMonth') {
       ownFromDate.value = startDate.toISOString().split('T')[0]
-      ownToDate.value = today.toISOString().split('T')[0]
+      // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+      const now = new Date()
+      ownToDate.value = now.toISOString().split('T')[0]
     } else {
       ownFromDate.value = startDate.toISOString().split('T')[0]
     }
@@ -307,7 +313,9 @@ onMounted(async () => {
         }
         if (ownTimeRange.value !== 'lastMonth') {
           ownFromDate.value = startDate.toISOString().split('T')[0]
-          ownToDate.value = today.toISOString().split('T')[0]
+          // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+          const now = new Date()
+          ownToDate.value = now.toISOString().split('T')[0]
         } else {
           ownFromDate.value = startDate.toISOString().split('T')[0]
         }

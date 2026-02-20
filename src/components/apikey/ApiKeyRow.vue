@@ -46,8 +46,8 @@ defineEmits<{
 
 // Check if key expires within 30 days to show rotate button
 const shouldShowRotateButton = computed(() => {
-  if (!props.keyData.validUntil || props.keyData.validUntil === 'Never') return false
-  const expiryDate = new Date(props.keyData.validUntil)
+  if (!props.keyData.expiresAt || props.keyData.expiresAt === 'Never') return false
+  const expiryDate = new Date(props.keyData.expiresAt)
   const thirtyDaysFromNow = new Date()
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
   return expiryDate <= thirtyDaysFromNow
@@ -155,7 +155,7 @@ const formatNumber = (num: number): string => {
     </td>
     <td class="py-3 px-4 text-xs text-gray-700">{{ keyData.lastUsed }}</td>
     <td class="py-3 px-4 text-xs text-gray-700">
-      {{ keyData.validUntil ? new Date(keyData.validUntil).toLocaleDateString() : '—' }}
+      {{ keyData.expiresAt ? new Date(keyData.expiresAt).toLocaleDateString() : '—' }}
     </td>
     <td v-if="isAdmin" class="py-3 px-4 text-xs">
       <div v-if="keyData.active">

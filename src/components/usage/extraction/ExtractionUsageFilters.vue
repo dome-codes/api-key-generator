@@ -137,7 +137,9 @@ const handleTimeRangeChange = () => {
 
   if ((timeRange.value as string) !== 'custom') {
     fromDate.value = startDate.toISOString().split('T')[0]
-    toDate.value = today.toISOString().split('T')[0]
+    // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+    const now = new Date()
+    toDate.value = now.toISOString().split('T')[0]
   }
   // Zeitraum-Änderungen werden sofort angewendet
   handleFilterChange()

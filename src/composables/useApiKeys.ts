@@ -19,7 +19,7 @@ export function useApiKeys(userProfile: UserProfile) {
   const createdSecret = ref('')
   const createdKeyName = ref('')
   const createdKeyPermissions = ref<string[]>([])
-  const createdKeyValidUntil = ref('')
+  const createdKeyExpiresAt = ref('')
   const createdKeyCreatedBy = ref('')
   const editingKey = ref<string | null>(null)
   const editingName = ref('')
@@ -33,7 +33,7 @@ export function useApiKeys(userProfile: UserProfile) {
       permissions: key.permissions || 'api-access',
       createdAt: key.createdAt,
       createdBy: key.createdBy || userProfile.value?.name || 'Unknown',
-      validUntil: key.validUntil || 'Never',
+      expiresAt: key.expiresAt ?? (key as { validUntil?: string }).validUntil ?? 'Never',
       lastUsed: key.lastUsed || 'Never',
       // API liefert active als boolean; Fallback für ältere Responses mit status-String
       active:
@@ -67,8 +67,7 @@ export function useApiKeys(userProfile: UserProfile) {
       createdSecret.value = (data.secret as string) || (data.token as string) || ''
       createdKeyName.value = (data.name as string) || newKeyName.value
       createdKeyPermissions.value = ['api-access']
-      createdKeyValidUntil.value =
-        (data.expiresAt as string) || (data.validUntil as string) || 'Never'
+      createdKeyExpiresAt.value = (data.expiresAt as string) || 'Never'
       createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
       await loadKeys()
     } catch (err) {
@@ -112,7 +111,7 @@ export function useApiKeys(userProfile: UserProfile) {
     createdSecret,
     createdKeyName,
     createdKeyPermissions,
-    createdKeyValidUntil,
+    createdKeyExpiresAt,
     createdKeyCreatedBy,
     editingKey,
     editingName,

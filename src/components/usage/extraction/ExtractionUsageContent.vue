@@ -57,11 +57,12 @@ const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
 const setDefaultDates = () => {
   // Setze Standard-Zeitraum auf 30 Tage, wenn keine URL-Parameter vorhanden sind
   if (!ownFromDate.value && !ownToDate.value) {
-    const today = new Date()
-    const startDate = new Date(today)
+    const now = new Date()
+    const startDate = new Date(now)
     startDate.setDate(startDate.getDate() - 30)
     ownFromDate.value = startDate.toISOString().split('T')[0]
-    ownToDate.value = today.toISOString().split('T')[0]
+    // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+    ownToDate.value = now.toISOString().split('T')[0]
   }
 }
 
@@ -115,7 +116,9 @@ const loadFiltersFromUrl = () => {
     }
     if (ownTimeRange.value !== 'lastMonth') {
       ownFromDate.value = startDate.toISOString().split('T')[0]
-      ownToDate.value = today.toISOString().split('T')[0]
+      // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+      const now = new Date()
+      ownToDate.value = now.toISOString().split('T')[0]
     } else {
       ownFromDate.value = startDate.toISOString().split('T')[0]
     }
@@ -278,7 +281,9 @@ onMounted(async () => {
         }
         if (ownTimeRange.value !== 'lastMonth') {
           ownFromDate.value = startDate.toISOString().split('T')[0]
-          ownToDate.value = today.toISOString().split('T')[0]
+          // Immer aktuelles Datum verwenden (nicht gestern) für Overfetching
+          const now = new Date()
+          ownToDate.value = now.toISOString().split('T')[0]
         } else {
           ownFromDate.value = startDate.toISOString().split('T')[0]
         }

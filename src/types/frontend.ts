@@ -183,7 +183,8 @@ export interface ApiKeyDisplay {
   permissions: string
   createdAt: string
   createdBy: string
-  validUntil: string
+  /** Ablaufdatum (API-Feld: expiresAt). */
+  expiresAt: string
   lastUsed: string
   /** API liefert active als boolean (true = aktiv, false = deaktiviert/revoked). */
   active: boolean

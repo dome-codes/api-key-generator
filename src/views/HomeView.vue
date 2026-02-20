@@ -33,7 +33,7 @@ const {
   createdSecret,
   createdKeyName,
   createdKeyPermissions,
-  createdKeyValidUntil,
+  createdKeyExpiresAt,
   createdKeyCreatedBy,
   editingKey,
   editingName,
@@ -140,7 +140,7 @@ async function saveEditModal() {
     createdSecret.value = (data.secret as string) || ''
     createdKeyName.value = (data.name as string) || ''
     createdKeyPermissions.value = (data.permissions as string[]) || []
-    createdKeyValidUntil.value =
+    createdKeyExpiresAt.value =
       (data.expires_at as string) || (data.expiresAt as string) || 'Never'
     createdKeyCreatedBy.value = userProfile.value?.name || 'Unknown'
 
@@ -353,8 +353,8 @@ onMounted(() => {
                 <label class="block text-xs text-gray-600">Gültig bis</label>
                 <div class="font-medium text-gray-900">
                   {{
-                    createdKeyValidUntil && createdKeyValidUntil !== 'Never'
-                      ? new Date(createdKeyValidUntil).toLocaleDateString()
+                    createdKeyExpiresAt && createdKeyExpiresAt !== 'Never'
+                      ? new Date(createdKeyExpiresAt).toLocaleDateString()
                       : '—'
                   }}
                 </div>

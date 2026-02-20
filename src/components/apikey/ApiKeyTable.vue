@@ -364,7 +364,7 @@ const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
     permissions: 'api-access',
     createdAt: latestKey.createdAt,
     createdBy: groupedKey.userName,
-    validUntil: latestKey.validUntil,
+    expiresAt: latestKey.expiresAt,
     lastUsed: 'Never',
     active: groupedKey.activeKeys > 0,
     userId: groupedKey.userId,

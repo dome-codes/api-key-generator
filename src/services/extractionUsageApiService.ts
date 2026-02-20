@@ -104,6 +104,21 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
   return `${s}T00:00:00.000Z`
 }
 
+/** Konvertiert ein Datum zu ISO-DateTime für to_date (Ende des Tages für Overfetching) */
+function toIsoDateTimeEndOfDay(dateStr: string | undefined): string | undefined {
+  if (!dateStr?.trim()) return undefined
+  const s = dateStr.trim()
+  if (s.includes('T')) {
+    // Wenn bereits DateTime, verwende es direkt (kann bereits Ende des Tages sein)
+    return new Date(s).toISOString()
+  }
+  // Für reine Datums-Strings: Setze auf Ende des Tages (23:59:59) für Overfetching
+  // Das stellt sicher, dass alle Daten des Tages enthalten sind
+  const date = new Date(s)
+  date.setHours(23, 59, 59, 999)
+  return date.toISOString()
+}
+
 /** Minimale Form der Extraction-API-Response (unabhängig von generierten Typnamen) */
 interface ExtractionPageResponseShape {
   data?: unknown[]
@@ -167,7 +182,7 @@ export const extractionUsageApiService = {
       // Erstelle Basis-Params
       const baseParams = {
         from_date: toIsoDateTime(filter.fromDate),
-        to_date: toIsoDateTime(filter.toDate),
+        to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
         offset, // Backend verwendet offset statt page
         provider: filter.provider,
@@ -293,7 +308,7 @@ export const extractionUsageApiService = {
 
       const params: UsageExtractionSummaryGetV1Params & { offset?: number } = {
         from_date: toIsoDateTime(filter.fromDate),
-        to_date: toIsoDateTime(filter.toDate),
+        to_date: toIsoDateTimeEndOfDay(filter.toDate),
         offset, // Backend verwendet offset statt page
         provider: filter.provider,
         modelId: filter.modelId,
