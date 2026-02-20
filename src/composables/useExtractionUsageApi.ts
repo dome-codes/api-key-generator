@@ -210,9 +210,14 @@ export function useExtractionUsageApi() {
     error.value = null
 
     try {
-      // Aktualisiere Filter explizit (auch wenn filter leer ist, um sicherzustellen dass currentFilter aktuell ist)
+      // Aktualisiere Filter explizit - WICHTIG: filter.page muss immer gesetzt werden, wenn es übergeben wird
       if (filter && Object.keys(filter).length > 0) {
+        // Merge filter in currentFilter, wobei page explizit gesetzt wird wenn vorhanden
         currentFilter.value = { ...currentFilter.value, ...filter }
+        // Stelle sicher, dass page korrekt gesetzt ist (auch wenn es 0 oder undefined war)
+        if ('page' in filter && filter.page !== undefined) {
+          currentFilter.value.page = filter.page
+        }
       }
 
       debugLog('Loading extraction usage data with filter:', {

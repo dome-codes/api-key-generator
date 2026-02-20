@@ -255,14 +255,26 @@ export const extractionUsageApiService = {
         pagination = mapPagination(backendPagination) ?? (backendPagination as Page)
       }
 
+      // Stelle sicher, dass currentPage immer gesetzt ist (aus filter.page oder Backend-Pagination)
+      const finalPagination: Page = pagination || {
+        currentPage: filter.page || 1,
+        pageSize: filter.limit || 20,
+        totalItems: enhancedData.length,
+        totalPages: 1,
+      }
+      // Wenn Backend keine currentPage liefert, verwende filter.page
+      if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
+        finalPagination.currentPage = filter.page || 1
+      }
+      // Stelle sicher, dass currentPage mit filter.page übereinstimmt (falls Backend es falsch zurückgibt)
+      if (filter.page && filter.page !== finalPagination.currentPage) {
+        debugLog('⚠️ Pagination mismatch: filter.page =', filter.page, 'but backend returned currentPage =', finalPagination.currentPage)
+        finalPagination.currentPage = filter.page
+      }
+
       return {
         data: enhancedData,
-        pagination: pagination || {
-          currentPage: filter.page || 1,
-          pageSize: filter.limit || 20,
-          totalItems: enhancedData.length,
-          totalPages: 1,
-        },
+        pagination: finalPagination,
       }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status

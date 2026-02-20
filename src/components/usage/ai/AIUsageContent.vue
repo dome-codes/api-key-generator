@@ -193,6 +193,11 @@ const handleOwnFilterChange = async () => {
     })
 
     // Setze Filter ohne sofort zu laden
+    // WICHTIG: Behalte die aktuelle Seite bei, wenn nur andere Filter geändert werden
+    // Setze page nur auf 1 zurück, wenn sich die View ändert (overview <-> detailed)
+    const newGroupBy = ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined
+    const viewChanged = JSON.stringify(newGroupBy) !== JSON.stringify(currentFilter.value.groupBy)
+    
     currentFilter.value = {
       ...currentFilter.value,
       fromDate: toIsoDate(ownFromDate.value),
@@ -200,8 +205,9 @@ const handleOwnFilterChange = async () => {
       modelType: ownModelType.value || undefined,
       model: ownModel.value || undefined,
       apiKey: ownApiKeyId.value || undefined,
-      groupBy: ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined,
-      page: 1,
+      groupBy: newGroupBy,
+      // Seite nur zurücksetzen wenn sich die View ändert, sonst aktuelle Seite behalten
+      page: viewChanged ? 1 : (currentFilter.value.page || pagination.value.currentPage || 1),
     }
 
     // Lade je nach View-Modus die richtigen Daten
@@ -228,8 +234,11 @@ const handleOwnFilterChange = async () => {
 // Handle page changes
 const handlePageChange = async (page: number) => {
   // Aktualisiere currentFilter.page explizit, bevor goToPage aufgerufen wird
+  // WICHTIG: Überschreibe page in currentFilter, damit handleOwnFilterChange es nicht auf 1 zurücksetzt
   currentFilter.value = { ...currentFilter.value, page }
+  debugLog('[AIUsageContent] handlePageChange:', { page, currentFilterPage: currentFilter.value.page })
   await goToPage(page, props.useAdminApi)
+  // Nach dem Laden: Aktualisiere URL mit der tatsächlichen Seite aus der Pagination
   saveFiltersToUrl()
 }
 
