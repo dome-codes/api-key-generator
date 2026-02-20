@@ -78,6 +78,9 @@ const toggleShowAllTags = () => {
           y-axis-label="Anzahl Anfragen"
           placeholder="Tag-Verwendung wird geladen..."
         />
+        <div v-else class="h-64 flex items-center justify-center text-sm text-gray-500">
+          Noch keine Tags verwendet in AI Usage.
+        </div>
       </div>
     </div>
   </div>

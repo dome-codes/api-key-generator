@@ -16,7 +16,6 @@
  * - Migration: Schrittweise von useUsage zu useUsageApi wechseln
  */
 
-import type { Page } from '@/api/types'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
 import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
 import { usageApiService } from '@/services/usageApiService'
@@ -26,12 +25,23 @@ import { computed, ref } from 'vue'
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[useUsageApi]', ...args)
 
+type OrvalTypes = typeof import('@/api/types')
+type Page = OrvalTypes extends { Page: infer P }
+  ? P
+  : {
+      currentPage?: number
+      pageSize?: number
+      totalItems?: number
+      totalPages?: number
+    }
+
 export function useUsageApi() {
   // State
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const usageData = ref<EnhancedUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
+  const modelSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Modell-Chart (gruppiert nach Modell)
   const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
   const pagination = ref<Page>({
     currentPage: 1,
@@ -200,7 +210,12 @@ export function useUsageApi() {
 
   // Chart data für Model-Verteilung (Pie Chart)
   const modelDistributionChartData = computed(() => {
-    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
+    const data =
+      modelSummaryData.value.length > 0
+        ? modelSummaryData.value
+        : summaryData.value.length > 0
+          ? summaryData.value
+          : usageData.value
 
     if (data.length === 0) {
       return { labels: [], data: [] }
@@ -374,6 +389,8 @@ export function useUsageApi() {
       })
       debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
 
+      // Lade Modell-Daten für den Modell-Chart (gruppiert nach Modell)
+      await loadModelSummary(useAdminApi)
       // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
       await loadTagSummary(useAdminApi)
     } catch (err) {
@@ -382,6 +399,7 @@ export function useUsageApi() {
       debugLog('Error loading usage summary:', err)
       // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
       summaryData.value = []
+      modelSummaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -390,6 +408,50 @@ export function useUsageApi() {
       }
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // Lade Modell-Daten für den Modell-Chart (gruppiert nach Modell)
+  const loadModelSummary = async (useAdminApi: boolean = false) => {
+    try {
+      const modelFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 1000, // Ausreichend für Modell-Gruppierung
+        groupBy: ['model'] as ('model')[],
+      }
+
+      debugLog('Loading model summary with filter:', modelFilter)
+
+      const result = await usageApiService.getUsageSummary(modelFilter, useAdminApi)
+
+      // Lade alle Seiten falls nötig
+      let allModelData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination?.totalPages ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
+
+      while (currentPage < totalPages && allModelData.length < totalItems) {
+        currentPage++
+        const pageResult = await usageApiService.getUsageSummary(
+          { ...modelFilter, page: currentPage },
+          useAdminApi,
+        )
+        allModelData = [...allModelData, ...pageResult.data]
+      }
+
+      modelSummaryData.value = allModelData.filter(
+        (item) => item.modelName && String(item.modelName).trim() && item.modelName !== '',
+      )
+
+      debugLog('Model summary loaded:', {
+        count: modelSummaryData.value.length,
+        models: modelSummaryData.value.map((item) => item.modelName),
+      })
+    } catch (err) {
+      debugLog('Error loading model summary:', err)
+      // Fehler beim Laden der Modell-Daten sollte nicht die gesamte Summary blockieren
+      modelSummaryData.value = []
     }
   }
 
