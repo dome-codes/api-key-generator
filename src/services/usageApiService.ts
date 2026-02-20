@@ -160,13 +160,10 @@ function toIsoDateTime(dateStr: string | undefined): string | undefined {
 function toIsoDateTimeEndOfDay(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
   const s = dateStr.trim()
-  if (s.includes('T')) {
-    // Wenn bereits DateTime, verwende es direkt (kann bereits Ende des Tages sein)
-    return new Date(s).toISOString()
-  }
-  // Für reine Datums-Strings: Setze auf Ende des Tages (23:59:59) für Overfetching
-  // Das stellt sicher, dass alle Daten des Tages enthalten sind
+  // Parse das Datum (funktioniert sowohl für "2026-02-20" als auch "2026-02-20T00:00:00.000Z")
   const date = new Date(s)
+  // Setze immer auf Ende des Tages (23:59:59.999) für Overfetching
+  // Das stellt sicher, dass alle Daten des Tages enthalten sind
   date.setHours(23, 59, 59, 999)
   return date.toISOString()
 }
