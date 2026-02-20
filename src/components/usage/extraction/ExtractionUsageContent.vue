@@ -128,16 +128,17 @@ const loadFiltersFromUrl = () => {
 // Save filters to URL
 const saveFiltersToUrl = () => {
   const params: Record<string, string | number | undefined> = {}
-  if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-  if (ownModelId.value) params.modelId = ownModelId.value
-  if (ownStatus.value) params.status = ownStatus.value
-  if (ownTag.value) params.tag = ownTag.value
-  if (ownView.value) params.view = ownView.value
-  if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
-  if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
+  // Setze alle Filter-Werte explizit (auch leere), damit sie aus der URL entfernt werden können
+  params.timeRange = ownTimeRange.value || undefined
+  params.modelId = ownModelId.value || undefined
+  params.status = ownStatus.value || undefined
+  params.tag = ownTag.value || undefined
+  params.view = ownView.value || undefined
+  params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
+  params.toDate = ownToDate.value ? toIsoDate(ownToDate.value) : undefined
   if (props.useAdminApi) {
-    if (adminUser.value) params.userId = adminUser.value
-    if (adminUserGroup.value) params.userGroup = adminUserGroup.value
+    params.userId = adminUser.value || undefined
+    params.userGroup = adminUserGroup.value || undefined
   }
   if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
   setQueryParams(params)

@@ -128,18 +128,20 @@ const loadFiltersFromUrl = () => {
 // Save filters to URL
 const saveFiltersToUrl = () => {
   const params: Record<string, string | number | undefined> = {}
-  if (ownTimeRange.value) params.timeRange = ownTimeRange.value
-  if (ownModelType.value)
-    params.usageType = toBackendUsageType(ownModelType.value) || ownModelType.value
-  if (ownModel.value) params.model = ownModel.value
-  if (ownApiKeyId.value) params.apiKey = ownApiKeyId.value
-  if (ownView.value) params.view = ownView.value
-  if (ownChartPeriod.value) params.chartPeriod = ownChartPeriod.value
-  if (ownFromDate.value) params.fromDate = toIsoDate(ownFromDate.value)
-  if (ownToDate.value) params.toDate = toIsoDate(ownToDate.value)
+  // Setze alle Filter-Werte explizit (auch leere), damit sie aus der URL entfernt werden können
+  params.timeRange = ownTimeRange.value || undefined
+  params.usageType = ownModelType.value
+    ? toBackendUsageType(ownModelType.value) || ownModelType.value
+    : undefined
+  params.model = ownModel.value || undefined
+  params.apiKey = ownApiKeyId.value || undefined
+  params.view = ownView.value || undefined
+  params.chartPeriod = ownChartPeriod.value || undefined
+  params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
+  params.toDate = ownToDate.value ? toIsoDate(ownToDate.value) : undefined
   if ((pagination.value.currentPage ?? 1) > 1) params.page = pagination.value.currentPage
-  if (currentFilter.value.sort) params.sort = currentFilter.value.sort
-  if (currentFilter.value.order) params.order = currentFilter.value.order as 'asc' | 'desc'
+  params.sort = currentFilter.value.sort || undefined
+  params.order = currentFilter.value.order || undefined
   setQueryParams(params)
 }
 
