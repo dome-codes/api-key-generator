@@ -565,7 +565,7 @@ components:
         year:
           type: integer
           example: 2025
-        technicalUserId:
+        userId:
           type: string
           example: 'user-123'
         apiKeyId:
@@ -624,7 +624,7 @@ components:
         model:
           type: string
           example: 'gpt-4o'
-        technicalUserId:
+        userId:
           type: string
           example: 'user-123'
         apiKeyId:
@@ -711,7 +711,7 @@ components:
         year:
           type: integer
           example: 2025
-        technicalUserId:
+        userId:
           type: string
           example: 'user-123'
         apiKeyId:
@@ -791,7 +791,7 @@ components:
         modelId:
           type: string
           example: 'prebuilt-invoice'
-        technicalUserId:
+        userId:
           type: string
           example: 'user-123'
         apiKeyId:

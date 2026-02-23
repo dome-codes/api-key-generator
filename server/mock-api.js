@@ -100,7 +100,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
       tag: completionTag,
       tokensIn: Math.floor(completionTokensIn),
       tokensOut: Math.floor(completionTokensOut),
-      technicalUserId: userId || 'user-123',
+      userId: userId || 'user-123',
       createDate: createDate.toISOString(),
     })
 
@@ -129,7 +129,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
         tag: embeddingTag,
         tokensIn: Math.floor(embeddingTokens),
         tokensOut: 0,
-        technicalUserId: userId || 'user-123',
+        userId: userId || 'user-123',
         createDate: embeddingCreateDate.toISOString(),
       })
     }
@@ -164,7 +164,7 @@ const generateMockUsageData = (userId, startDate = new Date('2025-07-01'), days 
         quality,
         tokensIn: 0,
         tokensOut: 0,
-        technicalUserId: userId || 'user-123',
+        userId: userId || 'user-123',
         createDate: imageCreateDate.toISOString(),
       })
     }
@@ -671,7 +671,7 @@ function applyFilters(data, filters) {
   // User filter
   if (filters.userId) {
     filtered = filtered.filter(
-      (item) => item.technicalUserId === filters.userId || item.userId === filters.userId,
+      (item) => item.userId === filters.userId || item.userId === filters.userId,
     )
   }
 
@@ -719,13 +719,13 @@ function applySorting(data, sort, order) {
         comparison = (a.modelName || a.model || '').localeCompare(b.modelName || b.model || '')
         break
       case 'user':
-        comparison = (a.technicalUserName || a.technicalUserId || '').localeCompare(
-          b.technicalUserName || b.technicalUserId || '',
+        comparison = (a.userName || a.userId || '').localeCompare(
+          b.userName || b.userId || '',
         )
         break
       // Extraction-spezifische Felder
-      case 'technicalUserId':
-        comparison = (a.technicalUserId || '').localeCompare(b.technicalUserId || '')
+      case 'userId':
+        comparison = (a.userId || '').localeCompare(b.userId || '')
         break
       case 'status':
         comparison = (a.status || '').localeCompare(b.status || '')
@@ -845,8 +845,8 @@ app.get('/v1/usage/ai', validateToken, (req, res) => {
       responseTokens: summary.responseTokens || summary.tokensOut || 0,
       tokensIn: summary.tokensIn || summary.requestTokens || 0,
       tokensOut: summary.tokensOut || summary.responseTokens || 0,
-      technicalUserId: summary.technicalUserId || '',
-      technicalUserName: `User ${summary.technicalUserId || ''}`,
+      userId: summary.userId || '',
+      userName: `User ${summary.userId || ''}`,
       createDate: summary.createDate || new Date().toISOString(),
       requests: summary.requests || 0,
       cost: summary.cost || 0,
@@ -1068,7 +1068,6 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     usageType: queryUsageType,
     apiKeyId,
     userId,
-    technicalUserId,
   } = req.query
   const modelType = usageTypeToModelType(queryUsageType) || queryModelType
   const timestamp = new Date().toISOString()
@@ -1096,7 +1095,7 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     mockUsage = [...mockData.MOCK_USAGE_DATA]
   }
 
-  // Filter anwenden (technicalUserId wird zu userId gemappt)
+  // Filter anwenden (userId wird zu userId gemappt)
   const filters = {
     from_date,
     to_date,
@@ -1104,7 +1103,7 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
     model,
     modelType,
     apiKeyId,
-    userId: userId || technicalUserId,
+    userId,
   }
   const filteredUsage = applyFilters(mockUsage, filters)
 
@@ -1131,8 +1130,8 @@ app.get('/v1/admin/users', validateToken, requireRole(['API-Admin']), (req, res)
   const allUsers = mockData.MOCK_API_KEYS.map((key) => ({
     id: key.userId,
     displayName: key.userName,
-    technicalUserId: key.userId,
-    technicalUserName: key.userName,
+    userId: key.userId,
+    userName: key.userName,
     isActive: key.active,
     createdAt: key.createdAt,
   }))
@@ -1288,7 +1287,7 @@ function applyExtractionFilters(data, filters) {
   // User filter
   if (filters.userId) {
     filtered = filtered.filter(
-      (item) => item.technicalUserId === filters.userId || item.userId === filters.userId,
+      (item) => item.userId === filters.userId || item.userId === filters.userId,
     )
   }
 

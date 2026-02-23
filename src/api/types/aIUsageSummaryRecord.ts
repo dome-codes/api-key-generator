@@ -11,7 +11,7 @@ export interface AIUsageSummaryRecord {
   type?: ModelUsageType;
   tag?: string;
   model?: string;
-  technicalUserId?: string;
+  userId?: string;
   apiKeyId?: string;
   day?: number;
   month?: number;

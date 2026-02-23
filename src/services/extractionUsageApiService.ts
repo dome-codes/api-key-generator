@@ -140,7 +140,7 @@ interface ExtractionUsageRecordShape {
   day?: number
   month?: number
   year?: number
-  technicalUserId?: string
+  userId?: string
   apiKeyId?: string
   tag?: string
   provider?: string
@@ -158,7 +158,7 @@ interface ExtractionUsageSummaryRecordShape {
   tag?: string
   provider?: string
   modelId?: string
-  technicalUserId?: string
+  userId?: string
   apiKeyId?: string
   day?: number
   month?: number
@@ -223,9 +223,9 @@ export const extractionUsageApiService = {
         day: item.day,
         month: item.month,
         year: item.year,
-        technicalUserId: item.technicalUserId || '',
-        technicalUserName: (() => {
-          const userId = item.technicalUserId || ''
+        userId: item.userId || '',
+        userName: (() => {
+          const userId = item.userId || ''
           if (!userId || userId.trim() === '') return 'Unknown User'
           // Für technische User (SVC_*, e*, b*) zeige die ID direkt
           if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
@@ -373,8 +373,8 @@ export const extractionUsageApiService = {
           day: item.day,
           month: item.month,
           year: item.year,
-          technicalUserId: item.technicalUserId,
-          technicalUserName: `User ${item.technicalUserId}`,
+          userId: item.userId,
+          userName: `User ${item.userId}`,
           apiKeyId: item.apiKeyId,
           tag: item.tag,
           provider: item.provider,

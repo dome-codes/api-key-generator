@@ -72,8 +72,8 @@ const sortedData = computed(() => {
     let comparison = 0
 
     switch (localSortField.value) {
-      case 'technicalUserName':
-        comparison = (a.technicalUserName || '').localeCompare(b.technicalUserName || '')
+      case 'userName':
+        comparison = (a.userName || '').localeCompare(b.userName || '')
         break
       case 'modelName':
         comparison = (a.modelName || '').localeCompare(b.modelName || '')
@@ -264,8 +264,8 @@ const exportTableData = async () => {
       headers.join(','),
       ...sortedData.value.map((item) =>
         [
-          item.technicalUserId,
-          item.technicalUserName,
+          item.userId,
+          item.userName,
           item.modelName,
           item.type || item.modelType,
           item.requests,
@@ -340,14 +340,14 @@ watch(
           <tr>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-              @click="sortBy('technicalUserName')"
+              @click="sortBy('userName')"
             >
               <div class="flex items-center gap-1">
                 Technischer Nutzer
                 <svg
                   class="w-3 h-3"
                   :class="
-                    currentSortField === 'technicalUserName'
+                    currentSortField === 'userName'
                       ? currentSortOrder === 'asc'
                         ? 'rotate-180'
                         : ''
@@ -577,18 +577,18 @@ watch(
         <tbody class="bg-white divide-y divide-gray-200">
           <tr
             v-for="item in displayData"
-            :key="`${item.technicalUserId}-${item.modelName}-${item.day}-${item.month}-${item.year}`"
+            :key="`${item.userId}-${item.modelName}-${item.day}-${item.month}-${item.year}`"
           >
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span class="text-sm font-medium text-blue-800">
-                    {{ getInitials(item.technicalUserName) }}
+                    {{ getInitials(item.userName) }}
                   </span>
                 </div>
                 <div class="ml-4">
-                  <div class="text-sm font-medium text-gray-900">{{ item.technicalUserName }}</div>
-                  <div class="text-sm text-gray-500">{{ item.technicalUserId || '–' }}</div>
+                  <div class="text-sm font-medium text-gray-900">{{ item.userName }}</div>
+                  <div class="text-sm text-gray-500">{{ item.userId || '–' }}</div>
                 </div>
               </div>
             </td>

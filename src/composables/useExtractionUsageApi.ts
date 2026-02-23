@@ -177,7 +177,7 @@ export function useExtractionUsageApi() {
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
     const totalConfidence = data.reduce((sum, item) => sum + (item.confidenceScore ?? 0), 0)
 
-    const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
+    const uniqueUsers = new Set(data.map((item) => item.userId)).size
     const uniqueProviders = new Set(data.map((item) => item.provider)).size
     const uniqueModels = new Set(data.map((item) => item.modelId)).size
 
@@ -380,7 +380,7 @@ export function useExtractionUsageApi() {
   ) => {
     // Map frontend field names to backend field names
     const fieldMapping: Record<string, string> = {
-      technicalUserId: 'technicalUserId',
+      userId: 'userId',
       status: 'status',
       provider: 'provider',
       pages: 'pages',

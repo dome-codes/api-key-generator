@@ -303,30 +303,25 @@ export const usageApiService = {
           )
 
           return {
-            technicalUserId: (() => {
-              // Prüfe verschiedene mögliche Felder für technicalUserId
-              const userId =
-                (item as AIUsageRecord).technicalUserId ||
-                (item as AIUsageSummaryRecord).technicalUserId ||
-                (item as SummaryUsage).technicalUserId ||
-                (item as { technicalUSerid?: string }).technicalUSerid ||
+            userId: (() => {
+              const uid =
+                (item as AIUsageRecord).userId ||
+                (item as AIUsageSummaryRecord).userId ||
+                (item as SummaryUsage).userId ||
                 ''
-              return userId
+              return uid
             })(),
-            technicalUserName: (() => {
-              // Prüfe verschiedene mögliche Felder für technicalUserId
-              const userId =
-                (item as AIUsageRecord).technicalUserId ||
-                (item as AIUsageSummaryRecord).technicalUserId ||
-                (item as SummaryUsage).technicalUserId ||
-                (item as { technicalUSerid?: string }).technicalUSerid ||
+            userName: (() => {
+              const uid =
+                (item as AIUsageRecord).userId ||
+                (item as AIUsageSummaryRecord).userId ||
+                (item as SummaryUsage).userId ||
                 ''
-              if (!userId || userId.trim() === '') return 'Unknown User'
-              // Für technische User (SVC_*, e*, b*) zeige die ID direkt
-              if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
-                return userId
+              if (!uid || uid.trim() === '') return 'Unknown User'
+              if (uid.startsWith('SVC_') || uid.startsWith('e') || uid.startsWith('b')) {
+                return uid
               }
-              return `User ${userId}`
+              return `User ${uid}`
             })(),
             modelName: item.model || 'unknown',
             modelType: displayType as ModelUsageType,
@@ -480,13 +475,13 @@ export const usageApiService = {
           )
 
           return {
-            technicalUserId: item.technicalUserId || '',
-            technicalUserName: item.technicalUserId
-              ? item.technicalUserId.startsWith('SVC_') ||
-                item.technicalUserId.startsWith('e') ||
-                item.technicalUserId.startsWith('b')
-                ? item.technicalUserId
-                : `User ${item.technicalUserId}`
+            userId: item.userId || '',
+            userName: item.userId
+              ? item.userId.startsWith('SVC_') ||
+                item.userId.startsWith('e') ||
+                item.userId.startsWith('b')
+                ? item.userId
+                : `User ${item.userId}`
               : 'Unknown User',
             modelName: item.model || 'unknown',
             modelType: displayType as ModelUsageType,

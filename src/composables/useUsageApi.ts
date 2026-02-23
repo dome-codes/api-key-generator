@@ -102,7 +102,7 @@ export function useUsageApi() {
       )
       .reduce((sum, item) => sum + (item.requests ?? 1), 0)
 
-    const uniqueUsers = new Set(data.map((item) => item.technicalUserId)).size
+    const uniqueUsers = new Set(data.map((item) => item.userId)).size
     const uniqueModels = new Set(data.map((item) => item.modelName)).size
 
     return {

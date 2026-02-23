@@ -189,12 +189,12 @@ export const usageAnalyticsService = {
         return {
           ...item,
           // Mappe die Daten korrekt zu EnhancedUsageRecord
-          technicalUserId:
-            (item as ModelUsage & { technicalUserId?: string }).technicalUserId ||
+          userId:
+            (item as ModelUsage & { userId?: string }).userId ||
             (item as ModelUsage & { technicalUSerid?: string }).technicalUSerid ||
             'unknown',
-          technicalUserName:
-            (item as ModelUsage & { technicalUserName?: string }).technicalUserName ||
+          userName:
+            (item as ModelUsage & { userName?: string }).userName ||
             'Unknown User',
           modelName: item.model || 'unknown',
           modelType: (item.type ||
@@ -293,7 +293,7 @@ export const usageAnalyticsService = {
       const uniqueUsers = new Set(
         summary.data.map(
           (item) =>
-            (item as SummaryUsage).technicalUserId ||
+            (item as SummaryUsage).userId ||
             (item as { technicalUSerid?: string }).technicalUSerid,
         ),
       ).size
@@ -439,17 +439,17 @@ export const usageAnalyticsService = {
       const userMap = new Map<string, UserUsageSummary>()
 
       detailedData.forEach((item) => {
-        const technicalUserId = item.technicalUserId || 'unknown'
+        const userId = item.userId || 'unknown'
         const requests = 1 // Jedes Objekt repräsentiert einen Request
         const modelName = item.modelName || 'Unknown'
         const tag = item.tag || ''
 
-        if (!userMap.has(technicalUserId)) {
-          userMap.set(technicalUserId, {
-            technicalUserId,
-            technicalUserName:
-              technicalUserId ||
-              `Benutzer ${detailedData.findIndex((i) => i.technicalUserId === technicalUserId) + 1}`,
+        if (!userMap.has(userId)) {
+          userMap.set(userId, {
+            userId,
+            userName:
+              userId ||
+              `Benutzer ${detailedData.findIndex((i) => i.userId === userId) + 1}`,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,
@@ -459,7 +459,7 @@ export const usageAnalyticsService = {
           })
         }
 
-        const user = userMap.get(technicalUserId)
+        const user = userMap.get(userId)
         if (user) {
           user.totalRequests += requests
 
@@ -495,7 +495,7 @@ export const usageAnalyticsService = {
         const modelType = (item.modelType ||
           CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType
         const requests = 1 // Jedes Objekt repräsentiert einen Request
-        const technicalUserId = item.technicalUserId || 'unknown'
+        const userId = item.userId || 'unknown'
         const tag = item.tag || ''
 
         if (!modelMap.has(modelName)) {
@@ -515,8 +515,8 @@ export const usageAnalyticsService = {
         if (model) {
           model.totalRequests += requests
 
-          if (!model.userBreakdown[technicalUserId]) {
-            model.userBreakdown[technicalUserId] = {
+          if (!model.userBreakdown[userId]) {
+            model.userBreakdown[userId] = {
               requests: 0,
               tokensIn: 0,
               tokensOut: 0,
@@ -525,7 +525,7 @@ export const usageAnalyticsService = {
               tag,
             }
           }
-          model.userBreakdown[technicalUserId].requests += requests
+          model.userBreakdown[userId].requests += requests
         }
       })
 
@@ -546,7 +546,7 @@ export const usageAnalyticsService = {
     if (!userId) return usageData
     return usageData.filter((item) => {
       const itemUserId =
-        (item as SummaryUsage).technicalUserId ||
+        (item as SummaryUsage).userId ||
         (item as { technicalUSerid?: string }).technicalUSerid
       return itemUserId === userId
     })
@@ -578,7 +578,7 @@ export const usageAnalyticsService = {
 
     usageData.forEach((item) => {
       const userId =
-        (item as SummaryUsage).technicalUserId ||
+        (item as SummaryUsage).userId ||
         (item as { technicalUSerid?: string }).technicalUSerid ||
         'unknown'
       if (!userMap.has(userId)) {

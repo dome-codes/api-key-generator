@@ -11,11 +11,11 @@ import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
  * Record mit API-Key-ID und Verbrauchsfeldern.
  * Entspricht EnhancedUsageRecord / AIUsageSummaryRecord (OpenAPI):
  * apiKeyId (laut OpenAPI-Spezifikation), requestTokens/responseTokens oder tokensIn/tokensOut, cost optional.
- * technicalUserId für Fallback, wenn Backend apiKeyId: null liefert (z. B. bei Aggregation).
+ * userId für Fallback, wenn Backend apiKeyId: null liefert (z. B. bei Aggregation).
  */
 export interface UsageRecordForApiKey {
   apiKeyId?: string | null // Laut OpenAPI-Spezifikation: apiKeyId (camelCase)
-  technicalUserId?: string
+  userId?: string
   cost?: number
   tokensIn?: number
   tokensOut?: number
@@ -72,7 +72,7 @@ export function buildApiKeyUsageMap(
 
   if (isDebugLogEnabled() && safeRecords.length > 0 && keys.length > 0) {
     const _recordIds = [
-      ...new Set(safeRecords.map((r) => r.apiKeyId ?? r.technicalUserId ?? '').filter(Boolean)),
+      ...new Set(safeRecords.map((r) => r.apiKeyId ?? r.userId ?? '').filter(Boolean)),
     ]
     const apiKeyIds = keys.map((k) => k.id)
     const recordApiKeyIds = [...new Set(safeRecords.map((r) => r.apiKeyId).filter(Boolean))]
@@ -84,8 +84,8 @@ export function buildApiKeyUsageMap(
       'Record apiKeyIds (normalized, erste 5)': recordApiKeyIds
         .slice(0, 5)
         .map((id) => normalizeId(id)),
-      'Record technicalUserId (unique, erste 5)': [
-        ...new Set(safeRecords.map((r) => r.technicalUserId).filter(Boolean)),
+      'Record userId (unique, erste 5)': [
+        ...new Set(safeRecords.map((r) => r.userId).filter(Boolean)),
       ].slice(0, 5),
       'Anzahl Records': safeRecords.length,
       'Anzahl Keys': keys.length,
@@ -95,7 +95,7 @@ export function buildApiKeyUsageMap(
             'apiKeyId (laut OpenAPI)': safeRecords[0].apiKeyId,
             'apiKeyId (type)': typeof safeRecords[0].apiKeyId,
             'apiKeyId (is null/undefined?)': safeRecords[0].apiKeyId == null,
-            technicalUserId: safeRecords[0].technicalUserId,
+            userId: safeRecords[0].userId,
             'Kompletter Record': safeRecords[0],
           }
         : 'KEINE RECORDS',
@@ -201,15 +201,15 @@ export function buildApiKeyUsageMap(
     }
   }
 
-  // 2) Fallback: Records mit apiKeyId null/undefined aber technicalUserId → Verbrauch nur dem ersten Key dieses Users zuordnen (keine dreifache Anzeige)
+  // 2) Fallback: Records mit apiKeyId null/undefined aber userId → Verbrauch nur dem ersten Key dieses Users zuordnen (keine dreifache Anzeige)
   const recordsWithoutKeyId = safeRecords.filter((r) => {
     const id = r.apiKeyId
-    return (id == null || id === '') && r.technicalUserId
+    return (id == null || id === '') && r.userId
   })
   if (recordsWithoutKeyId.length > 0) {
     const usageByUserId: Record<string, ApiKeyUsageData> = {}
     for (const r of recordsWithoutKeyId) {
-      const uid = String(r.technicalUserId).trim()
+      const uid = String(r.userId).trim()
       if (!uid) continue
       const t = getTokensFromRecord(r)
       if (!usageByUserId[uid]) {

@@ -170,12 +170,12 @@ const getInitials = (name?: string): string => {
             <tr>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                @click="sortBy('technicalUserId')"
+                @click="sortBy('userId')"
               >
                 <div class="flex items-center gap-1">
                   Technischer Nutzer
                   <svg
-                    v-if="currentSortField === 'technicalUserId'"
+                    v-if="currentSortField === 'userId'"
                     class="w-3 h-3"
                     :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                     fill="none"
@@ -375,14 +375,14 @@ const getInitials = (name?: string): string => {
                 <div class="flex items-center">
                   <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                     <span class="text-sm font-medium text-blue-800">
-                      {{ getInitials(item.technicalUserName) }}
+                      {{ getInitials(item.userName) }}
                     </span>
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">
-                      {{ item.technicalUserName }}
+                      {{ item.userName }}
                     </div>
-                    <div class="text-sm text-gray-500">{{ item.technicalUserId || '–' }}</div>
+                    <div class="text-sm text-gray-500">{{ item.userId || '–' }}</div>
                   </div>
                 </div>
               </td>

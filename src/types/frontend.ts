@@ -60,7 +60,7 @@ export interface UsageFilterApi {
   apiKey?: string
   model?: string
   modelType?: string
-  technicalUserIds?: string[]
+  userIds?: string[]
   sort?: string
   order?: string
   groupBy?: string[]
@@ -86,10 +86,10 @@ export interface ExtractionUsageFilterApi {
   groupBy?: string[]
 }
 
-/** UI record with computed fields (technicalUserName, cost, etc.) */
+/** UI record with computed fields (userName, cost, etc.) */
 export interface EnhancedUsageRecord {
-  technicalUserId?: string
-  technicalUserName?: string
+  userId?: string
+  userName?: string
   modelName?: string
   modelType?: ModelUsageType
   type?: ModelUsageType
@@ -123,8 +123,8 @@ export interface EnhancedExtractionUsageRecord {
   day?: number
   month?: number
   year?: number
-  technicalUserId?: string
-  technicalUserName?: string
+  userId?: string
+  userName?: string
   apiKey?: string
   apiKeyId?: string
   tag?: string
@@ -215,8 +215,8 @@ export interface ModelUsageSummary {
 }
 
 export interface UserUsageSummary {
-  technicalUserId: string
-  technicalUserName: string
+  userId: string
+  userName: string
   totalRequests: number
   totalTokensIn: number
   totalTokensOut: number

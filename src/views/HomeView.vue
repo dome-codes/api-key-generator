@@ -72,7 +72,7 @@ const { budgetConfig, loadBudgetData } = useBudget()
 const { detailedUsageData, loadUsageSummary } = useUsage()
 
 // API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
-// Keys mit id + userId, damit bei apiKeyId: null Fallback über technicalUserId funktioniert
+// Keys mit id + userId, damit bei apiKeyId: null Fallback über userId funktioniert
 const apiKeyUsageData = computed(() => {
   const keys = apiKeys.value.map((k) => ({ id: k.id, userId: k.userId, active: k.active }))
   const result = buildApiKeyUsageMap(detailedUsageData.value, keys)

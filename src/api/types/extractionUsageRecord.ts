@@ -20,7 +20,7 @@ export interface ExtractionUsageRecord {
   day?: number;
   month?: number;
   year?: number;
-  technicalUserId?: string;
+  userId?: string;
   apiKeyId?: string;
   tag?: string;
   provider?: string;

@@ -37,21 +37,21 @@ const modelIds = [
 const insertAIByDay = db.prepare(`
   INSERT INTO ai_usage_summary_by_day 
   (type, tag, model, apiKeyId, requestTokens, responseTokens, tokensIn, tokensOut, 
-   technicalUserId, createDate, requests, cost, day, month, year)
+   userId, createDate, requests, cost, day, month, year)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 
 const insertAIByApiKey = db.prepare(`
   INSERT INTO ai_usage_summary_by_apikey 
   (type, tag, model, apiKeyId, requestTokens, responseTokens, tokensIn, tokensOut, 
-   technicalUserId, createDate, requests, cost, day, month, year)
+   userId, createDate, requests, cost, day, month, year)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 
 const insertExtractionByDay = db.prepare(`
   INSERT INTO extraction_usage_summary_by_day 
   (provider, modelId, tag, operations, totalPages, averageConfidence, cost, 
-   technicalUserId, apiKeyId, createDate, day, month, year)
+   userId, apiKeyId, createDate, day, month, year)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 
@@ -66,7 +66,7 @@ const insertManyAIByDay = db.transaction((items) => {
       item.responseTokens,
       item.tokensIn,
       item.tokensOut,
-      item.technicalUserId,
+      item.userId,
       item.createDate,
       item.requests,
       item.cost,
@@ -88,7 +88,7 @@ const insertManyAIByApiKey = db.transaction((items) => {
       item.responseTokens,
       item.tokensIn,
       item.tokensOut,
-      item.technicalUserId,
+      item.userId,
       item.createDate,
       item.requests,
       item.cost,
@@ -109,7 +109,7 @@ const insertManyExtractionByDay = db.transaction((items) => {
       item.totalPages,
       item.averageConfidence,
       item.cost,
-      item.technicalUserId,
+      item.userId,
       item.apiKeyId,
       item.createDate,
       item.day,
@@ -207,7 +207,7 @@ while (currentDate <= today) {
       responseTokens,
       tokensIn: requestTokens,
       tokensOut: responseTokens,
-      technicalUserId: userId,
+      userId: userId,
       createDate,
       requests,
       cost,
@@ -238,7 +238,7 @@ while (currentDate <= today) {
         responseTokens,
         tokensIn: requestTokens,
         tokensOut: responseTokens,
-        technicalUserId: userId,
+        userId: userId,
         createDate,
         requests,
         cost,
@@ -276,7 +276,7 @@ while (currentDate <= today) {
     totalPages,
     averageConfidence,
     cost,
-    technicalUserId: userId,
+    userId: userId,
     apiKeyId,
     createDate,
     day,

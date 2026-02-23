@@ -12,7 +12,7 @@ export interface ExtractionUsageSummaryRecord {
   tag?: string;
   provider?: string;
   modelId?: string;
-  technicalUserId?: string;
+  userId?: string;
   apiKeyId?: string;
   day?: number;
   month?: number;

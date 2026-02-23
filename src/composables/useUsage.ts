@@ -86,9 +86,9 @@ export function useUsage() {
       )
     }
 
-    if (currentFilter.value.technicalUserIds && currentFilter.value.technicalUserIds.length > 0) {
-      const userIds = currentFilter.value.technicalUserIds
-      filtered = filtered.filter((item) => userIds.includes(item.technicalUserId ?? ''))
+    if (currentFilter.value.userIds && currentFilter.value.userIds.length > 0) {
+      const userIds = currentFilter.value.userIds
+      filtered = filtered.filter((item) => userIds.includes(item.userId ?? ''))
     }
 
     return filtered
@@ -172,13 +172,13 @@ export function useUsage() {
           totalTokensOut,
           totalTokens,
           totalCost,
-          uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.technicalUserId))
+          uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.userId))
             .size,
           uniqueModels: new Set(validItems.map((item: EnhancedUsageRecord) => item.modelName)).size,
           averageRequestsPerUser:
             totalRequests /
             Math.max(
-              new Set(validItems.map((item: EnhancedUsageRecord) => item.technicalUserId)).size,
+              new Set(validItems.map((item: EnhancedUsageRecord) => item.userId)).size,
               1,
             ),
           averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
@@ -219,8 +219,8 @@ export function useUsage() {
             }
 
             return {
-              technicalUserId: item.technicalUserId || 'unknown',
-              technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+              userId: item.userId || 'unknown',
+              userName: `User ${item.userId || 'unknown'}`,
               modelName: item.modelName || 'unknown',
               modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
               type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
@@ -337,7 +337,7 @@ export function useUsage() {
           'Anzahl Records': response.length,
           'Erste 5 Records': response.slice(0, 5).map((r) => ({
             apiKeyId: r.apiKeyId ?? 'null',
-            technicalUserId: r.technicalUserId ?? 'null',
+            userId: r.userId ?? 'null',
             cost: r.cost ?? 0,
             tokensIn: r.tokensIn ?? 0,
             tokensOut: r.tokensOut ?? 0,
@@ -388,8 +388,8 @@ export function useUsage() {
             )
 
             return {
-              technicalUserId: item.technicalUserId || 'unknown',
-              technicalUserName: `User ${item.technicalUserId || 'unknown'}`,
+              userId: item.userId || 'unknown',
+              userName: `User ${item.userId || 'unknown'}`,
               modelName: item.model || 'unknown',
               modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
               type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
@@ -446,8 +446,8 @@ export function useUsage() {
           headers.join(','),
           ...data.map((item) =>
             [
-              item.technicalUserId,
-              item.technicalUserName,
+              item.userId,
+              item.userName,
               item.modelName,
               item.modelType,
               item.requests,

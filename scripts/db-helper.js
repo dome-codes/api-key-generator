@@ -59,7 +59,7 @@ export function getAIUsageSummaryByDay(filters = {}) {
   }
 
   if (filters.userId) {
-    query += ' AND technicalUserId = ?'
+    query += ' AND userId = ?'
     params.push(filters.userId)
   }
 
@@ -119,7 +119,7 @@ export function getAIUsageSummaryByTag(filters = {}) {
   }
 
   if (filters.userId) {
-    query += ' AND technicalUserId = ?'
+    query += ' AND userId = ?'
     params.push(filters.userId)
   }
 
@@ -177,7 +177,7 @@ export function getExtractionUsageSummaryByTag(filters = {}) {
   }
 
   if (filters.userId) {
-    query += ' AND technicalUserId = ?'
+    query += ' AND userId = ?'
     params.push(filters.userId)
   }
 
@@ -224,7 +224,7 @@ export function getAIUsageSummaryByApiKey(filters = {}) {
   }
 
   if (filters.userId) {
-    query += ' AND technicalUserId = ?'
+    query += ' AND userId = ?'
     params.push(filters.userId)
   }
 
@@ -271,7 +271,7 @@ export function getExtractionUsageSummaryByDay(filters = {}) {
   }
 
   if (filters.userId) {
-    query += ' AND technicalUserId = ?'
+    query += ' AND userId = ?'
     params.push(filters.userId)
   }
 

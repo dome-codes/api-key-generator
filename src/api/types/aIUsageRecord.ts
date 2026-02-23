@@ -17,7 +17,7 @@ export interface AIUsageRecord {
   day?: number;
   month?: number;
   year?: number;
-  technicalUserId?: string;
+  userId?: string;
   apiKeyId?: string;
   requests?: number;
   tokensIn?: number;
