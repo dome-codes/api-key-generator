@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
-import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -73,7 +73,7 @@ export function getAIUsageSummaryByDay(filters = {}) {
 export function getAIUsageSummaryByTag(filters = {}) {
   const database = getDatabase()
   let query = `
-    SELECT 
+    SELECT
       tag,
       type,
       SUM(requests) as requests,
@@ -133,7 +133,7 @@ export function getAIUsageSummaryByTag(filters = {}) {
 export function getExtractionUsageSummaryByTag(filters = {}) {
   const database = getDatabase()
   let query = `
-    SELECT 
+    SELECT
       tag,
       SUM(operations) as operations,
       SUM(totalPages) as totalPages,
@@ -151,6 +151,7 @@ export function getExtractionUsageSummaryByTag(filters = {}) {
   }
 
   if (filters.to_date) {
+    π
     query += ' AND createDate <= ?'
     params.push(filters.to_date)
   }
