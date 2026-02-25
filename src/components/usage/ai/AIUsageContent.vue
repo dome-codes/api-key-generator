@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // URL Filters Composable
-const { getQueryParam, setQueryParams } = useUrlFilters()
+const { getQueryParam, getQueryParamAsNumber, setQueryParams } = useUrlFilters()
 
 // Usage API Composable - Nutzt server-seitige Filterung
 const {
@@ -83,6 +83,16 @@ const loadFiltersFromUrl = () => {
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
   ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
 
+  // Page/Limit aus URL für Pagination (Quelle der Wahrheit für Deep-Links)
+  const urlPage = getQueryParamAsNumber('page')
+  const urlLimit = getQueryParamAsNumber('limit')
+  if (urlPage != null && urlPage >= 1) {
+    currentFilter.value = { ...currentFilter.value, page: urlPage }
+  }
+  if (urlLimit != null && urlLimit >= 1) {
+    currentFilter.value = { ...currentFilter.value, limit: urlLimit }
+  }
+
   // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
   if (
     ownTimeRange.value &&
@@ -139,8 +149,11 @@ const saveFiltersToUrl = () => {
   params.chartPeriod = ownChartPeriod.value || undefined
   params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
   params.toDate = ownToDate.value ? toIsoDate(ownToDate.value) : undefined
-  // Setze page immer explizit (auch wenn 1), damit die URL korrekt ist
-  params.page = pagination.value.currentPage ?? currentFilter.value.page ?? 1
+  // Page/Limit immer mitschreiben, damit URL Quelle der Wahrheit ist und "Seite 20 von 7" vermieden wird
+  const safePage = pagination.value.currentPage ?? currentFilter.value.page ?? 1
+  const totalPages = pagination.value.totalPages ?? 0
+  params.page = totalPages > 0 && safePage > totalPages ? totalPages : safePage
+  params.limit = currentFilter.value.limit ?? pagination.value.pageSize ?? 20
   params.sort = currentFilter.value.sort || undefined
   params.order = currentFilter.value.order || undefined
   setQueryParams(params)
@@ -197,7 +210,7 @@ const handleOwnFilterChange = async () => {
     // Setze page nur auf 1 zurück, wenn sich die View ändert (overview <-> detailed)
     const newGroupBy = ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined
     const viewChanged = JSON.stringify(newGroupBy) !== JSON.stringify(currentFilter.value.groupBy)
-    
+
     currentFilter.value = {
       ...currentFilter.value,
       fromDate: toIsoDate(ownFromDate.value),
@@ -207,7 +220,7 @@ const handleOwnFilterChange = async () => {
       apiKey: ownApiKeyId.value || undefined,
       groupBy: newGroupBy,
       // Seite nur zurücksetzen wenn sich die View ändert, sonst aktuelle Seite behalten
-      page: viewChanged ? 1 : (currentFilter.value.page || pagination.value.currentPage || 1),
+      page: viewChanged ? 1 : currentFilter.value.page || pagination.value.currentPage || 1,
     }
 
     // Lade je nach View-Modus die richtigen Daten
@@ -236,7 +249,10 @@ const handlePageChange = async (page: number) => {
   // Aktualisiere currentFilter.page explizit, bevor goToPage aufgerufen wird
   // WICHTIG: Überschreibe page in currentFilter, damit handleOwnFilterChange es nicht auf 1 zurücksetzt
   currentFilter.value = { ...currentFilter.value, page }
-  debugLog('[AIUsageContent] handlePageChange:', { page, currentFilterPage: currentFilter.value.page })
+  debugLog('[AIUsageContent] handlePageChange:', {
+    page,
+    currentFilterPage: currentFilter.value.page,
+  })
   await goToPage(page, props.useAdminApi)
   // Nach dem Laden: Aktualisiere URL mit der tatsächlichen Seite aus der Pagination
   saveFiltersToUrl()

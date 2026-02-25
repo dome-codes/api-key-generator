@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // URL Filters Composable
-const { getQueryParam, setQueryParams } = useUrlFilters()
+const { getQueryParam, getQueryParamAsNumber, setQueryParams } = useUrlFilters()
 
 // Extraction Usage Composable mit API-basierter Filterung
 const {
@@ -83,6 +83,16 @@ const loadFiltersFromUrl = () => {
     adminUserGroup.value = getQueryParam('userGroup') || ''
   }
 
+  // Page/Limit aus URL für Pagination
+  const urlPage = getQueryParamAsNumber('page')
+  const urlLimit = getQueryParamAsNumber('limit')
+  if (urlPage != null && urlPage >= 1) {
+    currentFilter.value = { ...currentFilter.value, page: urlPage }
+  }
+  if (urlLimit != null && urlLimit >= 1) {
+    currentFilter.value = { ...currentFilter.value, limit: urlLimit }
+  }
+
   // Wenn timeRange gesetzt ist, aber keine expliziten Daten aus URL, dann Datum entsprechend setzen
   if (
     ownTimeRange.value &&
@@ -140,8 +150,11 @@ const saveFiltersToUrl = () => {
     params.userId = adminUser.value || undefined
     params.userGroup = adminUserGroup.value || undefined
   }
-  // Setze page immer explizit (auch wenn 1), damit die URL korrekt ist
-  params.page = pagination.value.currentPage ?? currentFilter.value.page ?? 1
+  // Page/Limit in URL halten (Quelle der Wahrheit)
+  const safePage = pagination.value.currentPage ?? currentFilter.value.page ?? 1
+  const totalPages = pagination.value.totalPages ?? 0
+  params.page = totalPages > 0 && safePage > totalPages ? totalPages : safePage
+  params.limit = currentFilter.value.limit ?? pagination.value.pageSize ?? 20
   setQueryParams(params)
 }
 

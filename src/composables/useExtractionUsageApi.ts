@@ -232,11 +232,17 @@ export function useExtractionUsageApi() {
       usageData.value = result.data
       pagination.value = result.pagination
 
-      // Wenn eine Seite explizit angefragt wurde, behalte diese.
-      // Sonst synchronisieren wir mit Backend/Fallback-Pagination.
-      if (filter?.page !== undefined) {
+      // currentPage auf 1..totalPages begrenzen (verhindert "Seite 20 von 7")
+      const totalPages = result.pagination?.totalPages ?? 0
+      const currentPage = result.pagination?.currentPage ?? 1
+      if (totalPages > 0 && currentPage > totalPages) {
+        const clampedPage = totalPages
+        pagination.value = { ...pagination.value, currentPage: clampedPage }
+        currentFilter.value = { ...currentFilter.value, page: clampedPage }
+        debugLog('[useExtractionUsageApi] Clamped currentPage from', currentPage, 'to', clampedPage)
+      } else if (filter?.page !== undefined) {
         currentFilter.value = { ...currentFilter.value, page: filter.page }
-      } else if (result.pagination?.currentPage) {
+      } else if (result.pagination?.currentPage != null) {
         currentFilter.value = { ...currentFilter.value, page: result.pagination.currentPage }
       }
 
