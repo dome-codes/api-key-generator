@@ -514,7 +514,9 @@ export function useUsageApi() {
   }
 
   const goToPage = async (page: number, useAdminApi: boolean = false) => {
-    if (page < 1 || page > (pagination.value.totalPages ?? 0)) return
+    if (page < 1) return
+    const totalPages = pagination.value.totalPages
+    if (totalPages != null && totalPages > 0 && page > totalPages) return
 
     debugLog('[useUsageApi] goToPage called:', { 
       requestedPage: page, 

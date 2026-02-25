@@ -378,8 +378,10 @@ onMounted(async () => {
     </div>
 
     <!-- Detailed Table -->
+    <!-- Key mit Seite + pageSize erzwingt Neuaufbau bei Pagination -->
     <ExtractionUsageDetailedTable
       v-if="ownView === 'detailed'"
+      :key="`extraction-table-${pagination.currentPage ?? 1}-${pagination.pageSize ?? 20}`"
       :data="usageData"
       :is-loading="isLoading"
       :error="error"

@@ -273,9 +273,15 @@ export const extractionUsageApiService = {
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
       }
-      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
-      if (filter.page && finalPagination.currentPage !== filter.page) {
+      // Immer mit angefragter Seite und Limit synchron halten
+      if (filter.page != null) {
         finalPagination.currentPage = filter.page
+      }
+      if (filter.limit != null) {
+        finalPagination.pageSize = filter.limit
+      }
+      if (finalPagination.pageSize == null) {
+        finalPagination.pageSize = filter.limit || 20
       }
 
       return {
@@ -413,9 +419,15 @@ export const extractionUsageApiService = {
       if (finalPagination.currentPage == null || finalPagination.currentPage === undefined) {
         finalPagination.currentPage = calculatedPage
       }
-      // Wenn Backend eine unpassende currentPage liefert, vertraue auf angefragte Seite.
-      if (filter.page && finalPagination.currentPage !== filter.page) {
+      // Immer mit angefragter Seite und Limit synchron halten
+      if (filter.page != null) {
         finalPagination.currentPage = filter.page
+      }
+      if (filter.limit != null) {
+        finalPagination.pageSize = filter.limit
+      }
+      if (finalPagination.pageSize == null) {
+        finalPagination.pageSize = filter.limit || 20
       }
 
       return {

@@ -635,20 +635,20 @@ watch(
       </table>
 
       <!-- Pagination: Backend-Pagination hat Priorität, sonst Client-seitige Pagination -->
-      <!-- Backend-Pagination -->
+      <!-- Backend-Pagination: immer anzeigen wenn Backend-Pagination und Daten vorhanden -->
       <div
-        v-if="pagination && (pagination.totalPages ?? 0) > 1 && displayData.length > 0"
+        v-if="pagination && displayData.length > 0"
         class="flex items-center justify-between mt-4 px-6 py-4 border-t border-gray-200"
       >
         <div class="flex items-center gap-4">
           <div class="text-sm text-gray-700">
-            Seite {{ paginationPage }} von {{ paginationTotalPages }} ({{ paginationTotal }} Einträge)
+            Seite {{ paginationPage }} von {{ Math.max(1, paginationTotalPages) }} ({{ paginationTotal }} Einträge)
           </div>
           <div class="flex items-center gap-2">
             <label for="page-size-select" class="text-sm text-gray-700">Einträge pro Seite:</label>
             <select
               id="page-size-select"
-              :value="pagination.pageSize || 20"
+              :value="pagination?.pageSize || 20"
               class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               @change="$emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
             >

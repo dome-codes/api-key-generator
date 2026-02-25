@@ -406,8 +406,10 @@ onMounted(async () => {
     </div>
 
     <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
+    <!-- Key mit Seite + pageSize erzwingt Neuaufbau bei Pagination, damit Anzeige garantiert aktualisiert -->
     <UsageDetailedTable
       v-if="showOwnDetails"
+      :key="`ai-usage-table-${pagination.currentPage ?? 1}-${pagination.pageSize ?? 20}`"
       :data="usageData"
       :is-loading="isLoading"
       :error="error"
