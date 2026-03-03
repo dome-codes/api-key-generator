@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "source": "Azure Retail Prices API",
+    "sourceUrl": "https://prices.azure.com/api/retail/prices",
+    "region": "swedencentral",
+    "currency": "EUR",
+    "effectiveDate": "2026-03-01",
+    "generatedAt": "2026-03-02T13:16:35.515Z",
+    "description": "Preise für Kostenberechnung und Nachweis (Consumption, Sweden Central)"
+  },
+  "modelPricing": [
+    {
+      "modelName": "gpt-4o-mini",
+      "inputPrice": 0.6,
+      "outputPrice": 2,
+      "cachedInputPrice": 0.3
+    },
+    {
+      "modelName": "gpt-4o",
+      "inputPrice": 4.2,
+      "outputPrice": 10.3,
+      "cachedInputPrice": 2.1
+    },
+    {
+      "modelName": "gpt-4.1-nano",
+      "inputPrice": 0.1,
+      "outputPrice": 0.3
+    },
+    {
+      "modelName": "gpt-4.1-mini",
+      "inputPrice": 0.3,
+      "outputPrice": 1.4,
+      "cachedInputPrice": 0.1
+    },
+    {
+      "modelName": "gpt-4.1",
+      "inputPrice": 1.7,
+      "outputPrice": 6.8,
+      "cachedInputPrice": 0.5
+    },
+    {
+      "modelName": "gpt-4.5",
+      "inputPrice": 63.6,
+      "outputPrice": 127.1,
+      "cachedInputPrice": 31.8
+    },
+    {
+      "modelName": "o3-mini",
+      "inputPrice": 0.9,
+      "outputPrice": 3.7,
+      "cachedInputPrice": 0.5
+    },
+    {
+      "modelName": "o3",
+      "inputPrice": 1.7,
+      "outputPrice": 6.8,
+      "cachedInputPrice": 0.5
+    },
+    {
+      "modelName": "o1",
+      "inputPrice": 7,
+      "outputPrice": 28,
+      "cachedInputPrice": 6.4
+    },
+    {
+      "modelName": "o1-pro",
+      "inputPrice": 127.1,
+      "outputPrice": 508.4
+    },
+    {
+      "modelName": "unknown",
+      "inputPrice": 1,
+      "outputPrice": 3
+    }
+  ],
+  "imagePricing": [],
+  "embeddingPricing": [],
+  "markupPercentage": 0.09
+}

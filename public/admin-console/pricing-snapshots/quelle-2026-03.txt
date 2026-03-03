@@ -1,0 +1,6 @@
+Stichtag: 2026-03-01
+Region: swedencentral
+Währung: EUR
+Quelle: Azure Retail Prices API (Consumption, productName=Azure OpenAI)
+Export: openai_preise_schweden_aktuell_eur.json
+Generiert: 2026-03-02T13:16:35.515Z

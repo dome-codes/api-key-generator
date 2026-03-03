@@ -16,6 +16,7 @@ import {
 import { debugLog } from '@/utils/debugLog'
 
 const PRICING_JSON_URL = '/admin-console/pricing.json'
+const SNAPSHOT_BASE = '/admin-console/pricing-snapshots'
 
 // Cache für geladene Preise
 let cachedPricing: {
@@ -54,9 +55,13 @@ async function loadPricingJson() {
 
 export const pricingService = {
   /**
-   * Lädt alle Completion-Model-Preise aus JSON-Datei
+   * Lädt alle Completion-Model-Preise.
+   * Bevorzugt den Snapshot für den aktuellen Monat (API + Override), sonst pricing.json.
    */
   async getModelPricing(): Promise<ModelPricing[]> {
+    const yyyyMm = new Date().toISOString().slice(0, 7)
+    const snapshot = await this.getModelPricingForDate(yyyyMm)
+    if (snapshot?.length) return snapshot
     const pricing = await loadPricingJson()
     return pricing.modelPricing || DEFAULT_AZURE_MODEL_PRICING
   },
@@ -83,6 +88,35 @@ export const pricingService = {
   async getMarkupPercentage(): Promise<number> {
     const pricing = await loadPricingJson()
     return pricing.markupPercentage || 0.09
+  },
+
+  /**
+   * Lädt Modell-Preise für einen Stichtag (Abrechnungsmonat) aus Snapshot.
+   * Für Nachweis: Preise stammen aus Azure Retail Prices (siehe Snapshot-_meta).
+   * @param date ISO-Datum (z. B. 2025-03-15) oder YYYY-MM → lädt pricing-YYYY-MM.json
+   * @returns modelPricing-Array oder null, wenn kein Snapshot existiert
+   */
+  async getModelPricingForDate(date: string): Promise<ModelPricing[] | null> {
+    const yyyyMm =
+      date.length === 7 && date[4] === '-'
+        ? date
+        : date.slice(0, 7)
+    const url = `${SNAPSHOT_BASE}/pricing-${yyyyMm}.json`
+    try {
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const data = (await response.json()) as {
+        modelPricing?: ModelPricing[]
+        _meta?: { effectiveDate: string; source: string }
+      }
+      if (data.modelPricing?.length) {
+        debugLog('[pricingService] Snapshot loaded for', yyyyMm, data._meta?.source)
+        return data.modelPricing
+      }
+    } catch {
+      // Snapshot nicht vorhanden oder Netzfehler
+    }
+    return null
   },
 
   /**

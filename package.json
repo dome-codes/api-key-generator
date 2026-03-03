@@ -22,7 +22,8 @@
     "db:init": "node scripts/init-database.js",
     "db:generate": "node scripts/generate-mock-data.js",
     "db:setup": "npm run db:init && npm run db:generate",
-    "api:generate": "orval && node scripts/fix-api-types-casing.js"
+    "api:generate": "orval && node scripts/fix-api-types-casing.js",
+    "pricing:refresh": "node scripts/refresh-azure-pricing.js"
   },
   "dependencies": {
     "@types/axios": "^0.9.36",

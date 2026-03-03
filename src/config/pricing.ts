@@ -209,6 +209,9 @@ export {
   DEFAULT_SERVICE_MARKUP_PERCENTAGE,
 }
 
+// Optional: Stichtag-Preise (z. B. aus pricing-snapshots/pricing-YYYY-MM.json) für Nachweis
+export type PricingOverride = ModelPricing[] | null | undefined
+
 // Erweiterte Preisberechnung mit Unterstützung für verschiedene ModelUsageTypes
 export function calculateCost(
   tokensIn: number,
@@ -220,6 +223,7 @@ export function calculateCost(
   imageCount?: number,
   sizeWidth?: number,
   sizeHeight?: number,
+  pricingOverride?: PricingOverride,
 ): {
   inputCost: number
   outputCost: number
@@ -248,7 +252,7 @@ export function calculateCost(
   }
 
   // Standard-Token-basierte Berechnung für Completion-Modelle
-  return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput)
+  return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput, pricingOverride)
 }
 
 // Token-basierte Kostenberechnung für Completion-Modelle
@@ -257,6 +261,7 @@ function calculateCompletionCost(
   tokensOut: number,
   modelName: string,
   useCachedInput: boolean = false,
+  pricingOverride?: PricingOverride,
 ): {
   inputCost: number
   outputCost: number
@@ -264,15 +269,14 @@ function calculateCompletionCost(
   serviceMarkup: number
   finalCost: number
 } {
-  // Lade aktuelle Preise dynamisch (können sich geändert haben)
-  const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
+  const currentPricing =
+    pricingOverride?.length ? pricingOverride : loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
   const currentMarkup = loadMarkupFromStorage()
 
-  // Finde das Modell in der Preisliste
   const model =
     currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
     currentPricing.find((m) => m.modelName === 'unknown') ||
-    currentPricing[0] // Fallback auf erstes Modell
+    currentPricing[0]
   if (!model) {
     throw new Error(`Model ${modelName} not found in pricing`)
   }
@@ -313,7 +317,6 @@ function calculateEmbeddingCost(
   serviceMarkup: number
   finalCost: number
 } {
-  // Lade aktuelle Preise dynamisch (können sich geändert haben)
   const currentPricing = loadPricingFromStorage(
     'pricing:embedding',
     DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
