@@ -583,7 +583,50 @@ Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
     - `page`, `offset`, `section`, `metadata`
   - `indexName`: logischer Index-/Collection-Name in Milvus
 
-### 4.3 Beispiel-Events je Topic
+### 4.3 Payload-Strategie: Volltext im Topic vs. Referenz (empfohlen)
+
+Für einige Topics (insbesondere `document-to-extract` und `content-extracted`) stellt sich die Frage, **wie viel Inhalt direkt in Kafka** transportiert werden soll.
+
+#### Variante A – „fette“ Messages (Volltext im Event)
+
+- **Beschreibung:**
+  - Der komplette Volltext (teilweise mehrere MB) wird direkt im Kafka-Event mitgeführt.
+  - Beispiel: `content-extracted.plainText` enthält den gesamten Text.
+- **Vorteile:**
+  - Einfaches Debugging (Text direkt in Kafka-UI sichtbar).
+  - Weniger Roundtrips zu externem Storage.
+- **Nachteile:**
+  - Größere Nachrichten belasten Netzwerk, Broker-Speicher und Consumer-RAM.
+  - Höheres Risiko, Kafka-Größenlimits zu treffen (`max.message.bytes`, `fetch.max.bytes`).
+  - Reprocessing (DLQs, Replays) wird teuer, weil große Payloads mehrfach über den Bus geschoben werden.
+
+#### Variante B – „dünne“ Messages (empfohlen)
+
+- **Beschreibung:**
+  - **Rohdokument** und **Volltext** liegen im Storage (z. B. S3).
+  - Kafka-Events enthalten **nur Referenzen** + Metadaten:
+    - `s3PathRaw`, `s3PathExtracted` oder `extractionResultPath`
+    - `language`, `pageCount`, `contentHash`, `profile` etc.
+  - Consumer laden bei Bedarf den Volltext/Resultate aus dem Storage nach.
+- **Vorteile:**
+  - Typische Eventgrößen bleiben im **KB-Bereich** – besser für Kafka (Netzwerk, Speicher, Caching).
+  - Limits wie `max.message.bytes` bleiben konservativ; weniger Risiko für harte Fehler.
+  - Reprocessing verschiebt hauptsächlich **Referenzen**, nicht MB-große JSON-Payloads.
+  - Speicherschema im Storage kann unabhängig von Kafka weiterentwickelt werden.
+- **Nachteile:**
+  - Zusätzlicher Roundtrip zum Storage je Verarbeitungsschritt.
+  - Debugging erfordert Zugriff auf Storage, nicht nur auf Kafka.
+
+#### Geplanter Ansatz für unsere Pipeline
+
+- Für `document-to-extract` und `content-extracted` bevorzugen wir **Variante B**:
+  - Events enthalten Pfade/IDs, nicht den gesamten Volltext.
+  - Größere Volltexte und Chunks werden in S3 oder einem vergleichbaren Storage abgelegt und dort versioniert.
+- Optional können wir eine Hybrid-Regel ergänzen:
+  - **kleine Texte** (z. B. `< 128 KB`) dürfen direkt im Event stehen,
+  - **größere Texte** werden ausschließlich per Referenz verlinkt.
+
+### 4.4 Beispiel-Events je Topic
 
 **`document-received`**
 
