@@ -55,8 +55,9 @@ graph LR
     MILVUS["Milvus (Vektordatenbank)"]
 
     User -->|"Upload Dokument(e)"| API
-    API -->|"Speichern"| S3
-    API -->|"Event: document-received"| DR
+    API -->|"Request an Data Service"| DS
+    DS -->|"Speichern"| S3
+    DS -->|"Event: document-received"| DR
 
     DR -->|"lesen"| DS
     DS -->|"document-to-extract"| DTE
