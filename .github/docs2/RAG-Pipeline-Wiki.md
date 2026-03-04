@@ -122,8 +122,9 @@ graph LR
     MILVUS["Milvus (Vektordatenbank)"]
 
     User -->|"Upload Dokument(e)"| API
-    API -->|"Speichern"| S3
-    API -->|"Event: document-received"| DR
+    API -->|"Request an Data Service"| DS
+    DS -->|"Speichern"| S3
+    DS -->|"Event: document-received"| DR
 
     DR -->|"lesen"| DS
     DS -->|"document-to-extract"| DTE
@@ -550,7 +551,7 @@ Die Kommunikation erfolgt über spezialisierte Topics. Jede Nachricht trägt im 
 
 ### 4.2 Topic-Payloads (Schnittstellen-Kontrakt)
 
-Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
+Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert. Zusätzlich erfassen wir Konfigurations- und Audit-Parameter, um Verarbeitung und Qualität nachverfolgen zu können.
 
 - **Topic `document-received`**
   - **`documentId`**: eindeutige ID des Dokuments
@@ -564,18 +565,28 @@ Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
   - **`documentId`**, **`tenantId`**
   - **`s3Path`**
   - `priority`: z. B. „LOW/MEDIUM/HIGH“
+  - `extractionProfile`: z. B. `STANDARD`, `INVOICE`, `FORM`
+  - `ocrLanguage`: Sprachkürzel (z. B. `de`, `en`)
+  - `maxPages`: maximal zu verarbeitende Seiten (Truncation-Schutz)
+  - `normalizationVersion`: Version der angewendeten Normalisierungs-/Cleanup-Pipeline
 
 - **Topic `content-extracted`**
   - **`documentId`**, **`tenantId`**
   - **`plainText`**: extrahierter Volltext
   - `structure`: optionale Layout-/Tabelleninfos (z. B. von Document Intelligence)
   - `language`, `sourceFileName`
+  - `pageCount`: erkannte Seitenanzahl
+  - `extractedTextPath`: Pfad zum gespeicherten Volltext (z. B. in S3)
+  - `extractionProfile`, `ocrLanguage`, `normalizationVersion` (Echo aus `document-to-extract` zur Auditierbarkeit)
 
 - **Topic `metadata-enriched`**
   - **`documentId`**, **`tenantId`**
   - **`plainText`**
   - **`metadata`**: strukturierte Fachdaten (z. B. Rechnungsnummer, Datum, Beträge)
   - `detectedEntities`: optionale, modellbasierte Extraktionsergebnisse
+  - `minerProfile`: z. B. `INVOICE_MINING`, `CONTRACT_MINING`
+  - `rulesetVersion`: Version der eingesetzten fachlichen Regeln/Modelle
+  - `minerRunId`: technische ID des MinerU-/Mining-Runs (für Debugging)
 
 - **Topic `vector-ready-to-index`**
   - **`documentId`**, **`tenantId`**
@@ -584,6 +595,10 @@ Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
     - **`vector`**: Embedding-Vektor
     - `page`, `offset`, `section`, `metadata`
   - `indexName`: logischer Index-/Collection-Name in Milvus
+  - `embeddingModel`: Name/ID des Embedding-Modells (z. B. `text-embedding-3-small`)
+  - `embeddingDim`: Vektordimension (z. B. 1536)
+  - `topKDefault`: Standard-Top-K für die spätere Suche (Dokumentationszweck)
+  - `llmProvider`, `llmDeployment`: Provider/Deployment, das die Embeddings erzeugt hat
 
 ### 4.3 Payload-Strategie: Volltext im Topic vs. Referenz (empfohlen)
 
