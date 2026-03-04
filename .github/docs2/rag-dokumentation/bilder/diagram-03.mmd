@@ -1,0 +1,72 @@
+graph TB
+    %% Akteure
+    U["Client / Mandant"]
+    API["Middleware (Spring Boot)"]
+
+    %% Persistenz & externe Systeme
+    S3["S3 (Dokument-Speicher)"]
+    PG["Postgres (Status / Metadaten)"]
+    MILVUS["Milvus (Vektordatenbank)"]
+    AZ["Azure OpenAI / Document Intelligence"]
+
+    %% Services
+    DS["Data Service"]
+    ES["Extraction Service"]
+    MS["MinerU Service (optional)"]
+    AIS["AI Service"]
+
+    %% Topics (Events mit Payload)
+    subgraph Topics
+        direction LR
+        DR((document-received\ns3Path, tenantId, documentId))
+        DTE((document-to-extract\ns3Path, tenantId, documentId))
+        CE((content-extracted\nplainText, tenantId, documentId))
+        ME((metadata-enriched\ntext + meta, tenantId, documentId))
+        VRTI((vector-ready-to-index\nvectors + chunks, tenantId))
+    end
+
+    %% Ingestion: Upload
+    U -->|"Bulk-Upload (bis 10.000 Dokumente)"| API
+    API -->|"Dokument speichern"| S3
+    API -->|"Status initialisieren"| PG
+    API -->|"Event schreiben"| DR
+
+    DR -->|"lesen"| DS
+    DS -->|"Status aktualisieren"| PG
+    DS -->|"document-to-extract"| DTE
+
+    DTE -->|"lesen"| ES
+    ES -->|"Dokument aus S3 lesen"| S3
+    ES -->|"Extraktion"| AZ
+    ES -->|"Volltext/Struktur speichern"| S3
+    ES -->|"content-extracted"| CE
+
+    CE -->|"lesen"| MS
+    MS -->|"fachliche Metadaten erzeugen"| MS
+    MS -->|"metadata-enriched"| ME
+
+    ME -->|"lesen"| AIS
+    AIS -->|"Chunks zu Embeddings (Azure)"| AZ
+    AIS -->|"vector-ready-to-index"| VRTI
+
+    VRTI -->|"lesen"| AIS
+    AIS -->|"Vektoren an Data Service"| DS
+    DS -->|"Vektoren schreiben"| MILVUS
+    DS -->|"Status INDEXED setzen"| PG
+
+    %% Inference: Frage stellen
+    U -->|"Frage stellen"| API
+    API -->|"Status / Berechtigungen prüfen"| PG
+    API -->|"Query-Embedding anfordern"| AIS
+    AIS -->|"Embedding-Request"| AZ
+    AZ -->|"Query-Vektor"| AIS
+
+    AIS -->|"Vektorsuche (Top-K) via Data Service"| DS
+    DS -->|"Vektorsuche (Top-K)"| MILVUS
+    MILVUS -->|"relevante Chunks"| DS
+    DS -->|"Chunks + Metadaten"| AIS
+
+    AIS -->|"Kontext + Frage"| AZ
+    AZ -->|"Antwort"| AIS
+    AIS -->|"Antwort"| API
+    API -->|"Antwort"| U

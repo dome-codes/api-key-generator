@@ -1,0 +1,70 @@
+ragPipeline:
+  kafka:
+    topics:
+      documentReceived:
+        name: document-received
+        partitions: 6
+        replicationFactor: 3
+        config:
+          # Beispiel: 7 Tage Aufbewahrung, kompaktiert für Status-Events
+          retention.ms: 604800000
+          cleanup.policy: compact
+
+      documentToExtract:
+        name: document-to-extract
+        partitions: 6
+        replicationFactor: 3
+        config:
+          # Beispiel: klassische Log-Retention
+          retention.ms: 604800000
+
+      contentExtracted:
+        name: content-extracted
+        partitions: 6
+        replicationFactor: 3
+
+      metadataEnriched:
+        name: metadata-enriched
+        partitions: 6
+        replicationFactor: 3
+
+      vectorReadyToIndex:
+        name: vector-ready-to-index
+        partitions: 6
+        replicationFactor: 3
+
+services:
+  middleware:
+    kafka:
+      producerTopics:
+        # Middleware stößt initiale Upload-/Ingestion-Events an
+        documentReceived: "{{ .Values.ragPipeline.kafka.topics.documentReceived.name }}"
+
+  dataService:
+    kafka:
+      consumerTopics:
+        documentReceived: "{{ .Values.ragPipeline.kafka.topics.documentReceived.name }}"
+      producerTopics:
+        documentToExtract: "{{ .Values.ragPipeline.kafka.topics.documentToExtract.name }}"
+
+  extractionService:
+    kafka:
+      consumerTopics:
+        documentToExtract: "{{ .Values.ragPipeline.kafka.topics.documentToExtract.name }}"
+      producerTopics:
+        contentExtracted: "{{ .Values.ragPipeline.kafka.topics.contentExtracted.name }}"
+
+  mineruService:
+    kafka:
+      consumerTopics:
+        contentExtracted: "{{ .Values.ragPipeline.kafka.topics.contentExtracted.name }}"
+      producerTopics:
+        metadataEnriched: "{{ .Values.ragPipeline.kafka.topics.metadataEnriched.name }}"
+
+  aiService:
+    kafka:
+      consumerTopics:
+        metadataEnriched: "{{ .Values.ragPipeline.kafka.topics.metadataEnriched.name }}"
+      producerTopics:
+        vectorReadyToIndex: "{{ .Values.ragPipeline.kafka.topics.vectorReadyToIndex.name }}"
+

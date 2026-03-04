@@ -1,0 +1,41 @@
+graph TB
+    subgraph GPU0 ["GPU 0: Generierungs-Engine (96 GB VRAM)"]
+        LLM["Haupt-LLM / GPT<br/>Llama 3.1 70B<br/>Inferenz-Server<br/>Volle GPU für schnelle Antworten"]
+    end
+
+    subgraph GPU1 ["GPU 1: Daten- und Abruf-Pipeline (MIG-Modus, 7 × 1g.10gb)"]
+        direction TB
+        subgraph MinerU_Group ["MinerU – Parallele PDF-Extraktion (Slices 1–4)"]
+            M1["Worker 1<br/>Layout, Tabellen, Text → Markdown"]
+            M2["Worker 2<br/>Layout, Tabellen, Text → Markdown"]
+            M3["Worker 3<br/>Layout, Tabellen, Text → Markdown"]
+            M4["Worker 4<br/>Layout, Tabellen, Text → Markdown"]
+        end
+
+        subgraph RAG_Services ["Suche und Qualität (Slices 5–7)"]
+            EMB["Embedding-Modell<br/>Slice 5: Vektorisierung der Chunks"]
+            RER["Reranker-Modell<br/>Slice 6: Qualitätsfilterung der Treffer"]
+            DEV["Sandbox / Entwicklung<br/>Slice 7: Test neuer Modelle"]
+        end
+    end
+
+    subgraph CPU_Bereich ["CPU"]
+        Chunking["Text-Zerlegung (Chunking)<br/>Aufteilung in sinnvolle Abschnitte"]
+    end
+
+    Docs(("Rohdaten: PDF-Dokumente")) --> MinerU_Group
+    MinerU_Group -->|"Extrahiertes Markdown"| Chunking
+    Chunking --> EMB
+    EMB -->|"Vektoren"| DB[(Vektordatenbank)]
+
+    User(("Nutzeranfrage")) -->|"Query"| EMB
+    DB -->|"Top-K relevante Chunks"| RER
+    RER -->|"Gefilterte, fachlich korrekte Fakten"| LLM
+    LLM -->|"Antwort"| User
+
+    style GPU0 fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
+    style GPU1 fill:#eff6ff,stroke:#2563eb,stroke-width:2px
+    style MinerU_Group fill:#ecfeff,stroke:#0d9488,stroke-width:1px
+    style RAG_Services fill:#f0fdf4,stroke:#16a34a,stroke-width:1px
+    style LLM fill:#e0e7ff,stroke:#4f46e5,stroke-width:1px
+    style CPU_Bereich fill:#fef3c7,stroke:#d97706,stroke-width:1px

@@ -1,0 +1,16 @@
+{
+  "documentId": "DOC-123",
+  "tenantId": "TENANT-A",
+  "indexName": "tenant-a-main",
+  "chunks": [
+    {
+      "chunkId": "DOC-123-0001",
+      "text": "Diese Rechnung bezieht sich auf den Vertrag 9876 ...",
+      "vector": [0.0123, -0.9987, 0.4532],
+      "page": 1,
+      "offset": 0,
+      "section": "header"
+    }
+  ]
+}
+

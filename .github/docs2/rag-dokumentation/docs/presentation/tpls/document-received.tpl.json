@@ -1,0 +1,11 @@
+{
+  "documentId": "DOC-123",
+  "tenantId": "TENANT-A",
+  "batchId": "BATCH-2026-03-01-001",
+  "s3Path": "s3://bucket/raw/TENANT-A/DOC-123.pdf",
+  "filename": "rechnung_123.pdf",
+  "mimeType": "application/pdf",
+  "uploadedBy": "user@kunde.de",
+  "contentHash": "b8a6b4c0...ef"
+}
+
