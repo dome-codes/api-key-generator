@@ -68,9 +68,9 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 | Service                | Sprache     | Hauptaufgabe                                                  |
 | ---------------------- | ----------- | ------------------------------------------------------------- |
 | **Middleware**         | Spring Boot | API Gateway, Authentifizierung, S3-Management, Proxy-Logik.   |
-| **Extraction Service** | Python      | Text-Extraktion aus PDFs, Bildern und Office-Dokumenten.      |
+| **Extraction Service** | Python      | Text-Extraktion aus PDFs, Bildern und Office-Dokumenten inkl. Chunking des Volltexts. |
 | **Miner Service**      | Python      | Daten-Mining: Extraktion von Entitäten (Daten, IDs, Beträge). |
-| **AI Service**         | Python      | Text-Chunking und Erstellung von Embeddings via Azure OpenAI. |
+| **AI Service**         | Python      | Erstellung von Embeddings via Azure OpenAI auf bereits gechunktem Text. |
 | **Data Service**       | Python      | Orchestrierung der Datenflüsse und Zustandsüberwachung.       |
 
 
