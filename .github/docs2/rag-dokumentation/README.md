@@ -9,7 +9,6 @@ rag-dokumentation/
 ├── README.md              ← diese Datei
 ├── docs/                  ← Markdown-Dokumentation
 │   ├── RAG-Pipeline-Wiki.md
-│   ├── RAG-GPU-Setup.md
 │   ├── RAG-Pipeline-Presentation.md
 │   └── presentation/      ← Präsentations-Slides & Notizen
 ├── topics/                ← Kafka-Topics (Beschreibung + Mapping)
@@ -34,7 +33,7 @@ rag-dokumentation/
 
 | Ordner   | Inhalt |
 |----------|--------|
-| **docs/**   | RAG-Architektur (Wiki), GPU-Setup, Präsentationstexte |
+| **docs/**   | RAG-Architektur (Wiki), Präsentationstexte |
 | **topics/** | Kafka-Topic-Übersicht, Producer/Consumer-Mapping |
 | **values/** | Template (`kafka-topics-values-template.yaml`) + README (Ablauf: richtige YAML → Merge → Deploy → Topics existieren) |
 | **bilder/** | Mermaid-Quellen (`.mmd`), exportierte SVGs, Screenshots |
