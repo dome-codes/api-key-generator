@@ -18,7 +18,7 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 | ---------------------- | ----------- | ------------------------------------------------------------- |
 | **Middleware**         | Spring Boot | API Gateway, Authentifizierung, S3-Management, Proxy-Logik.   |
 | **Extraction Service** | Python      | Text-Extraktion aus PDFs, Bildern und Office-Dokumenten.      |
-| **Miner Service**      | Python      | Daten-Mining: Extraktion von Entitäten (Daten, IDs, Beträge). |
+| **MinerU Service (optional)** | Python      | Zukünftige Alternative zum Extraction Service für fachliches Daten-Mining (Entitäten, IDs, Beträge); aktuell noch nicht produktiv im Einsatz. |
 | **AI Service**         | Python      | Text-Chunking und Erstellung von Embeddings via Azure OpenAI. |
 | **Data Service**       | Python      | Orchestrierung der Datenflüsse und Zustandsüberwachung.       |
 
@@ -48,7 +48,7 @@ graph LR
 
     DS["Data Service"]
     ES["Extraction Service"]
-    MS["Miner Service"]
+    MS["MinerU Service (optional)"]
     AIS["AI Service"]
 
     S3["S3 (Dokument-Speicher)"]
@@ -127,7 +127,7 @@ graph TB
     %% Services
     DS["Data Service"]
     ES["Extraction Service"]
-    MS["Miner Service"]
+    MS["MinerU Service (optional)"]
     AIS["AI Service"]
 
     %% Topics (Events mit Payload)
@@ -294,7 +294,7 @@ graph TB
 1. **Client** lädt Dokument über den **Spring Boot Proxy** hoch.
 2. **Spring Boot** speichert Datei in **S3** und schreibt Event in `document-received`.
 3. **Extraction Service** zieht Text aus dem Dokument (`document-to-extract` → `content-extracted`).
-4. **Miner Service** reichert den Text mit Fachmetadaten an (`metadata-enriched`).
+4. *(Optional)* **MinerU Service** reichert den Text mit zusätzlichen Fachmetadaten an (`metadata-enriched`). Dieser Schritt ist als zukünftige Alternative zum Extraction Service geplant und aktuell noch nicht im Einsatz.
 5. **AI Service** erstellt Chunks und ruft **Azure OpenAI** für Embeddings auf.
 6. Die fertigen Vektoren werden in **Milvus** indiziert (mit `tenant_id` als Partitions-Key).
 

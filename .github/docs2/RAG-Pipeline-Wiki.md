@@ -66,7 +66,7 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 | ---------------------- | ----------- | ------------------------------------------------------------- |
 | **Middleware**         | Spring Boot | API Gateway, Authentifizierung, S3-Management, Proxy-Logik.   |
 | **Extraction Service** | Python      | Text-Extraktion aus PDFs, Bildern und Office-Dokumenten.      |
-| **Miner Service**      | Python      | Daten-Mining: Extraktion von Entitäten (Daten, IDs, Beträge). |
+| **MinerU Service (optional)** | Python      | Zukünftige Alternative zum Extraction Service für fachliches Daten-Mining (Entitäten, IDs, Beträge); aktuell noch nicht produktiv im Einsatz. |
 | **AI Service**         | Python      | Text-Chunking und Erstellung von Embeddings via Azure OpenAI. |
 | **Data Service**       | Python      | Orchestrierung der Datenflüsse und Zustandsüberwachung.       |
 
@@ -115,7 +115,7 @@ graph LR
 
     DS["Data Service"]
     ES["Extraction Service"]
-    MS["Miner Service"]
+    MS["MinerU Service (optional)"]
     AIS["AI Service"]
 
     S3["S3 (Dokument-Speicher)"]
@@ -194,7 +194,7 @@ graph TB
     %% Services
     DS["Data Service"]
     ES["Extraction Service"]
-    MS["Miner Service"]
+    MS["MinerU Service (optional)"]
     AIS["AI Service"]
 
     %% Topics (Events mit Payload)
@@ -554,8 +554,8 @@ Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
 | ------------------ | ----------------------- | --------------------------------------------------- | --------------------------------------------- |
 | Middleware         | `document-received`     | Data Service                                        | Neues Dokument ist hochgeladen                |
 | Data Service       | `document-to-extract`   | Extraction Service                                  | Dokument soll in Text extrahiert werden       |
-| Extraction Service | `content-extracted`     | Miner Service                                       | Rohtext liegt zur fachlichen Anreicherung vor |
-| Miner Service      | `metadata-enriched`     | AI Service                                          | Angereicherter Text ist bereit für Embedding  |
+| Extraction Service | `content-extracted`     | MinerU Service (optional)                           | Rohtext liegt zur fachlichen Anreicherung vor (zukünftige Ausbaustufe) |
+| MinerU Service (optional) | `metadata-enriched`     | AI Service                                          | Angereicherter Text ist bereit für Embedding  |
 | AI Service         | `vector-ready-to-index` | (Indexer / Milvus-Writer, Teil des AI/Data Service) | Vektoren können persistiert werden            |
 
 
@@ -592,7 +592,7 @@ Alle Kafka-Payloads nutzen **JSON** – keine Avro-Schemas. Das ist eine bewusst
 1. **Client** lädt Dokument über den **Spring Boot Proxy** hoch.
 2. **Spring Boot** speichert Datei in **S3** und schreibt Event in `document-received`.
 3. **Extraction Service** zieht Text aus dem Dokument (`document-to-extract` → `content-extracted`).
-4. **Miner Service** reichert den Text mit Fachmetadaten an (`metadata-enriched`).
+4. *(Optional)* **MinerU Service** reichert den Text mit zusätzlichen Fachmetadaten an (`metadata-enriched`). Dieser Schritt ist als zukünftige Alternative zum Extraction Service geplant und aktuell noch nicht im Einsatz.
 5. **AI Service** erstellt Chunks und ruft **Azure OpenAI** für Embeddings auf.
 6. Die fertigen Vektoren werden in **Milvus** indiziert (mit `tenant_id` als Partitions-Key).
 
@@ -806,7 +806,7 @@ Um Robustheit zu gewährleisten, arbeiten alle Services mit einem einheitlichen 
   - Bottleneck-Signal: steigender Lag im Topic `document-to-extract`, hohe Auslastung der Extraction-Pods.  
   - Maßnahme: mehr Replikas des Extraction Services, Worker-Prozesse begrenzen.
 
-- **Miner Service** (`content-extracted` → `metadata-enriched`)  
+- **MinerU Service (optional)** (`content-extracted` → `metadata-enriched`, geplante Alternative zum Extraction Service)
   - CPU-bound (Regex, NLP, fachliche Regeln).  
   - Bottleneck-Signal: Lag in `content-extracted`.  
   - Maßnahme: Scale-out, ggf. Regeln optimieren/batchen.
@@ -886,7 +886,7 @@ graph LR
 - **Middleware**: Spring-Boot-Service als API-Gateway/Proxy; nimmt Requests vom Client entgegen, kümmert sich um Authentifizierung und reicht Aufrufe an die internen Services weiter.
 - **Data Service**: Python-Service zur Orchestrierung der Datenflüsse (S3, Postgres, Milvus) und Verwaltung von Dokument‑/Batch-Status.
 - **Extraction Service**: Python-Service für die Extraktion von Text und Struktur aus binären Dokumenten (PDF, Bilder, Office) via Azure Document Intelligence.
-- **Miner Service**: Python-Service zur fachlichen Anreicherung (z. B. Erkennen von Rechnungsnummern, Beträgen, IDs) auf Basis des extrahierten Textes.
+- **MinerU Service (optional)**: geplanter Python-Service zur fachlichen Anreicherung (z. B. Erkennen von Rechnungsnummern, Beträgen, IDs) auf Basis des extrahierten Textes; dient als zukünftige Alternative zum Extraction Service und ist aktuell noch nicht im Einsatz.
 - **AI Service**: Python-Service für Chunking, Embedding-Erzeugung (Azure OpenAI) und LLM-Aufrufe für Antworten.
 - **Milvus**: Vektordatenbank für Speicherung und Ähnlichkeitssuche der Embeddings; bildet die Grundlage der Wissenssuche.
 - **Kafka Topic**: Append-only Log, in das Services Events schreiben (Producer) und aus dem andere Services lesen (Consumer); bildet jeweils eine Verarbeitungsstufe der Pipeline ab.
