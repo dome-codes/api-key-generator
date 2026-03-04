@@ -39,3 +39,17 @@ rag-dokumentation/
 | **bilder/** | Mermaid-Quellen (`.mmd`), exportierte SVGs, Screenshots |
 
 Mit diesem Bündel habt ihr eine konsistente Basis für Dokumentation, SEO-Seiten und Deployment-Konfiguration in einem neuen Repo.
+
+## Direkte Links
+
+- **Architektur & Hauptdoku**
+  - [RAG-Pipeline-Wiki](docs/RAG-Pipeline-Wiki.md)
+
+- **Präsentation & Templates**
+  - [Präsentations-README](docs/presentation/README.md)
+  - [Kafka-Topic-Templates (JSON-Payloads)](docs/presentation/tpls/README.md)
+
+- **Kafka-Topics & Values**
+  - [Kafka Topics Overview](topics/kafka-topics-overview.md)
+  - [Values – Template & Deploy-Ablauf](values/README.md)
+  - [Kafka Topics Values Template (Helm)](values/kafka-topics-values-template.yaml)
