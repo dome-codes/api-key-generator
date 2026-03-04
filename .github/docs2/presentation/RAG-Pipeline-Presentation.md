@@ -112,6 +112,16 @@ graph LR
 Die runden Knoten unten repräsentieren **Kafka-Topics**.  
 In den Labels ist jeweils kurz angedeutet, **welche Payload** darin steckt.
 
+Zur besseren Lesbarkeit können wir den Flow in diese Schritte denken:
+
+1. **Upload & Persistenz** – Client → Middleware → S3/Postgres.  
+2. **`document-received`** – Signal „neues Dokument ist im System“.  
+3. **Dispatch** – Data Service liest `document-received` und erzeugt `document-to-extract`.  
+4. **Extraktion** – Extraction Service erzeugt Volltext (`content-extracted`).  
+5. **(Optional) Fachanreicherung** – MinerU Service erzeugt `metadata-enriched`.  
+6. **Embeddings & Indexing** – AI Service + Data Service erzeugen `vector-ready-to-index` und schreiben nach Milvus.  
+7. **Query / Inference** – Client stellt Frage, Middleware + AI Service holen Kontext aus Milvus und generieren die Antwort.
+
 ```mermaid
 graph TB
     %% Akteure
@@ -142,11 +152,12 @@ graph TB
 
     %% Ingestion: Upload
     U -->|"Bulk-Upload (bis 10.000 Dokumente)"| API
-    API -->|"Dokument speichern"| S3
-    API -->|"Status initialisieren"| PG
-    API -->|"Event schreiben"| DR
+    API -->|"Request an Data Service"| DS
+    DS -->|"Dokument speichern"| S3
+    DS -->|"Status initialisieren"| PG
+    DS -->|"Event: document-received schreiben"| DR
 
-    DR -->|"lesen"| DS
+    DR -->|"lesen (z. B. Reprocessing)"| DS
     DS -->|"Status aktualisieren"| PG
     DS -->|"document-to-extract"| DTE
 

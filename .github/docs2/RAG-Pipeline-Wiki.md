@@ -179,6 +179,130 @@ graph LR
 Die runden Knoten unten repräsentieren **Kafka-Topics**.  
 In den Labels ist jeweils kurz angedeutet, **welche Payload** darin steckt.
 
+Zur besseren Nachvollziehbarkeit ist der Ablauf hier in nummerierte Schritte unterteilt:
+
+1. **Upload & Persistenz**
+   - Client lädt Dokument(e) über die Middleware hoch.
+   - Data Service speichert die Dateien in S3 und legt erste Status-/Metadaten in Postgres an.
+
+```mermaid
+sequenceDiagram
+    participant U as Client
+    participant API as Middleware
+    participant DS as Data Service
+    participant S3 as S3
+    participant PG as Postgres
+
+    U->>API: 1) Upload (Dateien, tenantId)
+    API->>DS: 2) uploadRequest(documents, tenantId)
+    DS->>S3: 3) Datei speichern
+    DS->>PG: 4) Status RECEIVED anlegen
+```
+
+2. **Event `document-received`**
+   - Data Service schreibt ein Event auf `document-received` mit Referenz auf `tenantId`, `documentId`, `s3Path`, `contentHash`.
+
+```mermaid
+sequenceDiagram
+    participant DS as Data Service
+    participant K as Kafka
+
+    DS->>K: 5) document-received {documentId, tenantId, s3Path, contentHash}
+```
+
+3. **Dispatch durch den Data Service**
+   - Data Service liest `document-received` (z. B. bei Reprocessing), aktualisiert den Status in Postgres und schreibt `document-to-extract`.
+
+```mermaid
+sequenceDiagram
+    participant DS as Data Service
+    participant K as Kafka
+
+    DS->>K: 7) document-to-extract {documentId, tenantId, s3Path}
+```
+
+4. **Extraktion**
+   - Extraction Service liest `document-to-extract`, holt die Datei aus S3, ruft Azure Document Intelligence auf und speichert Volltext/Struktur wieder in S3.
+   - Danach erzeugt er `content-extracted`.
+
+```mermaid
+sequenceDiagram
+    participant ES as Extraction Svc
+    participant S3 as S3
+    participant AZ as Azure Document Intelligence
+    participant K as Kafka
+
+    ES->>S3: 8) Dokument aus S3 lesen
+    ES->>AZ: 9) call Document Intelligence
+    AZ-->>ES: 10) extracted text, layout
+    ES->>S3: 11) Volltext/Struktur speichern
+    ES->>K: 12) content-extracted {documentId, plainText,...}
+```
+
+5. **(Optional) Fachanreicherung**
+   - MinerU Service (zukünftige Ausbaustufe) liest `content-extracted`, reichert den Text fachlich an und erzeugt `metadata-enriched`.
+
+```mermaid
+sequenceDiagram
+    participant MS as MinerU (optional)
+    participant K as Kafka
+
+    K-->>MS: 13) content-extracted (consume)
+    MS->>MS: 14) fachliche Metadaten finden
+    MS->>K: 15) metadata-enriched {documentId, metadata}
+```
+
+6. **Embeddings & Indexing**
+   - AI Service liest `metadata-enriched`, erstellt Embeddings via Azure OpenAI und schreibt `vector-ready-to-index`.
+   - AI Service bzw. Data Service lesen `vector-ready-to-index` und schreiben die Vektoren nach Milvus; der Status in Postgres wird auf `INDEXED` gesetzt.
+
+```mermaid
+sequenceDiagram
+    participant AIS as AI Service
+    participant DS as Data Service
+    participant AZ as Azure OpenAI
+    participant MIL as Milvus
+    participant PG as Postgres
+    participant K as Kafka
+
+    K-->>AIS: 16) metadata-enriched (consume)
+    AIS->>AZ: 17) create embeddings for chunks
+    AZ-->>AIS: 18) vectors
+    AIS->>K: 19) vector-ready-to-index {documentId, chunks+vectors}
+    K-->>AIS: 20) vector-ready-to-index (consume)
+    AIS->>DS: 21) send vectors for indexing
+    DS->>MIL: 22) write vectors (upsert)
+    DS->>PG: 23) Status INDEXED setzen
+```
+
+7. **Query / Inference**
+   - Client stellt eine Frage über die Middleware.
+   - AI Service nutzt Azure OpenAI und Milvus, um passende Chunks zu finden und eine Antwort zu generieren, die an den Client zurückgegeben wird.
+
+```mermaid
+sequenceDiagram
+    participant U as Client
+    participant API as Middleware
+    participant DS as Data Service
+    participant AIS as AI Service
+    participant AZ as Azure OpenAI
+    participant MIL as Milvus
+
+    U->>API: 24) POST /chat {tenantId, question}
+    API->>DS: 25) validate tenant, check status
+    API->>AIS: 26) request query embedding
+    AIS->>AZ: 27) embed question
+    AZ-->>AIS: 28) query vector
+    AIS->>DS: 29) vector search (Top-K)
+    DS->>MIL: 30) search vectors
+    MIL-->>DS: 31) top-K chunks
+    DS-->>AIS: 32) chunks + metadata
+    AIS->>AZ: 33) LLM call with context + question
+    AZ-->>AIS: 34) answer
+    AIS-->>API: 35) answer + sources
+    API-->>U: 36) Antwort + Quellen
+```
+
 ```mermaid
 graph TB
     %% Akteure
@@ -208,50 +332,51 @@ graph TB
     end
 
     %% Ingestion: Upload
-    U -->|"Bulk-Upload (bis 10.000 Dokumente)"| API
-    API -->|"Dokument speichern"| S3
-    API -->|"Status initialisieren"| PG
-    API -->|"Event schreiben"| DR
+    U -->|"1) Bulk-Upload (bis 10.000 Dokumente)"| API
+    API -->|"2) Request an Data Service"| DS
+    DS -->|"3) Dokument speichern"| S3
+    DS -->|"4) Status initialisieren"| PG
+    DS -->|"5) Event: document-received schreiben"| DR
 
-    DR -->|"lesen"| DS
-    DS -->|"Status aktualisieren"| PG
-    DS -->|"document-to-extract"| DTE
+    DR -->|"6) lesen (z. B. Reprocessing)"| DS
+    DS -->|"7) Status aktualisieren"| PG
+    DS -->|"8) document-to-extract schreiben"| DTE
 
-    DTE -->|"lesen"| ES
-    ES -->|"Dokument aus S3 lesen"| S3
-    ES -->|"Extraktion"| AZ
-    ES -->|"Volltext/Struktur speichern"| S3
-    ES -->|"content-extracted"| CE
+    DTE -->|"8) lesen"| ES
+    ES -->|"9) Dokument aus S3 lesen"| S3
+    ES -->|"10) Extraktion (Azure Document Intelligence)"| AZ
+    ES -->|"11) Volltext/Struktur speichern"| S3
+    ES -->|"12) content-extracted schreiben"| CE
 
-    CE -->|"lesen"| MS
-    MS -->|"fachliche Metadaten erzeugen"| MS
-    MS -->|"metadata-enriched"| ME
+    CE -->|"13) lesen"| MS
+    MS -->|"14) fachliche Metadaten erzeugen (optional)"| MS
+    MS -->|"15) metadata-enriched schreiben"| ME
 
-    ME -->|"lesen"| AIS
-    AIS -->|"Chunks zu Embeddings (Azure)"| AZ
-    AIS -->|"vector-ready-to-index"| VRTI
+    ME -->|"16) lesen"| AIS
+    AIS -->|"17) Chunks zu Embeddings (Azure)"| AZ
+    AIS -->|"18) vector-ready-to-index schreiben"| VRTI
 
-    VRTI -->|"lesen"| AIS
-    AIS -->|"Vektoren an Data Service"| DS
-    DS -->|"Vektoren schreiben"| MILVUS
-    DS -->|"Status INDEXED setzen"| PG
+    VRTI -->|"19) lesen"| AIS
+    AIS -->|"20) Vektoren an Data Service"| DS
+    DS -->|"21) Vektoren schreiben"| MILVUS
+    DS -->|"22) Status INDEXED setzen"| PG
 
     %% Inference: Frage stellen
-    U -->|"Frage stellen"| API
-    API -->|"Status / Berechtigungen prüfen"| PG
-    API -->|"Query-Embedding anfordern"| AIS
-    AIS -->|"Embedding-Request"| AZ
-    AZ -->|"Query-Vektor"| AIS
+    U -->|"23) Frage stellen"| API
+    API -->|"24) Status / Berechtigungen prüfen"| PG
+    API -->|"25) Query-Embedding anfordern"| AIS
+    AIS -->|"26) Embedding-Request"| AZ
+    AZ -->|"27) Query-Vektor"| AIS
 
-    AIS -->|"Vektorsuche (Top-K) via Data Service"| DS
-    DS -->|"Vektorsuche (Top-K)"| MILVUS
-    MILVUS -->|"relevante Chunks"| DS
-    DS -->|"Chunks + Metadaten"| AIS
+    AIS -->|"28) Vektorsuche (Top-K) via Data Service"| DS
+    DS -->|"29) Vektorsuche (Top-K)"| MILVUS
+    MILVUS -->|"30) relevante Chunks"| DS
+    DS -->|"31) Chunks + Metadaten"| AIS
 
-    AIS -->|"Kontext + Frage"| AZ
-    AZ -->|"Antwort"| AIS
-    AIS -->|"Antwort"| API
-    API -->|"Antwort"| U
+    AIS -->|"32) Kontext + Frage"| AZ
+    AZ -->|"33) Antwort"| AIS
+    AIS -->|"34) Antwort"| API
+    API -->|"35) Antwort"| U
 ```
 
 ---
@@ -274,13 +399,13 @@ sequenceDiagram
     participant AZ as Azure OpenAI
 
     %% INGESTION
-    U->>API: POST /pipelines/documents (files, tenantId)
-    API->>DS: uploadRequest(documents, tenantId)
-    DS->>DS: compute contentHash per document
+    U->>API: 1) POST /pipelines/documents (files, tenantId)
+    API->>DS: 2) uploadRequest(documents, tenantId)
+    DS->>DS: 3) compute contentHash per document
 
-    alt new document (hash unknown)
-        DS->>K: document-received {documentId, tenantId, s3Path, contentHash}
-    else duplicate (hash known)
+    alt 4) new document (hash unknown)
+        DS->>K: 5) document-received {documentId, tenantId, s3Path, contentHash}
+    else 4b) duplicate (hash known)
         DS->>DS: link to existing documentId
         DS-->>API: ack (marked as duplicate)
     end
@@ -288,43 +413,43 @@ sequenceDiagram
     rect rgba(200,200,255,0.2)
         Note over K: asynchrone Verarbeitung ueber Topics
 
-        K-->>DS: document-received (consume)
-        DS->>K: document-to-extract {documentId, tenantId, s3Path}
+        K-->>DS: 6) document-received (consume)
+        DS->>K: 7) document-to-extract {documentId, tenantId, s3Path}
 
-        K-->>ES: document-to-extract (consume)
-        ES->>AZ: call Document Intelligence
-        AZ-->>ES: extracted text, layout
-        ES->>K: content-extracted {documentId, plainText,...}
+        K-->>ES: 8) document-to-extract (consume)
+        ES->>AZ: 9) call Document Intelligence
+        AZ-->>ES: 10) extracted text, layout
+        ES->>K: 11) content-extracted {documentId, plainText,...}
 
-        K-->>MS: content-extracted (consume)
-        MS->>MS: fachliche Metadaten finden
-        MS->>K: metadata-enriched {documentId, metadata}
+        K-->>MS: 12) content-extracted (consume)
+        MS->>MS: 13) fachliche Metadaten finden
+        MS->>K: 14) metadata-enriched {documentId, metadata}
 
-        K-->>AIS: metadata-enriched (consume)
-        AIS->>AZ: create embeddings for chunks
-        AZ-->>AIS: vectors
-        AIS->>K: vector-ready-to-index {documentId, chunks+vectors}
-        K-->>AIS: vector-ready-to-index (consume)
-        AIS->>DS: send vectors for indexing
-        DS->>MIL: write vectors (upsert)
+        K-->>AIS: 15) metadata-enriched (consume)
+        AIS->>AZ: 16) create embeddings for chunks
+        AZ-->>AIS: 17) vectors
+        AIS->>K: 18) vector-ready-to-index {documentId, chunks+vectors}
+        K-->>AIS: 19) vector-ready-to-index (consume)
+        AIS->>DS: 20) send vectors for indexing
+        DS->>MIL: 21) write vectors (upsert)
     end
 
-    DS-->>API: ingestion finished (per document/batch)
+    DS-->>API: 22) ingestion finished (per document/batch)
 
     %% RETRIEVAL
-    U->>API: POST /chat {tenantId, question}
-    API->>DS: validate tenant, check status
-    API->>AIS: request query embedding
-    AIS->>AZ: embed question
-    AZ-->>AIS: query vector
-    AIS->>DS: vector search (Top-K)
-    DS->>MIL: search vectors
-    MIL-->>DS: top-K chunks
-    DS-->>AIS: chunks + metadata
-    AIS->>AZ: LLM call with context + question
-    AZ-->>AIS: answer
-    AIS-->>API: answer + sources
-    API-->>U: Antwort + Quellen
+    U->>API: 23) POST /chat {tenantId, question}
+    API->>DS: 24) validate tenant, check status
+    API->>AIS: 25) request query embedding
+    AIS->>AZ: 26) embed question
+    AZ-->>AIS: 27) query vector
+    AIS->>DS: 28) vector search (Top-K)
+    DS->>MIL: 29) search vectors
+    MIL-->>DS: 30) top-K chunks
+    DS-->>AIS: 31) chunks + metadata
+    AIS->>AZ: 32) LLM call with context + question
+    AZ-->>AIS: 33) answer
+    AIS-->>API: 34) answer + sources
+    API-->>U: 35) Antwort + Quellen
 ```
 
 ### 3.5 Visualisierung von Topics & Messages

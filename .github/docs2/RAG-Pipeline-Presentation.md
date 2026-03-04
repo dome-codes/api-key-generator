@@ -142,11 +142,12 @@ graph TB
 
     %% Ingestion: Upload
     U -->|"Bulk-Upload (bis 10.000 Dokumente)"| API
-    API -->|"Dokument speichern"| S3
-    API -->|"Status initialisieren"| PG
-    API -->|"Event schreiben"| DR
+    API -->|"Request an Data Service"| DS
+    DS -->|"Dokument speichern"| S3
+    DS -->|"Status initialisieren"| PG
+    DS -->|"Event: document-received schreiben"| DR
 
-    DR -->|"lesen"| DS
+    DR -->|"lesen (z. B. Reprocessing)"| DS
     DS -->|"Status aktualisieren"| PG
     DS -->|"document-to-extract"| DTE
 
