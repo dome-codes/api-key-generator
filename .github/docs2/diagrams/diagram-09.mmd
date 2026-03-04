@@ -1,0 +1,16 @@
+graph LR
+    U["Upload Request\n(tenantId, Datei)"]
+    DS["Data Service"]
+    PG["Postgres"]
+    S3["S3 Storage"]
+
+    U --> DS
+    DS -->|"Hash berechnen\ncontentHash = SHA-256(binary)"| DS
+    DS -->|"Lookup\n(tenantId, contentHash)"| PG
+
+    DS -->|"kein Treffer"| S3
+    S3 -->|"Datei speichern"| PG
+
+    DS -->|"Treffer\nbestehendes physisches Dokument"| PG
+
+    PG -->|"neue logische Referenz\n(neue documentId,\nverweist auf bestehenden contentHash)"| DS

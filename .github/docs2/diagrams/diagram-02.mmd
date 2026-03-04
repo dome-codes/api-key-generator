@@ -1,0 +1,30 @@
+graph LR
+    User["Client / Mandant"]
+    API["Middleware (Spring Boot)"]
+    DS["Data Service"]
+    AIS["AI Service"]
+    AZURE["Azure OpenAI"]
+    MILVUS["Milvus (Vektordatenbank)"]
+
+    User -->|"Frage stellen"| API
+
+    %% Optionale fachliche Orchestrierung
+    API -->|"Session / Business Logik"| DS
+    DS -->|"LLM-/Embedding-Call anstoßen"| AIS
+
+    %% Embedding der Query
+    API -->|"Query-Embedding anfordern"| AIS
+    AIS -->|"Embedding-Request"| AZURE
+    AZURE -->|"Query-Vektor"| AIS
+
+    %% Vektorsuche (immer über Data Service)
+    AIS -->|"Vektorsuche (Top-K) anstoßen"| DS
+    DS -->|"Vektorsuche in Milvus"| MILVUS
+    MILVUS -->|"relevante Chunks"| DS
+    DS -->|"Chunks + Metadaten"| AIS
+
+    %% Antwortgenerierung
+    AIS -->|"Kontext + Frage"| AZURE
+    AZURE -->|"Antwort"| AIS
+    AIS -->|"Antwort"| API
+    API -->|"Antwort"| User

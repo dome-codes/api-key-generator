@@ -40,6 +40,7 @@
 ---
 
 ## 1. Zielsetzung
+
 Dieses Dokument beschreibt die **Architektur unserer RAG-Pipeline** als event-getriebenes, mandantenfähiges System:
 
 - **Dokumenten-Ingestion** (Extraktion, Anreicherung, Embeddings)
@@ -49,6 +50,7 @@ Dieses Dokument beschreibt die **Architektur unserer RAG-Pipeline** als event-ge
 Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** – also wie das Projekt logisch aufgebaut ist.
 
 ## 1.1 Zielgruppe & Lesehinweise
+
 - **Für wen**:
   - **Backend-/Data-Engineers**: Architektur, Services, Payloads (Abschnitte 2–5).
   - **SRE/DevOps**: Betrieb, Skalierung, Bottlenecks (Abschnitt 7).
@@ -62,6 +64,7 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 
 ## 2. Service-Landschaft
 
+
 | Service                | Sprache     | Hauptaufgabe                                                  |
 | ---------------------- | ----------- | ------------------------------------------------------------- |
 | **Middleware**         | Spring Boot | API Gateway, Authentifizierung, S3-Management, Proxy-Logik.   |
@@ -72,6 +75,7 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 
 
 ### 2.1 Externe Abhängigkeiten
+
 
 | Service    | Externer Dienst | Zweck                                        |
 | ---------- | --------------- | -------------------------------------------- |
@@ -93,6 +97,7 @@ Im Fokus stehen **Services, Topics, Datenflüsse und externe Abhängigkeiten** �
 ---
 
 ## 3. Architektur-Diagramme
+
 Um den Ablauf klar zu trennen, zeigen wir zwei Sichten:
 
 - eine **Ingestion-Sicht** mit Kafka-Topics und Python-Services und
@@ -100,159 +105,24 @@ Um den Ablauf klar zu trennen, zeigen wir zwei Sichten:
 
 ### 3.1 Ingestion / Dokumenten-Pipeline (mit Kafka)
 
-```mermaid
-graph LR
-    User["Client / Mandant"]
-    API["Middleware (Spring Boot)"]
 
-    subgraph Kafka["Kafka Topics"]
-        DR["document-received"]
-        DTE["document-to-extract"]
-        CE["content-extracted"]
-        ME["metadata-enriched"]
-        VRTI["vector-ready-to-index"]
-    end
+![Diagramm 1](diagrams/diagram-01.svg)
 
-    DS["Data Service"]
-    ES["Extraction Service"]
-    MS["Miner Service"]
-    AIS["AI Service"]
-
-    S3["S3 (Dokument-Speicher)"]
-    MILVUS["Milvus (Vektordatenbank)"]
-
-    User -->|"Upload Dokument(e)"| API
-    API -->|"Speichern"| S3
-    API -->|"Event: document-received"| DR
-
-    DR -->|"lesen"| DS
-    DS -->|"document-to-extract"| DTE
-
-    DTE -->|"lesen"| ES
-    ES -->|"content-extracted"| CE
-
-    CE -->|"lesen"| MS
-    MS -->|"metadata-enriched"| ME
-
-    ME -->|"lesen"| AIS
-    AIS -->|"vector-ready-to-index"| VRTI
-    AIS -->|"Vektoren schreiben"| MILVUS
-```
 
 ### 3.2 Inference / Query-Pipeline (ohne Kafka)
 
-```mermaid
-graph LR
-    User["Client / Mandant"]
-    API["Middleware (Spring Boot)"]
-    DS["Data Service"]
-    AIS["AI Service"]
-    AZURE["Azure OpenAI"]
-    MILVUS["Milvus (Vektordatenbank)"]
 
-    User -->|"Frage stellen"| API
+![Diagramm 2](diagrams/diagram-02.svg)
 
-    %% Optionale fachliche Orchestrierung
-    API -->|"Session / Business Logik"| DS
-    DS -->|"LLM-/Embedding-Call anstoßen"| AIS
-
-    %% Embedding der Query
-    API -->|"Query-Embedding anfordern"| AIS
-    AIS -->|"Embedding-Request"| AZURE
-    AZURE -->|"Query-Vektor"| AIS
-
-    %% Vektorsuche (immer über Data Service)
-    AIS -->|"Vektorsuche (Top-K) anstoßen"| DS
-    DS -->|"Vektorsuche in Milvus"| MILVUS
-    MILVUS -->|"relevante Chunks"| DS
-    DS -->|"Chunks + Metadaten"| AIS
-
-    %% Antwortgenerierung
-    AIS -->|"Kontext + Frage"| AZURE
-    AZURE -->|"Antwort"| AIS
-    AIS -->|"Antwort"| API
-    API -->|"Antwort"| User
-```
 
 ### 3.3 Gesamtübersicht: End-to-End Flow mit Topics
 
 Die runden Knoten unten repräsentieren **Kafka-Topics**.  
 In den Labels ist jeweils kurz angedeutet, **welche Payload** darin steckt.
 
-```mermaid
-graph TB
-    %% Akteure
-    U["Client / Mandant"]
-    API["Middleware (Spring Boot)"]
 
-    %% Persistenz & externe Systeme
-    S3["S3 (Dokument-Speicher)"]
-    PG["Postgres (Status / Metadaten)"]
-    MILVUS["Milvus (Vektordatenbank)"]
-    AZ["Azure OpenAI / Document Intelligence"]
+![Diagramm 3](diagrams/diagram-03.svg)
 
-    %% Services
-    DS["Data Service"]
-    ES["Extraction Service"]
-    MS["Miner Service"]
-    AIS["AI Service"]
-
-    %% Topics (Events mit Payload)
-    subgraph Topics
-        direction LR
-        DR((document-received\ns3Path, tenantId, documentId))
-        DTE((document-to-extract\ns3Path, tenantId, documentId))
-        CE((content-extracted\nplainText, tenantId, documentId))
-        ME((metadata-enriched\ntext + meta, tenantId, documentId))
-        VRTI((vector-ready-to-index\nvectors + chunks, tenantId))
-    end
-
-    %% Ingestion: Upload
-    U -->|"Bulk-Upload (bis 10.000 Dokumente)"| API
-    API -->|"Dokument speichern"| S3
-    API -->|"Status initialisieren"| PG
-    API -->|"Event schreiben"| DR
-
-    DR -->|"lesen"| DS
-    DS -->|"Status aktualisieren"| PG
-    DS -->|"document-to-extract"| DTE
-
-    DTE -->|"lesen"| ES
-    ES -->|"Dokument aus S3 lesen"| S3
-    ES -->|"Extraktion"| AZ
-    ES -->|"Volltext/Struktur speichern"| S3
-    ES -->|"content-extracted"| CE
-
-    CE -->|"lesen"| MS
-    MS -->|"fachliche Metadaten erzeugen"| MS
-    MS -->|"metadata-enriched"| ME
-
-    ME -->|"lesen"| AIS
-    AIS -->|"Chunks zu Embeddings (Azure)"| AZ
-    AIS -->|"vector-ready-to-index"| VRTI
-
-    VRTI -->|"lesen"| AIS
-    AIS -->|"Vektoren an Data Service"| DS
-    DS -->|"Vektoren schreiben"| MILVUS
-    DS -->|"Status INDEXED setzen"| PG
-
-    %% Inference: Frage stellen
-    U -->|"Frage stellen"| API
-    API -->|"Status / Berechtigungen prüfen"| PG
-    API -->|"Query-Embedding anfordern"| AIS
-    AIS -->|"Embedding-Request"| AZ
-    AZ -->|"Query-Vektor"| AIS
-
-    AIS -->|"Vektorsuche (Top-K) via Data Service"| DS
-    DS -->|"Vektorsuche (Top-K)"| MILVUS
-    MILVUS -->|"relevante Chunks"| DS
-    DS -->|"Chunks + Metadaten"| AIS
-
-    AIS -->|"Kontext + Frage"| AZ
-    AZ -->|"Antwort"| AIS
-    AIS -->|"Antwort"| API
-    API -->|"Antwort"| U
-```
 
 ---
 
@@ -260,136 +130,37 @@ graph TB
 
 Das folgende Sequenzdiagramm stellt den Gesamtfluss noch einmal aus Sicht der **Aufrufe und Events** dar.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Client
-    participant API as Middleware
-    participant DS as Data Service
-    participant K as Kafka
-    participant ES as Extraction Svc
-    participant MS as Miner Svc
-    participant AIS as AI Svc
-    participant MIL as Milvus
-    participant AZ as Azure OpenAI
 
-    %% INGESTION
-    U->>API: POST /pipelines/documents (files, tenantId)
-    API->>DS: uploadRequest(documents, tenantId)
-    DS->>DS: compute contentHash per document
+![Diagramm 4](diagrams/diagram-04.svg)
 
-    alt new document (hash unknown)
-        DS->>K: document-received {documentId, tenantId, s3Path, contentHash}
-    else duplicate (hash known)
-        DS->>DS: link to existing documentId
-        DS-->>API: ack (marked as duplicate)
-    end
-
-    rect rgba(200,200,255,0.2)
-        Note over K: asynchrone Verarbeitung ueber Topics
-
-        K-->>DS: document-received (consume)
-        DS->>K: document-to-extract {documentId, tenantId, s3Path}
-
-        K-->>ES: document-to-extract (consume)
-        ES->>AZ: call Document Intelligence
-        AZ-->>ES: extracted text, layout
-        ES->>K: content-extracted {documentId, plainText,...}
-
-        K-->>MS: content-extracted (consume)
-        MS->>MS: fachliche Metadaten finden
-        MS->>K: metadata-enriched {documentId, metadata}
-
-        K-->>AIS: metadata-enriched (consume)
-        AIS->>AZ: create embeddings for chunks
-        AZ-->>AIS: vectors
-        AIS->>K: vector-ready-to-index {documentId, chunks+vectors}
-        K-->>AIS: vector-ready-to-index (consume)
-        AIS->>DS: send vectors for indexing
-        DS->>MIL: write vectors (upsert)
-    end
-
-    DS-->>API: ingestion finished (per document/batch)
-
-    %% RETRIEVAL
-    U->>API: POST /chat {tenantId, question}
-    API->>DS: validate tenant, check status
-    API->>AIS: request query embedding
-    AIS->>AZ: embed question
-    AZ-->>AIS: query vector
-    AIS->>DS: vector search (Top-K)
-    DS->>MIL: search vectors
-    MIL-->>DS: top-K chunks
-    DS-->>AIS: chunks + metadata
-    AIS->>AZ: LLM call with context + question
-    AZ-->>AIS: answer
-    AIS-->>API: answer + sources
-    API-->>U: Antwort + Quellen
-```
 
 ### 3.5 Visualisierung von Topics & Messages
 
 #### 3.5.1 Ein Topic als Log (Zeitachse)
 
-```mermaid
-graph TB
-    subgraph DR["Topic: document-received (append-only Log)"]
-        DR1["Offset 0: docId=DOC-1"]
-        DR2["Offset 1: docId=DOC-2"]
-        DR3["Offset 2: docId=DOC-3"]
-        DR4["Offset 3: docId=DOC-1 (Version 2)"]
-    end
-```
+
+![Diagramm 5](diagrams/diagram-05.svg)
+
 
 #### 3.5.2 Ein Dokument ueber mehrere Topics hinweg
 
-```mermaid
-graph LR
-    DR["document-received\n(docId=DOC-1)"]
-    DTE["document-to-extract\n(docId=DOC-1)"]
-    CE["content-extracted\n(docId=DOC-1)"]
-    ME["metadata-enriched\n(docId=DOC-1)"]
-    VRTI["vector-ready-to-index\n(docId=DOC-1)"]
 
-    DR --> DTE --> CE --> ME --> VRTI
-```
+![Diagramm 6](diagrams/diagram-06.svg)
+
 
 #### 3.5.3 Producer–Topic–Consumer auf einen Blick
 
-```mermaid
-graph LR
-    MW["Middleware"]
-    DS["Data Service"]
-    ES["Extraction Service"]
 
-    DR["Topic: document-received"]
+![Diagramm 7](diagrams/diagram-07.svg)
 
-    MW -->|"produce msg (docId, s3Path)"| DR
-    DR -->|"consume msg (docId, s3Path)"| DS
-    DS -->|"weiterverarbeiten / neues Topic"| ES
-```
 
 #### 3.5.4 Topic vs. Messages – abgegrenzt (Szenario `document-received`)
 
 **Was ist was?** Ein **Topic** ist ein benannter, append-only **Log**; eine **Message** ist ein einzelnes Event (ein JSON-Payload) an einer **Offset**-Position. Jede Message gehört zu genau einem Topic und wird von Producer(s) geschrieben und von Consumer(s) gelesen.
 
-```mermaid
-graph TB
-    P["Producer: Middleware"]
-    P -->|"append"| Topic
 
-    subgraph Topic["Topic: document-received (append-only Log)"]
-        direction TB
-        M0["Offset 0<br/>tenantId: TENANT-A, documentId: DOC-001<br/>s3Path: .../DOC-001.pdf"]
-        M1["Offset 1<br/>tenantId: TENANT-A, documentId: DOC-002<br/>s3Path: .../DOC-002.pdf"]
-        M2["Offset 2<br/>tenantId: TENANT-B, documentId: DOC-003<br/>s3Path: .../DOC-003.pdf"]
-        M3["Offset 3<br/>tenantId: TENANT-A, documentId: DOC-004<br/>batchId: BATCH-2026-03"]
-        M0 --> M1 --> M2 --> M3
-    end
+![Diagramm 8](diagrams/diagram-08.svg)
 
-    Topic -->|"consume (commit offset)"| C
-    C["Consumer: Data Service"]
-```
 
 **Abgrenzung im Überblick**
 
@@ -405,6 +176,7 @@ graph TB
 Die Kommunikation erfolgt über spezialisierte Topics. Jede Nachricht trägt im Header oder Payload die `tenant_id` zur Sicherstellung der Daten-Isolation.
 
 ### 4.1 Topic-Übersicht
+
 1. **Topic:** `document-received`
   - **Trigger:** Spring Boot empfängt Datei.
   - **Inhalt:** S3-Link zum Original, Metadaten, Mandanten-ID.
@@ -695,24 +467,9 @@ Dieser Abschnitt beschreibt, wie **Mandantentrennung** über `tenantId` und **De
   - `tenantId` bestimmt, **in welchen Partitionen/Collections** Daten gespeichert und später abgefragt werden.  
   - `contentHash` (z. B. `SHA-256(binary)`) identifiziert **identische Dokumentinhalte** innerhalb eines Tenants.
 
-```mermaid
-graph LR
-    U["Upload Request\n(tenantId, Datei)"]
-    DS["Data Service"]
-    PG["Postgres"]
-    S3["S3 Storage"]
 
-    U --> DS
-    DS -->|"Hash berechnen\ncontentHash = SHA-256(binary)"| DS
-    DS -->|"Lookup\n(tenantId, contentHash)"| PG
+![Diagramm 9](diagrams/diagram-09.svg)
 
-    DS -->|"kein Treffer"| S3
-    S3 -->|"Datei speichern"| PG
-
-    DS -->|"Treffer\nbestehendes physisches Dokument"| PG
-
-    PG -->|"neue logische Referenz\n(neue documentId,\nverweist auf bestehenden contentHash)"| DS
-```
 
 **Felder und Verwendung**
 
@@ -837,9 +594,9 @@ Um Robustheit zu gewährleisten, arbeiten alle Services mit einem einheitlichen 
 
 Damit ist klar dokumentiert, **wie** unsere Topics genutzt werden, **wo** Bottlenecks entstehen können und **wie** wir sie über Kubernetes und Kafka-Lag im Betrieb steuern.
 
-### 7.6 Fehlerszenarien & Reprocessing- Strategien
+### 7.6 Fehlerszenarien & Reprocessing-Strategien
 
-**Kurz-Zusammenfassung:**
+**Kurz-Zusammenfassung:**  
 Dieser Abschnitt fasst typische Fehlerszenarien in der RAG-Pipeline zusammen und beschreibt, wie über **Retries**, **DLQs** und **Reprocessing** stabiler Betrieb sichergestellt wird.
 
 **Typische Fehlerszenarien (Auszug)**
@@ -854,19 +611,9 @@ Dieser Abschnitt fasst typische Fehlerszenarien in der RAG-Pipeline zusammen und
 
 **Reprocessing-Flows (vereinfacht)**
 
-```mermaid
-graph LR
-    DLQ["DLQ-Topic\n(z. B. content-extracted.dlq)"]
-    ADM["Admin-Tool / Script"]
-    FIX["Bugfix / Regel-Update"]
-    KAFKA["Original-Topic\n(z. B. content-extracted)"]
 
-    DLQ -->|"Analyse\n(errorCode, lastService)"| ADM
-    ADM -->|"Cluster der Fehler bilden"| ADM
-    ADM --> FIX
-    FIX -->|"neue Version deployen"| ADM
-    ADM -->|"selektiertes Reprocessing\n(Nachrichten zurück ins Original-Topic schreiben)"| KAFKA
-```
+![Diagramm 10](diagrams/diagram-10.svg)
+
 
 **Operational Note**
 

@@ -1,0 +1,12 @@
+{
+  "documentId": "DOC-123",
+  "tenantId": "TENANT-A",
+  "plainText": "Rechnung 123\nKunde XY GmbH\nBetrag: 1.234,56 EUR\n...",
+  "structure": {
+    "pages": 3,
+    "hasTables": true
+  },
+  "language": "de",
+  "sourceFileName": "rechnung_123.pdf"
+}
+

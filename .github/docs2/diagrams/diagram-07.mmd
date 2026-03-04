@@ -1,0 +1,10 @@
+graph LR
+    MW["Middleware"]
+    DS["Data Service"]
+    ES["Extraction Service"]
+
+    DR["Topic: document-received"]
+
+    MW -->|"produce msg (docId, s3Path)"| DR
+    DR -->|"consume msg (docId, s3Path)"| DS
+    DS -->|"weiterverarbeiten / neues Topic"| ES

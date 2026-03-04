@@ -1,0 +1,36 @@
+graph LR
+    User["Client / Mandant"]
+    API["Middleware (Spring Boot)"]
+
+    subgraph Kafka["Kafka Topics"]
+        DR["document-received"]
+        DTE["document-to-extract"]
+        CE["content-extracted"]
+        ME["metadata-enriched"]
+        VRTI["vector-ready-to-index"]
+    end
+
+    DS["Data Service"]
+    ES["Extraction Service"]
+    MS["Miner Service"]
+    AIS["AI Service"]
+
+    S3["S3 (Dokument-Speicher)"]
+    MILVUS["Milvus (Vektordatenbank)"]
+
+    User -->|"Upload Dokument(e)"| API
+    API -->|"Speichern"| S3
+    API -->|"Event: document-received"| DR
+
+    DR -->|"lesen"| DS
+    DS -->|"document-to-extract"| DTE
+
+    DTE -->|"lesen"| ES
+    ES -->|"content-extracted"| CE
+
+    CE -->|"lesen"| MS
+    MS -->|"metadata-enriched"| ME
+
+    ME -->|"lesen"| AIS
+    AIS -->|"vector-ready-to-index"| VRTI
+    AIS -->|"Vektoren schreiben"| MILVUS

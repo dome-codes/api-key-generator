@@ -1,0 +1,11 @@
+graph LR
+    DLQ["DLQ-Topic\n(z. B. content-extracted.dlq)"]
+    ADM["Admin-Tool / Script"]
+    FIX["Bugfix / Regel-Update"]
+    KAFKA["Original-Topic\n(z. B. content-extracted)"]
+
+    DLQ -->|"Analyse\n(errorCode, lastService)"| ADM
+    ADM -->|"Cluster der Fehler bilden"| ADM
+    ADM --> FIX
+    FIX -->|"neue Version deployen"| ADM
+    ADM -->|"selektiertes Reprocessing\n(Nachrichten zurück ins Original-Topic schreiben)"| KAFKA

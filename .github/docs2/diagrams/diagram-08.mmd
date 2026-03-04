@@ -1,0 +1,15 @@
+graph TB
+    P["Producer: Middleware"]
+    P -->|"append"| Topic
+
+    subgraph Topic["Topic: document-received (append-only Log)"]
+        direction TB
+        M0["Offset 0<br/>tenantId: TENANT-A, documentId: DOC-001<br/>s3Path: .../DOC-001.pdf"]
+        M1["Offset 1<br/>tenantId: TENANT-A, documentId: DOC-002<br/>s3Path: .../DOC-002.pdf"]
+        M2["Offset 2<br/>tenantId: TENANT-B, documentId: DOC-003<br/>s3Path: .../DOC-003.pdf"]
+        M3["Offset 3<br/>tenantId: TENANT-A, documentId: DOC-004<br/>batchId: BATCH-2026-03"]
+        M0 --> M1 --> M2 --> M3
+    end
+
+    Topic -->|"consume (commit offset)"| C
+    C["Consumer: Data Service"]

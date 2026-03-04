@@ -1,0 +1,1711 @@
+\section{RAG-Systemarchitektur
+(Event-Driven)}\label{rag-systemarchitektur-event-driven}
+
+\subsection{Gliederung}\label{gliederung}
+
+\begin{itemize}
+\tightlist
+\item
+  \hyperref[1-zielsetzung]{1. Zielsetzung}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[11-zielgruppe--lesehinweise]{1.1 Zielgruppe \&
+    Lesehinweise}
+  \end{itemize}
+\item
+  \hyperref[2-service-landschaft]{2. Service-Landschaft}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[21-externe-abhuxe4ngigkeiten]{2.1 Externe Abhängigkeiten}
+  \item
+    \hyperref[22-schnittstellen--kontrakte-uxfcberblick]{2.2
+    Schnittstellen \& Kontrakte (Überblick)}
+  \end{itemize}
+\item
+  \hyperref[3-architektur-diagramme]{3. Architektur-Diagramme}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[31-ingestion--dokumenten-pipeline-mit-kafka]{3.1 Ingestion
+    / Dokumenten-Pipeline (mit Kafka)}
+  \item
+    \hyperref[32-inference--query-pipeline-ohne-kafka]{3.2 Inference /
+    Query-Pipeline (ohne Kafka)}
+  \item
+    \hyperref[33-gesamtuxfcbersicht-end-to-end-flow-mit-topics]{3.3
+    Gesamtübersicht: End-to-End Flow mit Topics}
+  \item
+    \hyperref[34-sequenzdiagramm-ingestion--retrieval-synchron--asynchron]{3.4
+    Sequenzdiagramm: Ingestion \& Retrieval}
+  \item
+    \hyperref[35-visualisierung-von-topics--messages]{3.5 Visualisierung
+    von Topics \& Messages}
+  \item
+    \hyperref[354-topic-vs-messages--abgegrenzt-szenario-document-received]{3.5.4
+    Topic vs.~Messages -- abgegrenzt}
+  \end{itemize}
+\item
+  \hyperref[4-kafka-nervensystem-topic-strategie]{4. Kafka
+  ``Nervensystem'' (Topic-Strategie)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[41-topic-uxfcbersicht]{4.1 Topic-Übersicht}
+  \item
+    \hyperref[42-topic-payloads-schnittstellen-kontrakt]{4.2
+    Topic-Payloads (Schnittstellen-Kontrakt)}
+  \item
+    \hyperref[43-beispiel-events-je-topic]{4.3 Beispiel-Events je Topic}
+  \item
+    \hyperref[44-producer-topic-consumer-mapping]{4.4
+    Producer--Topic--Consumer Mapping}
+  \item
+    \hyperref[45-architekten-notiz-json-vs-avro-bewusst-json]{4.5
+    Architekten-Notiz: JSON vs.~Avro (bewusst JSON)}
+  \end{itemize}
+\item
+  \hyperref[5-end-to-end-datenfluss-pipelines]{5. End-to-End Datenfluss
+  (Pipelines)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[51-ingestion-pipeline-daten-aufnahme]{5.1 Ingestion
+    Pipeline (Daten-Aufnahme)}
+  \item
+    \hyperref[52-inference-pipeline-abfragechat]{5.2 Inference Pipeline
+    (Abfrage/Chat)}
+  \item
+    \hyperref[53-wichtige-rest-endpunkte-schnittstellen-kontrakt]{5.3
+    Wichtige REST-Endpunkte}
+  \item
+    \hyperref[54-beispielszenario-ingestion--retrieval-end-to-end]{5.4
+    Beispielszenario: Ingestion \& Retrieval End-to-End}
+  \item
+    \hyperref[55-mandantentrennung--deduplizierung-tenantid--contenthash]{5.5
+    Mandantentrennung \& Deduplizierung (\texttt{tenantId} \&
+    \texttt{contentHash})}
+  \end{itemize}
+\item
+  \hyperref[6-warum-dieses-konzept-argumentation]{6. Warum dieses
+  Konzept? (Argumentation)}
+\item
+  \hyperref[7-betrieb-skalierung--bottlenecks]{7. Betrieb, Skalierung \&
+  Bottlenecks}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \hyperref[71-wie-wir-topics-verstehen]{7.1 Wie wir Topics verstehen}
+  \item
+    \hyperref[72-ablauf-bei-multi-upload-viele-dokumente-auf-einmal]{7.2
+    Ablauf bei Multi-Upload}
+  \item
+    \hyperref[73-retry-mechanismen--fehlerbehandlung]{7.3
+    Retry-Mechanismen \& Fehlerbehandlung}
+  \item
+    \hyperref[74-typische-bottlenecks-pro-stage]{7.4 Typische
+    Bottlenecks pro Stage}
+  \item
+    \hyperref[75-zusammenspiel-mit-kubernetes]{7.5 Zusammenspiel mit
+    Kubernetes}
+  \item
+    \hyperref[76-fehlerszenarien--reprocessing-strategien]{7.6
+    Fehlerszenarien \& Reprocessing-Strategien}
+  \end{itemize}
+\item
+  \hyperref[8-glossar-wichtige-begriffe]{8. Glossar (wichtige Begriffe)}
+\item
+  \hyperref[9-weiterfuxfchrende-literatur--referenzen]{9. Weiterführende
+  Literatur \& Referenzen}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{1. Zielsetzung}\label{zielsetzung}
+
+Dieses Dokument beschreibt die \textbf{Architektur unserer RAG-Pipeline}
+als event-getriebenes, mandantenfähiges System:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Dokumenten-Ingestion} (Extraktion, Anreicherung, Embeddings)
+\item
+  \textbf{Wissenssuche} (Vektorsuche \& Reranking)
+\item
+  \textbf{Antwortgenerierung} (LLM)
+\end{itemize}
+
+Im Fokus stehen \textbf{Services, Topics, Datenflüsse und externe
+Abhängigkeiten} -- also wie das Projekt logisch aufgebaut ist.
+
+\subsection{1.1 Zielgruppe \&
+Lesehinweise}\label{zielgruppe-lesehinweise}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Für wen}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Backend-/Data-Engineers}: Architektur, Services, Payloads
+    (Abschnitte 2--5).
+  \item
+    \textbf{SRE/DevOps}: Betrieb, Skalierung, Bottlenecks (Abschnitt 7).
+  \item
+    \textbf{Produkt/Stakeholder}: High-Level-Überblick, „Warum dieses
+    Konzept?{\kern0pt}`` (Abschnitt 6).
+  \end{itemize}
+\item
+  \textbf{Wie lesen}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Wenn du \textbf{neu im Projekt} bist, starte mit Abschnitt 2 und 3.
+  \item
+    Wenn du \textbf{einen Incident} oder Bottleneck analysierst, springe
+    direkt zu Abschnitt 7.
+  \item
+    Wenn du \textbf{Argumente für Architekturentscheidungen} brauchst,
+    lies Abschnitt 6.
+  \end{itemize}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{2. Service-Landschaft}\label{service-landschaft}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2340}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1170}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.6489}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Service
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Sprache
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Hauptaufgabe
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Middleware} & Spring Boot & API Gateway, Authentifizierung,
+S3-Management, Proxy-Logik. \\
+\textbf{Extraction Service} & Python & Text-Extraktion aus PDFs, Bildern
+und Office-Dokumenten. \\
+\textbf{Miner Service} & Python & Daten-Mining: Extraktion von Entitäten
+(Daten, IDs, Beträge). \\
+\textbf{AI Service} & Python & Text-Chunking und Erstellung von
+Embeddings via Azure OpenAI. \\
+\textbf{Data Service} & Python & Orchestrierung der Datenflüsse und
+Zustandsüberwachung. \\
+\end{longtable}
+}
+
+\subsubsection{2.1 Externe
+Abhängigkeiten}\label{externe-abhuxe4ngigkeiten}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1449}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2174}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.6377}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Service
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Externer Dienst
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Zweck
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Middleware & S3 & Persistenz der Original-Dokumente \\
+Middleware & Azure OpenAI & Embeddings \& LLM-Inferenz (Abfragepfad) \\
+AI Service & Azure OpenAI & Embeddings (Ingestionpfad) \\
+AI Service & Milvus & Schreiben der Vektoren \\
+Middleware & Milvus & Lesen der Vektoren für die Ähnlichkeitssuche \\
+\end{longtable}
+}
+
+\subsubsection{2.2 Schnittstellen \& Kontrakte
+(Überblick)}\label{schnittstellen-kontrakte-uxfcberblick}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{REST-API (Middleware)}: Upload von Dokumenten, Starten von
+  Pipelines, Status-Abfragen, Chat-/Query-Endpunkte.
+\item
+  \textbf{Kafka-Topics}: Asynchrone Übergabe zwischen Services; jedes
+  Topic hat einen klar definierten Payload-Kontrakt.
+\item
+  \textbf{Data Service}: Zentrale Fassade für Milvus (Schreiben/Lesen
+  von Vektoren) und Status-Updates in Postgres.
+\item
+  \textbf{AI Service}: Spricht ausschließlich mit Azure OpenAI und dem
+  Data Service -- nie direkt mit Milvus.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{3. Architektur-Diagramme}\label{architektur-diagramme}
+
+Um den Ablauf klar zu trennen, zeigen wir zwei Sichten:
+
+\begin{itemize}
+\tightlist
+\item
+  eine \textbf{Ingestion-Sicht} mit Kafka-Topics und Python-Services und
+\item
+  eine \textbf{Inference-Sicht} für Queries über Middleware, Azure
+  OpenAI und Milvus.
+\end{itemize}
+
+\subsubsection{3.1 Ingestion / Dokumenten-Pipeline (mit
+Kafka)}\label{ingestion-dokumenten-pipeline-mit-kafka}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-01.svg}}
+\caption{Diagramm 1}
+\end{figure}
+
+\subsubsection{3.2 Inference / Query-Pipeline (ohne
+Kafka)}\label{inference-query-pipeline-ohne-kafka}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-02.svg}}
+\caption{Diagramm 2}
+\end{figure}
+
+\subsubsection{3.3 Gesamtübersicht: End-to-End Flow mit
+Topics}\label{gesamtuxfcbersicht-end-to-end-flow-mit-topics}
+
+Die runden Knoten unten repräsentieren \textbf{Kafka-Topics}.\\
+In den Labels ist jeweils kurz angedeutet, \textbf{welche Payload} darin
+steckt.
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-03.svg}}
+\caption{Diagramm 3}
+\end{figure}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsubsection{3.4 Sequenzdiagramm: Ingestion \& Retrieval (synchron +
+asynchron)}\label{sequenzdiagramm-ingestion-retrieval-synchron-asynchron}
+
+Das folgende Sequenzdiagramm stellt den Gesamtfluss noch einmal aus
+Sicht der \textbf{Aufrufe und Events} dar.
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-04.svg}}
+\caption{Diagramm 4}
+\end{figure}
+
+\subsubsection{3.5 Visualisierung von Topics \&
+Messages}\label{visualisierung-von-topics-messages}
+
+\paragraph{3.5.1 Ein Topic als Log
+(Zeitachse)}\label{ein-topic-als-log-zeitachse}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-05.svg}}
+\caption{Diagramm 5}
+\end{figure}
+
+\paragraph{3.5.2 Ein Dokument ueber mehrere Topics
+hinweg}\label{ein-dokument-ueber-mehrere-topics-hinweg}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-06.svg}}
+\caption{Diagramm 6}
+\end{figure}
+
+\paragraph{3.5.3 Producer--Topic--Consumer auf einen
+Blick}\label{producertopicconsumer-auf-einen-blick}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-07.svg}}
+\caption{Diagramm 7}
+\end{figure}
+
+\paragraph{\texorpdfstring{3.5.4 Topic vs.~Messages -- abgegrenzt
+(Szenario
+\texttt{document-received})}{3.5.4 Topic vs.~Messages -- abgegrenzt (Szenario document-received)}}\label{topic-vs.-messages-abgegrenzt-szenario-document-received}
+
+\textbf{Was ist was?} Ein \textbf{Topic} ist ein benannter, append-only
+\textbf{Log}; eine \textbf{Message} ist ein einzelnes Event (ein
+JSON-Payload) an einer \textbf{Offset}-Position. Jede Message gehört zu
+genau einem Topic und wird von Producer(s) geschrieben und von
+Consumer(s) gelesen.
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-08.svg}}
+\caption{Diagramm 8}
+\end{figure}
+
+\textbf{Abgrenzung im Überblick}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.2051}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.7949}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Begriff
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Bedeutung in unserem Szenario
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Topic} & Ein \textbf{Kanal} (z.\,B. \texttt{document-received}).
+Enthält alle Messages in Reihenfolge; wird nicht gelöscht, nur angehängt
+(bis Retention). \\
+\textbf{Message} & Ein \textbf{Event} = ein JSON-Objekt (Payload) mit
+z.\,B. \texttt{documentId}, \texttt{tenantId}, \texttt{s3Path},
+\texttt{contentHash}. Eine Message = ein hochgeladenes Dokument, das zur
+Extraktion ansteht. \\
+\textbf{Offset} & Eindeutige \textbf{Position} der Message im Topic-Log.
+Consumer merken sich den letzten gelesenen Offset (commit). \\
+\textbf{Partition} (optional) & Bei Skalierung kann ein Topic in
+Partitionen unterteilt werden; z.\,B. Partition-Key = \texttt{tenantId}
+für Mandantentrennung und paralleles Lesen. \\
+\end{longtable}
+}
+
+\subsection{4. Kafka ``Nervensystem''
+(Topic-Strategie)}\label{kafka-nervensystem-topic-strategie}
+
+Die Kommunikation erfolgt über spezialisierte Topics. Jede Nachricht
+trägt im Header oder Payload die \texttt{tenant\_id} zur Sicherstellung
+der Daten-Isolation.
+
+\subsubsection{4.1 Topic-Übersicht}\label{topic-uxfcbersicht}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Topic:} \texttt{document-received}
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Trigger:} Spring Boot empfängt Datei.
+\item
+  \textbf{Inhalt:} S3-Link zum Original, Metadaten, Mandanten-ID.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\tightlist
+\item
+  \textbf{Topic:} \texttt{document-to-extract}
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Trigger:} Data Service gibt Dokument zur Verarbeitung frei.
+\item
+  \textbf{Inhalt:} Pfad zur Rohdatei.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\tightlist
+\item
+  \textbf{Topic:} \texttt{content-extracted}
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Trigger:} Extraction Service fertig.
+\item
+  \textbf{Inhalt:} extrahierter Reintext (Raw-Text).
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{3}
+\tightlist
+\item
+  \textbf{Topic:} \texttt{metadata-enriched}
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Trigger:} Miner Service hat Fachdaten (z.\,B. Rechnungsdatum)
+  gefunden.
+\item
+  \textbf{Inhalt:} Text + strukturierte Zusatzdaten.
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  \textbf{Topic:} \texttt{vector-ready-to-index}
+\end{enumerate}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Trigger:} AI Service hat Text gechunked und in Vektoren
+  umgewandelt.
+\item
+  \textbf{Inhalt:} Vektor-Arrays, Chunks, finale Metadaten \&
+  \texttt{tenant\_id}.
+\end{itemize}
+
+\subsubsection{4.2 Topic-Payloads
+(Schnittstellen-Kontrakt)}\label{topic-payloads-schnittstellen-kontrakt}
+
+Alle Payloads sind JSON-Objekte; Pflichtfelder sind fett markiert.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Topic \texttt{document-received}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{\texttt{documentId}}: eindeutige ID des Dokuments
+  \item
+    \textbf{\texttt{tenantId}}: Mandanten-ID
+  \item
+    \textbf{\texttt{s3Path}}: Pfad zur Originaldatei in S3
+  \item
+    \texttt{batchId}: optionale Gruppen-ID für Bulk-Uploads
+  \item
+    \texttt{filename}, \texttt{mimeType}, \texttt{uploadedBy}
+  \item
+    \texttt{contentHash}: Hash des Datei-Inhalts (z.\,B. SHA-256)
+  \end{itemize}
+\item
+  \textbf{Topic \texttt{document-to-extract}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{\texttt{documentId}}, \textbf{\texttt{tenantId}}
+  \item
+    \textbf{\texttt{s3Path}}
+  \item
+    \texttt{priority}: z.\,B. „LOW/MEDIUM/HIGH``
+  \end{itemize}
+\item
+  \textbf{Topic \texttt{content-extracted}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{\texttt{documentId}}, \textbf{\texttt{tenantId}}
+  \item
+    \textbf{\texttt{plainText}}: extrahierter Volltext
+  \item
+    \texttt{structure}: optionale Layout-/Tabelleninfos (z.\,B. von
+    Document Intelligence)
+  \item
+    \texttt{language}, \texttt{sourceFileName}
+  \end{itemize}
+\item
+  \textbf{Topic \texttt{metadata-enriched}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{\texttt{documentId}}, \textbf{\texttt{tenantId}}
+  \item
+    \textbf{\texttt{plainText}}
+  \item
+    \textbf{\texttt{metadata}}: strukturierte Fachdaten (z.\,B.
+    Rechnungsnummer, Datum, Beträge)
+  \item
+    \texttt{detectedEntities}: optionale, modellbasierte
+    Extraktionsergebnisse
+  \end{itemize}
+\item
+  \textbf{Topic \texttt{vector-ready-to-index}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{\texttt{documentId}}, \textbf{\texttt{tenantId}}
+  \item
+    \textbf{\texttt{chunks}}: Liste von Chunks mit:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \textbf{\texttt{chunkId}}, \textbf{\texttt{text}}
+    \item
+      \textbf{\texttt{vector}}: Embedding-Vektor
+    \item
+      \texttt{page}, \texttt{offset}, \texttt{section},
+      \texttt{metadata}
+    \end{itemize}
+  \item
+    \texttt{indexName}: logischer Index-/Collection-Name in Milvus
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{4.3 Beispiel-Events je
+Topic}\label{beispiel-events-je-topic}
+
+\textbf{\texttt{document-received}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"documentId"}\FunctionTok{:} \StringTok{"DOC{-}123"}\FunctionTok{,}
+  \DataTypeTok{"tenantId"}\FunctionTok{:} \StringTok{"TENANT{-}A"}\FunctionTok{,}
+  \DataTypeTok{"batchId"}\FunctionTok{:} \StringTok{"BATCH{-}2026{-}03{-}01{-}001"}\FunctionTok{,}
+  \DataTypeTok{"s3Path"}\FunctionTok{:} \StringTok{"s3://bucket/raw/TENANT{-}A/DOC{-}123.pdf"}\FunctionTok{,}
+  \DataTypeTok{"filename"}\FunctionTok{:} \StringTok{"rechnung\_123.pdf"}\FunctionTok{,}
+  \DataTypeTok{"mimeType"}\FunctionTok{:} \StringTok{"application/pdf"}\FunctionTok{,}
+  \DataTypeTok{"uploadedBy"}\FunctionTok{:} \StringTok{"user@kunde.de"}\FunctionTok{,}
+  \DataTypeTok{"contentHash"}\FunctionTok{:} \StringTok{"b8a6b4c0...ef"}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{\texttt{document-to-extract}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"documentId"}\FunctionTok{:} \StringTok{"DOC{-}123"}\FunctionTok{,}
+  \DataTypeTok{"tenantId"}\FunctionTok{:} \StringTok{"TENANT{-}A"}\FunctionTok{,}
+  \DataTypeTok{"s3Path"}\FunctionTok{:} \StringTok{"s3://bucket/raw/TENANT{-}A/DOC{-}123.pdf"}\FunctionTok{,}
+  \DataTypeTok{"priority"}\FunctionTok{:} \StringTok{"MEDIUM"}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{\texttt{content-extracted}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"documentId"}\FunctionTok{:} \StringTok{"DOC{-}123"}\FunctionTok{,}
+  \DataTypeTok{"tenantId"}\FunctionTok{:} \StringTok{"TENANT{-}A"}\FunctionTok{,}
+  \DataTypeTok{"plainText"}\FunctionTok{:} \StringTok{"Rechnung 123}\CharTok{\textbackslash{}n}\StringTok{Kunde XY GmbH}\CharTok{\textbackslash{}n}\StringTok{Betrag: 1.234,56 EUR}\CharTok{\textbackslash{}n}\StringTok{..."}\FunctionTok{,}
+  \DataTypeTok{"structure"}\FunctionTok{:} \FunctionTok{\{}
+    \DataTypeTok{"pages"}\FunctionTok{:} \DecValTok{3}\FunctionTok{,}
+    \DataTypeTok{"hasTables"}\FunctionTok{:} \KeywordTok{true}
+  \FunctionTok{\},}
+  \DataTypeTok{"language"}\FunctionTok{:} \StringTok{"de"}\FunctionTok{,}
+  \DataTypeTok{"sourceFileName"}\FunctionTok{:} \StringTok{"rechnung\_123.pdf"}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{\texttt{metadata-enriched}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"documentId"}\FunctionTok{:} \StringTok{"DOC{-}123"}\FunctionTok{,}
+  \DataTypeTok{"tenantId"}\FunctionTok{:} \StringTok{"TENANT{-}A"}\FunctionTok{,}
+  \DataTypeTok{"plainText"}\FunctionTok{:} \StringTok{"Rechnung 123}\CharTok{\textbackslash{}n}\StringTok{Kunde XY GmbH}\CharTok{\textbackslash{}n}\StringTok{Betrag: 1.234,56 EUR}\CharTok{\textbackslash{}n}\StringTok{..."}\FunctionTok{,}
+  \DataTypeTok{"metadata"}\FunctionTok{:} \FunctionTok{\{}
+    \DataTypeTok{"invoiceNumber"}\FunctionTok{:} \StringTok{"123"}\FunctionTok{,}
+    \DataTypeTok{"invoiceDate"}\FunctionTok{:} \StringTok{"2026{-}02{-}28"}\FunctionTok{,}
+    \DataTypeTok{"amount"}\FunctionTok{:} \FloatTok{1234.56}\FunctionTok{,}
+    \DataTypeTok{"currency"}\FunctionTok{:} \StringTok{"EUR"}\FunctionTok{,}
+    \DataTypeTok{"customerName"}\FunctionTok{:} \StringTok{"XY GmbH"}
+  \FunctionTok{\},}
+  \DataTypeTok{"detectedEntities"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{} \DataTypeTok{"type"}\FunctionTok{:} \StringTok{"INVOICE\_NUMBER"}\FunctionTok{,} \DataTypeTok{"value"}\FunctionTok{:} \StringTok{"123"} \FunctionTok{\}}\OtherTok{,}
+    \FunctionTok{\{} \DataTypeTok{"type"}\FunctionTok{:} \StringTok{"AMOUNT"}\FunctionTok{,} \DataTypeTok{"value"}\FunctionTok{:} \StringTok{"1234.56"} \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{\texttt{vector-ready-to-index}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"documentId"}\FunctionTok{:} \StringTok{"DOC{-}123"}\FunctionTok{,}
+  \DataTypeTok{"tenantId"}\FunctionTok{:} \StringTok{"TENANT{-}A"}\FunctionTok{,}
+  \DataTypeTok{"indexName"}\FunctionTok{:} \StringTok{"tenant{-}a{-}main"}\FunctionTok{,}
+  \DataTypeTok{"chunks"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"chunkId"}\FunctionTok{:} \StringTok{"DOC{-}123{-}0001"}\FunctionTok{,}
+      \DataTypeTok{"text"}\FunctionTok{:} \StringTok{"Diese Rechnung bezieht sich auf den Vertrag 9876 ..."}\FunctionTok{,}
+      \DataTypeTok{"vector"}\FunctionTok{:} \OtherTok{[}\FloatTok{0.0123}\OtherTok{,} \FloatTok{{-}0.9987}\OtherTok{,} \FloatTok{0.4532}\OtherTok{]}\FunctionTok{,}
+      \DataTypeTok{"page"}\FunctionTok{:} \DecValTok{1}\FunctionTok{,}
+      \DataTypeTok{"offset"}\FunctionTok{:} \DecValTok{0}\FunctionTok{,}
+      \DataTypeTok{"section"}\FunctionTok{:} \StringTok{"header"}\FunctionTok{,}
+      \DataTypeTok{"metadata"}\FunctionTok{:} \FunctionTok{\{}
+        \DataTypeTok{"invoiceNumber"}\FunctionTok{:} \StringTok{"123"}\FunctionTok{,}
+        \DataTypeTok{"invoiceDate"}\FunctionTok{:} \StringTok{"2026{-}02{-}28"}
+      \FunctionTok{\}}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{4.4 Producer--Topic--Consumer
+Mapping}\label{producertopicconsumer-mapping}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1314}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1679}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3723}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3285}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Producer
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Topic
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Consumer
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Zweck
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Middleware & \texttt{document-received} & Data Service & Neues Dokument
+ist hochgeladen \\
+Data Service & \texttt{document-to-extract} & Extraction Service &
+Dokument soll in Text extrahiert werden \\
+Extraction Service & \texttt{content-extracted} & Miner Service &
+Rohtext liegt zur fachlichen Anreicherung vor \\
+Miner Service & \texttt{metadata-enriched} & AI Service & Angereicherter
+Text ist bereit für Embedding \\
+AI Service & \texttt{vector-ready-to-index} & (Indexer / Milvus-Writer,
+Teil des AI/Data Service) & Vektoren können persistiert werden \\
+\end{longtable}
+}
+
+\subsubsection{4.5 Architekten-Notiz: JSON vs.~Avro (bewusst
+JSON)}\label{architekten-notiz-json-vs.-avro-bewusst-json}
+
+\textbf{Kurz-Zusammenfassung:}\\
+Alle Kafka-Payloads nutzen \textbf{JSON} -- keine Avro-Schemas. Das ist
+eine bewusste Architekturentscheidung: Lesbarkeit, Debugging und
+Interoperabilität wiegen derzeit höher als die theoretischen
+Performance-Vorteile von Avro.
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2340}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3404}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4255}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Kriterium
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+JSON (gewählt)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Avro (Alternative)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Lesbarkeit} & Menschenlesbar in Kafka-UI, Logs, Admin-Tools &
+Binär; Schema/Codegen nötig zum Inspizieren \\
+\textbf{Debugging \& Onboarding} & Events sofort verständlich; geringer
+Einstieg für alle Personas & Höhere Hürde für SRE/Fachseite ohne
+Avro-Tooling \\
+\textbf{Interoperabilität} & Universell (REST, Scripte, Metriken); kein
+Schema Registry nötig & Schema Registry, Codegen, Build-Integration
+erforderlich \\
+\textbf{Performance / Effizienz} & Größere Messages, langsameres Parsing
+bei sehr hohem Durchsatz & Kompakter, schnelleres Parsing -- relevant
+bei Kafka als Engpass \\
+\textbf{Kontrakt-Sicherheit} & Schemas in Doku (Abschnitt 4.2); weiche
+Evolution möglich & Strikte Schemas, zentrale Evolution über Schema
+Registry \\
+\end{longtable}
+}
+
+\textbf{Warum JSON für diese Pipeline passt}
+
+\begin{itemize}
+\tightlist
+\item
+  Die \textbf{Bottlenecks} liegen typischerweise bei \textbf{Azure
+  OpenAI}, \textbf{Document Intelligence} und \textbf{Milvus}, nicht
+  beim JSON-Parsing auf dem Bus.
+\item
+  \textbf{Viele Personas} (Backend, Data, SRE, Fach) müssen Events
+  schnell einordnen können -- JSON reduziert Reibung.
+\item
+  \textbf{DLQ-Analyse und Reprocessing} profitieren von lesbaren
+  Payloads ohne zusätzliches Tooling.
+\end{itemize}
+
+\textbf{Operational Note}
+
+\begin{itemize}
+\tightlist
+\item
+  Die \textbf{Payload-Kontrakte} (Abschnitt 4.2) werden wie
+  \textbf{strikte Schemas} gepflegt; Änderungen sind dokumentiert und
+  rückwärtskompatibel zu handhaben.
+\item
+  Falls Kafka bei stark wachsendem Volumen zum Engpass wird:
+  \textbf{Avro + Schema Registry} gezielt für High-Volume-Topics (z.\,B.
+  \texttt{vector-ready-to-index}) evaluieren; optional \textbf{hybrid}:
+  JSON an Rändern (REST, Admin), Avro intern für ausgewählte Topics.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{5. End-to-End Datenfluss
+(Pipelines)}\label{end-to-end-datenfluss-pipelines}
+
+\subsubsection{5.1 Ingestion Pipeline
+(Daten-Aufnahme)}\label{ingestion-pipeline-daten-aufnahme}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Client} lädt Dokument über den \textbf{Spring Boot Proxy}
+  hoch.
+\item
+  \textbf{Spring Boot} speichert Datei in \textbf{S3} und schreibt Event
+  in \texttt{document-received}.
+\item
+  \textbf{Extraction Service} zieht Text aus dem Dokument
+  (\texttt{document-to-extract} → \texttt{content-extracted}).
+\item
+  \textbf{Miner Service} reichert den Text mit Fachmetadaten an
+  (\texttt{metadata-enriched}).
+\item
+  \textbf{AI Service} erstellt Chunks und ruft \textbf{Azure OpenAI} für
+  Embeddings auf.
+\item
+  Die fertigen Vektoren werden in \textbf{Milvus} indiziert (mit
+  \texttt{tenant\_id} als Partitions-Key).
+\end{enumerate}
+
+\subsubsection{5.2 Inference Pipeline
+(Abfrage/Chat)}\label{inference-pipeline-abfragechat}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{User} stellt eine Frage via \textbf{Spring Boot}.
+\item
+  \textbf{Spring Boot} wandelt die Frage via \textbf{Azure} in einen
+  Vektor um.
+\item
+  \textbf{Spring Boot} führt eine Ähnlichkeitssuche in \textbf{Milvus}
+  aus (Filter: \texttt{tenant\_id\ ==\ user\_tenant}).
+\item
+  Gefundene Fakten werden als Kontext an das \textbf{LLM (Azure)}
+  gesendet.
+\item
+  Die Antwort wird an den Client zurückgegeben.
+\end{enumerate}
+
+\subsubsection{5.3 Wichtige REST-Endpunkte
+(Schnittstellen-Kontrakt)}\label{wichtige-rest-endpunkte-schnittstellen-kontrakt}
+
+\textbf{Upload / Pipeline-Start}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{POST\ /api/v1/pipelines/documents}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Body (JSON oder multipart + JSON-Metadaten):}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{tenantId} (string, Pflicht)
+    \item
+      \texttt{mode} (string, z.\,B. \texttt{"ALL\_INCLUSIVE"})
+    \item
+      \texttt{documents} (Liste) mit:
+
+      \begin{itemize}
+      \tightlist
+      \item
+        \texttt{filename}, \texttt{contentType}
+      \item
+        Binärinhalt oder Referenz (z.\,B. S3-PreSigned-URL)
+      \end{itemize}
+    \end{itemize}
+  \item
+    \textbf{Response 202 (Accepted):}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{batchId} (string)
+    \item
+      \texttt{acceptedCount} (int)
+    \item
+      \texttt{duplicatesSkipped} (int) -- Anzahl Dokumente, deren Inhalt
+      bereits bekannt war
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\textbf{Pipeline-Status abfragen}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{GET\ /api/v1/pipelines/\{batchId\}/status}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Response 200 (JSON):}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{batchId}
+    \item
+      \texttt{tenantId}
+    \item
+      \texttt{overallStatus} (z.\,B. \texttt{PENDING}, \texttt{RUNNING},
+      \texttt{COMPLETED}, \texttt{FAILED})
+    \item
+      \texttt{documents} (Liste mit pro Dokument: \texttt{documentId},
+      \texttt{status}, \texttt{errors}, \texttt{duplicateOfDocumentId?})
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\textbf{Frage stellen (Chat / Retrieval)}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{\texttt{POST\ /api/v1/chat}}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Body:}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{tenantId} (string, Pflicht)
+    \item
+      \texttt{question} (string)
+    \item
+      \texttt{batchId} oder Filterkriterien (optional, um auf bestimmte
+      Dokumentmengen zu beschränken)
+    \end{itemize}
+  \item
+    \textbf{Response 200:}
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{answer} (string)
+    \item
+      \texttt{sources} (Liste von Referenzen auf Chunks/Dokumente)
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{5.4 Beispielszenario: Ingestion \& Retrieval
+End-to-End}\label{beispielszenario-ingestion-retrieval-end-to-end}
+
+Dieses Szenario verbindet die Ingestion- und Inference-Pipeline zu einem
+realistischen Ablauf aus Sicht eines Mandanten.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Bulk-Upload vom Client (10.000 Dokumente)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Der Client ruft die Middleware per REST auf (z.\,B. „ALL INCLUSIVE
+    PIPELINE``) und übergibt bis zu 10.000 Dokumente -- entweder als
+    \textbf{einzelne Requests} oder als \textbf{Batch}.\\
+  \item
+    Für jedes Dokument wird intern eine eigene \texttt{document\_id}
+    vergeben; optional wird zusätzlich eine gemeinsame
+    \texttt{batch\_id} geführt.
+  \item
+    Die Middleware bzw. der Data Service berechnet für jedes Dokument
+    einen \textbf{Inhalts-Hash} (z.\,B.
+    \texttt{content\_hash\ =\ SHA-256(binary)}).
+  \end{itemize}
+\item
+  \textbf{Persistenz in S3 und Postgres durch den Data Service}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Die Middleware fungiert als Proxy und leitet die Uploads an den
+    \textbf{Data Service} weiter.\\
+  \item
+    Der Data Service prüft anhand von \texttt{content\_hash}, ob der
+    \textbf{identische Inhalt} für denselben \texttt{tenantId} bereits
+    existiert:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      Falls \textbf{neu}: Dokument wird im \textbf{S3 Storage}
+      gespeichert, in \textbf{Postgres} entsteht ein neuer Eintrag
+      (\texttt{document\_id}, \texttt{tenant\_id},
+      \texttt{content\_hash}, S3-Pfad, Status „RECEIVED``).\\
+    \item
+      Falls \textbf{Duplikat}: Es wird nur eine \textbf{weitere logische
+      Referenz} (z.\,B. neue \texttt{document\_id} mit Verweis auf
+      bestehendes physisches Dokument) angelegt; teure
+      Verarbeitungsschritte können übersprungen oder wiederverwendet
+      werden.
+    \end{itemize}
+  \item
+    Parallel erzeugt der Data Service Events in Kafka (z.\,B.
+    \texttt{document-received} / \texttt{document-to-extract}), wie in
+    Abschnitt 4.1 beschrieben -- Duplikate können hier je nach Policy
+    entweder \textbf{nicht} mehr in die Pipeline gegeben oder als
+    „Shortcut`` markiert werden (z.\,B. nur Metadaten aktualisieren).
+  \end{itemize}
+\item
+  \textbf{Status-Transparenz für den Mandanten}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Nach erfolgreichem Upload erhält der Client eine
+    \textbf{Pipeline-/Job-ID} (z.\,B. \texttt{batch\_id}), unter der
+    alle Dokumente des Uploads verwaltet werden.\\
+  \item
+    Über einen dedizierten Status-Endpoint der Middleware kann der
+    Client den \textbf{aktuellen Fortschritt} abfragen (z.\,B. „20 \%
+    extrahiert, 10 \% indexiert, 70 \% pending``).\\
+  \item
+    Die Statusinformationen stammen aus Postgres, das vom Data Service
+    bei jedem Verarbeitungsschritt aktualisiert wird (z.\,B.
+    \texttt{EXTRACTED}, \texttt{EMBEDDED}, \texttt{INDEXED}).
+  \end{itemize}
+\item
+  \textbf{Extraktion mit Azure Document Intelligence}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Nachdem ein Dokument im S3 Storage liegt und der entsprechende
+    Kafka-Event verarbeitet wurde, zieht der \textbf{Extraction Service}
+    das Dokument aus S3.\\
+  \item
+    Der Extraction Service ruft \textbf{Azure Document Intelligence} auf
+    und erhält strukturierten Volltext, Layoutinformationen und ggf.
+    Tabellen.\\
+  \item
+    Nach erfolgreicher Extraktion wird der Status in Postgres
+    aktualisiert (z.\,B. \texttt{EXTRACTED}), und ein Event
+    \texttt{content-extracted} wird erzeugt.
+  \end{itemize}
+\item
+  \textbf{Speicherung von Volltext \& Chunks}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Aus der Antwort von Azure werden \textbf{Volltext und Chunks}
+    erzeugt.\\
+  \item
+    Der Volltext (Extraktionsergebnis) wird erneut in S3 gespeichert
+    (z.\,B. als Markdown/JSON), referenziert über Postgres.\\
+  \item
+    Die Chunks selbst werden in \textbf{Milvus} zunächst als reine
+    Text/Metadaten-Einträge oder in separaten Sammlungen vorbereitet, je
+    nach Implementierung.
+  \end{itemize}
+\item
+  \textbf{Erstellung der Embeddings durch den AI Service}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Der \textbf{AI Service} übernimmt die vorbereiteten Chunks (über
+    Kafka-Events wie \texttt{metadata-enriched} oder interne Abfragen)
+    und sendet sie an \textbf{Azure OpenAI}, um Embeddings zu
+    erzeugen.\\
+  \item
+    Der AI Service sorgt für Rate-Limiting und Batch-Verarbeitung, wie
+    in Abschnitt 7 beschrieben.
+  \end{itemize}
+\item
+  \textbf{Speicherung der Embeddings über den Data Service}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Der AI Service leitet die Embedding-Ergebnisse an den \textbf{Data
+    Service} weiter oder schreibt sie direkt in Milvus und meldet den
+    Erfolg an den Data Service.\\
+  \item
+    Der Data Service speichert bzw. ergänzt die Embeddings in
+    \textbf{Milvus} an der passenden Stelle (Verknüpfung zu
+    \texttt{document\_id}, \texttt{chunk\_id}, \texttt{tenant\_id}).\\
+  \item
+    In Postgres wird der Status des Dokuments (oder des gesamten
+    Batches) auf \texttt{INDEXED} bzw. \texttt{COMPLETED} gesetzt.
+  \end{itemize}
+\item
+  \textbf{Retrieval / Abfragephase}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Sobald der Batch fertig indexiert ist, kann der Client über die
+    Middleware \textbf{Fragen} stellen.\\
+  \item
+    Die Inference-Pipeline aus Abschnitt 4.2 und das Diagramm 3.2
+    greifen auf die in Milvus gespeicherten Embeddings und Chunks zu und
+    liefern kontextualisierte Antworten zurück.
+  \end{itemize}
+\end{enumerate}
+
+\subsubsection{\texorpdfstring{5.5 Mandantentrennung \& Deduplizierung
+(\texttt{tenantId} \&
+\texttt{contentHash})}{5.5 Mandantentrennung \& Deduplizierung (tenantId \& contentHash)}}\label{mandantentrennung-deduplizierung-tenantid-contenthash}
+
+\textbf{Kurz-Zusammenfassung:}\\
+Dieser Abschnitt beschreibt, wie \textbf{Mandantentrennung} über
+\texttt{tenantId} und \textbf{Deduplizierung} über \texttt{contentHash}
+in der Pipeline technisch umgesetzt werden.
+
+\textbf{Technische Details}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Kernidee:}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{tenantId} bestimmt, \textbf{in welchen
+    Partitionen/Collections} Daten gespeichert und später abgefragt
+    werden.\\
+  \item
+    \texttt{contentHash} (z.\,B. \texttt{SHA-256(binary)}) identifiziert
+    \textbf{identische Dokumentinhalte} innerhalb eines Tenants.
+  \end{itemize}
+\end{itemize}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-09.svg}}
+\caption{Diagramm 9}
+\end{figure}
+
+\textbf{Felder und Verwendung}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1589}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1776}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.6636}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Feld
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Ebene
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Zweck
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{\texttt{tenantId}} & Request, Topics, DB, Milvus & Strikte
+Mandantentrennung über alle Stufen (S3-Pfad, Postgres,
+Milvus-Collection/Partition). \\
+\textbf{\texttt{contentHash}} & Data Service / Postgres & Erkennen von
+Duplikaten je \texttt{tenantId}; Vermeiden doppelter Ingestion teurer
+Pipelines. \\
+\textbf{\texttt{documentId}} & Postgres, Topics, Milvus & Eindeutige
+Identifikation je Dokument (auch bei mehreren logischen Referenzen). \\
+\textbf{\texttt{batchId}} & Request, Postgres & Logische Gruppierung von
+Uploads (z.\,B. Tages-/Monatsläufe eines Mandanten). \\
+\end{longtable}
+}
+
+\textbf{Operational Note (Monitoring \& Fehlerszenarien)}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Monitoring-Signale}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Deduplizierungsrate}: Verhältnis
+    \texttt{duplicatesSkipped\ /\ acceptedCount} pro \texttt{tenantId}
+    und \texttt{batchId}.\\
+  \item
+    \textbf{Anteil neuer \texttt{contentHash}-Werte} pro Zeitraum: Hoher
+    Anteil kann auf \textbf{neue Dokumenttypen} oder fehlerhafte
+    Hash-Berechnung hinweisen.
+  \end{itemize}
+\item
+  \textbf{Typische Fehlerszenarien}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Falsche \texttt{tenantId} im Upload} → Dokument landet in
+    falscher Partition / falschem Index; Risiko von Daten-Leaks.\\
+  \item
+    \textbf{Fehlerhafte Hash-Berechnung} (z.\,B. unterschiedliche
+    Normalisierung von Binärdaten) → Duplikate werden nicht erkannt,
+    Ingestion-Kosten steigen.\\
+  \item
+    \textbf{Kollisionsrisiko} ist bei SHA-256 praktisch
+    vernachlässigbar, sollte aber in
+    Sicherheits-/Compliance-Diskussionen dokumentiert sein.
+  \end{itemize}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{6. Warum dieses Konzept?
+(Argumentation)}\label{warum-dieses-konzept-argumentation}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Entkopplung:} Wenn der Miner-Service ein Update erhält und
+  kurz offline ist, füllen sich die Kafka-Topics, aber kein Dokument
+  geht verloren.
+\item
+  \textbf{Kostenkontrolle (Azure):} Durch die Pufferung in Kafka
+  verhindern wir, dass zu viele gleichzeitige Anfragen das Rate-Limit
+  von Azure OpenAI sprengen.
+\item
+  \textbf{Audit-Log:} Jedes Kafka-Topic dient als permanentes Log. Wir
+  können jederzeit nachvollziehen, wann ein Dokument welche
+  Verarbeitungsstufe erreicht hat.
+\item
+  \textbf{Proxy-Performance:} Die Middleware (Spring Boot) bleibt extrem
+  leichtgewichtig, da die rechenintensive Arbeit (KI \& Extraktion) in
+  die Python-Worker ausgelagert ist.
+\end{itemize}
+
+\textbf{Takeaways:}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Warum Kafka + Microservices?} Entkopplung, Robustheit und
+  Nachvollziehbarkeit.
+\item
+  \textbf{Warum Azure OpenAI + Milvus?} Trennung von LLM-Inferenz und
+  Vektorspeicher mit klaren Verantwortlichkeiten.
+\item
+  \textbf{Warum mandantenfähig?} Saubere Isolation pro \texttt{tenantId}
+  in allen Topics, Datenbanken und Indexen.
+\end{itemize}
+
+\textbf{Industrie-Kontext (RAG + Event-Streaming):}\\
+Eine event-getriebene RAG-Architektur mit Kafka entspricht dem
+etablierten Muster, \textbf{LLMs mit echtzeitnahem, kontextspezifischem
+Wissen zu versorgen} und so Halluzinationen zu reduzieren. Kafka
+übernimmt dabei die Rolle des \textbf{Datenrückgrats} für Ingestion,
+Verarbeitung und konsistente Anreicherung -- vergleichbar mit dem Ansatz
+„Real-Time GenAI with RAG using Apache Kafka and Flink`` (siehe
+\hyperref[9-weiterfuxfchrende-literatur--referenzen]{Weiterführende
+Literatur}).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{7. Betrieb, Skalierung \&
+Bottlenecks}\label{betrieb-skalierung-bottlenecks}
+
+\subsubsection{7.1 Wie wir Topics
+verstehen}\label{wie-wir-topics-verstehen}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Append-only:} Nachrichten in Kafka-Topics werden \textbf{nicht
+  editiert}, sondern nur angehängt.\\
+\item
+  \textbf{Abarbeitung:} Ein Dokument gilt in einem Verarbeitungsschritt
+  als „abgearbeitet``, wenn der zuständige Service die Nachricht gelesen
+  und seinen \textbf{Offset} committet hat.\\
+\item
+  \textbf{Historie:} Über die Retention bleiben Events für Analyse,
+  Debugging und Replays verfügbar.
+\end{itemize}
+
+Damit bildet jedes Topic eine \textbf{Verarbeitungsstufe} der Pipeline
+ab (z.\,B. „extrahiert``, „angereichert``, „vektorisiert``).
+
+\subsubsection{7.2 Ablauf bei Multi-Upload (viele Dokumente auf
+einmal)}\label{ablauf-bei-multi-upload-viele-dokumente-auf-einmal}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Der Nutzer lädt \textbf{mehrere Dokumente} über die Middleware hoch.\\
+\item
+  Die Middleware erzeugt \textbf{pro Dokument} ein Event in
+  \texttt{document-received} (optional mit gemeinsamer
+  \texttt{batch\_id}).\\
+\item
+  Der Data Service liest diese Events, speichert die Rohdaten in S3 und
+  erzeugt \textbf{pro Dokument} ein Event in
+  \texttt{document-to-extract}.\\
+\item
+  Jeder weitere Schritt (Extraktion, Mining, Embeddings, Index) erzeugt
+  wiederum \textbf{ein eigenes Event pro Dokument} in den jeweiligen
+  Topics (\texttt{content-extracted}, \texttt{metadata-enriched},
+  \texttt{vector-ready-to-index}).
+\end{enumerate}
+
+Durch diese feine Granularität können wir:
+
+\begin{itemize}
+\tightlist
+\item
+  bei Rückständen gezielt \textbf{eine Stage} skalieren (z.\,B. nur
+  Extraction),
+\item
+  einzelne Dokumente oder Batches \textbf{nachverfolgen und
+  reprocessen}.
+\end{itemize}
+
+\subsubsection{7.3 Retry-Mechanismen \&
+Fehlerbehandlung}\label{retry-mechanismen-fehlerbehandlung}
+
+Um Robustheit zu gewährleisten, arbeiten alle Services mit einem
+einheitlichen Retry-Konzept:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Technische Fehler (z.\,B. Netzwerk, 5xx von Azure, temporäre
+  S3-Probleme)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Jeder Service führt \textbf{mehrere Retries mit Exponential Backoff}
+    durch (z.\,B. 3--5 Versuche mit wachsender Wartezeit).\\
+  \item
+    Während der Retries wird \textbf{kein Offset committet}, d.\,h. die
+    Message bleibt im Topic „offen``.\\
+  \item
+    Nach erfolgreichem Versuch wird der Offset einmalig committet.
+  \end{itemize}
+\item
+  \textbf{Fachliche Fehler (z.\,B. defektes PDF, ungültiges Format,
+  dauerhaftes 4xx)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Nach einem konfigurierbaren Limit (\texttt{maxAttempts}) wird die
+    Message in ein \textbf{Error-/DLQ-Topic} verschoben, z.\,B.:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      \texttt{document-to-extract.dlq}\strut \\
+    \item
+      \texttt{content-extracted.dlq}\strut \\
+    \item
+      \texttt{vector-ready-to-index.dlq}\strut \\
+    \end{itemize}
+  \item
+    Im DLQ-Topic wird zusätzlich ein \texttt{errorCode},
+    \texttt{errorMessage} und ein \texttt{lastService}-Feld gespeichert.
+  \end{itemize}
+\item
+  \textbf{Idempotenz}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Alle Operationen sind so ausgelegt, dass sie \textbf{idempotent}
+    sind (z.\,B. „Embedding für \texttt{documentId\ +\ chunkId}
+    existiert bereits`` → Skip / Update).\\
+  \item
+    Dadurch sind erneute Verarbeitungsversuche (Replays) jederzeit
+    gefahrlos möglich -- sowohl automatisiert als auch manuell aus
+    DLQ-Topics.
+  \end{itemize}
+\item
+  \textbf{Monitoring \& Operations}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    DLQ-Topics werden per Dashboard überwacht (Anzahl Messages,
+    Fehlercodes).\\
+  \item
+    Über Admin-Tools können Einträge aus DLQs \textbf{manuell
+    analysiert, korrigiert oder erneut eingespielt} werden (z.\,B. nach
+    Fix eines Bugs oder einer Schema-Änderung).
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{7.4 Typische Bottlenecks pro
+Stage}\label{typische-bottlenecks-pro-stage}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Extraction Service} (\texttt{document-to-extract} →
+  \texttt{content-extracted})
+
+  \begin{itemize}
+  \tightlist
+  \item
+    CPU/GPU-bound (PDF-Parsing, OCR).\\
+  \item
+    Bottleneck-Signal: steigender Lag im Topic
+    \texttt{document-to-extract}, hohe Auslastung der Extraction-Pods.\\
+  \item
+    Maßnahme: mehr Replikas des Extraction Services, Worker-Prozesse
+    begrenzen.
+  \end{itemize}
+\item
+  \textbf{Miner Service} (\texttt{content-extracted} →
+  \texttt{metadata-enriched})
+
+  \begin{itemize}
+  \tightlist
+  \item
+    CPU-bound (Regex, NLP, fachliche Regeln).\\
+  \item
+    Bottleneck-Signal: Lag in \texttt{content-extracted}.\\
+  \item
+    Maßnahme: Scale-out, ggf. Regeln optimieren/batchen.
+  \end{itemize}
+\item
+  \textbf{AI Service / Azure OpenAI} (\texttt{metadata-enriched} →
+  \texttt{vector-ready-to-index})
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Bottleneck: \textbf{Azure-Rate-Limits} (Requests/Minute,
+    Tokens/Minute).\\
+  \item
+    Bottleneck-Signal: viele 429/5xx von Azure, wachsender Lag in
+    \texttt{metadata-enriched}.\\
+  \item
+    Maßnahmen:
+
+    \begin{itemize}
+    \tightlist
+    \item
+      internes \textbf{Rate-Limiting} pro Pod (Token-Bucket, Queue),
+    \item
+      Concurrency pro Pod begrenzen,
+    \item
+      Scale-out nur bis zu einer Obergrenze, die zu den Azure-Limits
+      passt.
+    \end{itemize}
+  \end{itemize}
+\item
+  \textbf{Milvus / Indexing} (\texttt{vector-ready-to-index})
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Bottleneck: viele Inserts / Index-Operationen.\\
+  \item
+    Bottleneck-Signal: steigende Latenzen beim Schreiben, Lag in
+    \texttt{vector-ready-to-index}.\\
+  \item
+    Maßnahmen: Batching von Vektoren, eigener Indexer-Service mit
+    eigener Skalierung.
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{7.5 Zusammenspiel mit
+Kubernetes}\label{zusammenspiel-mit-kubernetes}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Ein Deployment pro Service} (Middleware, Data, Extraction,
+  Miner, AI, Indexer).\\
+\item
+  Alle Instanzen eines Services gehören in \textbf{eine Consumer-Gruppe}
+  pro Topic -- zusätzliche Pods bedeuten mehr parallele Consumer.\\
+\item
+  \textbf{Auto-Scaling nach Kafka-Lag:}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Z.\,B. via KEDA/HPA, die auf „Lag pro Consumer-Gruppe`` schauen
+    (z.\,B.
+    \texttt{lag(document-to-extract,\ extraction-service-group)}).\\
+  \item
+    So werden genau die Stages hochskaliert, in denen sich Messages
+    stauen.
+  \end{itemize}
+\item
+  \textbf{Externe Limits beachten:}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Beim AI Service verhindern interne Limits, dass
+    Kubernetes-Skalierung die \textbf{Azure-Rate-Limits} überfährt.\\
+  \item
+    Durch Idempotenz (z.\,B. pro \texttt{doc\_id}+\texttt{chunk\_id})
+    bleiben Replays und Re-Processing robust.
+  \end{itemize}
+\end{itemize}
+
+Damit ist klar dokumentiert, \textbf{wie} unsere Topics genutzt werden,
+\textbf{wo} Bottlenecks entstehen können und \textbf{wie} wir sie über
+Kubernetes und Kafka-Lag im Betrieb steuern.
+
+\subsubsection{7.6 Fehlerszenarien \&
+Reprocessing-Strategien}\label{fehlerszenarien-reprocessing-strategien}
+
+\textbf{Kurz-Zusammenfassung:}\\
+Dieser Abschnitt fasst typische Fehlerszenarien in der RAG-Pipeline
+zusammen und beschreibt, wie über \textbf{Retries}, \textbf{DLQs} und
+\textbf{Reprocessing} stabiler Betrieb sichergestellt wird.
+
+\textbf{Typische Fehlerszenarien (Auszug)}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2579}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2947}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2474}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Szenario
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Ursache (typisch)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Signal im Betrieb
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Maßnahme / Strategie
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Azure 5xx/429 beim Embedding} & Azure-Störung, Rate-Limits
+überschritten & Viele 5xx/429 im AI-Service, wachsender Lag in
+\texttt{metadata-enriched} & Retries mit Backoff, internes
+Rate-Limiting, ggf. Pods drosseln statt skalieren. \\
+\textbf{Defektes PDF / inkompatibles Format} & Kaputte Datei, nicht
+unterstütztes Format & Wiederholte Fehler im Extraction Service,
+Einträge im \texttt{document-to-extract.dlq} & Nach X Retries in DLQ
+verschieben, Datei/Quelle korrigieren, gezieltes Reprocessing. \\
+\textbf{Fachliche Parsing-Fehler} & Neue Layouts/Belege, nicht
+abgedeckte Regeln & Anstieg von \texttt{errorCode} in Miner-DLQs,
+Fach-Feedback & Regeln/Modelle anpassen, DLQ-Einträge nach Fix erneut
+einspielen. \\
+\textbf{Milvus-Write-Latenzen} & Hohe Schreiblast, fehlendes Batching &
+Latenzspitzen beim Indexing, Lag in \texttt{vector-ready-to-index} &
+Batching erhöhen, eigenen Indexer-Service skalieren. \\
+\textbf{Fehlerhafte Mandanten-Konfiguration} & Falsche
+\texttt{tenantId}/Partition & Dokumente fehlen in erwarteten Antworten,
+Inkonsistenzen in Audits & Korrektur in Postgres, ggf. Re-Indexing
+betroffener Dokumente. \\
+\end{longtable}
+}
+
+\textbf{Reprocessing-Flows (vereinfacht)}
+
+\begin{figure}
+\centering
+\pandocbounded{\includesvg[keepaspectratio]{diagrams/diagram-10.svg}}
+\caption{Diagramm 10}
+\end{figure}
+
+\textbf{Operational Note}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Monitoring-Perspektive (SRE/DevOps)}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    DLQ-Größen und -Wachstumsgeschwindigkeit pro Topic und
+    \texttt{tenantId}.\\
+  \item
+    Kafka-Lag pro Consumer-Gruppe als Indikator für \textbf{Staus} in
+    einzelnen Stages.\\
+  \item
+    Fehlerraten nach Service (Extraction, Miner, AI, Indexer) und nach
+    Fehlertyp (\texttt{errorCode}).
+  \end{itemize}
+\item
+  \textbf{Best Practices}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Reprocessing \textbf{immer idempotent} gestalten (z.\,B. Embeddings
+    pro \texttt{documentId\ +\ chunkId} überschreibbar).\\
+  \item
+    Replays \textbf{batchweise} durchführen und Last auf Azure/Milvus
+    berücksichtigen (Zeitfenster, Rate-Limits).\\
+  \item
+    Bei kritischen Tenants ggf. \textbf{separates Maintenance-Fenster}
+    für großvolumige Re-Indexing-Jobs vorsehen.
+  \end{itemize}
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{8. Glossar (wichtige
+Begriffe)}\label{glossar-wichtige-begriffe}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Middleware}: Spring-Boot-Service als API-Gateway/Proxy; nimmt
+  Requests vom Client entgegen, kümmert sich um Authentifizierung und
+  reicht Aufrufe an die internen Services weiter.
+\item
+  \textbf{Data Service}: Python-Service zur Orchestrierung der
+  Datenflüsse (S3, Postgres, Milvus) und Verwaltung von
+  Dokument‑/Batch-Status.
+\item
+  \textbf{Extraction Service}: Python-Service für die Extraktion von
+  Text und Struktur aus binären Dokumenten (PDF, Bilder, Office) via
+  Azure Document Intelligence.
+\item
+  \textbf{Miner Service}: Python-Service zur fachlichen Anreicherung
+  (z.\,B. Erkennen von Rechnungsnummern, Beträgen, IDs) auf Basis des
+  extrahierten Textes.
+\item
+  \textbf{AI Service}: Python-Service für Chunking, Embedding-Erzeugung
+  (Azure OpenAI) und LLM-Aufrufe für Antworten.
+\item
+  \textbf{Milvus}: Vektordatenbank für Speicherung und Ähnlichkeitssuche
+  der Embeddings; bildet die Grundlage der Wissenssuche.
+\item
+  \textbf{Kafka Topic}: Append-only Log, in das Services Events
+  schreiben (Producer) und aus dem andere Services lesen (Consumer);
+  bildet jeweils eine Verarbeitungsstufe der Pipeline ab.
+\item
+  \textbf{DLQ (Dead Letter Queue)}: Spezielles Kafka-Topic, in das
+  Nachrichten mit dauerhaften Fehlern verschoben werden; dient zur
+  Analyse und zum manuellen/automatisierten Re-Processing.
+\item
+  \textbf{\texttt{tenantId}}: Technische Mandanten-ID; wird in allen
+  Topics, Datenbanken und Indexen mitgeführt, um Daten strikt
+  mandantengetrennt zu halten.
+\item
+  \textbf{\texttt{documentId}}: Eindeutige ID eines Dokuments innerhalb
+  eines Tenants; verknüpft Rohdatei, Extraktion, Metadaten, Chunks und
+  Embeddings.
+\item
+  \textbf{\texttt{batchId}}: Optionale ID, die mehrere Dokumente eines
+  Bulk-Uploads logisch gruppiert (z.\,B. ein Tages- oder Monatslauf
+  eines Mandanten).
+\item
+  \textbf{\texttt{contentHash}}: Hash-Wert (z.\,B. SHA‑256) über den
+  Dateiinhalt; dient zur Erkennung von Duplikaten über mehrere Uploads
+  hinweg.
+\item
+  \textbf{Chunk}: Kleinere Texteinheit eines Dokuments (Abschnitt,
+  Absatz etc.), die einzeln eingebettet und in Milvus gespeichert wird.
+\item
+  \textbf{Embedding}: Hochdimensionaler Vektor, der die Bedeutung eines
+  Chunks oder einer Frage für die Vektorsuche repräsentiert.
+\end{itemize}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\subsection{9. Weiterführende Literatur \&
+Referenzen}\label{weiterfuxfchrende-literatur-referenzen}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.2963}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.7037}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Quelle
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Inhalt / Relevanz
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{\href{https://www.kai-waehner.de/blog/2024/05/30/real-time-genai-with-rag-using-apache-kafka-and-flink-to-prevent-hallucinations/}{Real-Time
+GenAI with RAG using Apache Kafka and Flink to Prevent Hallucinations}}
+(Kai Waehner, Mai 2024) & Erläutert, warum \textbf{RAG + Event-Streaming
+(Kafka/Flink)} LLMs mit echtzeitnahem, kontextspezifischem Datenzugriff
+versorgt und so \textbf{Halluzinationen reduziert}. Themen: Real-Time
+Data Ingestion, dynamisches Indexing, Skalierbarkeit, kontextuelle
+Anreicherung in der RAG-Pipeline; inkl. Lightboard-Video und
+\textbf{Expedia-Case-Study} (conversational chatbot, 60 \%+
+Self-Service, 40 \%+ Kosteneinsparung bei Agenten). Direkt
+anschlussfähig an unsere Architektur (Kafka als Event-Bus,
+Mandantenfähigkeit, Ingestion vs.~Inference). \\
+\end{longtable}
+}

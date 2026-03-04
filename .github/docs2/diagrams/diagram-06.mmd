@@ -1,0 +1,8 @@
+graph LR
+    DR["document-received\n(docId=DOC-1)"]
+    DTE["document-to-extract\n(docId=DOC-1)"]
+    CE["content-extracted\n(docId=DOC-1)"]
+    ME["metadata-enriched\n(docId=DOC-1)"]
+    VRTI["vector-ready-to-index\n(docId=DOC-1)"]
+
+    DR --> DTE --> CE --> ME --> VRTI

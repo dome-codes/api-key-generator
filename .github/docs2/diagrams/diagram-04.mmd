@@ -1,0 +1,64 @@
+sequenceDiagram
+    autonumber
+    participant U as Client
+    participant API as Middleware
+    participant DS as Data Service
+    participant K as Kafka
+    participant ES as Extraction Svc
+    participant MS as Miner Svc
+    participant AIS as AI Svc
+    participant MIL as Milvus
+    participant AZ as Azure OpenAI
+
+    %% INGESTION
+    U->>API: POST /pipelines/documents (files, tenantId)
+    API->>DS: uploadRequest(documents, tenantId)
+    DS->>DS: compute contentHash per document
+
+    alt new document (hash unknown)
+        DS->>K: document-received {documentId, tenantId, s3Path, contentHash}
+    else duplicate (hash known)
+        DS->>DS: link to existing documentId
+        DS-->>API: ack (marked as duplicate)
+    end
+
+    rect rgba(200,200,255,0.2)
+        Note over K: asynchrone Verarbeitung ueber Topics
+
+        K-->>DS: document-received (consume)
+        DS->>K: document-to-extract {documentId, tenantId, s3Path}
+
+        K-->>ES: document-to-extract (consume)
+        ES->>AZ: call Document Intelligence
+        AZ-->>ES: extracted text, layout
+        ES->>K: content-extracted {documentId, plainText,...}
+
+        K-->>MS: content-extracted (consume)
+        MS->>MS: fachliche Metadaten finden
+        MS->>K: metadata-enriched {documentId, metadata}
+
+        K-->>AIS: metadata-enriched (consume)
+        AIS->>AZ: create embeddings for chunks
+        AZ-->>AIS: vectors
+        AIS->>K: vector-ready-to-index {documentId, chunks+vectors}
+        K-->>AIS: vector-ready-to-index (consume)
+        AIS->>DS: send vectors for indexing
+        DS->>MIL: write vectors (upsert)
+    end
+
+    DS-->>API: ingestion finished (per document/batch)
+
+    %% RETRIEVAL
+    U->>API: POST /chat {tenantId, question}
+    API->>DS: validate tenant, check status
+    API->>AIS: request query embedding
+    AIS->>AZ: embed question
+    AZ-->>AIS: query vector
+    AIS->>DS: vector search (Top-K)
+    DS->>MIL: search vectors
+    MIL-->>DS: top-K chunks
+    DS-->>AIS: chunks + metadata
+    AIS->>AZ: LLM call with context + question
+    AZ-->>AIS: answer
+    AIS-->>API: answer + sources
+    API-->>U: Antwort + Quellen
