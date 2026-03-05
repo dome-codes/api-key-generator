@@ -3,6 +3,7 @@ import type { ApiKeyDisplay } from '@/types/frontend'
 import ApiKeyCreateModal from '@/components/apikey/ApiKeyCreateModal.vue'
 import ApiKeyEditModal from '@/components/apikey/ApiKeyEditModal.vue'
 import ApiKeyTable from '@/components/apikey/ApiKeyTable.vue'
+import NutzungsbedingungenModal from '@/components/apikey/NutzungsbedingungenModal.vue'
 import DebugPanel from '@/components/debug/DebugPanel.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
@@ -64,6 +65,29 @@ const {
   showEditSuccess,
   showCreateSuccess,
 } = useModals()
+
+// Nutzungsbedingungen vor dem Erstellen von API-Keys
+const showTermsModal = ref(false)
+const acceptThisSession = ref(false)
+
+const onRequestCreateKey = () => {
+  if (!acceptThisSession.value) {
+    showTermsModal.value = true
+    return
+  }
+
+  openModal()
+}
+
+const onAcceptTerms = () => {
+  acceptThisSession.value = true
+  showTermsModal.value = false
+  openModal()
+}
+
+const onCloseTerms = () => {
+  showTermsModal.value = false
+}
 
 // Budget management
 const { budgetConfig, loadBudgetData } = useBudget()
@@ -259,7 +283,7 @@ onMounted(() => {
             <button
               v-if="canCreateKeys"
               class="bg-primary hover:bg-primary-hover text-white font-medium py-3 px-6 rounded-lg flex items-center gap-2.5 text-sm transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              @click="openModal"
+              @click="onRequestCreateKey"
             >
               <svg
                 class="w-5 h-5"
@@ -311,6 +335,14 @@ onMounted(() => {
             @update:name="(val: string) => (newKeyName = val)"
             @cancel="closeCreateModal"
             @create="createKeyModal"
+          />
+
+          <!-- Nutzungsbedingungen-Modal vor API-Key-Erstellung -->
+          <NutzungsbedingungenModal
+            :model-value="showTermsModal"
+            @update:model-value="(val: boolean) => (showTermsModal = val)"
+            @accept="onAcceptTerms"
+            @close="onCloseTerms"
           />
 
           <!-- Key Display Modal -->
