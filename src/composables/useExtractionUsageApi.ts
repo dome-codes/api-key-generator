@@ -285,69 +285,39 @@ export function useExtractionUsageApi() {
 
       debugLog('Loading extraction usage summary with filter:', currentFilter.value)
 
-      // Admin: Es gibt keinen Admin-Summary-Endpunkt für Extraction. Stattdessen alle
-      // Einträge über den List-Endpunkt (getUsageData) laden, damit Übersicht/Charts
-      // dieselben Daten wie die Detail-Ansicht nutzen (alle Operationen, alle Seiten, Kosten).
-      if (useAdminApi) {
-        const listFilter = {
-          ...currentFilter.value,
-          page: 1,
-          limit: 1000,
-        }
-        let allData: EnhancedExtractionUsageRecord[] = []
-        let page = 1
-        let totalPages = 1
-        do {
-          const result = await extractionUsageApiService.getUsageData({ ...listFilter, page }, true)
-          allData = [...allData, ...result.data]
-          totalPages = result.pagination?.totalPages ?? 1
-          page++
-        } while (page <= totalPages && allData.length > 0)
-
-        summaryData.value = allData
-        pagination.value = {
-          currentPage: 1,
-          pageSize: listFilter.limit ?? 1000,
-          totalItems: allData.length,
-          totalPages: 1,
-        }
-        debugLog('Extraction usage summary (admin via list) loaded:', {
-          count: allData.length,
-        })
-      } else {
-        // User: Summary-Endpunkt mit groupBy für gruppierte Daten
-        const summaryFilter = {
-          ...currentFilter.value,
-          page: 1,
-          limit: 10000,
-        }
-
-        const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
-
-        let allData = [...result.data]
-        let currentPage = 1
-        const totalPages = result.pagination?.totalPages ?? 0
-        const totalItems = result.pagination?.totalItems ?? 0
-
-        while (currentPage < totalPages && allData.length < totalItems) {
-          currentPage++
-          const pageResult = await extractionUsageApiService.getUsageSummary(
-            { ...summaryFilter, page: currentPage },
-            useAdminApi,
-          )
-          allData = [...allData, ...pageResult.data]
-        }
-
-        summaryData.value = allData
-        pagination.value = {
-          ...result.pagination,
-          totalItems: allData.length,
-        }
-        debugLog('Extraction usage summary loaded:', {
-          count: allData.length,
-          pagination: pagination.value,
-        })
+      // Immer Summary-Endpunkt nutzen (User + Admin) – wenige API-Calls, gruppierte Daten.
+      // groupBy kommt aus currentFilter (in Overview: ['day','month','year']).
+      const summaryFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 10000,
       }
+
+      const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
+
+      let allData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination?.totalPages ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
+
+      while (currentPage < totalPages && allData.length < totalItems) {
+        currentPage++
+        const pageResult = await extractionUsageApiService.getUsageSummary(
+          { ...summaryFilter, page: currentPage },
+          useAdminApi,
+        )
+        allData = [...allData, ...pageResult.data]
+      }
+
+      summaryData.value = allData
+      pagination.value = {
+        ...result.pagination,
+        totalItems: allData.length,
+      }
+      debugLog('Extraction usage summary loaded:', {
+        count: allData.length,
+        pagination: pagination.value,
+      })
     } catch (err) {
       error.value =
         err instanceof Error

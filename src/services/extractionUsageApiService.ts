@@ -8,6 +8,7 @@
 import { getAdmin } from '@/api/admin/admin'
 import type {
   AdminUsageExtractionGetV1Params,
+  AdminUsageExtractionSummaryGetV1Params,
   UsageExtractionGetV1Params,
   UsageExtractionSummaryGetV1Params,
 } from '@/api/types'
@@ -329,13 +330,11 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Summary-Endpoint: verwende nur offiziell unterstützte Summary-Parameter.
-      // Kein page/offset/limit mitsenden.
+      // Summary-Endpoint: groupBy = day|month|year|modelId|tag|userId|provider; Filter: tag, provider, modelId, from_date, to_date, userId, status
       const mappedBy = filter.groupBy
         ? filter.groupBy
             .map((item) => {
-              // Mappe alte Werte zu neuen Werten
-              if (item === 'apikey') return undefined // apikey wird nicht mehr unterstützt
+              if (item === 'apikey') return undefined
               if (item === 'user') return 'userId'
               const validValues = ['day', 'month', 'year', 'tag', 'modelId', 'userId', 'provider']
               return validValues.includes(item) ? item : undefined
@@ -343,17 +342,23 @@ export const extractionUsageApiService = {
             .filter((item): item is string => item !== undefined)
         : undefined
 
-      const apiParams: Omit<UsageExtractionSummaryGetV1Params, 'page' | 'limit'> = {
+      const apiParams = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
+        tag: filter.tag,
         provider: filter.provider,
         modelId: filter.modelId,
-        tag: filter.tag,
+        ...(filter.userId != null && filter.userId !== '' ? { userId: filter.userId } : {}),
+        ...(filter.status != null && filter.status !== '' ? { status: filter.status } : {}),
         by: mappedBy as UsageExtractionSummaryGetV1Params['by'],
-      }
+      } as Omit<UsageExtractionSummaryGetV1Params, 'page' | 'limit'>
 
-      // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
-      const apiResponse = await getUsage().usageExtractionSummaryGetV1(apiParams)
+      // Admin: /v1/admin/usage/extraction/summarize, User: /v1/usage/extraction/summarize
+      const apiResponse = useAdminApi
+        ? await getAdmin().adminUsageExtractionSummaryGetV1(
+            apiParams as AdminUsageExtractionSummaryGetV1Params,
+          )
+        : await getUsage().usageExtractionSummaryGetV1(apiParams)
       const response = apiResponse.data as
         | ExtractionPageResponseShape
         | ExtractionUsageSummaryRecordShape[]
