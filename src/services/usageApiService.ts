@@ -310,7 +310,14 @@ export const usageApiService = {
                 ''
               return uid
             })(),
+            technicalUserName: (item as Record<string, unknown>).technicalUserName as
+              | string
+              | undefined,
             userName: (() => {
+              const technical = (item as Record<string, unknown>).technicalUserName as
+                | string
+                | undefined
+              if (technical != null && String(technical).trim() !== '') return technical
               const uid =
                 (item as AIUsageRecord).userId ||
                 (item as AIUsageSummaryRecord).userId ||

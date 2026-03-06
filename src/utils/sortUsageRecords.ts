@@ -19,9 +19,16 @@ export function compareUsageRecords(
   let comparison = 0
   switch (field) {
     case 'userName':
-      comparison = (a.userName || '').localeCompare(b.userName || '')
+    case 'user':
+    case 'technicalUserName':
+      comparison = (
+        a.technicalUserName ??
+        a.userName ??
+        ''
+      ).localeCompare(String(b.technicalUserName ?? b.userName ?? ''))
       break
     case 'modelName':
+    case 'model':
       comparison = (a.modelName || '').localeCompare(b.modelName || '')
       break
     case 'modelType': {
@@ -46,14 +53,34 @@ export function compareUsageRecords(
       comparison = (a.cost || 0) - (b.cost || 0)
       break
     case 'date': {
-      const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
-      const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
-      comparison = dateA.getTime() - dateB.getTime()
+      const getTime = (r: EnhancedUsageRecord): number => {
+        if (r.year != null && r.month != null && r.day != null) {
+          return new Date(r.year, (r.month ?? 1) - 1, r.day ?? 1).getTime()
+        }
+        if (r.createDate && String(r.createDate).trim()) {
+          const t = new Date(r.createDate).getTime()
+          if (!Number.isNaN(t)) return t
+        }
+        return 0
+      }
+      comparison = getTime(a) - getTime(b)
       break
     }
     case 'apiKeyId':
       comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
       break
+    case 'tag':
+      comparison = (a.tag || '').localeCompare(b.tag || '')
+      break
+    case 'quality':
+      comparison = String(a.quality ?? '').localeCompare(String(b.quality ?? ''))
+      break
+    case 'imageSize': {
+      const pixelsA = (a.sizeWidth ?? 0) * (a.sizeHeight ?? 0)
+      const pixelsB = (b.sizeWidth ?? 0) * (b.sizeHeight ?? 0)
+      comparison = pixelsA - pixelsB
+      break
+    }
     default:
       comparison = 0
   }

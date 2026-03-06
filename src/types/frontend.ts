@@ -86,9 +86,11 @@ export interface ExtractionUsageFilterApi {
   groupBy?: string[]
 }
 
-/** UI record with computed fields (userName, cost, etc.) */
+/** UI record with computed fields (technicalUserName/userName, cost, etc.) */
 export interface EnhancedUsageRecord {
   userId?: string
+  /** Anzeigename aus Backend (technicalUserName); Fallback: userName oder "User {userId}" */
+  technicalUserName?: string
   userName?: string
   modelName?: string
   modelType?: ModelUsageType

@@ -214,7 +214,7 @@ const exportTableData = async () => {
       ...sortedData.value.map((item) =>
         [
           item.userId,
-          item.userName,
+          item.technicalUserName ?? item.userName,
           item.modelName,
           item.type || item.modelType,
           item.requests,
@@ -296,7 +296,9 @@ watch(
                 <svg
                   class="w-3 h-3"
                   :class="
-                    currentSortField === 'userName'
+                    currentSortField === 'userName' ||
+                    currentSortField === 'user' ||
+                    currentSortField === 'technicalUserName'
                       ? currentSortOrder === 'asc'
                         ? 'rotate-180'
                         : ''
@@ -322,7 +324,7 @@ watch(
               <div class="flex items-center gap-1">
                 Modell
                 <svg
-                  v-if="currentSortField === 'modelName'"
+                  v-if="currentSortField === 'modelName' || currentSortField === 'model'"
                   class="w-3 h-3"
                   :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
@@ -459,21 +461,75 @@ watch(
               </div>
             </th>
             <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('tag')"
             >
-              Tag
+              <div class="flex items-center gap-1">
+                Tag
+                <svg
+                  v-if="currentSortField === 'tag'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               v-if="showImageColumns"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('imageSize')"
             >
-              Größe
+              <div class="flex items-center gap-1">
+                Größe
+                <svg
+                  v-if="currentSortField === 'imageSize'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               v-if="showImageColumns"
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('quality')"
             >
-              Qualität
+              <div class="flex items-center gap-1">
+                Qualität
+                <svg
+                  v-if="currentSortField === 'quality'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -532,11 +588,13 @@ watch(
               <div class="flex items-center">
                 <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span class="text-sm font-medium text-blue-800">
-                    {{ getInitials(item.userName) }}
+                    {{ getInitials(item.technicalUserName ?? item.userName) }}
                   </span>
                 </div>
                 <div class="ml-4">
-                  <div class="text-sm font-medium text-gray-900">{{ item.userName }}</div>
+                  <div class="text-sm font-medium text-gray-900">
+                    {{ item.technicalUserName ?? item.userName }}
+                  </div>
                   <div class="text-sm text-gray-500">{{ item.userId || '–' }}</div>
                 </div>
               </div>

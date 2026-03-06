@@ -566,10 +566,14 @@ export function useUsageApi() {
       totalTokens: 'totalTokens',
       model: 'model',
       modelName: 'model',
-      user: 'user',
-      userName: 'user',
+      user: 'technicalUserName',
+      userName: 'technicalUserName',
+      technicalUserName: 'technicalUserName',
       modelType: 'modelType',
       apiKeyId: 'apiKeyId',
+      tag: 'tag',
+      quality: 'quality',
+      imageSize: 'imageSize',
     }
 
     const backendField = fieldMapping[sortField] || sortField
