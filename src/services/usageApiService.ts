@@ -253,12 +253,9 @@ export const usageApiService = {
 
       debugLog('[usageApiService] Calculated pagination:', { page, limit, offset })
 
-      // Backend verwendet nur offset und limit, nicht page
+      // Backend verwendet offset und limit; sort/order optional (OpenAPI-Typen haben sie ggf. nicht)
       // userId existiert nur bei Admin-Endpoint (/v1/admin/usage/ai), nicht bei /v1/usage/ai
-      // Erstelle params-Objekt OHNE page, damit es nicht im Query-String erscheint
-      const apiParams: Omit<import('@/api/types').UsageAIGetV1Params, 'page'> & {
-        offset?: number
-      } = {
+      const apiParams = {
         from_date: toIsoDateTime(filter.fromDate),
         to_date: toIsoDateTimeEndOfDay(filter.toDate),
         limit,
@@ -268,7 +265,9 @@ export const usageApiService = {
         apiKey: filter.apiKey,
         model: filter.model,
         usageType: usageTypeValue,
-      }
+        ...(filter.sort != null && filter.sort !== '' ? { sort: filter.sort } : {}),
+        ...(filter.order != null && filter.order !== '' ? { order: filter.order } : {}),
+      } as import('@/api/types').UsageAIGetV1Params
 
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageAIGetV1(apiParams)

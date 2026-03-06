@@ -2,6 +2,7 @@
 import type { EnhancedUsageRecord } from '@/types/frontend'
 import type { ModelUsageType } from '@/api/types'
 import { formatCost } from '@/config/pricing'
+import { sortUsageRecords } from '@/utils/sortUsageRecords'
 import ErrorState from './shared/ErrorState.vue'
 import SkeletonLoader from './shared/SkeletonLoader.vue'
 import { computed, ref, watch } from 'vue'
@@ -57,64 +58,12 @@ const showImageColumns = computed(() => {
 // Computed
 const filteredData = computed(() => props.data)
 
-// Wenn Backend-Sortierung aktiv ist, nutze Daten direkt (bereits sortiert)
-// Sonst client-seitige Sortierung als Fallback
+// Sortierung: einheitliche Logik aus @/utils/sortUsageRecords (wiederverwendbar für andere Tabellen)
 const sortedData = computed(() => {
-  if (props.useBackendSorting) {
-    // Daten sind bereits vom Backend sortiert
-    return filteredData.value
-  }
-
-  // Fallback: Client-seitige Sortierung
-  const data = [...filteredData.value]
-
-  return data.sort((a, b) => {
-    let comparison = 0
-
-    switch (localSortField.value) {
-      case 'userName':
-        comparison = (a.userName || '').localeCompare(b.userName || '')
-        break
-      case 'modelName':
-        comparison = (a.modelName || '').localeCompare(b.modelName || '')
-        break
-      case 'modelType': {
-        const typeA = a.type || a.modelType || ''
-        const typeB = b.type || b.modelType || ''
-        comparison = typeA.localeCompare(typeB)
-        break
-      }
-      case 'requests':
-        comparison = (a.requests || 0) - (b.requests || 0)
-        break
-      case 'tokensIn':
-        comparison = (a.tokensIn || 0) - (b.tokensIn || 0)
-        break
-      case 'tokensOut':
-        comparison = (a.tokensOut || 0) - (b.tokensOut || 0)
-        break
-      case 'totalTokens':
-        comparison = (a.totalTokens || 0) - (b.totalTokens || 0)
-        break
-      case 'cost':
-        comparison = (a.cost || 0) - (b.cost || 0)
-        break
-      case 'date': {
-        // Sortiere nach Datum (Jahr, Monat, Tag)
-        const dateA = new Date(a.year || 0, (a.month || 1) - 1, a.day || 1)
-        const dateB = new Date(b.year || 0, (b.month || 1) - 1, b.day || 1)
-        comparison = dateA.getTime() - dateB.getTime()
-        break
-      }
-      case 'apiKeyId':
-        comparison = (a.apiKeyId || '').localeCompare(b.apiKeyId || '')
-        break
-      default:
-        comparison = 0
-    }
-
-    return localSortOrder.value === 'asc' ? comparison : -comparison
-  })
+  const field = props.useBackendSorting && props.sortField ? props.sortField : localSortField.value
+  const order =
+    (props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value) || 'desc'
+  return sortUsageRecords(filteredData.value, field, order)
 })
 
 // Aktuelles Sortierfeld für Anzeige

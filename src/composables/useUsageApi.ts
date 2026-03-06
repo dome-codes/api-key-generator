@@ -556,7 +556,7 @@ export function useUsageApi() {
     sortOrder: 'asc' | 'desc',
     useAdminApi: boolean = false,
   ) => {
-    // Map frontend field names to backend field names
+    // Map frontend/Tabellen-Spaltennamen auf Backend-Feldnamen (API sort/order)
     const fieldMapping: Record<string, string> = {
       date: 'date',
       cost: 'cost',
@@ -565,7 +565,11 @@ export function useUsageApi() {
       tokensOut: 'tokensOut',
       totalTokens: 'totalTokens',
       model: 'model',
+      modelName: 'model',
       user: 'user',
+      userName: 'user',
+      modelType: 'modelType',
+      apiKeyId: 'apiKeyId',
     }
 
     const backendField = fieldMapping[sortField] || sortField
