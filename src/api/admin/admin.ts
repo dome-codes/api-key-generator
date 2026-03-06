@@ -15,11 +15,14 @@ import type {
   ExtractionUsagePage,
   ExtractionUsageSummaryPage
 } from '.././types';
+import type { ApiKeyDisplay } from '@/types/frontend';
 
 import adminUsageAIGetV1Mutator from '../../axios/api';
 import adminUsageAISummaryGetV1Mutator from '../../axios/api';
 import adminUsageExtractionGetV1Mutator from '../../axios/api';
 import adminUsageExtractionSummaryGetV1Mutator from '../../axios/api';
+import adminApikeysGetV1Mutator from '../../axios/api';
+import adminApikeysDeactivatePutV1Mutator from '../../axios/api';
 
 
 
@@ -76,8 +79,32 @@ const adminUsageExtractionSummaryGetV1 = (
     },
       );
     }
-  return {adminUsageAIGetV1,adminUsageAISummaryGetV1,adminUsageExtractionGetV1,adminUsageExtractionSummaryGetV1}};
+  /**
+ * Returns all API keys for all users. Admin only.
+ * @summary Returns all API keys (Admin)
+ */
+const adminApikeysGetV1 = () => {
+      return adminApikeysGetV1Mutator<ApiKeyDisplay[]>(
+      {url: `/v1/admin/apikeys`, method: 'GET'
+    },
+      );
+    }
+  /**
+ * Deactivates an API key by id. Admin only.
+ * @summary Deactivates an API key (Admin)
+ */
+const adminApikeysDeactivatePutV1 = (
+    apiKeyId: string,
+ ) => {
+      return adminApikeysDeactivatePutV1Mutator<void>(
+      {url: `/v1/admin/apikeys/${apiKeyId}/deactivate`, method: 'PUT'
+    },
+      );
+    }
+  return {adminUsageAIGetV1,adminUsageAISummaryGetV1,adminUsageExtractionGetV1,adminUsageExtractionSummaryGetV1,adminApikeysGetV1,adminApikeysDeactivatePutV1}};
 export type AdminUsageAIGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAIGetV1']>>>
 export type AdminUsageAISummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageAISummaryGetV1']>>>
 export type AdminUsageExtractionGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionGetV1']>>>
 export type AdminUsageExtractionSummaryGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminUsageExtractionSummaryGetV1']>>>
+export type AdminApikeysGetV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminApikeysGetV1']>>>
+export type AdminApikeysDeactivatePutV1Result = NonNullable<Awaited<ReturnType<ReturnType<typeof getAdmin>['adminApikeysDeactivatePutV1']>>>

@@ -96,6 +96,13 @@ export const apiKeyService = {
       throw new Error('Keine Berechtigung zum Deaktivieren von API-Keys')
     }
 
+    // Admins dürfen alle Keys verwalten → Admin-Endpunkt nutzen
+    if (hasPermission('canUseAdminFeatures')) {
+      await getAdmin().adminApikeysDeactivatePutV1(keyId)
+      return
+    }
+
+    // Normale Nutzer deaktivieren ihre eigenen Keys über den User-Endpunkt
     await api.put(`/v1/apikeys/${keyId}/deactivate`)
   },
 
@@ -133,7 +140,7 @@ export const apiKeyService = {
       throw new Error('Keine Admin-Berechtigung zum Anzeigen aller API-Keys')
     }
 
-    const response = await api.get('/v1/apikeys')
+    const response = await api.get('/v1/admin/apikeys')
     return response.data as ApiKeyDisplay[]
   },
 }
