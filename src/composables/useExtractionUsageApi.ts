@@ -5,13 +5,13 @@
  * für Extraction Usage über die API. Parallel zum useUsageApi Composable strukturiert.
  */
 
-import type {
-  EnhancedExtractionUsageRecord,
-  ExtractionUsageFilterApi,
-  ExtractionUsageAggregation,
-} from '@/types/frontend'
 import type { Page } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
+import type {
+  EnhancedExtractionUsageRecord,
+  ExtractionUsageAggregation,
+  ExtractionUsageFilterApi,
+} from '@/types/frontend'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
@@ -82,9 +82,8 @@ export function useExtractionUsageApi() {
 
       const entry = dateMap.get(dateKey)
       if (entry) {
-        // Wenn die Daten bereits gruppiert sind (day/month/year vorhanden), verwende die Werte direkt
-        // Ansonsten zähle jeden Eintrag als 1 Operation
-        entry.operations += 1 // Jeder Eintrag repräsentiert eine Gruppierung
+        // Bei Summary-Records: item.operations = Anzahl Operationen der Gruppe; sonst 1 pro Zeile
+        entry.operations += (item as EnhancedExtractionUsageRecord).operations ?? 1
         entry.pages += item.pages || 0
         entry.cost += item.cost || 0
         entry.confidenceSum += item.confidenceScore || 0
@@ -172,7 +171,10 @@ export function useExtractionUsageApi() {
       }
     }
 
-    const totalOperations = data.length
+    const totalOperations = data.reduce(
+      (sum, item) => sum + ((item as EnhancedExtractionUsageRecord).operations ?? 1),
+      0,
+    )
     const totalPages = data.reduce((sum, item) => sum + (item.pages ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
     const totalConfidence = data.reduce((sum, item) => sum + (item.confidenceScore ?? 0), 0)
@@ -224,7 +226,9 @@ export function useExtractionUsageApi() {
         ...currentFilter.value,
         page: currentFilter.value.page,
         limit: currentFilter.value.limit,
-        offset: currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : undefined,
+        offset: currentFilter.value.page
+          ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20)
+          : undefined,
       })
 
       const result = await extractionUsageApiService.getUsageData(currentFilter.value, useAdminApi)
@@ -281,42 +285,69 @@ export function useExtractionUsageApi() {
 
       debugLog('Loading extraction usage summary with filter:', currentFilter.value)
 
-      // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
-      // Verwende einen sehr hohen limit, um alle Daten zu erhalten
-      const summaryFilter = {
-        ...currentFilter.value,
-        page: 1,
-        limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
+      // Admin: Es gibt keinen Admin-Summary-Endpunkt für Extraction. Stattdessen alle
+      // Einträge über den List-Endpunkt (getUsageData) laden, damit Übersicht/Charts
+      // dieselben Daten wie die Detail-Ansicht nutzen (alle Operationen, alle Seiten, Kosten).
+      if (useAdminApi) {
+        const listFilter = {
+          ...currentFilter.value,
+          page: 1,
+          limit: 1000,
+        }
+        let allData: EnhancedExtractionUsageRecord[] = []
+        let page = 1
+        let totalPages = 1
+        do {
+          const result = await extractionUsageApiService.getUsageData({ ...listFilter, page }, true)
+          allData = [...allData, ...result.data]
+          totalPages = result.pagination?.totalPages ?? 1
+          page++
+        } while (page <= totalPages && allData.length > 0)
+
+        summaryData.value = allData
+        pagination.value = {
+          currentPage: 1,
+          pageSize: listFilter.limit ?? 1000,
+          totalItems: allData.length,
+          totalPages: 1,
+        }
+        debugLog('Extraction usage summary (admin via list) loaded:', {
+          count: allData.length,
+        })
+      } else {
+        // User: Summary-Endpunkt mit groupBy für gruppierte Daten
+        const summaryFilter = {
+          ...currentFilter.value,
+          page: 1,
+          limit: 10000,
+        }
+
+        const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
+
+        let allData = [...result.data]
+        let currentPage = 1
+        const totalPages = result.pagination?.totalPages ?? 0
+        const totalItems = result.pagination?.totalItems ?? 0
+
+        while (currentPage < totalPages && allData.length < totalItems) {
+          currentPage++
+          const pageResult = await extractionUsageApiService.getUsageSummary(
+            { ...summaryFilter, page: currentPage },
+            useAdminApi,
+          )
+          allData = [...allData, ...pageResult.data]
+        }
+
+        summaryData.value = allData
+        pagination.value = {
+          ...result.pagination,
+          totalItems: allData.length,
+        }
+        debugLog('Extraction usage summary loaded:', {
+          count: allData.length,
+          pagination: pagination.value,
+        })
       }
-
-      const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
-
-      // Wenn es mehr Daten gibt, lade alle Seiten
-      let allData = [...result.data]
-      let currentPage = 1
-      const totalPages = result.pagination?.totalPages ?? 0
-      const totalItems = result.pagination?.totalItems ?? 0
-
-      while (currentPage < totalPages && allData.length < totalItems) {
-        currentPage++
-        const pageResult = await extractionUsageApiService.getUsageSummary(
-          { ...summaryFilter, page: currentPage },
-          useAdminApi,
-        )
-        allData = [...allData, ...pageResult.data]
-      }
-
-      // Speichere Summary-Daten separat, damit sie nicht von loadUsageData überschrieben werden
-      summaryData.value = allData
-      pagination.value = {
-        ...result.pagination,
-        totalItems: allData.length,
-      }
-
-      debugLog('Extraction usage summary loaded:', {
-        count: allData.length,
-        pagination: pagination.value,
-      })
     } catch (err) {
       error.value =
         err instanceof Error
@@ -324,6 +355,7 @@ export function useExtractionUsageApi() {
           : 'Fehler beim Laden der Extraction-Nutzungszusammenfassung'
       debugLog('Error loading extraction usage summary:', err)
       usageData.value = []
+      summaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -354,16 +386,16 @@ export function useExtractionUsageApi() {
     const totalPages = pagination.value.totalPages
     if (totalPages != null && totalPages > 0 && page > totalPages) return
 
-    debugLog('[useExtractionUsageApi] goToPage called:', { 
-      requestedPage: page, 
+    debugLog('[useExtractionUsageApi] goToPage called:', {
+      requestedPage: page,
       currentFilterPage: currentFilter.value.page,
       currentLimit: currentFilter.value.limit,
-      calculatedOffset: (page - 1) * (currentFilter.value.limit || 20)
+      calculatedOffset: (page - 1) * (currentFilter.value.limit || 20),
     })
-    
+
     // Stelle sicher, dass page explizit gesetzt wird
     currentFilter.value = { ...currentFilter.value, page }
-    
+
     await loadUsageData({ page }, useAdminApi)
   }
 

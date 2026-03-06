@@ -11,11 +11,8 @@ import type {
   UsageExtractionGetV1Params,
   UsageExtractionSummaryGetV1Params,
 } from '@/api/types'
-import type {
-  EnhancedExtractionUsageRecord,
-  ExtractionUsageFilterApi,
-} from '@/types/frontend'
 import { getUsage } from '@/api/usage/usage'
+import type { EnhancedExtractionUsageRecord, ExtractionUsageFilterApi } from '@/types/frontend'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
 // Debug-Log mit Präfix
@@ -199,15 +196,15 @@ export const extractionUsageApiService = {
       }
 
       // Füge status hinzu, wenn es definiert ist (string reicht – andere OpenAPI kann andere Enums haben)
-      const apiParams = filter.status
-        ? { ...baseApiParams, status: filter.status }
-        : baseApiParams
-      
+      const apiParams = filter.status ? { ...baseApiParams, status: filter.status } : baseApiParams
+
       // List: Admin-Route existiert (/v1/admin/usage/extraction), Summarize nicht – siehe getUsageSummary
       const apiResponse = useAdminApi
         ? await getAdmin().adminUsageExtractionGetV1(apiParams as AdminUsageExtractionGetV1Params)
         : await getUsage().usageExtractionGetV1(apiParams as UsageExtractionGetV1Params)
-      const response = apiResponse.data as ExtractionPageResponseShape | ExtractionUsageRecordShape[]
+      const response = apiResponse.data as
+        | ExtractionPageResponseShape
+        | ExtractionUsageRecordShape[]
       const rawData = getDataArray<ExtractionUsageRecordShape>(response)
 
       debugLog('API response received:', response, 'rawData length:', rawData.length)
@@ -354,7 +351,7 @@ export const extractionUsageApiService = {
         tag: filter.tag,
         by: mappedBy as UsageExtractionSummaryGetV1Params['by'],
       }
-      
+
       // Es gibt keine /v1/admin/usage/extraction/summarize – immer User-Summarize nutzen
       const apiResponse = await getUsage().usageExtractionSummaryGetV1(apiParams)
       const response = apiResponse.data as
@@ -365,33 +362,32 @@ export const extractionUsageApiService = {
       debugLog('API summary response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
-      // Konvertiere Summary zu EnhancedExtractionUsageRecord
-      const enhancedData = rawData.map(
-        (item: ExtractionUsageSummaryRecordShape) => ({
-          id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
-          operationId: `${item.provider}-${item.modelId}`,
-          status: item.status || 'completed',
-          createDate:
-            item.year && item.month && item.day
-              ? new Date(item.year, item.month - 1, item.day).toISOString()
-              : new Date().toISOString(),
-          completedDate: undefined,
-          day: item.day,
-          month: item.month,
-          year: item.year,
-          userId: item.userId,
-          userName: `User ${item.userId}`,
-          apiKeyId: item.apiKeyId,
-          tag: item.tag,
-          provider: item.provider,
-          modelId: item.modelId,
-          documentType: 'unknown',
-          pages: item.totalPages,
-          extractedFields: [],
-          confidenceScore: item.averageConfidence,
-          cost: item.cost,
-        }),
-      )
+      // Konvertiere Summary zu EnhancedExtractionUsageRecord (operations für Chart-Aggregation)
+      const enhancedData = rawData.map((item: ExtractionUsageSummaryRecordShape) => ({
+        id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
+        operationId: `${item.provider}-${item.modelId}`,
+        status: item.status || 'completed',
+        createDate:
+          item.year && item.month && item.day
+            ? new Date(item.year, item.month - 1, item.day).toISOString()
+            : new Date().toISOString(),
+        completedDate: undefined,
+        day: item.day,
+        month: item.month,
+        year: item.year,
+        userId: item.userId,
+        userName: `User ${item.userId}`,
+        apiKeyId: item.apiKeyId,
+        tag: item.tag,
+        provider: item.provider,
+        modelId: item.modelId,
+        documentType: 'unknown',
+        pages: item.totalPages ?? 0,
+        extractedFields: [],
+        confidenceScore: item.averageConfidence,
+        cost: item.cost ?? 0,
+        operations: item.operations ?? 1,
+      }))
 
       diagLog('getUsageSummary (extraction, after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,
@@ -404,8 +400,7 @@ export const extractionUsageApiService = {
         'pagination' in response
           ? (response as ExtractionPageResponseShape).pagination
           : undefined
-      const pagination =
-        mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
+      const pagination = mapPagination(backendPagination) ?? (backendPagination as Page | undefined)
 
       // Berechne currentPage aus offset/limit falls Backend keine Pagination liefert
       const calculatedPage = offset > 0 && limit > 0 ? Math.floor(offset / limit) + 1 : 1

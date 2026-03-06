@@ -109,8 +109,19 @@ const formatCost = (cost: number): string => {
   return `€${cost.toFixed(2)}`
 }
 
-const formatConfidence = (confidence: number): string => {
-  return (confidence * 100).toFixed(1)
+/** Exakter Kostenwert für Tooltip (immer anzeigen bei Hover). */
+const costTitle = (cost: number | undefined | null, pages: number | undefined | null): string => {
+  const c = cost ?? 0
+  const p = pages ?? 0
+  if (c > 0) return `Kosten: €${c.toFixed(4)}`
+  if (p > 0) return 'Kosten werden vom Backend nicht geliefert.'
+  return 'Kosten: €0.00'
+}
+
+/** Zeigt "–" wenn Confidence vom API nicht geliefert wird, sonst Prozent. */
+const formatConfidence = (confidence: number | undefined | null): string => {
+  if (confidence == null || (typeof confidence === 'number' && Number.isNaN(confidence))) return '–'
+  return `${(Number(confidence) * 100).toFixed(1)}%`
 }
 
 const formatDate = (dateStr: string): string => {
@@ -409,9 +420,12 @@ const getInitials = (name?: string): string => {
                 {{ item.pages ?? 0 }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatConfidence(item.confidenceScore ?? 0) }}%
+                {{ formatConfidence(item.confidenceScore) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-help"
+                :title="costTitle(item.cost, item.pages)"
+              >
                 {{ formatCost(item.cost ?? 0) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -437,16 +451,22 @@ const getInitials = (name?: string): string => {
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-700">
-              Seite {{ paginationPage }} von {{ Math.max(1, paginationTotalPages) }} ({{ paginationTotal }}
+              Seite {{ paginationPage }} von {{ Math.max(1, paginationTotalPages) }} ({{
+                paginationTotal
+              }}
               Einträge)
             </div>
             <div class="flex items-center gap-2">
-              <label for="page-size-select-extraction" class="text-sm text-gray-700">Einträge pro Seite:</label>
+              <label for="page-size-select-extraction" class="text-sm text-gray-700"
+                >Einträge pro Seite:</label
+              >
               <select
                 id="page-size-select-extraction"
                 :value="pagination?.pageSize || 20"
                 class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                @change="$emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
+                @change="
+                  $emit('page-size-change', Number(($event.target as HTMLSelectElement).value))
+                "
               >
                 <option :value="10">10</option>
                 <option :value="20">20</option>
