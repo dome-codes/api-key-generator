@@ -347,7 +347,7 @@ export function useExtractionUsageApi() {
       }
 
       // 1) Chart: groupBy day/month/year (evtl. paginieren)
-      const chartFilter = { ...baseFilter, groupBy: ['day', 'month', 'year'] as const }
+      const chartFilter = { ...baseFilter, groupBy: ['day', 'month', 'year'] as string[] }
       const result = await extractionUsageApiService.getUsageSummary(chartFilter, useAdminApi)
       let allData = [...result.data]
       let currentPage = 1

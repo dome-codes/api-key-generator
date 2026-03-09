@@ -193,7 +193,8 @@ const handleOwnFilterChange = async () => {
     // Setze Filter ohne sofort zu laden
     // WICHTIG: Behalte die aktuelle Seite bei, wenn nur andere Filter geändert werden
     // Setze page nur auf 1 zurück, wenn sich die View ändert (overview <-> detailed)
-    const newGroupBy = ownView.value === 'overview' ? ['day', 'month', 'year'] : undefined
+    const newGroupBy: string[] | undefined =
+      ownView.value === 'overview' ? (['day', 'month', 'year'] as string[]) : undefined
     const viewChanged = JSON.stringify(newGroupBy) !== JSON.stringify(currentFilter.value.groupBy)
     
     currentFilter.value = {
