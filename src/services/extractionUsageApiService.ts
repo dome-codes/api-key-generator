@@ -402,8 +402,13 @@ export const extractionUsageApiService = {
           readNum(raw, 'operations', 'requests', 'totalRequests', 'total_requests') ?? 1
         // Seiten-Kachel = Pages (alle Varianten)
         const pages = readNum(raw, 'pages', 'totalPages', 'total_pages') ?? 0
-        // Kosten-Kachel = Cost (alle Varianten)
-        const cost = readNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts') ?? 0
+        // Kosten-Kachel = Cost (alle Varianten oder lokal berechnet, wenn Backend nichts liefert)
+        let cost = readNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts') ?? undefined
+        if (cost == null || Number.isNaN(cost)) {
+          const { finalCost } = calculateExtractionCost(pages, item.modelId || 'unknown')
+          cost = finalCost
+        }
+
         return {
           id: `${item.provider ?? ''}-${item.modelId ?? ''}-${item.day ?? ''}-${item.month ?? ''}-${item.year ?? ''}`,
           operationId: `${item.provider}-${item.modelId}`,
