@@ -61,8 +61,10 @@ function getDataArray<T>(response: unknown): T[] {
   if (!response || typeof response !== 'object') return []
   const o = response as Record<string, unknown>
   for (const key of ['data', 'items', 'usage'] as const) {
-    const arr = o[key]
-    if (Array.isArray(arr)) return arr
+    const val = o[key]
+    if (Array.isArray(val)) return val
+    // Summarize ohne "by" liefert oft ein einzelnes Objekt unter data → als 1-Element-Array
+    if (val != null && typeof val === 'object' && !Array.isArray(val)) return [val] as T[]
   }
   return []
 }
@@ -165,6 +167,8 @@ interface ExtractionUsageSummaryRecordShape {
   requests?: number
   totalPages?: number
   pages?: number
+  totalRequests?: number
+  queryFields?: number
   averageConfidence?: number
   cost?: number
 }
@@ -368,10 +372,23 @@ export const extractionUsageApiService = {
       debugLog('API summary response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
+      // Hilfsfunktion: Werte aus Backend-Objekt lesen (API kann requests/pages ODER operations/totalPages liefern, ggf. snake_case)
+      const readNum = (obj: Record<string, unknown>, ...keys: string[]): number | undefined => {
+        for (const k of keys) {
+          const v = obj[k]
+          if (typeof v === 'number' && !Number.isNaN(v)) return v
+        }
+        return undefined
+      }
+
       // Konvertiere Summary zu EnhancedExtractionUsageRecord (API: requests/pages oder operations/totalPages)
       const enhancedData = rawData.map((item: ExtractionUsageSummaryRecordShape) => {
-        const operations = item.operations ?? item.requests ?? 1
-        const pages = item.pages ?? item.totalPages ?? 0
+        const raw = item as unknown as Record<string, unknown>
+        // Operationen-Kachel = Requests (alle Varianten aus Response)
+        const operations =
+          readNum(raw, 'operations', 'requests', 'totalRequests', 'total_requests') ?? 1
+        // Seiten-Kachel = Pages (alle Varianten)
+        const pages = readNum(raw, 'pages', 'totalPages', 'total_pages') ?? 0
         return {
           id: `${item.provider ?? ''}-${item.modelId ?? ''}-${item.day ?? ''}-${item.month ?? ''}-${item.year ?? ''}`,
           operationId: `${item.provider}-${item.modelId}`,
