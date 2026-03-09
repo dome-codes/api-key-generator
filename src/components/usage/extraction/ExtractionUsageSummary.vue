@@ -85,7 +85,7 @@ defineEmits<{
       >
         <div class="text-sm text-gray-600 font-medium">Durchschnittliche Confidence</div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ formatConfidence(summary.averageConfidence ?? 0) }}%
+          {{ summary.averageConfidence != null ? `${formatConfidence(summary.averageConfidence)}%` : '–' }}
         </div>
       </div>
 
@@ -105,7 +105,7 @@ defineEmits<{
       >
         <div class="text-sm text-gray-600 font-medium">Eindeutige Benutzer</div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ summary.uniqueUsers?.toLocaleString() || 0 }}
+          {{ summary.uniqueUsers != null && summary.uniqueUsers > 0 ? summary.uniqueUsers.toLocaleString() : '–' }}
         </div>
       </div>
 
@@ -115,7 +115,7 @@ defineEmits<{
       >
         <div class="text-sm text-gray-600 font-medium">Provider</div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ summary.uniqueProviders?.toLocaleString() || 0 }}
+          {{ (summary.uniqueProviders ?? 0) > 0 ? (summary.uniqueProviders ?? 0).toLocaleString() : '–' }}
         </div>
       </div>
 
@@ -125,7 +125,7 @@ defineEmits<{
       >
         <div class="text-sm text-gray-600 font-medium">Modelle</div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ summary.uniqueModels?.toLocaleString() || 0 }}
+          {{ (summary.uniqueModels ?? 0) > 0 ? (summary.uniqueModels ?? 0).toLocaleString() : '–' }}
         </div>
       </div>
     </div>

@@ -150,7 +150,7 @@ interface ExtractionUsageRecordShape {
   cost?: number
 }
 
-/** Minimale Form eines Extraction-Summary-Records */
+/** Minimale Form eines Extraction-Summary-Records (API kann requests/pages oder operations/totalPages liefern) */
 interface ExtractionUsageSummaryRecordShape {
   status?: string
   tag?: string
@@ -162,7 +162,9 @@ interface ExtractionUsageSummaryRecordShape {
   month?: number
   year?: number
   operations?: number
+  requests?: number
   totalPages?: number
+  pages?: number
   averageConfidence?: number
   cost?: number
 }
@@ -367,32 +369,36 @@ export const extractionUsageApiService = {
       debugLog('API summary response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
-      // Konvertiere Summary zu EnhancedExtractionUsageRecord (operations für Chart-Aggregation)
-      const enhancedData = rawData.map((item: ExtractionUsageSummaryRecordShape) => ({
-        id: `${item.provider}-${item.modelId}-${item.day || ''}-${item.month || ''}-${item.year || ''}`,
-        operationId: `${item.provider}-${item.modelId}`,
-        status: item.status || 'completed',
-        createDate:
-          item.year && item.month && item.day
-            ? new Date(item.year, item.month - 1, item.day).toISOString()
-            : new Date().toISOString(),
-        completedDate: undefined,
-        day: item.day,
-        month: item.month,
-        year: item.year,
-        userId: item.userId,
-        userName: `User ${item.userId}`,
-        apiKeyId: item.apiKeyId,
-        tag: item.tag,
-        provider: item.provider,
-        modelId: item.modelId,
-        documentType: 'unknown',
-        pages: item.totalPages ?? 0,
-        extractedFields: [],
-        confidenceScore: item.averageConfidence,
-        cost: item.cost ?? 0,
-        operations: item.operations ?? 1,
-      }))
+      // Konvertiere Summary zu EnhancedExtractionUsageRecord (API: requests/pages oder operations/totalPages)
+      const enhancedData = rawData.map((item: ExtractionUsageSummaryRecordShape) => {
+        const operations = item.operations ?? item.requests ?? 1
+        const pages = item.pages ?? item.totalPages ?? 0
+        return {
+          id: `${item.provider ?? ''}-${item.modelId ?? ''}-${item.day ?? ''}-${item.month ?? ''}-${item.year ?? ''}`,
+          operationId: `${item.provider}-${item.modelId}`,
+          status: item.status || 'completed',
+          createDate:
+            item.year != null && item.month != null && item.day != null
+              ? new Date(item.year, item.month - 1, item.day).toISOString()
+              : new Date().toISOString(),
+          completedDate: undefined,
+          day: item.day,
+          month: item.month,
+          year: item.year,
+          userId: item.userId,
+          userName: item.userId ? `User ${item.userId}` : '',
+          apiKeyId: item.apiKeyId,
+          tag: item.tag,
+          provider: item.provider,
+          modelId: item.modelId,
+          documentType: 'unknown',
+          pages,
+          extractedFields: [],
+          confidenceScore: item.averageConfidence,
+          cost: item.cost ?? 0,
+          operations,
+        }
+      })
 
       diagLog('getUsageSummary (extraction, after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,

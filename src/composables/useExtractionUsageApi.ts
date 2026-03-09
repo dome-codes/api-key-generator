@@ -178,10 +178,20 @@ export function useExtractionUsageApi() {
     const totalPages = data.reduce((sum, item) => sum + (item.pages ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
     const totalConfidence = data.reduce((sum, item) => sum + (item.confidenceScore ?? 0), 0)
+    const hasAnyConfidence = data.some(
+      (item) => item.confidenceScore != null && !Number.isNaN(Number(item.confidenceScore)),
+    )
 
-    const uniqueUsers = new Set(data.map((item) => item.userId)).size
-    const uniqueProviders = new Set(data.map((item) => item.provider)).size
-    const uniqueModels = new Set(data.map((item) => item.modelId)).size
+    // Nur befüllte Werte zählen (bei groupBy day/month/year sind userId, provider, modelId oft leer)
+    const uniqueUsers = new Set(
+      data.map((i) => i.userId).filter((id) => id != null && String(id).trim() !== ''),
+    ).size
+    const uniqueProviders = new Set(
+      data.map((i) => i.provider).filter((p) => p != null && String(p).trim() !== ''),
+    ).size
+    const uniqueModels = new Set(
+      data.map((i) => i.modelId).filter((m) => m != null && String(m).trim() !== ''),
+    ).size
 
     const operationsByStatus: { [key: string]: number } = {}
     data.forEach((item) => {
@@ -192,7 +202,8 @@ export function useExtractionUsageApi() {
     return {
       totalOperations,
       totalPages,
-      averageConfidence: totalOperations > 0 ? totalConfidence / totalOperations : 0,
+      averageConfidence:
+        hasAnyConfidence && totalOperations > 0 ? totalConfidence / totalOperations : undefined,
       totalCost,
       uniqueUsers,
       uniqueProviders,
