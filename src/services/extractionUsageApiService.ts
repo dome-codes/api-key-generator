@@ -332,7 +332,7 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Summary-Endpoint: groupBy = day|month|year|modelId|tag|userId|provider; Filter: tag, provider, modelId, from_date, to_date, userId, status
+      // Summary-Endpoint: groupBy = day|month|year|modelId|tag|userId|provider; Filter: tag, provider, modelId, from_date, to_date, optional userId
       const mappedBy = filter.groupBy
         ? filter.groupBy
             .map((item) => {
@@ -351,7 +351,6 @@ export const extractionUsageApiService = {
         provider: filter.provider,
         modelId: filter.modelId,
         ...(filter.userId != null && filter.userId !== '' ? { userId: filter.userId } : {}),
-        ...(filter.status != null && filter.status !== '' ? { status: filter.status } : {}),
         by: mappedBy as UsageExtractionSummaryGetV1Params['by'],
       } as Omit<UsageExtractionSummaryGetV1Params, 'page' | 'limit'>
 

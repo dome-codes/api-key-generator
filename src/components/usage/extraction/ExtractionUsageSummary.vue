@@ -28,10 +28,6 @@ const formatCost = (cost: number): string => {
   return `€${cost.toFixed(2)}`
 }
 
-const formatConfidence = (confidence: number): string => {
-  return (confidence * 100).toFixed(1)
-}
-
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
     processing: 'In Bearbeitung',
@@ -77,15 +73,6 @@ defineEmits<{
         <div class="text-sm text-gray-600 font-medium">Seiten</div>
         <div class="text-2xl font-bold text-gray-900">
           {{ summary.totalPages.toLocaleString() }}
-        </div>
-      </div>
-
-      <div
-        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-      >
-        <div class="text-sm text-gray-600 font-medium">Durchschnittliche Confidence</div>
-        <div class="text-2xl font-bold text-gray-900">
-          {{ summary.averageConfidence != null ? `${formatConfidence(summary.averageConfidence)}%` : '–' }}
         </div>
       </div>
 
