@@ -36,6 +36,7 @@ const {
   updateSort,
   goToPage,
   currentFilter,
+  summaryUsers,
 } = useExtractionUsageApi()
 
 // Filter State
@@ -50,6 +51,16 @@ const adminUserGroup = ref('')
 
 // Unique users for admin filter
 const uniqueUsers = ref<Array<{ id: string; displayName: string }>>([])
+
+// Admin: Nutzerliste aus Summary(by=userId) für Filter aufbauen
+watch(
+  summaryUsers,
+  (ids) => {
+    if (!props.useAdminApi) return
+    uniqueUsers.value = ids.map((id) => ({ id, displayName: id }))
+  },
+  { immediate: true },
+)
 
 // Initialize default dates - Standardmäßig letzte 30 Tage
 const setDefaultDates = () => {
@@ -325,6 +336,16 @@ onMounted(async () => {
     }
 
     await handleOwnFilterChange()
+
+    // Admin: verfügbare Nutzer aus Summary übernehmen, sobald Daten geladen sind
+    if (props.useAdminApi && Array.isArray(usageData.value)) {
+      const ids = new Set(
+        usageData.value
+          .map((item) => item.userId)
+          .filter((id): id is string => !!id && String(id).trim() !== ''),
+      )
+      uniqueUsers.value = Array.from(ids).map((id) => ({ id, displayName: id }))
+    }
   } catch (err) {
     debugLog('Error initializing ExtractionUsageContent:', err)
     error.value = err instanceof Error ? err.message : 'Fehler beim Initialisieren'

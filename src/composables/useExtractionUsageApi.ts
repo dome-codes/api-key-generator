@@ -29,6 +29,8 @@ export function useExtractionUsageApi() {
   const tileUniqueUsers = ref<number | null>(null)
   const tileUniqueProviders = ref<number | null>(null)
   const tileUniqueModels = ref<number | null>(null)
+  /** Verfügbare Nutzer aus Summarize(by=userId) – für Admin-Filter-Dropdown */
+  const summaryUsers = ref<string[]>([])
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -168,14 +170,7 @@ export function useExtractionUsageApi() {
     if (useTiles) {
       const totalOperations = global.totalOperations
       const totalPages = global.totalPages
-      // Kosten bevorzugt aus den gruppierten Summary-Daten (Chart-Call),
-      // damit sie in beiden Views konsistent sind
-      const costSource =
-        summaryData.value.length > 0 ? summaryData.value : usageData.value
-      const totalCost = costSource.reduce(
-        (sum, item) => sum + (item.cost ?? 0),
-        0,
-      )
+      const totalCost = global.totalCost ?? 0
       return {
         totalOperations,
         totalPages,
@@ -405,7 +400,12 @@ export function useExtractionUsageApi() {
         totalPages: totalPagesSum,
         totalCost: totalCostSum,
       }
-      tileUniqueUsers.value = byUserIdRes.data.length
+      // Nutzerliste für Admin-Filter aus Summarize(by=userId)
+      const userIds = byUserIdRes.data
+        .map((item) => item.userId)
+        .filter((id): id is string => !!id && String(id).trim() !== '')
+      summaryUsers.value = Array.from(new Set(userIds))
+      tileUniqueUsers.value = summaryUsers.value.length
       tileUniqueProviders.value = byProviderRes.data.length
       tileUniqueModels.value = byModelIdRes.data.length
 
@@ -428,6 +428,7 @@ export function useExtractionUsageApi() {
       tileUniqueUsers.value = null
       tileUniqueProviders.value = null
       tileUniqueModels.value = null
+      summaryUsers.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -542,6 +543,7 @@ export function useExtractionUsageApi() {
     chartData,
     providerDistributionChartData,
     statusDistributionChartData,
+    summaryUsers,
 
     // Actions
     loadUsageData,
