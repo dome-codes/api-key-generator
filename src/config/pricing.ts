@@ -22,6 +22,12 @@ export interface EmbeddingModelPricing {
   pricePer1000Tokens: number // € pro 1000 Tokens
 }
 
+// Document Intelligence / Extraction Preise (pro Seite)
+export interface ExtractionModelPricing {
+  modelId: string
+  pricePerPage: number // € pro Seite
+}
+
 // Default Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
 const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
   // GPT-4o Serie (Stand: 2026)
@@ -131,6 +137,40 @@ const DEFAULT_AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
   },
 ]
 
+// Default Document-Intelligence / Extraction Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
+// HINWEIS: Werte sind Platzhalter – bitte über Admin-UI oder localStorage überschreiben.
+const DEFAULT_EXTRACTION_MODEL_PRICING: ExtractionModelPricing[] = [
+  {
+    modelId: 'document-intelligence',
+    pricePerPage: 0.05,
+  },
+  {
+    modelId: 'prebuilt-layout',
+    pricePerPage: 0.02,
+  },
+  {
+    modelId: 'prebuilt-document',
+    pricePerPage: 0.03,
+  },
+  {
+    modelId: 'prebuilt-invoice',
+    pricePerPage: 0.05,
+  },
+  {
+    modelId: 'prebuilt-receipt',
+    pricePerPage: 0.02,
+  },
+  {
+    modelId: 'prebuilt-businessCard',
+    pricePerPage: 0.02,
+  },
+  // Fallback für unbekannte Extraction-Modelle
+  {
+    modelId: 'unknown',
+    pricePerPage: 0.03,
+  },
+]
+
 // FITS-Aufschlag (9%) - kann aus localStorage geladen werden
 const DEFAULT_SERVICE_MARKUP_PERCENTAGE = 0.09
 
@@ -179,6 +219,11 @@ export const AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = loadPricin
   DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
 )
 
+export const AZURE_EXTRACTION_MODEL_PRICING: ExtractionModelPricing[] = loadPricingFromStorage(
+  'pricing:extraction',
+  DEFAULT_EXTRACTION_MODEL_PRICING,
+)
+
 export const SERVICE_MARKUP_PERCENTAGE = loadMarkupFromStorage()
 
 // Helper: Lade aktuelle Preise dynamisch (wird bei jedem calculateCost-Aufruf verwendet)
@@ -206,6 +251,7 @@ export {
   DEFAULT_AZURE_MODEL_PRICING,
   DEFAULT_AZURE_IMAGE_MODEL_PRICING,
   DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+  DEFAULT_EXTRACTION_MODEL_PRICING,
   DEFAULT_SERVICE_MARKUP_PERCENTAGE,
 }
 
@@ -249,6 +295,36 @@ export function calculateCost(
 
   // Standard-Token-basierte Berechnung für Completion-Modelle
   return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput)
+}
+
+// Seiten-basierte Kostenberechnung für Document Intelligence / Extraction
+export function calculateExtractionCost(
+  pages: number,
+  modelId: string,
+): {
+  totalCost: number
+  serviceMarkup: number
+  finalCost: number
+} {
+  const currentPricing = AZURE_EXTRACTION_MODEL_PRICING
+  const currentMarkup = getCurrentMarkup()
+
+  const normalizedModelId = (modelId || '').toLowerCase()
+  const model =
+    currentPricing.find((m) => m.modelId.toLowerCase() === normalizedModelId) ||
+    currentPricing.find((m) => m.modelId === 'unknown') ||
+    currentPricing[0]
+
+  const safePages = Number.isFinite(pages) && pages > 0 ? pages : 0
+  const totalCost = safePages * (model?.pricePerPage ?? 0)
+  const serviceMarkup = totalCost * currentMarkup
+  const finalCost = totalCost + serviceMarkup
+
+  return {
+    totalCost,
+    serviceMarkup,
+    finalCost,
+  }
 }
 
 // Token-basierte Kostenberechnung für Completion-Modelle

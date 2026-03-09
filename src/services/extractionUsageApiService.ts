@@ -14,6 +14,7 @@ import type {
 } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
 import type { EnhancedExtractionUsageRecord, ExtractionUsageFilterApi } from '@/types/frontend'
+import { calculateExtractionCost } from '@/config/pricing'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 
 // Debug-Log mit Präfix
@@ -171,6 +172,8 @@ interface ExtractionUsageSummaryRecordShape {
   queryFields?: number
   averageConfidence?: number
   cost?: number
+  totalCost?: number
+  total_cost?: number
 }
 
 export const extractionUsageApiService = {
@@ -218,35 +221,45 @@ export const extractionUsageApiService = {
       diagLog('getUsageData (extraction)', response, rawData.length, rawData[0])
 
       // Konvertiere zu EnhancedExtractionUsageRecord
-      const enhancedData = rawData.map((item: ExtractionUsageRecordShape) => ({
-        id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
-        operationId: item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
-        status: item.status || 'completed',
-        createDate: item.createDate || new Date().toISOString(),
-        completedDate: item.completedDate,
-        day: item.day,
-        month: item.month,
-        year: item.year,
-        userId: item.userId || '',
-        userName: (() => {
-          const userId = item.userId || ''
-          if (!userId || userId.trim() === '') return 'Unknown User'
-          // Für technische User (SVC_*, e*, b*) zeige die ID direkt
-          if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
-            return userId
-          }
-          return `User ${userId}`
-        })(),
-        apiKeyId: item.apiKeyId,
-        tag: item.tag || '',
-        provider: item.provider || '',
-        modelId: item.modelId || '',
-        documentType: item.documentType || '',
-        pages: item.pages || 0,
-        extractedFields: item.extractedFields || [],
-        confidenceScore: item.confidenceScore || 0,
-        cost: item.cost || 0,
-      }))
+      const enhancedData = rawData.map((item: ExtractionUsageRecordShape) => {
+        const basePages = item.pages || 0
+        let cost = item.cost
+        if (cost == null || Number.isNaN(cost)) {
+          const { finalCost } = calculateExtractionCost(basePages, item.modelId || 'unknown')
+          cost = finalCost
+        }
+
+        return {
+          id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
+          operationId:
+            item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
+          status: item.status || 'completed',
+          createDate: item.createDate || new Date().toISOString(),
+          completedDate: item.completedDate,
+          day: item.day,
+          month: item.month,
+          year: item.year,
+          userId: item.userId || '',
+          userName: (() => {
+            const userId = item.userId || ''
+            if (!userId || userId.trim() === '') return 'Unknown User'
+            // Für technische User (SVC_*, e*, b*) zeige die ID direkt
+            if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
+              return userId
+            }
+            return `User ${userId}`
+          })(),
+          apiKeyId: item.apiKeyId,
+          tag: item.tag || '',
+          provider: item.provider || '',
+          modelId: item.modelId || '',
+          documentType: item.documentType || '',
+          pages: basePages,
+          extractedFields: item.extractedFields || [],
+          confidenceScore: item.confidenceScore || 0,
+          cost,
+        }
+      })
 
       diagLog('getUsageData (extraction, after map)', response, rawData.length, rawData[0], {
         length: enhancedData.length,
@@ -389,6 +402,8 @@ export const extractionUsageApiService = {
           readNum(raw, 'operations', 'requests', 'totalRequests', 'total_requests') ?? 1
         // Seiten-Kachel = Pages (alle Varianten)
         const pages = readNum(raw, 'pages', 'totalPages', 'total_pages') ?? 0
+        // Kosten-Kachel = Cost (alle Varianten)
+        const cost = readNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts') ?? 0
         return {
           id: `${item.provider ?? ''}-${item.modelId ?? ''}-${item.day ?? ''}-${item.month ?? ''}-${item.year ?? ''}`,
           operationId: `${item.provider}-${item.modelId}`,
@@ -411,7 +426,7 @@ export const extractionUsageApiService = {
           pages,
           extractedFields: [],
           confidenceScore: item.averageConfidence,
-          cost: item.cost ?? 0,
+          cost,
           operations,
         }
       })
