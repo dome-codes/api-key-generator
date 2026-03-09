@@ -168,7 +168,14 @@ export function useExtractionUsageApi() {
     if (useTiles) {
       const totalOperations = global.totalOperations
       const totalPages = global.totalPages
-      const totalCost = global.totalCost
+      // Kosten bevorzugt aus den gruppierten Summary-Daten (Chart-Call),
+      // damit sie in beiden Views konsistent sind
+      const costSource =
+        summaryData.value.length > 0 ? summaryData.value : usageData.value
+      const totalCost = costSource.reduce(
+        (sum, item) => sum + (item.cost ?? 0),
+        0,
+      )
       return {
         totalOperations,
         totalPages,
@@ -247,7 +254,6 @@ export function useExtractionUsageApi() {
   ) => {
     isLoading.value = true
     error.value = null
-    clearTileData()
 
     try {
       // Aktualisiere Filter explizit - WICHTIG: filter.page muss immer gesetzt werden, wenn es übergeben wird
