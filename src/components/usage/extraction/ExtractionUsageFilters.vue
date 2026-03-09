@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 
 // Props
 interface Props {
   timeRange: string
   modelId?: string
-  status?: DocumentIntelligenceOperationStatus | ''
   fromDate?: string
   toDate?: string
   selectedUser?: string
@@ -24,7 +22,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:timeRange': [value: string]
   'update:modelId': [value: string]
-  'update:status': [value: DocumentIntelligenceOperationStatus | '']
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
@@ -41,11 +38,6 @@ const timeRange = computed({
 const modelId = computed({
   get: () => props.modelId || '',
   set: (value) => emit('update:modelId', value),
-})
-
-const status = computed({
-  get: () => props.status || '',
-  set: (value) => emit('update:status', value as DocumentIntelligenceOperationStatus | ''),
 })
 
 const fromDate = computed({
@@ -226,22 +218,6 @@ watch(selectedUser, (newUser) => {
           <option value="prebuilt-receipt">Prebuilt Receipt</option>
           <option value="prebuilt-businessCard">Prebuilt Business Card</option>
           <option value="document-intelligence">Document Intelligence</option>
-        </select>
-      </div>
-
-      <!-- Status Filter -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-        <select
-          v-model="status"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-        >
-          <option value="">Alle Status</option>
-          <option value="processing">In Bearbeitung</option>
-          <option value="completed">Abgeschlossen</option>
-          <option value="failed">Fehlgeschlagen</option>
-          <option value="canceled">Abgebrochen</option>
-          <option value="skipped">Übersprungen</option>
         </select>
       </div>
 

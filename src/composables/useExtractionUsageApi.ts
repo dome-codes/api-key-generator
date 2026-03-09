@@ -23,7 +23,12 @@ export function useExtractionUsageApi() {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const usageData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
-  const summaryData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
+  const summaryData = ref<EnhancedExtractionUsageRecord[]>([]) // Für Chart (groupBy day/month/year)
+  /** Pro-Kachel Summarize-Ergebnisse: global (ohne by), by=userId, by=provider, by=modelId */
+  const tileGlobal = ref<{ totalOperations: number; totalPages: number; totalCost: number } | null>(null)
+  const tileUniqueUsers = ref<number | null>(null)
+  const tileUniqueProviders = ref<number | null>(null)
+  const tileUniqueModels = ref<number | null>(null)
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -153,9 +158,33 @@ export function useExtractionUsageApi() {
   })
 
   const usageAggregation = computed<ExtractionUsageAggregation>(() => {
-    // Verwende summaryData für die Aggregation, nicht usageData (das ist paginiert)
-    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
+    // Kacheln: Werte aus den pro-Kachel Summarize-Calls (Overview)
+    const global = tileGlobal.value
+    const uUsers = tileUniqueUsers.value
+    const uProviders = tileUniqueProviders.value
+    const uModels = tileUniqueModels.value
+    const useTiles = global != null
 
+    if (useTiles) {
+      const totalOperations = global.totalOperations
+      const totalPages = global.totalPages
+      const totalCost = global.totalCost
+      return {
+        totalOperations,
+        totalPages,
+        averageConfidence: undefined,
+        totalCost,
+        uniqueUsers: uUsers ?? 0,
+        uniqueProviders: uProviders ?? 0,
+        uniqueModels: uModels ?? 0,
+        operationsByStatus: {},
+        averagePagesPerOperation: totalOperations > 0 ? totalPages / totalOperations : 0,
+        averageCostPerOperation: totalOperations > 0 ? totalCost / totalOperations : 0,
+      }
+    }
+
+    // Fallback: aus summaryData/usageData (z. B. Detail-View oder vor erstem Tile-Load)
+    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
     if (data.length === 0) {
       return {
         totalOperations: 0,
@@ -181,8 +210,6 @@ export function useExtractionUsageApi() {
     const hasAnyConfidence = data.some(
       (item) => item.confidenceScore != null && !Number.isNaN(Number(item.confidenceScore)),
     )
-
-    // Nur befüllte Werte zählen (bei groupBy day/month/year sind userId, provider, modelId oft leer)
     const uniqueUsers = new Set(
       data.map((i) => i.userId).filter((id) => id != null && String(id).trim() !== ''),
     ).size
@@ -192,7 +219,6 @@ export function useExtractionUsageApi() {
     const uniqueModels = new Set(
       data.map((i) => i.modelId).filter((m) => m != null && String(m).trim() !== ''),
     ).size
-
     const operationsByStatus: { [key: string]: number } = {}
     data.forEach((item) => {
       const status = item.status ?? 'unknown'
@@ -221,6 +247,7 @@ export function useExtractionUsageApi() {
   ) => {
     isLoading.value = true
     error.value = null
+    clearTileData()
 
     try {
       // Aktualisiere Filter explizit - WICHTIG: filter.page muss immer gesetzt werden, wenn es übergeben wird
@@ -282,12 +309,24 @@ export function useExtractionUsageApi() {
     }
   }
 
+  /** Kachel-Daten zurücksetzen bei Wechsel auf Detail-View */
+  const clearTileData = () => {
+    tileGlobal.value = null
+    tileUniqueUsers.value = null
+    tileUniqueProviders.value = null
+    tileUniqueModels.value = null
+  }
+
   const loadUsageSummary = async (
     filter?: Partial<ExtractionUsageFilterApi>,
     useAdminApi: boolean = false,
   ) => {
     isLoading.value = true
     error.value = null
+    tileGlobal.value = null
+    tileUniqueUsers.value = null
+    tileUniqueProviders.value = null
+    tileUniqueModels.value = null
 
     try {
       if (filter) {
@@ -296,38 +335,80 @@ export function useExtractionUsageApi() {
 
       debugLog('Loading extraction usage summary with filter:', currentFilter.value)
 
-      // Immer Summary-Endpunkt nutzen (User + Admin) – wenige API-Calls, gruppierte Daten.
-      // groupBy kommt aus currentFilter (in Overview: ['day','month','year']).
-      const summaryFilter = {
-        ...currentFilter.value,
+      const baseFilter = {
+        fromDate: currentFilter.value.fromDate,
+        toDate: currentFilter.value.toDate,
+        tag: currentFilter.value.tag,
+        provider: currentFilter.value.provider,
+        modelId: currentFilter.value.modelId,
+        userId: currentFilter.value.userId,
         page: 1,
         limit: 10000,
       }
 
-      const result = await extractionUsageApiService.getUsageSummary(summaryFilter, useAdminApi)
-
+      // 1) Chart: groupBy day/month/year (evtl. paginieren)
+      const chartFilter = { ...baseFilter, groupBy: ['day', 'month', 'year'] as const }
+      const result = await extractionUsageApiService.getUsageSummary(chartFilter, useAdminApi)
       let allData = [...result.data]
       let currentPage = 1
       const totalPages = result.pagination?.totalPages ?? 0
       const totalItems = result.pagination?.totalItems ?? 0
-
       while (currentPage < totalPages && allData.length < totalItems) {
         currentPage++
         const pageResult = await extractionUsageApiService.getUsageSummary(
-          { ...summaryFilter, page: currentPage },
+          { ...chartFilter, page: currentPage },
           useAdminApi,
         )
         allData = [...allData, ...pageResult.data]
       }
-
       summaryData.value = allData
       pagination.value = {
         ...result.pagination,
         totalItems: allData.length,
       }
+
+      // 2) Pro-Kachel Summarize-Calls parallel: ohne by, by=userId, by=provider, by=modelId
+      const [globalRes, byUserIdRes, byProviderRes, byModelIdRes] = await Promise.all([
+        extractionUsageApiService.getUsageSummary(
+          { ...baseFilter, groupBy: undefined },
+          useAdminApi,
+        ),
+        extractionUsageApiService.getUsageSummary(
+          { ...baseFilter, groupBy: ['userId'] },
+          useAdminApi,
+        ),
+        extractionUsageApiService.getUsageSummary(
+          { ...baseFilter, groupBy: ['provider'] },
+          useAdminApi,
+        ),
+        extractionUsageApiService.getUsageSummary(
+          { ...baseFilter, groupBy: ['modelId'] },
+          useAdminApi,
+        ),
+      ])
+
+      const globalData = globalRes.data
+      const totalOperations = globalData.reduce(
+        (sum, item) => sum + ((item as EnhancedExtractionUsageRecord).operations ?? 1),
+        0,
+      )
+      const totalPagesSum = globalData.reduce((sum, item) => sum + (item.pages ?? 0), 0)
+      const totalCostSum = globalData.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+      tileGlobal.value = {
+        totalOperations,
+        totalPages: totalPagesSum,
+        totalCost: totalCostSum,
+      }
+      tileUniqueUsers.value = byUserIdRes.data.length
+      tileUniqueProviders.value = byProviderRes.data.length
+      tileUniqueModels.value = byModelIdRes.data.length
+
       debugLog('Extraction usage summary loaded:', {
-        count: allData.length,
-        pagination: pagination.value,
+        chartCount: allData.length,
+        tileGlobal: tileGlobal.value,
+        uniqueUsers: tileUniqueUsers.value,
+        uniqueProviders: tileUniqueProviders.value,
+        uniqueModels: tileUniqueModels.value,
       })
     } catch (err) {
       error.value =
@@ -337,6 +418,10 @@ export function useExtractionUsageApi() {
       debugLog('Error loading extraction usage summary:', err)
       usageData.value = []
       summaryData.value = []
+      tileGlobal.value = null
+      tileUniqueUsers.value = null
+      tileUniqueProviders.value = null
+      tileUniqueModels.value = null
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,

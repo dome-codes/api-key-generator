@@ -3,7 +3,6 @@ import { useExtractionUsageApi } from '@/composables/useExtractionUsageApi'
 import { useUrlFilters } from '@/composables/useUrlFilters'
 import { debugLog } from '@/utils/debugLog'
 import { computed, onMounted, ref, watch } from 'vue'
-import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import ExtractionUsageCharts from './ExtractionUsageCharts.vue'
 import ExtractionUsageFilters from './ExtractionUsageFilters.vue'
 import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
@@ -42,7 +41,6 @@ const {
 // Filter State
 const ownTimeRange = ref('')
 const ownModelId = ref('')
-const ownStatus = ref<DocumentIntelligenceOperationStatus | ''>('')
 const ownTag = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownFromDate = ref('')
@@ -73,7 +71,6 @@ const loadFiltersFromUrl = () => {
   ownTimeRange.value = urlTimeRange || '30d'
 
   ownModelId.value = getQueryParam('modelId') || ''
-  ownStatus.value = (getQueryParam('status') as DocumentIntelligenceOperationStatus | '') || ''
   ownTag.value = getQueryParam('tag') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
@@ -141,7 +138,6 @@ const saveFiltersToUrl = () => {
   // Setze alle Filter-Werte explizit (auch leere), damit sie aus der URL entfernt werden können
   params.timeRange = ownTimeRange.value || undefined
   params.modelId = ownModelId.value || undefined
-  params.status = ownStatus.value || undefined
   params.tag = ownTag.value || undefined
   params.view = ownView.value || undefined
   params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
@@ -190,7 +186,6 @@ const handleOwnFilterChange = async () => {
       fromDate: ownFromDate.value,
       toDate: ownToDate.value,
       modelId: ownModelId.value,
-      status: ownStatus.value,
       tag: ownTag.value,
       useAdminApi: props.useAdminApi,
     })
@@ -206,7 +201,6 @@ const handleOwnFilterChange = async () => {
       fromDate: toIsoDate(ownFromDate.value),
       toDate: toIsoDate(ownToDate.value),
       modelId: ownModelId.value || undefined,
-      status: ownStatus.value || undefined,
       tag: ownTag.value || undefined,
       userId: props.useAdminApi ? adminUser.value || undefined : undefined,
       groupBy: newGroupBy,
@@ -346,7 +340,6 @@ onMounted(async () => {
     <ExtractionUsageFilters
       v-model:time-range="ownTimeRange"
       v-model:model-id="ownModelId"
-      v-model:status="ownStatus"
       v-model:tag="ownTag"
       v-model:from-date="ownFromDate"
       v-model:to-date="ownToDate"
