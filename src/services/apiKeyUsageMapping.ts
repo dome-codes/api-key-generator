@@ -238,6 +238,27 @@ export function buildApiKeyUsageMap(
       }
       usageCountByKeyId[key.id] = (usageCountByKeyId[key.id] ?? 0) + 1
     }
+
+    // Fallback: Wenn wir zwar Usage pro userId haben, aber keinem Key etwas zuordnen konnten
+    // (z. B. weil Keys keine userId haben), ordnen wir den Gesamtverbrauch dem ersten aktiven Key zu.
+    const userIdsWithUsage = Object.keys(usageByUserId)
+    if (userIdsWithUsage.length > 0 && userIdAlreadyAssigned.size === 0 && keys.length > 0) {
+      const firstActiveKey = keys.find((k) => k.active !== false) ?? keys[0]
+      const total: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
+      for (const uid of userIdsWithUsage) {
+        const u = usageByUserId[uid]
+        total.cost += u.cost
+        total.tokensIn += u.tokensIn
+        total.tokensOut += u.tokensOut
+      }
+      const existing = map[firstActiveKey.id]
+      map[firstActiveKey.id] = {
+        cost: (existing?.cost ?? 0) + total.cost,
+        tokensIn: (existing?.tokensIn ?? 0) + total.tokensIn,
+        tokensOut: (existing?.tokensOut ?? 0) + total.tokensOut,
+      }
+      usageCountByKeyId[firstActiveKey.id] = (usageCountByKeyId[firstActiveKey.id] ?? 0) + 1
+    }
   }
 
   if (isDebugLogEnabled()) {
