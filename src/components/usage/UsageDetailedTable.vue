@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EnhancedUsageRecord } from '@/types/frontend'
 import type { ModelUsageType } from '@/api/types'
-import { formatCost } from '@/config/pricing'
+import { calculateCost, formatCost } from '@/config/pricing'
 import { sortUsageRecords } from '@/utils/sortUsageRecords'
 import ErrorState from './shared/ErrorState.vue'
 import SkeletonLoader from './shared/SkeletonLoader.vue'
@@ -175,35 +175,57 @@ const formatDate = (day?: number, month?: number, year?: number, createDate?: st
 const hoveredCostItem = ref<EnhancedUsageRecord | null>(null)
 
 const buildCostTooltip = (item: EnhancedUsageRecord): string => {
-  const parts: string[] = []
-  parts.push(`Gesamtkosten: ${formatCost(item.cost ?? 0)}`)
-  parts.push(
-    `Tokens In: ${(item.tokensIn ?? 0).toLocaleString()}${
-      (
-        item as EnhancedUsageRecord & {
-          cachedTokens?: number
-        }
-      ).cachedTokens
-        ? ` (Cached: ${((item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0).toLocaleString()})`
-        : ''
-    }`,
-  )
-  parts.push(
-    `Tokens Out: ${(item.tokensOut ?? 0).toLocaleString()}${
-      (
-        item as EnhancedUsageRecord & {
-          reasoningTokens?: number
-        }
-      ).reasoningTokens
-        ? ` (Reasoning: ${((item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0).toLocaleString()})`
-        : ''
-    }`,
-  )
+  const tokensIn = item.tokensIn ?? 0
+  const tokensOut = item.tokensOut ?? 0
+  const cachedTokens = (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0
+  const reasoningTokens =
+    (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0
+  const modelName = item.modelName || 'unknown'
+  const modelType = (item.type || item.modelType) as ModelUsageType | string | undefined
 
-  if ((item.modelName ?? '').toLowerCase() === 'unknown') {
+  let inputCost = 0
+  let outputCost = 0
+  let totalCost = 0
+  let serviceMarkup = 0
+  let finalCost = item.cost ?? 0
+
+  try {
+    const result = calculateCost(tokensIn, tokensOut, modelName, false, modelType)
+    inputCost = result.inputCost
+    outputCost = result.outputCost
+    totalCost = result.totalCost
+    serviceMarkup = result.serviceMarkup
+    // Nutze berechneten Wert nur, wenn kein expliziter cost gesetzt ist
+    if (!Number.isFinite(finalCost) || finalCost === 0) {
+      finalCost = result.finalCost
+    }
+  } catch (e) {
+    debugLog('Fehler bei calculateCost in buildCostTooltip:', e)
+  }
+
+  const parts: string[] = []
+  parts.push(`Gesamtkosten (inkl. Aufschlag): ${formatCost(finalCost)}`)
+  parts.push('')
+  parts.push('Eingangsdaten:')
+  parts.push(`- Modell: ${modelName}`)
+  parts.push(
+    `- Input-Tokens: ${tokensIn.toLocaleString()} (Cached: ${cachedTokens.toLocaleString()})`,
+  )
+  parts.push(
+    `- Output-Tokens: ${tokensOut.toLocaleString()} (Reasoning: ${reasoningTokens.toLocaleString()})`,
+  )
+  parts.push('')
+  parts.push('Berechnung (aggregiert):')
+  parts.push(`- Input-Kosten: €${inputCost.toFixed(4)}`)
+  parts.push(`- Output-Kosten: €${outputCost.toFixed(4)}`)
+  parts.push(`- Summe (ohne Aufschlag): €${totalCost.toFixed(4)}`)
+  parts.push(`- Service-Aufschlag: €${serviceMarkup.toFixed(4)}`)
+  parts.push(`- Endbetrag: €${finalCost.toFixed(4)}`)
+
+  if (modelName.toLowerCase() === 'unknown') {
     parts.push('')
     parts.push(
-      'Hinweis: Kosten wurden mit einem Default-/Fallback-Preis berechnet, da das Modell nicht eindeutig zugeordnet werden konnte.',
+      'Hinweis: Modell nicht in Preisliste gefunden – Default-Eintrag "unknown" wurde für die Berechnung verwendet.',
     )
   }
 

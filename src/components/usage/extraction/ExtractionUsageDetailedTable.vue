@@ -5,6 +5,7 @@ import ErrorState from '../shared/ErrorState.vue'
 import type { EnhancedExtractionUsageRecord } from '@/types/frontend'
 import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import type { Page } from '@/api/types'
+import { AZURE_EXTRACTION_MODEL_PRICING, SERVICE_MARKUP_PERCENTAGE } from '@/config/pricing'
 import { computed, ref, watch } from 'vue'
 
 interface Props {
@@ -109,13 +110,48 @@ const formatCost = (cost: number): string => {
   return `€${cost.toFixed(2)}`
 }
 
-/** Exakter Kostenwert für Tooltip (immer anzeigen bei Hover). */
-const costTitle = (cost: number | undefined | null, pages: number | undefined | null): string => {
-  const c = cost ?? 0
-  const p = pages ?? 0
-  if (c > 0) return `Kosten: €${c.toFixed(4)}`
-  if (p > 0) return 'Kosten werden vom Backend nicht geliefert.'
-  return 'Kosten: €0.00'
+const hoveredCostItem = ref<EnhancedExtractionUsageRecord | null>(null)
+
+/** Detaillierte Aufschlüsselung der Kostenberechnung für eine einzelne Extraction-Operation. */
+const buildCostTooltip = (item: EnhancedExtractionUsageRecord): string => {
+  const pages = Number(item.pages ?? 0)
+  const modelId = (item.modelId || 'unknown').toString()
+
+  const normalizedModelId = modelId.toLowerCase()
+  const model =
+    AZURE_EXTRACTION_MODEL_PRICING.find((m) => m.modelId.toLowerCase() === normalizedModelId) ||
+    AZURE_EXTRACTION_MODEL_PRICING.find((m) => m.modelId === 'unknown') ||
+    AZURE_EXTRACTION_MODEL_PRICING[0]
+
+  const pricePerPage = model?.pricePerPage ?? 0
+  const baseCost = pages > 0 ? pages * pricePerPage : 0
+  const markupPercent = SERVICE_MARKUP_PERCENTAGE ?? 0
+  const serviceMarkup = baseCost * markupPercent
+  const finalCost = baseCost + serviceMarkup
+
+  const lines: string[] = []
+  lines.push(`Gesamtkosten (inkl. Aufschlag): €${finalCost.toFixed(4)}`)
+  lines.push('')
+  lines.push('Eingangsdaten:')
+  lines.push(`- Seiten: ${pages}`)
+  lines.push(`- Modell: ${modelId}`)
+  lines.push(`- Preis pro Seite (netto): €${pricePerPage.toFixed(4)}`)
+  lines.push('')
+  lines.push('Berechnung:')
+  lines.push(`- Basis: Seiten * Preis/Seite = ${pages} * €${pricePerPage.toFixed(4)} = €${baseCost.toFixed(4)}`)
+  lines.push(
+    `- Service-Aufschlag (${(markupPercent * 100).toFixed(1)}%): €${serviceMarkup.toFixed(4)}`,
+  )
+  lines.push(`- Endbetrag: €${finalCost.toFixed(4)}`)
+
+  if (model?.modelId === 'unknown' && normalizedModelId !== 'unknown') {
+    lines.push('')
+    lines.push(
+      'Hinweis: Kein exakter Preis für dieses Modell gefunden – Fallback-Eintrag "unknown" wurde für die Berechnung verwendet.',
+    )
+  }
+
+  return lines.join('\n')
 }
 
 /** Zeigt "–" wenn Confidence vom API nicht geliefert wird, sonst Prozent. */
@@ -422,11 +458,28 @@ const getInitials = (name?: string): string => {
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ formatConfidence(item.confidenceScore) }}
               </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-help"
-                :title="costTitle(item.cost, item.pages)"
-              >
-                {{ formatCost(item.cost ?? 0) }}
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div
+                  class="relative inline-flex items-center cursor-help"
+                  @mouseenter="hoveredCostItem = item"
+                  @mouseleave="hoveredCostItem = null"
+                >
+                  <span>
+                    {{ formatCost(item.cost ?? 0) }}
+                  </span>
+
+                  <div
+                    v-if="hoveredCostItem === item"
+                    class="absolute z-20 mt-2 left-0 w-80 bg-white text-xs text-gray-800 rounded-lg shadow-lg border border-gray-200 p-4"
+                  >
+                    <div class="text-sm font-semibold text-gray-900 mb-1">
+                      Kostenkalkulation (Extraction)
+                    </div>
+                    <pre class="whitespace-pre-wrap text-[11px] leading-snug text-gray-700">
+                      {{ buildCostTooltip(item) }}
+                    </pre>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatDate(item.createDate ?? '') }}
