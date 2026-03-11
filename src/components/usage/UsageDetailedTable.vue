@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EnhancedUsageRecord } from '@/types/frontend'
 import type { ModelUsageType } from '@/api/types'
-import { calculateCost, formatCost } from '@/config/pricing'
+import { AZURE_MODEL_PRICING, calculateCost, formatCost } from '@/config/pricing'
 import { sortUsageRecords } from '@/utils/sortUsageRecords'
 import ErrorState from './shared/ErrorState.vue'
 import SkeletonLoader from './shared/SkeletonLoader.vue'
@@ -183,6 +183,16 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   const modelName = item.modelName || 'unknown'
   const modelType = (item.type || item.modelType) as ModelUsageType | string | undefined
 
+  const pricingModel =
+    AZURE_MODEL_PRICING.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ??
+    AZURE_MODEL_PRICING.find((m) => m.modelName === 'unknown')
+
+  const inputPricePerMillion = pricingModel?.inputPrice ?? 0
+  const outputPricePerMillion = pricingModel?.outputPrice ?? 0
+  const cachedInputPricePerMillion = pricingModel?.cachedInputPrice
+  const reasoningPricePerMillion =
+    pricingModel?.reasoningPrice != null ? pricingModel.reasoningPrice : outputPricePerMillion
+
   let inputCost = 0
   let outputCost = 0
   let totalCost = 0
@@ -204,8 +214,6 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   }
 
   const parts: string[] = []
-  parts.push(`Gesamtkosten (inkl. Aufschlag): ${formatCost(finalCost)}`)
-  parts.push('')
   parts.push('Eingangsdaten:')
   parts.push(`- Modell: ${modelName}`)
   parts.push(
@@ -214,6 +222,16 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   parts.push(
     `- Output-Tokens: ${tokensOut.toLocaleString()} (Reasoning: ${reasoningTokens.toLocaleString()})`,
   )
+  parts.push('')
+  parts.push('Modellpreise (pro 1M Tokens):')
+  parts.push(`- Input: €${inputPricePerMillion.toFixed(4)} / 1M Tokens`)
+  if (cachedInputPricePerMillion != null) {
+    parts.push(`- Cached Input: €${cachedInputPricePerMillion.toFixed(4)} / 1M Tokens`)
+  }
+  parts.push(`- Output: €${outputPricePerMillion.toFixed(4)} / 1M Tokens`)
+  if (reasoningPricePerMillion !== outputPricePerMillion) {
+    parts.push(`- Reasoning: €${reasoningPricePerMillion.toFixed(4)} / 1M Tokens`)
+  }
   parts.push('')
   parts.push('Berechnung (aggregiert):')
   parts.push(`- Input-Kosten: €${inputCost.toFixed(4)}`)
@@ -762,19 +780,21 @@ watch(
                 @mouseenter="hoveredCostItem = item"
                 @mouseleave="hoveredCostItem = null"
               >
-                <span>
-                  {{ formatCost(item.cost ?? 0) }}
-                </span>
-
                 <div
                   v-if="hoveredCostItem === item"
                   class="absolute z-20 mt-2 left-0 w-80 bg-white text-xs text-gray-800 rounded-lg shadow-lg border border-gray-200 p-4"
                 >
                   <div class="text-sm font-semibold text-gray-900 mb-1">Kostenkalkulation</div>
+                  <div class="text-sm font-semibold text-gray-900 mb-2">
+                    Gesamtkosten: {{ formatCost(item.cost ?? 0) }}
+                  </div>
                   <pre class="whitespace-pre-wrap text-[11px] leading-snug text-gray-700">
                     {{ buildCostTooltip(item) }}
                   </pre>
                 </div>
+                <span>
+                  {{ formatCost(item.cost ?? 0) }}
+                </span>
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

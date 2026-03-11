@@ -464,10 +464,6 @@ const getInitials = (name?: string): string => {
                   @mouseenter="hoveredCostItem = item"
                   @mouseleave="hoveredCostItem = null"
                 >
-                  <span>
-                    {{ formatCost(item.cost ?? 0) }}
-                  </span>
-
                   <div
                     v-if="hoveredCostItem === item"
                     class="absolute z-20 mt-2 left-0 w-80 bg-white text-xs text-gray-800 rounded-lg shadow-lg border border-gray-200 p-4"
@@ -475,10 +471,16 @@ const getInitials = (name?: string): string => {
                     <div class="text-sm font-semibold text-gray-900 mb-1">
                       Kostenkalkulation (Extraction)
                     </div>
+                    <div class="text-sm font-semibold text-gray-900 mb-2">
+                      Gesamtkosten: {{ formatCost(item.cost ?? 0) }}
+                    </div>
                     <pre class="whitespace-pre-wrap text-[11px] leading-snug text-gray-700">
                       {{ buildCostTooltip(item) }}
                     </pre>
                   </div>
+                  <span>
+                    {{ formatCost(item.cost ?? 0) }}
+                  </span>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
