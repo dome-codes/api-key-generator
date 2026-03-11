@@ -166,6 +166,13 @@ export interface ApiKeyUsageData {
   tokensOut: number
 }
 
+// Verbrauch pro Benutzer (aggregiert über alle Keys eines Users)
+export interface UserUsageData {
+  cost: number
+  tokensIn: number
+  tokensOut: number
+}
+
 /**
  * API-Key für die Anzeige in der Liste (Keys-Seite).
  * Wird aus der API-Response gemappt (z. B. id, name, createdAt, expiresAt, userId, active → diese Felder).

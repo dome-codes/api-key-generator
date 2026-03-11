@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiKeyDisplay } from '@/types/frontend'
+import type { ApiKeyDisplay, UserUsageData } from '@/types/frontend'
 import ApiKeyCreateModal from '@/components/apikey/ApiKeyCreateModal.vue'
 import ApiKeyEditModal from '@/components/apikey/ApiKeyEditModal.vue'
 import ApiKeyTable from '@/components/apikey/ApiKeyTable.vue'
@@ -117,9 +117,8 @@ const apiKeyUsageData = computed(() => {
   return result
 })
 
-// Admin: Verbrauch pro Benutzer über Summarize(userId) – für spätere Auswertung/Debug
-// (aktuell noch nicht an ApiKeyTable angebunden, aber vorbereitet)
-// const userUsageData = ref<Record<string, ApiKeyUsageData>>({})
+// Admin: Verbrauch pro Benutzer über Summarize(userId) – wird in ApiKeyTable angezeigt
+const userUsageData = ref<Record<string, UserUsageData>>({})
 
 
 // Sidebar state - lade aus localStorage oder verwende Default
@@ -240,6 +239,66 @@ const loadInitialData = async () => {
     loadUsageSummary(), // Lädt Summary nach API-Key und befüllt detailedUsageData für das Mapping
   ])
 
+  // Admin: Verbrauch pro Benutzer über separate Summarize(userId)-Aufrufe laden
+  try {
+    const distinctUserIds = [
+      ...new Set(apiKeys.value.map((k) => k.userId).filter((id): id is string => !!id)),
+    ]
+
+    if (distinctUserIds.length === 0) {
+      userUsageData.value = {}
+      return
+    }
+
+    const now = new Date()
+    const fromIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const toIso = now.toISOString()
+
+    const results = await Promise.all(
+      distinctUserIds.map(async (uid) => ({
+        userId: uid,
+        records: await apiKeyService.getUsageSummaryByUser(uid, fromIso, toIso),
+      })),
+    )
+
+    const map: Record<string, UserUsageData> = {}
+    for (const { userId, records } of results) {
+      if (!records || records.length === 0) continue
+      let cost = 0
+      let tokensIn = 0
+      let tokensOut = 0
+      records.forEach((r) => {
+        cost += Number(r.cost) || 0
+        // requestTokens/responseTokens heißen in Summary wie in AIUsageSummaryRecord
+        const req = Number(
+          (r as unknown as { requestTokens?: number; requestsTokens?: number }).requestTokens ??
+            (r as unknown as { requestsTokens?: number }).requestsTokens ??
+            0,
+        )
+        const res = Number(
+          (r as unknown as { responseTokens?: number; reponseTokens?: number }).responseTokens ??
+            (r as unknown as { reponseTokens?: number }).reponseTokens ??
+            0,
+        )
+        tokensIn += req || 0
+        tokensOut += res || 0
+      })
+      map[userId] = { cost, tokensIn, tokensOut }
+    }
+
+    if (isDebugLogEnabled()) {
+      debugLog('[HomeView] userUsageData computed from per-user summarize:', {
+        distinctUserIds,
+        map,
+      })
+    }
+
+    userUsageData.value = map
+  } catch (e) {
+    debugLog('[HomeView] Fehler beim Laden von userUsageData:', e)
+    userUsageData.value = {}
+  }
+
   // Debug: Überprüfe ob API-Key-Daten geladen wurden
   debugLog(
     '🔍 [HOMEVIEW] After loading - detailedUsageData length:',
@@ -313,6 +372,7 @@ onMounted(() => {
               :editingName="editingName"
               :budget-limit="budgetConfig.monthlyLimit"
               :usage-data="apiKeyUsageData"
+              :user-usage-data="userUsageData"
               @edit="(key: ApiKeyDisplay) => startEditing(key, apiKeys)"
               @save="saveEdit"
               @cancel="cancelEdit"

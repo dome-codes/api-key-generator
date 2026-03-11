@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiKeyDisplay, ApiKeyUsageData } from '@/types/frontend'
+import type { ApiKeyDisplay, ApiKeyUsageData, UserUsageData } from '@/types/frontend'
 import { UserRole } from '@/auth/keycloak'
 import Pagination from '@/components/ui/Pagination.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -13,6 +13,7 @@ const props = defineProps<{
   editingName: string
   budgetLimit: number
   usageData?: Record<string, ApiKeyUsageData>
+  userUsageData?: Record<string, UserUsageData>
 }>()
 
 // Auth composable verwenden
@@ -137,11 +138,19 @@ const adminGroupedKeys = computed(() => {
       group.keys.push(key)
 
       // Akkumuliere Verbrauchsdaten
-      const usage = props.usageData?.[key.id]
-      if (usage) {
-        group.totalCost += usage.cost
-        group.totalTokensIn += usage.tokensIn
-        group.totalTokensOut += usage.tokensOut
+      // Priorität: userUsageData (Summarize pro Benutzer) → usageData pro Key
+      const userUsage = props.userUsageData?.[key.userId]
+      if (userUsage && group.totalCost === 0 && group.totalTokensIn === 0 && group.totalTokensOut === 0) {
+        group.totalCost += userUsage.cost
+        group.totalTokensIn += userUsage.tokensIn
+        group.totalTokensOut += userUsage.tokensOut
+      } else {
+        const usage = props.usageData?.[key.id]
+        if (usage) {
+          group.totalCost += usage.cost
+          group.totalTokensIn += usage.tokensIn
+          group.totalTokensOut += usage.tokensOut
+        }
       }
 
       // Zähle aktive/inaktive Keys (API liefert active: boolean)
