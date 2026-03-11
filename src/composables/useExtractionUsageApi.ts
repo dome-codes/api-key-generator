@@ -33,6 +33,8 @@ export function useExtractionUsageApi() {
   const summaryUsers = ref<string[]>([])
   /** Summarize(by=userId) Records – für Breakdown-Ansicht */
   const userSummaryData = ref<EnhancedExtractionUsageRecord[]>([])
+  /** Summarize(by=apikey) Records – für API-Key-Breakdown */
+  const apiKeySummaryData = ref<EnhancedExtractionUsageRecord[]>([])
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -370,8 +372,8 @@ export function useExtractionUsageApi() {
         totalItems: allData.length,
       }
 
-      // 2) Pro-Kachel Summarize-Calls parallel: ohne by, by=userId, by=provider, by=modelId
-      const [globalRes, byUserIdRes, byProviderRes, byModelIdRes] = await Promise.all([
+      // 2) Pro-Kachel Summarize-Calls parallel: ohne by, by=userId, by=provider, by=modelId, by=apikey
+      const [globalRes, byUserIdRes, byProviderRes, byModelIdRes, byApiKeyRes] = await Promise.all([
         extractionUsageApiService.getUsageSummary(
           { ...baseFilter, groupBy: undefined },
           useAdminApi,
@@ -386,6 +388,10 @@ export function useExtractionUsageApi() {
         ),
         extractionUsageApiService.getUsageSummary(
           { ...baseFilter, groupBy: ['modelId'] },
+          useAdminApi,
+        ),
+        extractionUsageApiService.getUsageSummary(
+          { ...baseFilter, groupBy: ['apikey'] },
           useAdminApi,
         ),
       ])
@@ -411,6 +417,7 @@ export function useExtractionUsageApi() {
       tileUniqueUsers.value = summaryUsers.value.length
       tileUniqueProviders.value = byProviderRes.data.length
       tileUniqueModels.value = byModelIdRes.data.length
+      apiKeySummaryData.value = byApiKeyRes.data
 
       debugLog('Extraction usage summary loaded:', {
         chartCount: allData.length,
@@ -433,6 +440,7 @@ export function useExtractionUsageApi() {
       tileUniqueModels.value = null
       summaryUsers.value = []
       userSummaryData.value = []
+      apiKeySummaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -549,6 +557,7 @@ export function useExtractionUsageApi() {
     statusDistributionChartData,
     summaryUsers,
     userSummaryData,
+    apiKeySummaryData,
 
     // Actions
     loadUsageData,

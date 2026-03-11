@@ -33,6 +33,7 @@ const {
   providerDistributionChartData,
   statusDistributionChartData,
   userSummaryData,
+  apiKeySummaryData,
   loadUsageData,
   loadUsageSummary,
   updateSort,
@@ -409,8 +410,9 @@ onMounted(async () => {
       <UsageUserBreakdown
         v-if="useAdminApi"
         variant="extraction"
-        :rows="userSummaryData"
-        title="Extraction Nutzung nach Benutzer"
+        :user-rows="userSummaryData"
+        :api-key-rows="apiKeySummaryData"
+        title="Extraction Nutzung nach Benutzer / API-Key"
       />
     </div>
 

@@ -43,7 +43,8 @@ export function useUsageApi() {
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
   const modelSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Modell-Chart (gruppiert nach Modell)
   const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
-  const userSummaryData = ref<EnhancedUsageRecord[]>([]) // Für User-Breakdown (gruppiert nach userId)
+  const userSummaryData = ref<EnhancedUsageRecord[]>([]) // Für User-Breakdown (gruppiert nach user)
+  const apiKeySummaryData = ref<EnhancedUsageRecord[]>([]) // Für API-Key-Breakdown (gruppiert nach apikey)
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -400,8 +401,10 @@ export function useUsageApi() {
       await loadModelSummary(useAdminApi)
       // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
       await loadTagSummary(useAdminApi)
-      // Lade User-Daten für Breakdown (gruppiert nach userId)
+      // Lade User-Daten für Breakdown (gruppiert nach user)
       await loadUserSummary(useAdminApi)
+      // Lade API-Key-Daten für Breakdown (gruppiert nach apikey)
+      await loadApiKeySummary(useAdminApi)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
@@ -410,6 +413,7 @@ export function useUsageApi() {
       summaryData.value = []
       modelSummaryData.value = []
       userSummaryData.value = []
+      apiKeySummaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -465,14 +469,14 @@ export function useUsageApi() {
     }
   }
 
-  // Lade User-Daten für Breakdown (gruppiert nach userId)
+  // Lade User-Daten für Breakdown (gruppiert nach user)
   const loadUserSummary = async (useAdminApi: boolean = false) => {
     try {
       const userFilter = {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['userId'] as ('userId')[],
+        groupBy: ['user'] as ('user')[],
       }
 
       debugLog('Loading user summary with filter:', userFilter)
@@ -504,6 +508,49 @@ export function useUsageApi() {
     } catch (err) {
       debugLog('Error loading user summary:', err)
       userSummaryData.value = []
+    }
+  }
+
+  // Lade API-Key-Daten für Breakdown (gruppiert nach apikey)
+  const loadApiKeySummary = async (useAdminApi: boolean = false) => {
+    try {
+      const apiKeyFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 10000,
+        groupBy: ['apikey'] as ('apikey')[],
+      }
+
+      debugLog('Loading apiKey summary with filter:', apiKeyFilter)
+
+      const result = await usageApiService.getUsageSummary(apiKeyFilter, useAdminApi)
+
+      let allApiKeyData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination?.totalPages ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
+
+      while (currentPage < totalPages && allApiKeyData.length < totalItems) {
+        currentPage++
+        const pageResult = await usageApiService.getUsageSummary(
+          { ...apiKeyFilter, page: currentPage },
+          useAdminApi,
+        )
+        allApiKeyData = [...allApiKeyData, ...pageResult.data]
+      }
+
+      apiKeySummaryData.value = allApiKeyData.filter((item) => {
+        const any = item as unknown as Record<string, unknown>
+        const raw = (any.apiKeyId ?? any.apiKey) as unknown
+        return typeof raw === 'string' && raw.trim() !== ''
+      })
+
+      debugLog('API-Key summary loaded:', {
+        count: apiKeySummaryData.value.length,
+      })
+    } catch (err) {
+      debugLog('Error loading apiKey summary:', err)
+      apiKeySummaryData.value = []
     }
   }
 
@@ -650,6 +697,7 @@ export function useUsageApi() {
     modelDistributionChartData,
     tagUsageChartData,
     userSummaryData,
+    apiKeySummaryData,
     hasMoreTags,
     showAllTagsInChart,
 

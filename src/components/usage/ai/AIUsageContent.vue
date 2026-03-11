@@ -34,6 +34,7 @@ const {
   modelDistributionChartData,
   tagUsageChartData,
   userSummaryData,
+  apiKeySummaryData,
   hasMoreTags,
   showAllTagsInChart,
   loadUsageData,
@@ -425,8 +426,9 @@ onMounted(async () => {
       <UsageUserBreakdown
         v-if="useAdminApi"
         variant="ai"
-        :rows="userSummaryData"
-        title="AI Nutzung nach Benutzer"
+        :user-rows="userSummaryData"
+        :api-key-rows="apiKeySummaryData"
+        title="AI Nutzung nach Benutzer / API-Key"
       />
     </div>
 
