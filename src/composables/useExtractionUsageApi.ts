@@ -31,6 +31,8 @@ export function useExtractionUsageApi() {
   const tileUniqueModels = ref<number | null>(null)
   /** Verfügbare Nutzer aus Summarize(by=userId) – für Admin-Filter-Dropdown */
   const summaryUsers = ref<string[]>([])
+  /** Summarize(by=userId) Records – für Breakdown-Ansicht */
+  const userSummaryData = ref<EnhancedExtractionUsageRecord[]>([])
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -401,6 +403,7 @@ export function useExtractionUsageApi() {
         totalCost: totalCostSum,
       }
       // Nutzerliste für Admin-Filter aus Summarize(by=userId)
+      userSummaryData.value = byUserIdRes.data
       const userIds = byUserIdRes.data
         .map((item) => item.userId)
         .filter((id): id is string => !!id && String(id).trim() !== '')
@@ -429,6 +432,7 @@ export function useExtractionUsageApi() {
       tileUniqueProviders.value = null
       tileUniqueModels.value = null
       summaryUsers.value = []
+      userSummaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -544,6 +548,7 @@ export function useExtractionUsageApi() {
     providerDistributionChartData,
     statusDistributionChartData,
     summaryUsers,
+    userSummaryData,
 
     // Actions
     loadUsageData,

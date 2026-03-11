@@ -43,6 +43,7 @@ export function useUsageApi() {
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
   const modelSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Modell-Chart (gruppiert nach Modell)
   const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
+  const userSummaryData = ref<EnhancedUsageRecord[]>([]) // Für User-Breakdown (gruppiert nach userId)
   const pagination = ref<Page>({
     currentPage: 1,
     pageSize: 20,
@@ -399,6 +400,8 @@ export function useUsageApi() {
       await loadModelSummary(useAdminApi)
       // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
       await loadTagSummary(useAdminApi)
+      // Lade User-Daten für Breakdown (gruppiert nach userId)
+      await loadUserSummary(useAdminApi)
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
@@ -406,6 +409,7 @@ export function useUsageApi() {
       // summaryData leer setzen, usageData NICHT überschreiben (Liste kann weiterhin 46 Einträge haben)
       summaryData.value = []
       modelSummaryData.value = []
+      userSummaryData.value = []
       pagination.value = {
         currentPage: currentFilter.value.page || 1,
         pageSize: currentFilter.value.limit || 20,
@@ -458,6 +462,48 @@ export function useUsageApi() {
       debugLog('Error loading model summary:', err)
       // Fehler beim Laden der Modell-Daten sollte nicht die gesamte Summary blockieren
       modelSummaryData.value = []
+    }
+  }
+
+  // Lade User-Daten für Breakdown (gruppiert nach userId)
+  const loadUserSummary = async (useAdminApi: boolean = false) => {
+    try {
+      const userFilter = {
+        ...currentFilter.value,
+        page: 1,
+        limit: 10000,
+        groupBy: ['userId'] as ('userId')[],
+      }
+
+      debugLog('Loading user summary with filter:', userFilter)
+
+      const result = await usageApiService.getUsageSummary(userFilter, useAdminApi)
+
+      // Lade alle Seiten falls nötig
+      let allUserData = [...result.data]
+      let currentPage = 1
+      const totalPages = result.pagination?.totalPages ?? 0
+      const totalItems = result.pagination?.totalItems ?? 0
+
+      while (currentPage < totalPages && allUserData.length < totalItems) {
+        currentPage++
+        const pageResult = await usageApiService.getUsageSummary(
+          { ...userFilter, page: currentPage },
+          useAdminApi,
+        )
+        allUserData = [...allUserData, ...pageResult.data]
+      }
+
+      userSummaryData.value = allUserData.filter(
+        (item) => item.userId && String(item.userId).trim() !== '',
+      )
+
+      debugLog('User summary loaded:', {
+        count: userSummaryData.value.length,
+      })
+    } catch (err) {
+      debugLog('Error loading user summary:', err)
+      userSummaryData.value = []
     }
   }
 
@@ -603,6 +649,7 @@ export function useUsageApi() {
     chartData,
     modelDistributionChartData,
     tagUsageChartData,
+    userSummaryData,
     hasMoreTags,
     showAllTagsInChart,
 

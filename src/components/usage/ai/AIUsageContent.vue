@@ -10,6 +10,7 @@ import AIUsageSummary from './AIUsageSummary.vue'
 import UsageDetailedTable from '../UsageDetailedTable.vue'
 import UsagePricingDisclaimer from '../UsagePricingDisclaimer.vue'
 import UsageViewToggle from '../UsageViewToggle.vue'
+import UsageUserBreakdown from '../shared/UsageUserBreakdown.vue'
 
 interface Props {
   useAdminApi?: boolean
@@ -32,6 +33,7 @@ const {
   chartData,
   modelDistributionChartData,
   tagUsageChartData,
+  userSummaryData,
   hasMoreTags,
   showAllTagsInChart,
   loadUsageData,
@@ -418,6 +420,13 @@ onMounted(async () => {
         :show-all-tags-in-chart="showAllTagsInChart"
         @update:selected-period="handleChartPeriodChange"
         @toggle-show-all-tags="toggleShowAllTags"
+      />
+
+      <UsageUserBreakdown
+        v-if="useAdminApi"
+        variant="ai"
+        :rows="userSummaryData"
+        title="AI Nutzung nach Benutzer"
       />
     </div>
 

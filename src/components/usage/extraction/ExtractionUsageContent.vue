@@ -9,6 +9,7 @@ import ExtractionUsageSummary from './ExtractionUsageSummary.vue'
 import ExtractionUsageDetailedTable from './ExtractionUsageDetailedTable.vue'
 import UsagePricingDisclaimer from '../UsagePricingDisclaimer.vue'
 import UsageViewToggle from '../UsageViewToggle.vue'
+import UsageUserBreakdown from '../shared/UsageUserBreakdown.vue'
 
 interface Props {
   useAdminApi?: boolean
@@ -31,6 +32,7 @@ const {
   chartData,
   providerDistributionChartData,
   statusDistributionChartData,
+  userSummaryData,
   loadUsageData,
   loadUsageSummary,
   updateSort,
@@ -402,6 +404,13 @@ onMounted(async () => {
         :line-chart-data="chartData"
         :provider-distribution-data="providerDistributionChartData"
         :status-distribution-data="statusDistributionChartData"
+      />
+
+      <UsageUserBreakdown
+        v-if="useAdminApi"
+        variant="extraction"
+        :rows="userSummaryData"
+        title="Extraction Nutzung nach Benutzer"
       />
     </div>
 
