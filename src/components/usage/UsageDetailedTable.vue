@@ -22,14 +22,17 @@ const pageSize = ref(10)
 // Page size change handled inline in template
 
 // Props für Backend-Sortierung (optional)
-type OrvalTypes = typeof import('@/api/types')
-type PageType = OrvalTypes extends { Page: infer P } ? P : unknown
-
 interface Props {
   data: EnhancedUsageRecord[]
   isLoading?: boolean
   error?: string | null
-  pagination?: PageType
+  pagination?: {
+    currentPage?: number
+    pageSize?: number
+    limit?: number
+    totalItems?: number
+    totalPages?: number
+  }
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
