@@ -198,6 +198,8 @@ const exportTableData = async () => {
       'Anfragen',
       'Tokens In',
       'Tokens Out',
+      'Reasoning Tokens',
+      'Cached Tokens',
       'Gesamt Tokens',
       'Kosten (€)',
       'Tag',
@@ -220,6 +222,8 @@ const exportTableData = async () => {
           item.requests,
           item.tokensIn,
           item.tokensOut,
+          (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? '',
+          (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? '',
           item.totalTokens,
           (item.cost ?? 0).toFixed(4),
           item.tag,
@@ -399,6 +403,52 @@ watch(
                 Tokens Out
                 <svg
                   v-if="currentSortField === 'tokensOut'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('reasoningTokens')"
+            >
+              <div class="flex items-center gap-1">
+                Reasoning Tokens
+                <svg
+                  v-if="currentSortField === 'reasoningTokens'"
+                  class="w-3 h-3"
+                  :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </div>
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+              @click="sortBy('cachedTokens')"
+            >
+              <div class="flex items-center gap-1">
+                Cached Tokens
+                <svg
+                  v-if="currentSortField === 'cachedTokens'"
                   class="w-3 h-3"
                   :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                   fill="none"
@@ -615,6 +665,12 @@ watch(
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ (item.tokensOut ?? 0).toLocaleString() }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {{ ((item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0).toLocaleString() }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {{ ((item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ (item.totalTokens ?? 0).toLocaleString() }}
