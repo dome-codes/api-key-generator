@@ -249,6 +249,40 @@ export const usageService = {
     }
   },
 
+  // Usage-Summary für einen bestimmten Benutzer (Admin, ohne groupBy)
+  async getUsageSummaryByUser(
+    userId: string,
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<AIUsageSummaryRecord[]> {
+    try {
+      debugLog('🔍 [API-SERVICE] getUsageSummaryByUser called with:', { userId, fromDate, toDate })
+
+      if (!hasPermission('canUseAdminFeatures')) {
+        debugLog('🔍 [API-SERVICE] Keine Admin-Berechtigung für getUsageSummaryByUser')
+        return []
+      }
+
+      const params: AdminUsageAISummaryGetV1Params = { userId }
+      if (fromDate) params.from_date = toIsoDateTime(fromDate)
+      if (toDate) params.to_date = toIsoDateTimeEndOfDay(toDate)
+
+      const response = await getAdmin().adminUsageAISummaryGetV1(params)
+      const body = response.data
+      const data = getDataArray<AIUsageSummaryRecord>(body)
+
+      debugLog('🔍 [API-SERVICE] getUsageSummaryByUser response:', {
+        userId,
+        count: data.length,
+      })
+
+      return data
+    } catch (error) {
+      debugLog('🔍 [API-SERVICE] Fehler bei getUsageSummaryByUser:', error)
+      return []
+    }
+  },
+
   // Admin: Detaillierte Usage-Daten für alle Benutzer (verwendet Summary-API)
   async getAdminUsage(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
     try {

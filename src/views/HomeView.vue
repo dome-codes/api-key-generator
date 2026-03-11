@@ -117,6 +117,11 @@ const apiKeyUsageData = computed(() => {
   return result
 })
 
+// Admin: Verbrauch pro Benutzer über Summarize(userId) – für spätere Auswertung/Debug
+// (aktuell noch nicht an ApiKeyTable angebunden, aber vorbereitet)
+// const userUsageData = ref<Record<string, ApiKeyUsageData>>({})
+
+
 // Sidebar state - lade aus localStorage oder verwende Default
 const getInitialSidebar = (): 'api' | 'usage' => {
   // Wenn Benutzer keine API-Keys erstellen kann, zeige direkt Usage
