@@ -17,8 +17,12 @@
  */
 
 import { usageApiService } from '@/services/usageApiService'
-import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
-import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
+import {
+  ImageModelUsageType as ImageModelUsageTypeEnum,
+  type EnhancedUsageRecord,
+  type UsageAggregation,
+  type UsageFilterApi,
+} from '@/types/frontend'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
@@ -78,6 +82,7 @@ export function useUsageApi() {
         totalCost: 0,
         totalCachedTokens: 0,
         totalReasoningTokens: 0,
+        hasFallbackPricing: false,
         uniqueUsers: 0,
         uniqueModels: 0,
         averageRequestsPerUser: 0,
@@ -108,6 +113,9 @@ export function useUsageApi() {
 
     const uniqueUsers = new Set(data.map((item) => item.userId)).size
     const uniqueModels = new Set(data.map((item) => item.modelName)).size
+    const hasFallbackPricing = data.some(
+      (item) => (item.modelName ?? '').toLowerCase() === 'unknown',
+    )
 
     return {
       totalRequests,
@@ -117,6 +125,7 @@ export function useUsageApi() {
       totalCost,
       totalCachedTokens,
       totalReasoningTokens,
+      hasFallbackPricing,
       uniqueUsers,
       uniqueModels,
       averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,

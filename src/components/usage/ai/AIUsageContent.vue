@@ -181,12 +181,36 @@ const ownSummary = computed(() => {
   return {
     tokensIn: agg.totalTokensIn,
     tokensOut: agg.totalTokensOut,
-    cachedTokens: agg.totalCachedTokens,
-    reasoningTokens: agg.totalReasoningTokens,
+    cachedTokens: agg.totalCachedTokens ?? 0,
+    reasoningTokens: agg.totalReasoningTokens ?? 0,
     requests: agg.totalRequests,
     cost: agg.totalCost,
     imageCount: agg.totalImages,
   }
+})
+
+const ownCostTooltip = computed(() => {
+  const agg = usageAggregation.value
+  const cached = agg.totalCachedTokens ?? 0
+  const reasoning = agg.totalReasoningTokens ?? 0
+  const lines: string[] = []
+  lines.push(`Gesamtkosten: €${agg.totalCost.toFixed(2)}`)
+  lines.push(
+    `Tokens In (inkl. Cached Input): ${agg.totalTokensIn.toLocaleString()}${cached > 0 ? ` (davon Cached: ${cached.toLocaleString()})` : ''}`,
+  )
+  lines.push(
+    `Tokens Out (inkl. Reasoning): ${agg.totalTokensOut.toLocaleString()}${reasoning > 0 ? ` (davon Reasoning: ${reasoning.toLocaleString()})` : ''}`,
+  )
+  lines.push(`Anfragen: ${agg.totalRequests.toLocaleString()}`)
+
+  if (agg.hasFallbackPricing) {
+    lines.push('')
+    lines.push(
+      'Hinweis: Für einen Teil der Aufrufe wurden Default-/Fallback-Preise verwendet (Modell nicht eindeutig zuordenbar).',
+    )
+  }
+
+  return lines.join('\n')
 })
 
 // Handle filter changes
@@ -401,40 +425,42 @@ onMounted(async () => {
     <!-- View Toggle -->
     <UsageViewToggle v-model:view="ownView" />
 
-    <!-- Summary Cards -->
-    <AIUsageSummary
-      title="Meine Nutzungsdaten"
-      description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
-      :summary="ownSummary"
-      :is-loading="isLoading"
-      :error="error"
-      @retry="handleRetry"
-    />
-
-    <!-- Charts - Daten kommen vom Backend über groupBy Parameter -->
-    <div v-if="showOwnChart" class="space-y-6">
-      <AIUsageCharts
-        line-chart-title="Nutzungsverlauf"
-        :selected-period="ownChartPeriod"
-        :line-chart-data="chartData"
-        :model-distribution-data="modelDistributionChartData"
-        :tag-usage-data="tagUsageChartData"
-        :has-more-tags="hasMoreTags"
-        :show-all-tags-in-chart="showAllTagsInChart"
-        @update:selected-period="handleChartPeriodChange"
-        @toggle-show-all-tags="toggleShowAllTags"
+    <!-- Overview: Summary-Kacheln + Charts + User/API-Key-Breakdown -->
+    <template v-if="showOwnChart">
+      <AIUsageSummary
+        title="Meine Nutzungsdaten"
+        description="Hier sehen Sie Ihre persönlichen API-Nutzungsdaten."
+        :summary="ownSummary"
+        :is-loading="isLoading"
+        :error="error"
+        :cost-tooltip="ownCostTooltip"
+        @retry="handleRetry"
       />
 
-      <UsageUserBreakdown
-        v-if="useAdminApi"
-        variant="ai"
-        :user-rows="userSummaryData"
-        :api-key-rows="apiKeySummaryData"
-        title="AI Nutzung nach Benutzer / API-Key"
-      />
-    </div>
+      <div class="space-y-6">
+        <AIUsageCharts
+          line-chart-title="Nutzungsverlauf"
+          :selected-period="ownChartPeriod"
+          :line-chart-data="chartData"
+          :model-distribution-data="modelDistributionChartData"
+          :tag-usage-data="tagUsageChartData"
+          :has-more-tags="hasMoreTags"
+          :show-all-tags-in-chart="showAllTagsInChart"
+          @update:selected-period="handleChartPeriodChange"
+          @toggle-show-all-tags="toggleShowAllTags"
+        />
 
-    <!-- Detailed Table: Spalten Größe/Qualität nur bei Image-Filter -->
+        <UsageUserBreakdown
+          v-if="useAdminApi"
+          variant="ai"
+          :user-rows="userSummaryData"
+          :api-key-rows="apiKeySummaryData"
+          title="AI Nutzung nach Benutzer / API-Key"
+        />
+      </div>
+    </template>
+
+    <!-- Detail: nur Tabelle -->
     <!-- Key mit Seite + pageSize erzwingt Neuaufbau bei Pagination, damit Anzeige garantiert aktualisiert -->
     <UsageDetailedTable
       v-if="showOwnDetails"

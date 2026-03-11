@@ -160,6 +160,42 @@ const formatDate = (day?: number, month?: number, year?: number, createDate?: st
   return '–'
 }
 
+const buildCostTooltip = (item: EnhancedUsageRecord): string => {
+  const parts: string[] = []
+  parts.push(`Gesamtkosten: ${formatCost(item.cost ?? 0)}`)
+  parts.push(
+    `Tokens In: ${(item.tokensIn ?? 0).toLocaleString()}${
+      (
+        item as EnhancedUsageRecord & {
+          cachedTokens?: number
+        }
+      ).cachedTokens
+        ? ` (Cached: ${((item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0).toLocaleString()})`
+        : ''
+    }`,
+  )
+  parts.push(
+    `Tokens Out: ${(item.tokensOut ?? 0).toLocaleString()}${
+      (
+        item as EnhancedUsageRecord & {
+          reasoningTokens?: number
+        }
+      ).reasoningTokens
+        ? ` (Reasoning: ${((item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0).toLocaleString()})`
+        : ''
+    }`,
+  )
+
+  if ((item.modelName ?? '').toLowerCase() === 'unknown') {
+    parts.push('')
+    parts.push(
+      'Hinweis: Kosten wurden mit einem Default-/Fallback-Preis berechnet, da das Modell nicht eindeutig zugeordnet werden konnte.',
+    )
+  }
+
+  return parts.join('\n')
+}
+
 const formatImageSize = (width?: number, height?: number): string => {
   if (width != null && height != null) return `${width}×${height}`
   if (width != null) return `${width}×?`
@@ -667,15 +703,26 @@ watch(
               {{ (item.tokensOut ?? 0).toLocaleString() }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ ((item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0).toLocaleString() }}
+              {{
+                (
+                  (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0
+                ).toLocaleString()
+              }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-              {{ ((item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0).toLocaleString() }}
+              {{
+                (
+                  (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0
+                ).toLocaleString()
+              }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ (item.totalTokens ?? 0).toLocaleString() }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            <td
+              class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-help"
+              :title="buildCostTooltip(item)"
+            >
               {{ formatCost(item.cost ?? 0) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -705,7 +752,10 @@ watch(
       >
         <div class="flex items-center gap-4">
           <div class="text-sm text-gray-700">
-            Seite {{ paginationPage }} von {{ Math.max(1, paginationTotalPages) }} ({{ paginationTotal }} Einträge)
+            Seite {{ paginationPage }} von {{ Math.max(1, paginationTotalPages) }} ({{
+              paginationTotal
+            }}
+            Einträge)
           </div>
           <div class="flex items-center gap-2">
             <label for="page-size-select" class="text-sm text-gray-700">Einträge pro Seite:</label>
@@ -713,7 +763,9 @@ watch(
               id="page-size-select"
               :value="pagination?.pageSize || 20"
               class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              @change="$emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
+              @change="
+                $emit('page-size-change', Number(($event.target as HTMLSelectElement).value))
+              "
             >
               <option :value="10">10</option>
               <option :value="20">20</option>

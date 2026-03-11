@@ -154,6 +154,8 @@ export interface UsageAggregation {
   totalCachedTokens: number
   /** Summe aller Reasoning Tokens (zusätzliche Denk-Tokens) */
   totalReasoningTokens: number
+  /** Mindestens ein Request wurde mit Fallback/Default-Preisen bewertet (z. B. Modell \"unknown\") */
+  hasFallbackPricing?: boolean
   uniqueUsers: number
   uniqueModels: number
   averageRequestsPerUser: number

@@ -19,20 +19,6 @@ import { usageService } from './apiService'
 type ModelUsage = AIUsageRecord
 type SummaryUsage = AIUsageSummaryRecord
 
-// Helper to get the correct enum value - handles both old and new enum formats
-const getModelUsageTypeValue = (value: string): ModelUsageType | undefined => {
-  if (value === 'CompletionModelUsage' || value === ModelUsageTypeEnum.CompletionModelUsage) {
-    return ModelUsageTypeEnum.CompletionModelUsage
-  }
-  if (value === 'EmbeddingModelUsage' || value === ModelUsageTypeEnum.EmbeddingModelUsage) {
-    return ModelUsageTypeEnum.EmbeddingModelUsage
-  }
-  if (value === 'ImageModelUsage' || value === ModelUsageTypeEnum.ImageModelUsage) {
-    return ModelUsageTypeEnum.ImageModelUsage
-  }
-  return undefined
-}
-
 // Frontend-Service für erweiterte Usage-Analytics-Funktionen
 // Diese Funktionen implementieren die Filterungslogik im Frontend
 export const usageAnalyticsService = {
@@ -264,6 +250,7 @@ export const usageAnalyticsService = {
               totalCost: 0,
               totalCachedTokens: 0,
               totalReasoningTokens: 0,
+              hasFallbackPricing: false,
               uniqueUsers: 0,
               uniqueModels: 0,
               averageRequestsPerUser: 0,
@@ -284,6 +271,7 @@ export const usageAnalyticsService = {
           totalCost: 0,
           totalCachedTokens: 0,
           totalReasoningTokens: 0,
+          hasFallbackPricing: false,
           uniqueUsers: 0,
           uniqueModels: 0,
           averageRequestsPerUser: 0,
@@ -409,6 +397,7 @@ export const usageAnalyticsService = {
         totalCost,
         totalCachedTokens: 0,
         totalReasoningTokens: 0,
+        hasFallbackPricing: false,
         uniqueUsers,
         uniqueModels,
         averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,
@@ -428,6 +417,7 @@ export const usageAnalyticsService = {
         totalCost: 0,
         totalCachedTokens: 0,
         totalReasoningTokens: 0,
+        hasFallbackPricing: false,
         uniqueUsers: 0,
         uniqueModels: 0,
         averageRequestsPerUser: 0,

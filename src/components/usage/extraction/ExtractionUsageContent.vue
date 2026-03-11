@@ -378,28 +378,28 @@ onMounted(async () => {
     <!-- View Toggle -->
     <UsageViewToggle v-model:view="ownView" icon-variant="extraction" />
 
-    <!-- Summary Cards -->
-    <ExtractionUsageSummary
-      :title="
-        useAdminApi ? 'Admin Extraction-Nutzung - Alle Konten' : 'Meine Extraction-Nutzungsdaten'
-      "
-      :description="
-        useAdminApi
-          ? 'Übersicht über die Document Intelligence Nutzung aller Benutzer.'
-          : 'Hier sehen Sie Ihre persönlichen Document Intelligence Nutzungsdaten.'
-      "
-      :summary="ownAggregation"
-      :is-loading="isLoading"
-      :error="error"
-      :show-unique-users="useAdminApi"
-      :show-unique-providers="useAdminApi"
-      :show-unique-models="useAdminApi"
-      :show-status-breakdown="useAdminApi"
-      @retry="handleRetry"
-    />
+    <!-- Overview: Summary-Kacheln + Charts + User/API-Key-Breakdown -->
+    <template v-if="ownView === 'overview'">
+      <ExtractionUsageSummary
+        :title="
+          useAdminApi ? 'Admin Extraction-Nutzung - Alle Konten' : 'Meine Extraction-Nutzungsdaten'
+        "
+        :description="
+          useAdminApi
+            ? 'Übersicht über die Document Intelligence Nutzung aller Benutzer.'
+            : 'Hier sehen Sie Ihre persönlichen Document Intelligence Nutzungsdaten.'
+        "
+        :summary="ownAggregation"
+        :is-loading="isLoading"
+        :error="error"
+        :show-unique-users="useAdminApi"
+        :show-unique-providers="useAdminApi"
+        :show-unique-models="useAdminApi"
+        :show-status-breakdown="useAdminApi"
+        @retry="handleRetry"
+      />
 
-    <!-- Charts -->
-    <div v-if="ownView === 'overview'" class="space-y-6">
+      <div class="space-y-6">
       <ExtractionUsageCharts
         line-chart-title="Extraction-Nutzungsverlauf"
         :line-chart-data="chartData"
@@ -414,9 +414,10 @@ onMounted(async () => {
         :api-key-rows="apiKeySummaryData"
         title="Extraction Nutzung nach Benutzer / API-Key"
       />
-    </div>
+      </div>
+    </template>
 
-    <!-- Detailed Table -->
+    <!-- Detail: nur Tabelle -->
     <!-- Key mit Seite + pageSize erzwingt Neuaufbau bei Pagination -->
     <ExtractionUsageDetailedTable
       v-if="ownView === 'detailed'"

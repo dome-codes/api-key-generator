@@ -24,6 +24,8 @@ interface Props {
   isLoading: boolean
   error: string | null
   showUniqueUsers?: boolean
+  /** Optionaler Tooltip-Text für die Gesamtkosten-Kachel (mehrzeilig erlaubt). */
+  costTooltip?: string
 }
 
 const props = defineProps<Props>()
@@ -85,22 +87,20 @@ const formatCost = (cost: number): string => {
       </div>
 
       <div
-        v-if="summary.cachedTokens != null"
         class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
       >
         <div
           class="text-sm text-gray-600 font-medium"
-          title="Tokens, die aus dem Prompt-Cache gelesen wurden. Diese reduzieren die Kosten, werden aber separat ausgewiesen."
+          title="Tokens, die aus dem Prompt-Cache gelesen wurden (Cached Input). Diese reduzieren die Kosten, werden aber separat ausgewiesen."
         >
-          Cached Tokens
+          Cached Tokens (Cached Input)
         </div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ summary.cachedTokens.toLocaleString() }}
+          {{ (summary.cachedTokens ?? 0).toLocaleString() }}
         </div>
       </div>
 
       <div
-        v-if="summary.reasoningTokens != null"
         class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
       >
         <div
@@ -110,7 +110,7 @@ const formatCost = (cost: number): string => {
           Reasoning Tokens
         </div>
         <div class="text-2xl font-bold text-gray-900">
-          {{ summary.reasoningTokens.toLocaleString() }}
+          {{ (summary.reasoningTokens ?? 0).toLocaleString() }}
         </div>
       </div>
 
@@ -124,7 +124,8 @@ const formatCost = (cost: number): string => {
       </div>
 
       <div
-        class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors"
+        class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors cursor-help"
+        :title="props.costTooltip"
       >
         <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
         <div class="text-2xl font-bold text-primary">
