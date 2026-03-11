@@ -114,6 +114,8 @@ export function buildApiKeyUsageMap(
     })
   }
 
+  const usageCountByKeyId: Record<string, number> = {}
+
   for (const key of keys) {
     const keyId = key.id
     // 1) Direktes Matching über apiKeyId (laut OpenAPI-Spezifikation: camelCase)
@@ -130,6 +132,8 @@ export function buildApiKeyUsageMap(
         ].slice(0, 10),
       })
     }
+
+    usageCountByKeyId[keyId] = keyUsage.length
 
     if (keyUsage.length > 0) {
       let cost = 0
@@ -232,7 +236,27 @@ export function buildApiKeyUsageMap(
         tokensIn: (existing?.tokensIn ?? 0) + fallback.tokensIn,
         tokensOut: (existing?.tokensOut ?? 0) + fallback.tokensOut,
       }
+      usageCountByKeyId[key.id] = (usageCountByKeyId[key.id] ?? 0) + 1
     }
+  }
+
+  if (isDebugLogEnabled()) {
+    const zeroCostKeys = Object.entries(map)
+      .filter(([, v]) => (v?.cost ?? 0) === 0)
+      .map(([id]) => id)
+
+    debugLog('[buildApiKeyUsageMap] Zusammenfassung:', {
+      totalRecords: safeRecords.length,
+      totalKeys: keys.length,
+      keysWithAnyUsageRecords: Object.entries(usageCountByKeyId)
+        .filter(([, count]) => (count ?? 0) > 0)
+        .map(([id, count]) => ({ id, count })),
+      zeroCostKeys,
+      sampleZeroCostKeys: zeroCostKeys.slice(0, 5).map((id) => ({
+        keyId: id,
+        usageCount: usageCountByKeyId[id] ?? 0,
+      })),
+    })
   }
 
   return map
