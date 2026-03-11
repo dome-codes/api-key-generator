@@ -6,6 +6,10 @@ import { watch } from 'vue'
 interface UsageSummary {
   tokensIn: number
   tokensOut: number
+  /** Eingesparte Eingabe-Tokens aus Cache */
+  cachedTokens?: number
+  /** Zusätzliche Reasoning-Tokens (z. B. für CoT) */
+  reasoningTokens?: number
   requests: number
   cost: number
   uniqueUsers?: number
@@ -55,7 +59,12 @@ const formatCost = (cost: number): string => {
       <div
         class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
       >
-        <div class="text-sm text-gray-600 font-medium">Tokens In</div>
+        <div
+          class="text-sm text-gray-600 font-medium"
+          title="Eingehende Tokens, die regulär vom Modell verarbeitet wurden (ohne Cache)."
+        >
+          Tokens In
+        </div>
         <div class="text-2xl font-bold text-gray-900">
           {{ summary.tokensIn.toLocaleString() }}
         </div>
@@ -64,9 +73,44 @@ const formatCost = (cost: number): string => {
       <div
         class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
       >
-        <div class="text-sm text-gray-600 font-medium">Tokens Out</div>
+        <div
+          class="text-sm text-gray-600 font-medium"
+          title="Ausgehende Tokens der Modellantwort (inklusive Reasoning-Tokens, falls vorhanden)."
+        >
+          Tokens Out
+        </div>
         <div class="text-2xl font-bold text-gray-900">
           {{ summary.tokensOut.toLocaleString() }}
+        </div>
+      </div>
+
+      <div
+        v-if="summary.cachedTokens != null"
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div
+          class="text-sm text-gray-600 font-medium"
+          title="Tokens, die aus dem Prompt-Cache gelesen wurden. Diese reduzieren die Kosten, werden aber separat ausgewiesen."
+        >
+          Cached Tokens
+        </div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.cachedTokens.toLocaleString() }}
+        </div>
+      </div>
+
+      <div
+        v-if="summary.reasoningTokens != null"
+        class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+      >
+        <div
+          class="text-sm text-gray-600 font-medium"
+          title="Zusätzliche Reasoning-Tokens, die für erweitertes Denken/Chain-of-Thought genutzt wurden."
+        >
+          Reasoning Tokens
+        </div>
+        <div class="text-2xl font-bold text-gray-900">
+          {{ summary.reasoningTokens.toLocaleString() }}
         </div>
       </div>
 

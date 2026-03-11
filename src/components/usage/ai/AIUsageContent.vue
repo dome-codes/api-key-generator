@@ -181,6 +181,8 @@ const ownSummary = computed(() => {
   return {
     tokensIn: agg.totalTokensIn,
     tokensOut: agg.totalTokensOut,
+    cachedTokens: agg.totalCachedTokens,
+    reasoningTokens: agg.totalReasoningTokens,
     requests: agg.totalRequests,
     cost: agg.totalCost,
     imageCount: agg.totalImages,

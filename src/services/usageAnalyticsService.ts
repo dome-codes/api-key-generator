@@ -1,4 +1,6 @@
 import type { AIUsageRecord, AIUsageSummaryRecord } from '@/api/types'
+import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
+import { calculateCost } from '@/config/pricing'
 import {
   type EnhancedUsageRecord,
   type ImageModelUsage,
@@ -10,7 +12,8 @@ import {
   EmbeddingModelUsageType as EmbeddingModelUsageTypeEnum,
   ImageModelUsageType as ImageModelUsageTypeEnum,
 } from '@/types/frontend'
-import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
+import { debugLog } from '@/utils/debugLog'
+import { usageService } from './apiService'
 
 /** Aliase für Usage-Records (kommen aus API; andere OpenAPI kann andere Typen generieren) */
 type ModelUsage = AIUsageRecord
@@ -29,9 +32,6 @@ const getModelUsageTypeValue = (value: string): ModelUsageType | undefined => {
   }
   return undefined
 }
-import { calculateCost } from '@/config/pricing'
-import { debugLog } from '@/utils/debugLog'
-import { usageService } from './apiService'
 
 // Frontend-Service für erweiterte Usage-Analytics-Funktionen
 // Diese Funktionen implementieren die Filterungslogik im Frontend
@@ -193,9 +193,7 @@ export const usageAnalyticsService = {
             (item as ModelUsage & { userId?: string }).userId ||
             (item as ModelUsage & { technicalUSerid?: string }).technicalUSerid ||
             'unknown',
-          userName:
-            (item as ModelUsage & { userName?: string }).userName ||
-            'Unknown User',
+          userName: (item as ModelUsage & { userName?: string }).userName || 'Unknown User',
           modelName: item.model || 'unknown',
           modelType: (item.type ||
             CompletionModelUsageTypeEnum.CompletionModelUsage) as ModelUsageType, // Verwende den type als modelType
@@ -264,6 +262,8 @@ export const usageAnalyticsService = {
               totalTokensOut: 0,
               totalTokens: 0,
               totalCost: 0,
+              totalCachedTokens: 0,
+              totalReasoningTokens: 0,
               uniqueUsers: 0,
               uniqueModels: 0,
               averageRequestsPerUser: 0,
@@ -282,6 +282,8 @@ export const usageAnalyticsService = {
           totalTokensOut: 0,
           totalTokens: 0,
           totalCost: 0,
+          totalCachedTokens: 0,
+          totalReasoningTokens: 0,
           uniqueUsers: 0,
           uniqueModels: 0,
           averageRequestsPerUser: 0,
@@ -293,8 +295,7 @@ export const usageAnalyticsService = {
       const uniqueUsers = new Set(
         summary.data.map(
           (item) =>
-            (item as SummaryUsage).userId ||
-            (item as { technicalUSerid?: string }).technicalUSerid,
+            (item as SummaryUsage).userId || (item as { technicalUSerid?: string }).technicalUSerid,
         ),
       ).size
       const uniqueModels = new Set(summary.data.map((item: SummaryUsage) => item.model)).size
@@ -406,6 +407,8 @@ export const usageAnalyticsService = {
         totalTokensOut,
         totalTokens,
         totalCost,
+        totalCachedTokens: 0,
+        totalReasoningTokens: 0,
         uniqueUsers,
         uniqueModels,
         averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,
@@ -423,6 +426,8 @@ export const usageAnalyticsService = {
         totalTokensOut: 0,
         totalTokens: 0,
         totalCost: 0,
+        totalCachedTokens: 0,
+        totalReasoningTokens: 0,
         uniqueUsers: 0,
         uniqueModels: 0,
         averageRequestsPerUser: 0,
@@ -448,8 +453,7 @@ export const usageAnalyticsService = {
           userMap.set(userId, {
             userId,
             userName:
-              userId ||
-              `Benutzer ${detailedData.findIndex((i) => i.userId === userId) + 1}`,
+              userId || `Benutzer ${detailedData.findIndex((i) => i.userId === userId) + 1}`,
             totalRequests: 0,
             totalTokensIn: 0,
             totalTokensOut: 0,
@@ -546,8 +550,7 @@ export const usageAnalyticsService = {
     if (!userId) return usageData
     return usageData.filter((item) => {
       const itemUserId =
-        (item as SummaryUsage).userId ||
-        (item as { technicalUSerid?: string }).technicalUSerid
+        (item as SummaryUsage).userId || (item as { technicalUSerid?: string }).technicalUSerid
       return itemUserId === userId
     })
   },

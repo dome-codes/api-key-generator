@@ -99,6 +99,10 @@ export interface EnhancedUsageRecord {
   tokensIn?: number
   tokensOut?: number
   totalTokens?: number
+  /** Eingesparte Eingabe-Tokens aus Cache (Cached Tokens) */
+  cachedTokens?: number
+  /** Zusätzliche Reasoning-Tokens (z. B. für CoT) */
+  reasoningTokens?: number
   cost?: number
   tag?: string
   day?: number
@@ -146,6 +150,10 @@ export interface UsageAggregation {
   totalTokensOut: number
   totalTokens: number
   totalCost: number
+  /** Summe aller Cached Tokens (Eingabe über Prompt-Cache) */
+  totalCachedTokens: number
+  /** Summe aller Reasoning Tokens (zusätzliche Denk-Tokens) */
+  totalReasoningTokens: number
   uniqueUsers: number
   uniqueModels: number
   averageRequestsPerUser: number

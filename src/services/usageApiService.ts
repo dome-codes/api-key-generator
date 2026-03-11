@@ -199,6 +199,8 @@ export function getDataArray<T>(response: unknown): T[] {
 export function readTokensFromItem(item: Record<string, unknown>): {
   requestTokens: number
   responseTokens: number
+  reasoningTokens: number
+  cachedTokens: number
 } {
   const requestTokens =
     (item.requestTokens != null ? Number(item.requestTokens) : NaN) ||
@@ -229,9 +231,22 @@ export function readTokensFromItem(item: Record<string, unknown>): {
       ? Number((item as { reasoning_tokens?: number }).reasoning_tokens)
       : NaN) ||
     0
+  const cached =
+    ((item as { cachedTokens?: number }).cachedTokens != null
+      ? Number((item as { cachedTokens?: number }).cachedTokens)
+      : NaN) ||
+    ((item as { cacheReadTokens?: number }).cacheReadTokens != null
+      ? Number((item as { cacheReadTokens?: number }).cacheReadTokens)
+      : NaN) ||
+    ((item as { cached_input_tokens?: number }).cached_input_tokens != null
+      ? Number((item as { cached_input_tokens?: number }).cached_input_tokens)
+      : NaN) ||
+    0
   return {
     requestTokens: Number(requestTokens) || 0,
-    responseTokens: (Number(responseTokens) || 0) + (Number(reasoning) || 0),
+    responseTokens: Number(responseTokens) || 0,
+    reasoningTokens: Number(reasoning) || 0,
+    cachedTokens: Number(cached) || 0,
   }
 }
 
@@ -284,18 +299,24 @@ export const usageApiService = {
         rawData.map(async (item: AIUsageRecord | AIUsageSummaryRecord) => {
           const fromItem = readTokensFromItem(item as Record<string, unknown>)
           const requestTokens =
-            (fromItem.requestTokens || (item as AIUsageSummaryRecord).requestTokens) ??
-            (item as AIUsageRecord).tokensIn ??
+            fromItem.requestTokens ||
+            (item as AIUsageSummaryRecord).requestTokens ||
+            (item as AIUsageRecord).tokensIn ||
             0
-          const responseTokens =
-            (fromItem.responseTokens || (item as AIUsageSummaryRecord).responseTokens) ??
-            (item as AIUsageRecord).tokensOut ??
+          const baseResponseTokens =
+            fromItem.responseTokens ||
+            (item as AIUsageSummaryRecord).responseTokens ||
+            (item as AIUsageRecord).tokensOut ||
             0
+          const reasoningTokens = fromItem.reasoningTokens || 0
+          const cachedTokens = fromItem.cachedTokens || 0
+          const effectiveTokensIn = requestTokens + cachedTokens
+          const effectiveTokensOut = baseResponseTokens + reasoningTokens
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const costResult = calculateCost(
-            requestTokens,
-            responseTokens,
+            effectiveTokensIn,
+            effectiveTokensOut,
             item.model || 'gpt-4o',
             false,
             displayType as ModelUsageType,
@@ -333,9 +354,11 @@ export const usageApiService = {
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
-            tokensIn: requestTokens,
-            tokensOut: responseTokens,
-            totalTokens: requestTokens + responseTokens,
+            tokensIn: effectiveTokensIn,
+            tokensOut: effectiveTokensOut,
+            totalTokens: effectiveTokensIn + effectiveTokensOut,
+            cachedTokens,
+            reasoningTokens,
             cost: costResult.finalCost,
             tag: item.tag || undefined,
             day: (item as SummaryUsage).day,
@@ -475,12 +498,16 @@ export const usageApiService = {
         rawData.map(async (item: SummaryUsage) => {
           const fromItem = readTokensFromItem(item as Record<string, unknown>)
           const requestTokens = fromItem.requestTokens || item.requestTokens || 0
-          const responseTokens = fromItem.responseTokens || item.responseTokens || 0
+          const baseResponseTokens = fromItem.responseTokens || item.responseTokens || 0
+          const reasoningTokens = fromItem.reasoningTokens || 0
+          const cachedTokens = fromItem.cachedTokens || 0
+          const effectiveTokensIn = requestTokens + cachedTokens
+          const effectiveTokensOut = baseResponseTokens + reasoningTokens
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const costResult = calculateCost(
-            requestTokens,
-            responseTokens,
+            effectiveTokensIn,
+            effectiveTokensOut,
             item.model || 'gpt-4o',
             false,
             displayType as ModelUsageType,
@@ -499,9 +526,11 @@ export const usageApiService = {
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
-            tokensIn: requestTokens,
-            tokensOut: responseTokens,
-            totalTokens: item.totalTokens || requestTokens + responseTokens,
+            tokensIn: effectiveTokensIn,
+            tokensOut: effectiveTokensOut,
+            totalTokens: item.totalTokens || effectiveTokensIn + effectiveTokensOut,
+            cachedTokens,
+            reasoningTokens,
             cost: costResult.finalCost,
             tag: item.tag || undefined,
             day: item.day,

@@ -9,6 +9,8 @@ interface ChartData {
   tokensOut?: number[]
   requests?: number[]
   cost?: number[]
+  cachedTokens?: number[]
+  reasoningTokens?: number[]
   [key: string]: string[] | number[] | undefined
 }
 
@@ -44,7 +46,7 @@ const defaultDatasets = computed(() => {
   if (!data) return []
 
   // Corporate Design Farben für Line Chart
-  return [
+  const datasets = [
     {
       label: 'Tokens In',
       data: data.tokensIn || [],
@@ -67,6 +69,33 @@ const defaultDatasets = computed(() => {
       yAxisID: 'y1',
     },
   ]
+
+  const hasCachedTokens =
+    Array.isArray(data.cachedTokens) && data.cachedTokens.some((v) => (v || 0) > 0)
+  const hasReasoningTokens =
+    Array.isArray(data.reasoningTokens) && data.reasoningTokens.some((v) => (v || 0) > 0)
+
+  if (hasCachedTokens) {
+    datasets.push({
+      label: 'Cached Tokens',
+      data: data.cachedTokens || [],
+      borderColor: 'rgb(99, 179, 237)', // Blau
+      backgroundColor: 'rgba(99, 179, 237, 0.15)',
+      yAxisID: 'y',
+    })
+  }
+
+  if (hasReasoningTokens) {
+    datasets.push({
+      label: 'Reasoning Tokens',
+      data: data.reasoningTokens || [],
+      borderColor: 'rgb(139, 92, 246)', // Violett
+      backgroundColor: 'rgba(139, 92, 246, 0.15)',
+      yAxisID: 'y',
+    })
+  }
+
+  return datasets
 })
 
 watch(

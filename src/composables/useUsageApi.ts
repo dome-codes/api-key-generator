@@ -16,9 +16,9 @@
  * - Migration: Schrittweise von useUsage zu useUsageApi wechseln
  */
 
+import { usageApiService } from '@/services/usageApiService'
 import type { EnhancedUsageRecord, UsageAggregation, UsageFilterApi } from '@/types/frontend'
 import { ImageModelUsageType as ImageModelUsageTypeEnum } from '@/types/frontend'
-import { usageApiService } from '@/services/usageApiService'
 import { debugLog as baseDebugLog } from '@/utils/debugLog'
 import { computed, ref } from 'vue'
 
@@ -76,6 +76,8 @@ export function useUsageApi() {
         totalTokensOut: 0,
         totalTokens: 0,
         totalCost: 0,
+        totalCachedTokens: 0,
+        totalReasoningTokens: 0,
         uniqueUsers: 0,
         uniqueModels: 0,
         averageRequestsPerUser: 0,
@@ -89,19 +91,19 @@ export function useUsageApi() {
     const totalTokensOut = data.reduce((sum, item) => sum + (item.tokensOut ?? 0), 0)
     const totalTokens = data.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+    const totalCachedTokens = data.reduce((sum, item) => sum + (item.cachedTokens ?? 0), 0)
+    const totalReasoningTokens = data.reduce((sum, item) => sum + (item.reasoningTokens ?? 0), 0)
     const totalImages = data
-      .filter(
-        (item) => {
-          const t = item.type as string | undefined
-          const m = item.modelType as string | undefined
-          return (
-            t === ImageModelUsageTypeEnum.ImageModelUsage ||
-            t === ImageModelUsageTypeEnum.IMAGE_USAGE ||
-            m === ImageModelUsageTypeEnum.ImageModelUsage ||
-            m === ImageModelUsageTypeEnum.IMAGE_USAGE
-          )
-        },
-      )
+      .filter((item) => {
+        const t = item.type as string | undefined
+        const m = item.modelType as string | undefined
+        return (
+          t === ImageModelUsageTypeEnum.ImageModelUsage ||
+          t === ImageModelUsageTypeEnum.IMAGE_USAGE ||
+          m === ImageModelUsageTypeEnum.ImageModelUsage ||
+          m === ImageModelUsageTypeEnum.IMAGE_USAGE
+        )
+      })
       .reduce((sum, item) => sum + (item.requests ?? 1), 0)
 
     const uniqueUsers = new Set(data.map((item) => item.userId)).size
@@ -113,6 +115,8 @@ export function useUsageApi() {
       totalTokensOut,
       totalTokens,
       totalCost,
+      totalCachedTokens,
+      totalReasoningTokens,
       uniqueUsers,
       uniqueModels,
       averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,
@@ -155,19 +159,35 @@ export function useUsageApi() {
         tokensOut: [],
         requests: [],
         cost: [],
+        cachedTokens: [],
+        reasoningTokens: [],
       }
     }
 
     const dateMap = new Map<
       string,
-      { tokensIn: number; tokensOut: number; requests: number; cost: number }
+      {
+        tokensIn: number
+        tokensOut: number
+        requests: number
+        cost: number
+        cachedTokens: number
+        reasoningTokens: number
+      }
     >()
 
     data.forEach((item) => {
       const dateKey = getDateKeyFromItem(item)
 
       if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, { tokensIn: 0, tokensOut: 0, requests: 0, cost: 0 })
+        dateMap.set(dateKey, {
+          tokensIn: 0,
+          tokensOut: 0,
+          requests: 0,
+          cost: 0,
+          cachedTokens: 0,
+          reasoningTokens: 0,
+        })
       }
 
       const entry = dateMap.get(dateKey)
@@ -176,6 +196,8 @@ export function useUsageApi() {
         entry.tokensOut += item.tokensOut || 0
         entry.requests += item.requests ?? (item.tokensIn || item.tokensOut ? 1 : 0)
         entry.cost += item.cost || 0
+        entry.cachedTokens += item.cachedTokens || 0
+        entry.reasoningTokens += item.reasoningTokens || 0
       }
     })
 
@@ -196,6 +218,8 @@ export function useUsageApi() {
       tokensOut: sortedEntries.map(([, d]) => d.tokensOut),
       requests: sortedEntries.map(([, d]) => d.requests),
       cost: sortedEntries.map(([, d]) => d.cost),
+      cachedTokens: sortedEntries.map(([, d]) => d.cachedTokens),
+      reasoningTokens: sortedEntries.map(([, d]) => d.reasoningTokens),
     }
   })
 
@@ -291,8 +315,10 @@ export function useUsageApi() {
         }
       }
 
-      const calculatedOffset = currentFilter.value.page ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20) : 0
-      
+      const calculatedOffset = currentFilter.value.page
+        ? (currentFilter.value.page - 1) * (currentFilter.value.limit || 20)
+        : 0
+
       debugLog('[useUsageApi] Loading usage data with filter:', {
         ...currentFilter.value,
         page: currentFilter.value.page,
@@ -313,7 +339,15 @@ export function useUsageApi() {
         const clampedPage = totalPages
         pagination.value = { ...pagination.value, currentPage: clampedPage }
         currentFilter.value = { ...currentFilter.value, page: clampedPage }
-        debugLog('[useUsageApi] Clamped currentPage from', currentPage, 'to', clampedPage, '(totalPages:', totalPages, ')')
+        debugLog(
+          '[useUsageApi] Clamped currentPage from',
+          currentPage,
+          'to',
+          clampedPage,
+          '(totalPages:',
+          totalPages,
+          ')',
+        )
       } else if (filter?.page !== undefined) {
         currentFilter.value = { ...currentFilter.value, page: filter.page }
       } else if (result.pagination?.currentPage != null) {
@@ -432,7 +466,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 1000, // Ausreichend für Modell-Gruppierung
-        groupBy: ['model'] as ('model')[],
+        groupBy: ['model'] as 'model'[],
       }
 
       debugLog('Loading model summary with filter:', modelFilter)
@@ -476,7 +510,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['user'] as ('user')[],
+        groupBy: ['user'] as 'user'[],
       }
 
       debugLog('Loading user summary with filter:', userFilter)
@@ -518,7 +552,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['apikey'] as ('apikey')[],
+        groupBy: ['apikey'] as 'apikey'[],
       }
 
       debugLog('Loading apiKey summary with filter:', apiKeyFilter)
@@ -617,16 +651,16 @@ export function useUsageApi() {
     const totalPages = pagination.value.totalPages
     if (totalPages != null && totalPages > 0 && page > totalPages) return
 
-    debugLog('[useUsageApi] goToPage called:', { 
-      requestedPage: page, 
+    debugLog('[useUsageApi] goToPage called:', {
+      requestedPage: page,
       currentFilterPage: currentFilter.value.page,
       currentLimit: currentFilter.value.limit,
-      calculatedOffset: (page - 1) * (currentFilter.value.limit || 20)
+      calculatedOffset: (page - 1) * (currentFilter.value.limit || 20),
     })
-    
+
     // Stelle sicher, dass page explizit gesetzt wird
     currentFilter.value = { ...currentFilter.value, page }
-    
+
     await loadUsageData({ page }, useAdminApi)
   }
 

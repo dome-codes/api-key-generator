@@ -440,6 +440,11 @@ export function useUsage() {
           'Tag',
           'Monat',
           'Jahr',
+          'Tokens In',
+          'Tokens Out',
+          'Reasoning Tokens',
+          'Cached Tokens',
+          'Kosten (EUR)',
         ]
 
         const csvContent = [
@@ -455,6 +460,11 @@ export function useUsage() {
               item.day || '',
               item.month || '',
               item.year || '',
+              item.tokensIn ?? '',
+              item.tokensOut ?? '',
+              (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? '',
+              (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? '',
+              item.cost ?? '',
             ].join(','),
           ),
         ].join('\n')
