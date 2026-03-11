@@ -92,8 +92,8 @@ const onCloseTerms = () => {
 // Budget management
 const { budgetConfig, loadBudgetData } = useBudget()
 
-// Usage data für API-Key-Verbrauch (detaillierte Liste, Admin oder User-spezifisch)
-const { detailedUsageData, loadDetailedUsageData } = useUsage()
+// Usage data für API-Key-Verbrauch (Summary → enhanced detailedUsageData mit apiKeyId/cost)
+const { detailedUsageData, loadUsageSummary } = useUsage()
 
 // API-Key-Verbrauch: zentrales Mapping (OpenAPI/Usage → cost, tokensIn, tokensOut pro Key)
 // Keys mit id + userId, damit bei apiKeyId: null Fallback über userId funktioniert
@@ -232,7 +232,7 @@ const loadInitialData = async () => {
   await Promise.all([
     loadKeys(),
     loadBudgetData(),
-    loadDetailedUsageData(), // Lädt detaillierte Usage-Daten, Basis für API-Key-Verbrauch
+    loadUsageSummary(), // Lädt Summary nach API-Key und befüllt detailedUsageData für das Mapping
   ])
 
   // Debug: Überprüfe ob API-Key-Daten geladen wurden
