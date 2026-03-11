@@ -189,30 +189,6 @@ const ownSummary = computed(() => {
   }
 })
 
-const ownCostTooltip = computed(() => {
-  const agg = usageAggregation.value
-  const cached = agg.totalCachedTokens ?? 0
-  const reasoning = agg.totalReasoningTokens ?? 0
-  const lines: string[] = []
-  lines.push(`Gesamtkosten: €${agg.totalCost.toFixed(2)}`)
-  lines.push(
-    `Tokens In (inkl. Cached Input): ${agg.totalTokensIn.toLocaleString()}${cached > 0 ? ` (davon Cached: ${cached.toLocaleString()})` : ''}`,
-  )
-  lines.push(
-    `Tokens Out (inkl. Reasoning): ${agg.totalTokensOut.toLocaleString()}${reasoning > 0 ? ` (davon Reasoning: ${reasoning.toLocaleString()})` : ''}`,
-  )
-  lines.push(`Anfragen: ${agg.totalRequests.toLocaleString()}`)
-
-  if (agg.hasFallbackPricing) {
-    lines.push('')
-    lines.push(
-      'Hinweis: Für einen Teil der Aufrufe wurden Default-/Fallback-Preise verwendet (Modell nicht eindeutig zuordenbar).',
-    )
-  }
-
-  return lines.join('\n')
-})
-
 // Handle filter changes
 // Flag um doppelte Calls zu vermeiden
 let isHandlingFilterChange = false
@@ -433,7 +409,6 @@ onMounted(async () => {
         :summary="ownSummary"
         :is-loading="isLoading"
         :error="error"
-        :cost-tooltip="ownCostTooltip"
         @retry="handleRetry"
       />
 
