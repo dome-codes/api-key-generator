@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   defaultTopN: 10,
 })
 
-type SortKey = 'requests' | 'pages' | 'tokens' | 'cost' | 'id'
+type SortKey = 'requests' | 'pages' | 'tokens' | 'cachedTokens' | 'reasoningTokens' | 'cost' | 'id'
 const sortKey = ref<SortKey>('requests')
 const sortDir = ref<'asc' | 'desc'>('desc')
 const showAll = ref(false)
@@ -50,10 +50,18 @@ const normalized = computed(() => {
       const pages = (typeof any.pages === 'number' ? any.pages : undefined) ?? 0
       const tokensIn = (typeof any.tokensIn === 'number' ? any.tokensIn : undefined) ?? 0
       const tokensOut = (typeof any.tokensOut === 'number' ? any.tokensOut : undefined) ?? 0
-      const tokens = tokensIn + tokensOut
+      const cachedTokens =
+        (typeof (any as { cachedTokens?: number }).cachedTokens === 'number'
+          ? (any as { cachedTokens?: number }).cachedTokens
+          : undefined) ?? 0
+      const reasoningTokens =
+        (typeof (any as { reasoningTokens?: number }).reasoningTokens === 'number'
+          ? (any as { reasoningTokens?: number }).reasoningTokens
+          : undefined) ?? 0
+      const tokens = tokensIn + tokensOut + cachedTokens + reasoningTokens
       const cost = (typeof any.cost === 'number' ? any.cost : undefined) ?? 0
 
-      return { id, requests, pages, tokens, cost }
+      return { id, requests, pages, tokens, cachedTokens, reasoningTokens, cost }
     })
     .filter((r) => r.id.trim() !== '')
 })
@@ -176,7 +184,21 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
                 class="py-2 pr-4 cursor-pointer"
                 @click="toggleSort('tokens')"
               >
-                Tokens
+                Tokens (gesamt)
+              </th>
+              <th
+                v-if="canShowTokens"
+                class="py-2 pr-4 cursor-pointer"
+                @click="toggleSort('cachedTokens')"
+              >
+                Cached Tokens
+              </th>
+              <th
+                v-if="canShowTokens"
+                class="py-2 pr-4 cursor-pointer"
+                @click="toggleSort('reasoningTokens')"
+              >
+                Reasoning Tokens
               </th>
               <th class="py-2 pr-4 cursor-pointer" @click="toggleSort('cost')">Kosten</th>
             </tr>
@@ -199,6 +221,12 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
               </td>
               <td v-if="canShowTokens" class="py-2 pr-4 text-gray-900">
                 {{ r.tokens.toLocaleString() }}
+              </td>
+              <td v-if="canShowTokens" class="py-2 pr-4 text-gray-900">
+                {{ r.cachedTokens.toLocaleString() }}
+              </td>
+              <td v-if="canShowTokens" class="py-2 pr-4 text-gray-900">
+                {{ r.reasoningTokens.toLocaleString() }}
               </td>
               <td class="py-2 pr-4 text-gray-900">{{ formatCost(r.cost) }}</td>
             </tr>

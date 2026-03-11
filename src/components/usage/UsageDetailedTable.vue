@@ -22,11 +22,14 @@ const pageSize = ref(10)
 // Page size change handled inline in template
 
 // Props für Backend-Sortierung (optional)
+type OrvalTypes = typeof import('@/api/types')
+type PageType = OrvalTypes extends { Page: infer P } ? P : unknown
+
 interface Props {
   data: EnhancedUsageRecord[]
   isLoading?: boolean
   error?: string | null
-  pagination?: import('@/api/types').Page
+  pagination?: PageType
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
@@ -75,14 +78,20 @@ const currentSortOrder = computed(() => {
   return props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value
 })
 
-const paginationPage = computed(() => props.pagination?.currentPage ?? 1)
-const paginationTotalPages = computed(() => props.pagination?.totalPages ?? 0)
-const paginationTotal = computed(() => props.pagination?.totalItems ?? 0)
+const paginationPage = computed(
+  () => (props.pagination as { currentPage?: number } | undefined)?.currentPage ?? 1,
+)
+const paginationTotalPages = computed(
+  () => (props.pagination as { totalPages?: number } | undefined)?.totalPages ?? 0,
+)
+const paginationTotal = computed(
+  () => (props.pagination as { totalItems?: number } | undefined)?.totalItems ?? 0,
+)
 
 // Wenn Backend-Pagination vorhanden ist, nutze diese, sonst Client-seitige Pagination
 const totalPages = computed(() => {
   if (props.pagination) {
-    return props.pagination?.totalPages ?? 0
+    return (props.pagination as { totalPages?: number }).totalPages ?? 0
   }
   return Math.ceil(sortedData.value.length / pageSize.value)
 })
@@ -159,6 +168,8 @@ const formatDate = (day?: number, month?: number, year?: number, createDate?: st
   }
   return '–'
 }
+
+const hoveredCostItem = ref<EnhancedUsageRecord | null>(null)
 
 const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   const parts: string[] = []
@@ -298,8 +309,9 @@ watch(
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
       <div class="flex items-center gap-2">
         <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
-          {{ pagination.totalItems }} Einträge (Seite {{ pagination.currentPage }} von
-          {{ pagination.totalPages }})
+          {{ (pagination as { totalItems?: number }).totalItems }} Einträge (Seite
+          {{ (pagination as { currentPage?: number }).currentPage }} von
+          {{ (pagination as { totalPages?: number }).totalPages }})
         </span>
         <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
         <button
@@ -719,11 +731,26 @@ watch(
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ (item.totalTokens ?? 0).toLocaleString() }}
             </td>
-            <td
-              class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-help"
-              :title="buildCostTooltip(item)"
-            >
-              {{ formatCost(item.cost ?? 0) }}
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <div
+                class="relative inline-flex items-center cursor-help"
+                @mouseenter="hoveredCostItem = item"
+                @mouseleave="hoveredCostItem = null"
+              >
+                <span>
+                  {{ formatCost(item.cost ?? 0) }}
+                </span>
+
+                <div
+                  v-if="hoveredCostItem === item"
+                  class="absolute z-20 mt-2 left-0 w-80 bg-white text-xs text-gray-800 rounded-lg shadow-lg border border-gray-200 p-4"
+                >
+                  <div class="text-sm font-semibold text-gray-900 mb-1">Kostenkalkulation</div>
+                  <pre class="whitespace-pre-wrap text-[11px] leading-snug text-gray-700">
+                    {{ buildCostTooltip(item) }}
+                  </pre>
+                </div>
+              </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ item.tag }}
@@ -761,7 +788,7 @@ watch(
             <label for="page-size-select" class="text-sm text-gray-700">Einträge pro Seite:</label>
             <select
               id="page-size-select"
-              :value="pagination?.pageSize || 20"
+              :value="(pagination as { pageSize?: number } | undefined)?.pageSize || 20"
               class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               @change="
                 $emit('page-size-change', Number(($event.target as HTMLSelectElement).value))

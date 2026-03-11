@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BaseSummary from '../shared/BaseSummary.vue'
 import { debugLog } from '@/utils/debugLog'
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 
 interface UsageSummary {
   tokensIn: number
@@ -29,6 +29,17 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const isCostTooltipVisible = ref(false)
+
+const showCostTooltip = () => {
+  if (!props.costTooltip) return
+  isCostTooltipVisible.value = true
+}
+
+const hideCostTooltip = () => {
+  isCostTooltipVisible.value = false
+}
 
 // Debug: Log summary changes
 watch(
@@ -123,13 +134,26 @@ const formatCost = (cost: number): string => {
         </div>
       </div>
 
-      <div
-        class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors cursor-help"
-        :title="props.costTooltip"
-      >
-        <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
-        <div class="text-2xl font-bold text-primary">
-          {{ formatCost(summary.cost) }}
+      <div class="relative">
+        <div
+          class="bg-primary-100 border border-primary-200 rounded-lg p-4 hover:bg-primary-200 transition-colors cursor-help"
+          @mouseenter="showCostTooltip"
+          @mouseleave="hideCostTooltip"
+        >
+          <div class="text-sm text-primary font-medium">Geschätzte Kosten</div>
+          <div class="text-2xl font-bold text-primary">
+            {{ formatCost(summary.cost) }}
+          </div>
+        </div>
+
+        <div
+          v-if="costTooltip && isCostTooltipVisible"
+          class="absolute z-20 mt-2 w-80 bg-white text-xs text-gray-800 rounded-lg shadow-lg border border-gray-200 p-4"
+        >
+          <div class="text-sm font-semibold text-gray-900 mb-1">Kostenkalkulation</div>
+          <pre class="whitespace-pre-wrap text-[11px] leading-snug text-gray-700">
+            {{ costTooltip }}
+          </pre>
         </div>
       </div>
 
