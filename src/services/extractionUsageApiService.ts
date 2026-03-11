@@ -349,11 +349,10 @@ export const extractionUsageApiService = {
       const limit = filter.limit || 20
       const offset = (page - 1) * limit
 
-      // Summary-Endpoint: groupBy = day|month|year|modelId|tag|userId|provider|apikey; Filter: tag, provider, modelId, from_date, to_date, optional userId
+      // Summary-Endpoint: groupBy = day|month|year|modelId|tag|userId|provider|apiKeyId; Filter: tag, provider, modelId, from_date, to_date, optional userId
       const mappedBy = filter.groupBy
         ? filter.groupBy
             .map((item) => {
-              if (item === 'user') return 'userId'
               const validValues = [
                 'day',
                 'month',
@@ -362,7 +361,7 @@ export const extractionUsageApiService = {
                 'modelId',
                 'userId',
                 'provider',
-                'apikey',
+                'apiKeyId',
               ]
               return validValues.includes(item) ? item : undefined
             })

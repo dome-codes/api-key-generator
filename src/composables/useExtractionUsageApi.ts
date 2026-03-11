@@ -372,7 +372,7 @@ export function useExtractionUsageApi() {
         totalItems: allData.length,
       }
 
-      // 2) Pro-Kachel Summarize-Calls parallel: ohne by, by=userId, by=provider, by=modelId, by=apikey
+      // 2) Pro-Kachel Summarize-Calls parallel: ohne by, by=userId, by=provider, by=modelId, by=apiKeyId
       const [globalRes, byUserIdRes, byProviderRes, byModelIdRes, byApiKeyRes] = await Promise.all([
         extractionUsageApiService.getUsageSummary(
           { ...baseFilter, groupBy: undefined },
@@ -391,7 +391,7 @@ export function useExtractionUsageApi() {
           useAdminApi,
         ),
         extractionUsageApiService.getUsageSummary(
-          { ...baseFilter, groupBy: ['apikey'] },
+          { ...baseFilter, groupBy: ['apiKeyId'] },
           useAdminApi,
         ),
       ])
