@@ -283,14 +283,14 @@ export function useUsageApi() {
     // Die Daten sind bereits nach Tag gruppiert, also können wir sie direkt verwenden
     const tagEntries = data
       .map((item) => {
-        const tag = item.tag && String(item.tag).trim() ? item.tag : undefined
-        if (!tag) return null
+        const raw = typeof item.tag === 'string' ? item.tag : ''
+        const trimmed = raw.trim()
+        const tag = trimmed !== '' ? trimmed : 'kein Tag'
         return {
           tag,
           count: getRequestCount(item),
         }
       })
-      .filter((entry): entry is { tag: string; count: number } => entry !== null)
       .sort((a, b) => b.count - a.count) // Sortiere nach Anzahl (absteigend)
       .slice(0, showAllTagsInChart.value ? data.length : 10) // Top 10 oder alle
 
