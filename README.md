@@ -37,14 +37,34 @@ npm run db:setup
 
 ## 🚀 Schnellstart
 
-### Entwicklung (Frontend + Backend)
+### Empfohlener Weg im Projektkontext (mit „richtigem“ Backend)
+
+In der Regel wird dieses Frontend direkt gegen das zentrale Backend betrieben (z. B. in eurer Projekt-/Staging‑Umgebung).
+Du brauchst dann **nur das Frontend** zu starten – die Backend‑URLs kommen aus `.env.local` bzw. den Defaults aus `.env.example`:
 
 ```bash
+# Empfehlung: pnpm verwenden
+pnpm install
+pnpm run frontend:dev
+```
+
+> Hinweis: In diesem Modus wird **kein** lokaler SQLite‑Mock und **kein** Mock‑API‑Server benötigt.
+> Das Frontend spricht direkt mit den konfigurierten Backend‑Endpoints (z. B. `VITE_API_BASE_URL`, Keycloak‑URL).
+
+### Lokale Entwicklung mit Mock‑Backend (ohne externen Dienst)
+
+Wenn du komplett lokal ohne Zugriff auf externe Services arbeiten willst, kannst du den integrierten Mock‑API‑Server
+und die SQLite‑Datenbank nutzen:
+
+```bash
+# Datenbank initialisieren und Mock-Daten erzeugen
+npm run db:setup
+
 # Startet Mock-API-Server und Frontend parallel
 npm run dev:all
 ```
 
-- **Mock-API:** http://localhost:5713
+- **Mock-API:** http://localhost:5713  
 - **Frontend:** http://localhost:5173
 
 ### Nur Mock-API-Server
@@ -206,6 +226,8 @@ api-key-generator/
    # Bearbeite .env.local nach Bedarf
    ```
 
+   **Hinweis:** Wenn du keine `.env.local` anlegst, verwendet das Projekt die Default-Werte aus `.env.example` bzw. die im Code hinterlegten Fallbacks (z. B. lokale API-URLs und Standard-Keycloak-Konfiguration). Für Staging/Produktion sollte immer eine eigene `.env.local` gepflegt werden.
+
 4. **Entwicklung starten:**
    ```bash
    npm run dev:all
@@ -254,6 +276,39 @@ npm run api:generate
 ```
 
 Die generierten Dateien befinden sich in `src/api/` und sollten **nicht manuell bearbeitet** werden.
+
+### OpenAPI-Sync & Client-Update (Projektkontext)
+
+In unserem Projektkontext (z. B. CI-Pipeline oder übergeordnete Repo‑Scripts) gibt es Schritte, die intern
+auf die oben beschriebenen npm‑Scripts und Hilfs‑Skripte aufsetzen. Zur Einordnung:
+
+- **`sync-openapi`**  
+  Ruft typischerweise ein Shell‑Script wie `scripts/sync-openapi.sh` auf, das die aktuelle `openapi.yaml`
+  aus dem Backend‑Projekt bzw. einer zentralen Quelle synchronisiert.
+
+- **`generate-client`**  
+  Generiert den TypeScript‑Client aus der OpenAPI‑Spezifikation (entspricht im Wesentlichen dem Orval‑Aufruf,
+  der auch in `npm run api:generate` steckt).
+
+- **`api:generate`** (`npm run api:generate`)  
+  Führt Orval aus und ruft anschließend `scripts/fix-api-types-casing.js` auf, um Typnamen/Schreibweisen
+  an unsere Coding‑Konventionen anzupassen.
+
+- **`lint-gen`**  
+  Kombiniert Linting und Formatierung für die generierten Dateien, z. B. durch:
+  - `npm run lint`
+  - `npm run format`
+
+- **`update-client`**  
+  Fasst die obigen Schritte zusammen:  
+  `sync-openapi` → `generate-client` / `api:generate` → `lint-gen`.  
+  Ergebnis: API‑Client ist mit der aktuellen OpenAPI‑Spezifikation synchron und nach unseren
+  Lint/Format‑Regeln „aufgeräumt“.
+
+- **`start` (Projekt-Wrapper)**  
+  In manchen Umgebungen wird beim Starten (z. B. via `pnpm start` in einem übergeordneten Repo) erst
+  `update-client` ausgeführt und anschließend das Frontend gestartet (`pnpm run frontend:dev`), sodass
+  immer mit einem aktuellen API‑Client gegen das richtige Backend gearbeitet wird.
 
 ### OpenAPI-Spezifikation
 
