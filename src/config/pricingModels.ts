@@ -58,73 +58,49 @@ export const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     outputPrice: 8.48,
   },
 
-  // o3 / o4-mini (vereinfacht, Standard-Pricing)
+  // o3 / o4-mini (vereinfacht, Data Zone als Standardnamen)
   {
-    modelName: 'o3-2025-04-16-global',
-    inputPrice: 1.7,
-    cachedInputPrice: 0.43,
-    outputPrice: 6.78,
-  },
-  {
-    modelName: 'o3-2025-04-16-data-zone',
+    modelName: 'o3',
     inputPrice: 1.87,
     cachedInputPrice: 0.47,
     outputPrice: 7.46,
   },
   {
-    modelName: 'o3-2025-04-16-regional',
-    inputPrice: 2.06,
-    cachedInputPrice: 0.52,
-    outputPrice: 8.21,
-  },
-  {
-    modelName: 'o4-mini-2025-04-16-global',
-    inputPrice: 0.94,
-    cachedInputPrice: 0.24,
-    outputPrice: 3.73,
-  },
-  {
-    modelName: 'o4-mini-2025-04-16-data-zone',
+    modelName: 'o4-mini',
     inputPrice: 1.03,
     cachedInputPrice: 0.26,
     outputPrice: 4.11,
   },
-  {
-    modelName: 'o4-mini-2025-04-16-regional',
-    inputPrice: 1.13,
-    cachedInputPrice: 0.29,
-    outputPrice: 4.52,
-  },
 
-  // GPT-4.1 Serie (Standard-Pricing, Global-Variante)
+  // GPT-4.1 Serie (Standard-Pricing, Basisnamen)
   {
-    modelName: 'gpt-4.1-2025-04-14-global',
+    modelName: 'gpt-4.1',
     inputPrice: 1.7,
     cachedInputPrice: 0.43,
     outputPrice: 6.78,
   },
   {
-    modelName: 'gpt-4.1-mini-2025-04-14-global',
+    modelName: 'gpt-4.1-mini',
     inputPrice: 0.34,
     cachedInputPrice: 0.09,
     outputPrice: 1.36,
   },
   {
-    modelName: 'gpt-4.1-nano-2025-04-14-global',
+    modelName: 'gpt-4.1-nano',
     inputPrice: 0.09,
     cachedInputPrice: 0.03,
     outputPrice: 0.34,
   },
 
-  // GPT-4o / GPT-4o-mini (neue Generation)
+  // GPT-4o / GPT-4o-mini (neue Generation, Basisnamen)
   {
-    modelName: 'gpt-4o-2024-08-06-global',
+    modelName: 'gpt-4o',
     inputPrice: 2.11838,
     cachedInputPrice: 1.0592,
     outputPrice: 8.4735,
   },
   {
-    modelName: 'gpt-4o-mini-0718-global',
+    modelName: 'gpt-4o-mini',
     inputPrice: 0.12711,
     cachedInputPrice: 0.0636,
     outputPrice: 0.5085,
