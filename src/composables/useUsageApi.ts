@@ -17,6 +17,7 @@
  */
 
 import { usageApiService } from '@/services/usageApiService'
+import { AZURE_MODEL_PRICING } from '@/config/pricing'
 import {
   ImageModelUsageType as ImageModelUsageTypeEnum,
   type EnhancedUsageRecord,
@@ -83,6 +84,10 @@ export function useUsageApi() {
         totalCachedTokens: 0,
         totalReasoningTokens: 0,
         hasFallbackPricing: false,
+        fallbackUnknownModelNames: [],
+        fallbackUnknownRequests: 0,
+        fallbackUnknownTokensIn: 0,
+        fallbackUnknownTokensOut: 0,
         uniqueUsers: 0,
         uniqueModels: 0,
         averageRequestsPerUser: 0,
@@ -113,9 +118,30 @@ export function useUsageApi() {
 
     const uniqueUsers = new Set(data.map((item) => item.userId)).size
     const uniqueModels = new Set(data.map((item) => item.modelName)).size
-    const hasFallbackPricing = data.some(
-      (item) => (item.modelName ?? '').toLowerCase() === 'unknown',
+
+    // Fallback-Pricing: Modelle, die nicht in AZURE_MODEL_PRICING gepflegt sind
+    const knownModelNames = new Set(
+      AZURE_MODEL_PRICING.map((m) => (m.modelName || '').toLowerCase()),
     )
+    const unknownModelsSet = new Set<string>()
+    let fallbackUnknownRequests = 0
+    let fallbackUnknownTokensIn = 0
+    let fallbackUnknownTokensOut = 0
+
+    data.forEach((item) => {
+      const rawName = item.modelName ?? ''
+      const normalizedName = rawName.toLowerCase()
+      if (!normalizedName || knownModelNames.has(normalizedName)) {
+        return
+      }
+
+      unknownModelsSet.add(rawName)
+      fallbackUnknownRequests += item.requests ?? 0
+      fallbackUnknownTokensIn += item.tokensIn ?? 0
+      fallbackUnknownTokensOut += item.tokensOut ?? 0
+    })
+
+    const hasFallbackPricing = unknownModelsSet.size > 0
 
     return {
       totalRequests,
@@ -126,6 +152,10 @@ export function useUsageApi() {
       totalCachedTokens,
       totalReasoningTokens,
       hasFallbackPricing,
+      fallbackUnknownModelNames: Array.from(unknownModelsSet),
+      fallbackUnknownRequests,
+      fallbackUnknownTokensIn,
+      fallbackUnknownTokensOut,
       uniqueUsers,
       uniqueModels,
       averageRequestsPerUser: uniqueUsers > 0 ? totalRequests / uniqueUsers : 0,

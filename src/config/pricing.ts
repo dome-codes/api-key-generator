@@ -1,4 +1,4 @@
-// Azure OpenAI Preise (Stand: 2026) - pro 1 Million Tokens
+// Azure OpenAI Preise – pro 1 Million Tokens
 export interface ModelPricing {
   modelName: string
   inputPrice: number // € pro 1M Tokens
@@ -29,147 +29,13 @@ export interface ExtractionModelPricing {
 }
 
 // Default Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
-const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
-  // GPT-4o Serie (Stand: 2026)
-  {
-    modelName: 'gpt-4o-mini',
-    inputPrice: 0.138, // $0.15 * 0.92 EUR/USD
-    outputPrice: 0.552, // $0.60 * 0.92 EUR/USD
-  },
-  {
-    modelName: 'gpt-4o',
-    inputPrice: 2.3, // $2.50 * 0.92 EUR/USD
-    outputPrice: 9.2, // $10.00 * 0.92 EUR/USD
-  },
-
-  // GPT-4.1 Serie (Stand: 2026)
-  {
-    modelName: 'gpt-4.1',
-    inputPrice: 1.84, // $2.00 * 0.92 EUR/USD
-    outputPrice: 7.36, // $8.00 * 0.92 EUR/USD
-    cachedInputPrice: 0.46, // Geschätzt basierend auf Verhältnis
-  },
-  {
-    modelName: 'gpt-4.1-mini',
-    inputPrice: 0.32, // Geschätzt basierend auf Verhältnis
-    outputPrice: 1.28, // Geschätzt basierend auf Verhältnis
-    cachedInputPrice: 0.08, // Geschätzt basierend auf Verhältnis
-  },
-  {
-    modelName: 'gpt-4.1-nano',
-    inputPrice: 0.08, // Geschätzt basierend auf Verhältnis
-    outputPrice: 0.32, // Geschätzt basierend auf Verhältnis
-    cachedInputPrice: 0.02, // Geschätzt basierend auf Verhältnis
-  },
-
-  // GPT-3.5 Serie
-  {
-    modelName: 'gpt-3.5-turbo',
-    inputPrice: 0.15,
-    outputPrice: 0.2,
-  },
-
-  // Claude Serie
-  {
-    modelName: 'claude-3-sonnet',
-    inputPrice: 3.0,
-    outputPrice: 15.0,
-  },
-  {
-    modelName: 'claude-3-haiku',
-    inputPrice: 0.25,
-    outputPrice: 1.25,
-  },
-
-  // Fallback für unbekannte Modelle
-  {
-    modelName: 'unknown',
-    inputPrice: 1.0,
-    outputPrice: 3.0,
-  },
-]
-
-// Default Image-Modell Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
-const DEFAULT_AZURE_IMAGE_MODEL_PRICING: ImageModelPricing[] = [
-  {
-    modelName: 'dall-e-3',
-    standardPrice: 3.472, // € pro 100 Bilder (1024x1024)
-    hdPrice: 6.943, // € pro 100 Bilder (1024x1024 HD)
-    standardPriceLarge: 6.943, // € pro 100 Bilder (1024x1792, 1792x1024)
-    hdPriceLarge: 10.415, // € pro 100 Bilder (1024x1792, 1792x1024 HD)
-  },
-  {
-    modelName: 'dall-e-2',
-    standardPrice: 0.0, // Nicht zutreffend
-    hdPrice: 0.0,
-  },
-  {
-    modelName: 'midjourney-v6',
-    standardPrice: 5.0, // Beispielpreis
-    hdPrice: 8.0,
-  },
-  // Fallback für unbekannte Image-Modelle
-  {
-    modelName: 'unknown',
-    standardPrice: 3.472,
-    hdPrice: 6.943,
-  },
-]
-
-// Default Embedding-Modell Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
-const DEFAULT_AZURE_EMBEDDING_MODEL_PRICING: EmbeddingModelPricing[] = [
-  {
-    modelName: 'text-embedding-ada-002',
-    pricePer1000Tokens: 0.000087,
-  },
-  {
-    modelName: 'text-embedding-3-large',
-    pricePer1000Tokens: 0.000113,
-  },
-  {
-    modelName: 'text-embedding-3-small',
-    pricePer1000Tokens: 0.000018,
-  },
-  // Fallback für unbekannte Embedding-Modelle
-  {
-    modelName: 'unknown',
-    pricePer1000Tokens: 0.0001,
-  },
-]
-
-// Default Document-Intelligence / Extraction Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
-// HINWEIS: Werte sind Platzhalter – bitte über Admin-UI oder localStorage überschreiben.
-const DEFAULT_EXTRACTION_MODEL_PRICING: ExtractionModelPricing[] = [
-  {
-    modelId: 'document-intelligence',
-    pricePerPage: 0.05,
-  },
-  {
-    modelId: 'prebuilt-layout',
-    pricePerPage: 0.02,
-  },
-  {
-    modelId: 'prebuilt-document',
-    pricePerPage: 0.03,
-  },
-  {
-    modelId: 'prebuilt-invoice',
-    pricePerPage: 0.05,
-  },
-  {
-    modelId: 'prebuilt-receipt',
-    pricePerPage: 0.02,
-  },
-  {
-    modelId: 'prebuilt-businessCard',
-    pricePerPage: 0.02,
-  },
-  // Fallback für unbekannte Extraction-Modelle
-  {
-    modelId: 'unknown',
-    pricePerPage: 0.03,
-  },
-]
+// Ausgelagert in eigene Datei, damit Pricing-Tabellen leichter gepflegt werden können.
+import {
+  DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+  DEFAULT_AZURE_IMAGE_MODEL_PRICING,
+  DEFAULT_AZURE_MODEL_PRICING,
+  DEFAULT_EXTRACTION_MODEL_PRICING,
+} from './pricingModels'
 
 // FITS-Aufschlag (9%) - kann aus localStorage geladen werden
 const DEFAULT_SERVICE_MARKUP_PERCENTAGE = 0.09
@@ -248,9 +114,9 @@ function getCurrentMarkup(): number {
 
 // Exportiere auch die Defaults für Reset-Funktionalität
 export {
-  DEFAULT_AZURE_MODEL_PRICING,
-  DEFAULT_AZURE_IMAGE_MODEL_PRICING,
   DEFAULT_AZURE_EMBEDDING_MODEL_PRICING,
+  DEFAULT_AZURE_IMAGE_MODEL_PRICING,
+  DEFAULT_AZURE_MODEL_PRICING,
   DEFAULT_EXTRACTION_MODEL_PRICING,
   DEFAULT_SERVICE_MARKUP_PERCENTAGE,
 }
@@ -345,12 +211,27 @@ function calculateCompletionCost(
   const currentMarkup = loadMarkupFromStorage()
 
   // Finde das Modell in der Preisliste
-  const model =
-    currentPricing.find((m) => m.modelName.toLowerCase() === modelName.toLowerCase()) ||
-    currentPricing.find((m) => m.modelName === 'unknown') ||
-    currentPricing[0] // Fallback auf erstes Modell
+  const normalizedName = (modelName || '').toLowerCase()
+  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
+  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
+  const model = directMatch ?? fallbackModel
+
   if (!model) {
     throw new Error(`Model ${modelName} not found in pricing`)
+  }
+
+  // Wenn wir nur den 'unknown'-Fallback gefunden haben, aber das angefragte Modell
+  // nicht explizit gepflegt ist, wollen wir im Frontend keine "echten" Kosten anzeigen.
+  // In diesem Fall liefern wir 0-Kosten zurück; Analyse/Tooltips können den Fallback
+  // separat kennzeichnen, aber die reguläre Kostenanzeige bleibt neutral.
+  if (!directMatch && fallbackModel && model === fallbackModel) {
+    return {
+      inputCost: 0,
+      outputCost: 0,
+      totalCost: 0,
+      serviceMarkup: 0,
+      finalCost: 0,
+    }
   }
 
   // Berechne Kosten pro Token (Preise sind pro 1M Tokens)
@@ -612,7 +493,7 @@ export function removeModel(
 export const PRICING_DISCLAIMER = `
 **Preisberechnung basierend auf Azure OpenAI Tarifen**
 
-Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2026) plus einem FITS-Aufschlag von 9%.
+Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2026) plus einem FITS-Aufschlag von 9%. Für Completion-Modelle werden die Preise pro 1 Million Tokens berechnet, für Embeddings pro 1000 Tokens und für Bildmodelle pro 100 Bilder.
 
 **Wichtige Hinweise:**
 - **Completion Models**: Preise sind pro 1 Million Tokens berechnet
@@ -622,8 +503,8 @@ Die angezeigten Kosten basieren auf den aktuellen Azure OpenAI Preisen (Stand: 2
 - Alle Preise in Euro (€) inklusive FITS-Aufschlag
 
 **Preisbeispiele:**
-- **GPT-4o-mini**: Eingabe €0,14 / Ausgabe €0,55 (pro 1M Tokens)
-- **GPT-4o**: Eingabe €2,30 / Ausgabe €9,20 (pro 1M Tokens)
+- **GPT-4o-mini**: Eingabe ca. €0,13 / Ausgabe ca. €0,51 (pro 1M Tokens)
+- **GPT-4o**: Eingabe ca. €2,12 / Ausgabe ca. €8,47 (pro 1M Tokens)
 - **DALL-E-3**: Standard €3,47 / HD €6,94 (pro 100 Bilder)
 - **text-embedding-3-small**: €0,000018 (pro 1000 Tokens)
 

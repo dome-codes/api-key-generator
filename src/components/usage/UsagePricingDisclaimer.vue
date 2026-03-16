@@ -5,6 +5,11 @@ import { computed, ref } from 'vue'
 interface Props {
   useFullDisclaimer?: boolean // Optional: Verwende den vollständigen Disclaimer aus pricing.ts
   variant?: 'ai' | 'extraction' // Variante: 'ai' für AI Usage, 'extraction' für Document Intelligence
+  // Optional: Informationen zu Aufrufen mit unbekanntem Pricing (z. B. Modelle ohne gepflegte Preise)
+  unknownModelNames?: string[]
+  unknownRequests?: number
+  unknownTokensIn?: number
+  unknownTokensOut?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -143,6 +148,23 @@ const formattedFullDisclaimer = computed(() => {
             <p class="text-xs text-gray-600 italic">
               Diese Preise dienen zur Orientierung und können von den tatsächlichen
               Abrechnungspreisen abweichen.
+            </p>
+
+            <!-- Hinweis auf Modelle ohne gepflegtes Pricing -->
+            <p
+              v-if="unknownModelNames && unknownModelNames.length > 0"
+              class="mt-2 text-xs text-gray-700"
+            >
+              Für folgende Modelle liegen aktuell keine hinterlegten Preise in dieser Ansicht vor
+              und sie wurden bei den <strong>geschätzten Gesamtkosten mit 0&nbsp;€</strong>
+              berücksichtigt:
+              <span class="font-mono break-all">
+                {{ unknownModelNames.join(', ') }}
+              </span>
+              <span v-if="unknownRequests && unknownRequests > 0">
+                &nbsp;– betroffene Aufrufe:
+                {{ unknownRequests.toLocaleString() }}.
+              </span>
             </p>
           </div>
 

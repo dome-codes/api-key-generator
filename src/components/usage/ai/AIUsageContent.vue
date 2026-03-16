@@ -189,6 +189,17 @@ const ownSummary = computed(() => {
   }
 })
 
+const unknownPricingInfo = computed(() => {
+  const agg = usageAggregation.value
+  return {
+    unknownModelNames: agg.fallbackUnknownModelNames ?? [],
+    unknownRequests: agg.fallbackUnknownRequests ?? 0,
+    unknownTokensIn: agg.fallbackUnknownTokensIn ?? 0,
+    unknownTokensOut: agg.fallbackUnknownTokensOut ?? 0,
+    hasFallbackPricing: agg.hasFallbackPricing ?? false,
+  }
+})
+
 // Handle filter changes
 // Flag um doppelte Calls zu vermeiden
 let isHandlingFilterChange = false
@@ -385,7 +396,13 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Pricing Disclaimer für AI Usage -->
-    <UsagePricingDisclaimer />
+    <UsagePricingDisclaimer
+      variant="ai"
+      :unknown-model-names="unknownPricingInfo.unknownModelNames"
+      :unknown-requests="unknownPricingInfo.unknownRequests"
+      :unknown-tokens-in="unknownPricingInfo.unknownTokensIn"
+      :unknown-tokens-out="unknownPricingInfo.unknownTokensOut"
+    />
 
     <!-- Filter Section -->
     <AIUsageFilters
