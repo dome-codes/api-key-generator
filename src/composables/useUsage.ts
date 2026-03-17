@@ -150,17 +150,34 @@ export function useUsage() {
         // Berechne Kosten für jedes Item
         const costs = await Promise.all(
           validItems.map(async (item: EnhancedUsageRecord) => {
-            const { calculateCost } = await import('@/config/pricing')
+            const { calculateCompletionCostDetailed, calculateCost } = await import(
+              '@/config/pricing'
+            )
             const fromItem = readTokensFromItem(item as unknown as Record<string, unknown>)
             const requestTokens = fromItem.requestTokens || 0
             const baseResponseTokens = fromItem.responseTokens || 0
             const cachedTokens = (item.cachedTokens ?? 0) as number
             const reasoningTokens = (item.reasoningTokens ?? 0) as number
-            const effectiveTokensIn = requestTokens + cachedTokens
-            const effectiveTokensOut = baseResponseTokens + reasoningTokens
+
+            const typeValue = (item.type || DEFAULT_MODEL_USAGE_TYPE) as string
+            const isCompletion =
+              typeValue === 'CompletionModelUsage' ||
+              typeValue === 'COMPLETION_USAGE' ||
+              typeValue === 'completion_usage'
+
+            if (isCompletion) {
+              return calculateCompletionCostDetailed({
+                modelName: item.modelName || 'unknown',
+                inputTokens: requestTokens,
+                cachedInputTokens: cachedTokens,
+                outputTokens: baseResponseTokens,
+                reasoningTokens,
+              }).finalCost
+            }
+
             return calculateCost(
-              effectiveTokensIn,
-              effectiveTokensOut,
+              requestTokens,
+              baseResponseTokens,
               item.modelName || 'unknown',
               false,
               item.type || 'COMPLETION_USAGE',
@@ -204,21 +221,35 @@ export function useUsage() {
               })
             }
 
-            const { calculateCost } = await import('@/config/pricing')
+            const { calculateCompletionCostDetailed, calculateCost } = await import(
+              '@/config/pricing'
+            )
             const fromItem = readTokensFromItem(item as unknown as Record<string, unknown>)
             const requestTokens = fromItem.requestTokens || 0
             const baseResponseTokens = fromItem.responseTokens || 0
             const cachedTokens = (item.cachedTokens ?? 0) as number
             const reasoningTokens = (item.reasoningTokens ?? 0) as number
-            const effectiveTokensIn = requestTokens + cachedTokens
-            const effectiveTokensOut = baseResponseTokens + reasoningTokens
-            const costResult = calculateCost(
-              effectiveTokensIn,
-              effectiveTokensOut,
-              item.modelName || 'unknown',
-              false,
-              item.type || 'COMPLETION_USAGE',
-            )
+            const typeValue = (item.type || DEFAULT_MODEL_USAGE_TYPE) as string
+            const isCompletion =
+              typeValue === 'CompletionModelUsage' ||
+              typeValue === 'COMPLETION_USAGE' ||
+              typeValue === 'completion_usage'
+
+            const costResult = isCompletion
+              ? calculateCompletionCostDetailed({
+                  modelName: item.modelName || 'unknown',
+                  inputTokens: requestTokens,
+                  cachedInputTokens: cachedTokens,
+                  outputTokens: baseResponseTokens,
+                  reasoningTokens,
+                })
+              : calculateCost(
+                  requestTokens,
+                  baseResponseTokens,
+                  item.modelName || 'unknown',
+                  false,
+                  item.type || 'COMPLETION_USAGE',
+                )
             const apiKeyId = getApiKeyIdFromItem(item as unknown as Record<string, unknown>)
 
             // DEBUG: Zeige Extraktions-Ergebnis
@@ -238,9 +269,10 @@ export function useUsage() {
                 | ModelUsageType
                 | undefined,
               requests: item.requests || 0,
-              tokensIn: effectiveTokensIn,
-              tokensOut: effectiveTokensOut,
-              totalTokens: item.totalTokens ?? effectiveTokensIn + effectiveTokensOut,
+              tokensIn: requestTokens,
+              tokensOut: baseResponseTokens,
+              totalTokens:
+                item.totalTokens ?? requestTokens + cachedTokens + baseResponseTokens + reasoningTokens,
               cachedTokens,
               reasoningTokens,
               cost: costResult.finalCost,

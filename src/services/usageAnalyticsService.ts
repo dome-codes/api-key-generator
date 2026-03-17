@@ -1,6 +1,6 @@
 import type { AIUsageRecord, AIUsageSummaryRecord } from '@/api/types'
 import { ModelUsageType as ModelUsageTypeEnum } from '@/api/types/modelUsageType'
-import { calculateCost } from '@/config/pricing'
+import { calculateCompletionCostDetailed, calculateCost } from '@/config/pricing'
 import {
   type EnhancedUsageRecord,
   type ImageModelUsage,
@@ -160,17 +160,30 @@ export const usageAnalyticsService = {
         }
 
         // Berechne Kosten für dieses Item
-        const costCalculation = calculateCost(
-          requestTokens,
-          responseTokens,
-          item.model || 'unknown',
-          false, // useCachedInput
-          item.type, // modelType
-          (item as ModelUsage & { quality?: string }).quality, // imageQuality (für Image-Modelle)
-          1, // imageCount: Jedes Objekt repräsentiert einen Request
-          (item as ModelUsage & { sizeWidth?: number }).sizeWidth, // sizeWidth (für Image-Modelle)
-          (item as ModelUsage & { sizeHeight?: number }).sizeHeight, // sizeHeight (für Image-Modelle)
-        )
+        const isCompletion =
+          typeValue === ModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === CompletionModelUsageTypeEnum.CompletionModelUsage ||
+          typeValue === 'CompletionModelUsage'
+
+        const costCalculation = isCompletion
+          ? calculateCompletionCostDetailed({
+              modelName: item.model || 'unknown',
+              inputTokens: requestTokens,
+              cachedInputTokens: 0,
+              outputTokens: responseTokens,
+              reasoningTokens: 0,
+            })
+          : calculateCost(
+              requestTokens,
+              responseTokens,
+              item.model || 'unknown',
+              false, // useCachedInput
+              item.type, // modelType
+              (item as ModelUsage & { quality?: string }).quality, // imageQuality (für Image-Modelle)
+              1, // imageCount: Jedes Objekt repräsentiert einen Request
+              (item as ModelUsage & { sizeWidth?: number }).sizeWidth, // sizeWidth (für Image-Modelle)
+              (item as ModelUsage & { sizeHeight?: number }).sizeHeight, // sizeHeight (für Image-Modelle)
+            )
 
         return {
           ...item,
