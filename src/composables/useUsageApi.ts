@@ -471,13 +471,24 @@ export function useUsageApi() {
       debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
 
       // Lade Modell-Daten für den Modell-Chart (gruppiert nach Modell)
-      await loadModelSummary(useAdminApi)
+      // Wenn ein Modell-Filter gesetzt ist, ist die Model-Verteilung trivial – Call sparen.
+      if (!(currentFilter.value.model && String(currentFilter.value.model).trim() !== '')) {
+        await loadModelSummary(useAdminApi)
+      } else {
+        modelSummaryData.value = []
+      }
       // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
       await loadTagSummary(useAdminApi)
-      // Lade User-Daten für Breakdown (gruppiert nach user)
-      await loadUserSummary(useAdminApi)
-      // Lade API-Key-Daten für Breakdown (gruppiert nach apikey)
-      await loadApiKeySummary(useAdminApi)
+      // User/API-Key Breakdown nur sinnvoll im Admin-Kontext
+      if (useAdminApi) {
+        // Lade User-Daten für Breakdown (gruppiert nach userId)
+        await loadUserSummary(useAdminApi)
+        // Lade API-Key-Daten für Breakdown (gruppiert nach apiKeyId)
+        await loadApiKeySummary(useAdminApi)
+      } else {
+        userSummaryData.value = []
+        apiKeySummaryData.value = []
+      }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
@@ -505,7 +516,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 1000, // Ausreichend für Modell-Gruppierung
-        groupBy: ['model'] as 'model'[],
+        groupBy: ['modelId'] as string[],
       }
 
       debugLog('Loading model summary with filter:', modelFilter)
@@ -549,7 +560,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['user'] as 'user'[],
+        groupBy: ['userId'] as string[],
       }
 
       debugLog('Loading user summary with filter:', userFilter)
@@ -591,7 +602,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['apikey'] as 'apikey'[],
+        groupBy: ['apiKeyId'] as string[],
       }
 
       debugLog('Loading apiKey summary with filter:', apiKeyFilter)
