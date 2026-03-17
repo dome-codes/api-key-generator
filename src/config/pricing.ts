@@ -163,6 +163,96 @@ export function calculateCost(
   return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput)
 }
 
+/**
+ * Completion-Kostenberechnung mit getrennten Token-Typen:
+ * - inputTokens (normal)
+ * - cachedInputTokens (Prompt-Cache)
+ * - outputTokens (normal)
+ * - reasoningTokens (optional, eigener Preis; fallback auf outputPrice)
+ *
+ * WICHTIG: Wenn das Modell nicht in der Preisliste gepflegt ist, liefert diese Funktion
+ * bewusst 0-Kosten (usedFallbackPricing=true), um keine irreführenden Summen anzuzeigen.
+ */
+export function calculateCompletionCostDetailed(params: {
+  modelName: string
+  inputTokens: number
+  cachedInputTokens?: number
+  outputTokens: number
+  reasoningTokens?: number
+}): {
+  inputCost: number
+  cachedInputCost: number
+  outputCost: number
+  reasoningCost: number
+  totalCost: number
+  serviceMarkup: number
+  finalCost: number
+  usedFallbackPricing: boolean
+} {
+  const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
+  const currentMarkup = loadMarkupFromStorage()
+
+  const normalizedName = (params.modelName || '').toLowerCase()
+  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
+  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
+  const model = directMatch ?? fallbackModel
+
+  if (!model) {
+    throw new Error(`Model ${params.modelName} not found in pricing`)
+  }
+
+  if (!directMatch && fallbackModel && model === fallbackModel) {
+    return {
+      inputCost: 0,
+      cachedInputCost: 0,
+      outputCost: 0,
+      reasoningCost: 0,
+      totalCost: 0,
+      serviceMarkup: 0,
+      finalCost: 0,
+      usedFallbackPricing: true,
+    }
+  }
+
+  const safeInput =
+    Number.isFinite(params.inputTokens) && params.inputTokens > 0 ? params.inputTokens : 0
+  const safeCached =
+    Number.isFinite(params.cachedInputTokens) && (params.cachedInputTokens as number) > 0
+      ? (params.cachedInputTokens as number)
+      : 0
+  const safeOutput =
+    Number.isFinite(params.outputTokens) && params.outputTokens > 0 ? params.outputTokens : 0
+  const safeReasoning =
+    Number.isFinite(params.reasoningTokens) && (params.reasoningTokens as number) > 0
+      ? (params.reasoningTokens as number)
+      : 0
+
+  const inputPricePerToken = model.inputPrice / 1000000
+  const cachedInputPricePerToken = (model.cachedInputPrice ?? model.inputPrice) / 1000000
+  const outputPricePerToken = model.outputPrice / 1000000
+  const reasoningPricePerToken = (model.reasoningPrice ?? model.outputPrice) / 1000000
+
+  const inputCost = safeInput * inputPricePerToken
+  const cachedInputCost = safeCached * cachedInputPricePerToken
+  const outputCost = safeOutput * outputPricePerToken
+  const reasoningCost = safeReasoning * reasoningPricePerToken
+
+  const totalCost = inputCost + cachedInputCost + outputCost + reasoningCost
+  const serviceMarkup = totalCost * currentMarkup
+  const finalCost = totalCost + serviceMarkup
+
+  return {
+    inputCost,
+    cachedInputCost,
+    outputCost,
+    reasoningCost,
+    totalCost,
+    serviceMarkup,
+    finalCost,
+    usedFallbackPricing: false,
+  }
+}
+
 // Seiten-basierte Kostenberechnung für Document Intelligence / Extraction
 export function calculateExtractionCost(
   pages: number,

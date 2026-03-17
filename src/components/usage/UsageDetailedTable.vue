@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { EnhancedUsageRecord } from '@/types/frontend'
 import type { ModelUsageType } from '@/api/types'
-import { AZURE_MODEL_PRICING, calculateCost, formatCost } from '@/config/pricing'
+import {
+  AZURE_MODEL_PRICING,
+  calculateCompletionCostDetailed,
+  calculateCost,
+  formatCost,
+} from '@/config/pricing'
 import { sortUsageRecords } from '@/utils/sortUsageRecords'
 import ErrorState from './shared/ErrorState.vue'
 import SkeletonLoader from './shared/SkeletonLoader.vue'
@@ -200,11 +205,26 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   let finalCost = item.cost ?? 0
 
   try {
-    const result = calculateCost(tokensIn, tokensOut, modelName, false, modelType)
-    inputCost = result.inputCost
-    outputCost = result.outputCost
-    totalCost = result.totalCost
-    serviceMarkup = result.serviceMarkup
+    const isCompletion = !(
+      String(modelType || '')
+        .toLowerCase()
+        .includes('embedding') ||
+      String(modelType || '')
+        .toLowerCase()
+        .includes('image')
+    )
+
+    const result = isCompletion
+      ? calculateCompletionCostDetailed({
+          modelName,
+          inputTokens: tokensIn,
+          cachedInputTokens: cachedTokens,
+          outputTokens: tokensOut,
+          reasoningTokens,
+        })
+      : calculateCost(tokensIn, tokensOut, modelName, false, modelType)
+
+    ;({ inputCost, outputCost, totalCost, serviceMarkup } = result)
     // Nutze berechneten Wert nur, wenn kein expliziter cost gesetzt ist
     if (!Number.isFinite(finalCost) || finalCost === 0) {
       finalCost = result.finalCost

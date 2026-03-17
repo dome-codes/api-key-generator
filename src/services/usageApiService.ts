@@ -19,7 +19,7 @@ import type {
   AIUsageSummaryRecord,
 } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
-import { calculateCost } from '@/config/pricing'
+import { calculateCompletionCostDetailed, calculateCost } from '@/config/pricing'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
@@ -310,17 +310,38 @@ export const usageApiService = {
             0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const effectiveTokensIn = requestTokens + cachedTokens
-          const effectiveTokensOut = baseResponseTokens + reasoningTokens
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const costResult = calculateCost(
-            effectiveTokensIn,
-            effectiveTokensOut,
-            item.model || 'unknown',
-            false,
-            displayType as ModelUsageType,
+          const modelName = item.model || 'unknown'
+
+          const isCompletion = !(
+            String(displayType || '')
+              .toLowerCase()
+              .includes('embedding') ||
+            String(displayType || '')
+              .toLowerCase()
+              .includes('image')
           )
+
+          const costResult = isCompletion
+            ? calculateCompletionCostDetailed({
+                modelName,
+                inputTokens: requestTokens,
+                cachedInputTokens: cachedTokens,
+                outputTokens: baseResponseTokens,
+                reasoningTokens,
+              })
+            : calculateCost(
+                requestTokens,
+                baseResponseTokens,
+                modelName,
+                false,
+                displayType as ModelUsageType,
+                (item as AIUsageRecord & { quality?: string }).quality,
+                1,
+                (item as AIUsageRecord & { sizeWidth?: number }).sizeWidth,
+                (item as AIUsageRecord & { sizeHeight?: number }).sizeHeight,
+              )
 
           return {
             userId: (() => {
@@ -350,13 +371,14 @@ export const usageApiService = {
               }
               return `User ${uid}`
             })(),
-            modelName: item.model || 'unknown',
+            modelName: modelName || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
-            tokensIn: effectiveTokensIn,
-            tokensOut: effectiveTokensOut,
-            totalTokens: effectiveTokensIn + effectiveTokensOut,
+            // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
+            tokensIn: requestTokens,
+            tokensOut: baseResponseTokens,
+            totalTokens: requestTokens + cachedTokens + baseResponseTokens + reasoningTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
@@ -501,17 +523,38 @@ export const usageApiService = {
           const baseResponseTokens = fromItem.responseTokens || item.responseTokens || 0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const effectiveTokensIn = requestTokens + cachedTokens
-          const effectiveTokensOut = baseResponseTokens + reasoningTokens
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const costResult = calculateCost(
-            effectiveTokensIn,
-            effectiveTokensOut,
-            item.model || 'unknown',
-            false,
-            displayType as ModelUsageType,
+          const modelName = item.model || 'unknown'
+
+          const isCompletion = !(
+            String(displayType || '')
+              .toLowerCase()
+              .includes('embedding') ||
+            String(displayType || '')
+              .toLowerCase()
+              .includes('image')
           )
+
+          const costResult = isCompletion
+            ? calculateCompletionCostDetailed({
+                modelName,
+                inputTokens: requestTokens,
+                cachedInputTokens: cachedTokens,
+                outputTokens: baseResponseTokens,
+                reasoningTokens,
+              })
+            : calculateCost(
+                requestTokens,
+                baseResponseTokens,
+                modelName,
+                false,
+                displayType as ModelUsageType,
+                (item as SummaryUsage & { quality?: string }).quality,
+                1,
+                (item as SummaryUsage & { sizeWidth?: number }).sizeWidth,
+                (item as SummaryUsage & { sizeHeight?: number }).sizeHeight,
+              )
 
           return {
             userId: item.userId || '',
@@ -522,13 +565,14 @@ export const usageApiService = {
                 ? item.userId
                 : `User ${item.userId}`
               : 'Unknown User',
-            modelName: item.model || 'unknown',
+            modelName: modelName || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
-            tokensIn: effectiveTokensIn,
-            tokensOut: effectiveTokensOut,
-            totalTokens: item.totalTokens || effectiveTokensIn + effectiveTokensOut,
+            // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
+            tokensIn: requestTokens,
+            tokensOut: baseResponseTokens,
+            totalTokens: item.totalTokens || requestTokens + cachedTokens + baseResponseTokens + reasoningTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
