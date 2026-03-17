@@ -151,13 +151,17 @@ export function useUsage() {
         const costs = await Promise.all(
           validItems.map(async (item: EnhancedUsageRecord) => {
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(
-              item as unknown as Record<string, unknown>,
-            )
+            const fromItem = readTokensFromItem(item as unknown as Record<string, unknown>)
+            const requestTokens = fromItem.requestTokens || 0
+            const baseResponseTokens = fromItem.responseTokens || 0
+            const cachedTokens = (item.cachedTokens ?? 0) as number
+            const reasoningTokens = (item.reasoningTokens ?? 0) as number
+            const effectiveTokensIn = requestTokens + cachedTokens
+            const effectiveTokensOut = baseResponseTokens + reasoningTokens
             return calculateCost(
-              requestTokens,
-              responseTokens,
-              item.modelName || 'gpt-4o',
+              effectiveTokensIn,
+              effectiveTokensOut,
+              item.modelName || 'unknown',
               false,
               item.type || 'COMPLETION_USAGE',
             ).finalCost
@@ -201,13 +205,17 @@ export function useUsage() {
             }
 
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(
-              item as unknown as Record<string, unknown>,
-            )
+            const fromItem = readTokensFromItem(item as unknown as Record<string, unknown>)
+            const requestTokens = fromItem.requestTokens || 0
+            const baseResponseTokens = fromItem.responseTokens || 0
+            const cachedTokens = (item.cachedTokens ?? 0) as number
+            const reasoningTokens = (item.reasoningTokens ?? 0) as number
+            const effectiveTokensIn = requestTokens + cachedTokens
+            const effectiveTokensOut = baseResponseTokens + reasoningTokens
             const costResult = calculateCost(
-              requestTokens,
-              responseTokens,
-              item.modelName || 'gpt-4o',
+              effectiveTokensIn,
+              effectiveTokensOut,
+              item.modelName || 'unknown',
               false,
               item.type || 'COMPLETION_USAGE',
             )
@@ -230,9 +238,11 @@ export function useUsage() {
                 | ModelUsageType
                 | undefined,
               requests: item.requests || 0,
-              tokensIn: requestTokens,
-              tokensOut: responseTokens,
-              totalTokens: item.totalTokens ?? requestTokens + responseTokens,
+              tokensIn: effectiveTokensIn,
+              tokensOut: effectiveTokensOut,
+              totalTokens: item.totalTokens ?? effectiveTokensIn + effectiveTokensOut,
+              cachedTokens,
+              reasoningTokens,
               cost: costResult.finalCost,
               tag: item.tag || 'production',
               day: item.day,
@@ -388,7 +398,7 @@ export function useUsage() {
             const costResult = calculateCost(
               item.requestTokens || 0, // tokensIn
               item.responseTokens || 0, // tokensOut
-              item.model || 'gpt-4o', // modelName
+              item.model || 'unknown', // modelName
               false, // useCachedInput
               item.type || 'COMPLETION_USAGE', // modelType
             )

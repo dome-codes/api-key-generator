@@ -317,7 +317,7 @@ export const usageApiService = {
           const costResult = calculateCost(
             effectiveTokensIn,
             effectiveTokensOut,
-            item.model || 'gpt-4o',
+            item.model || 'unknown',
             false,
             displayType as ModelUsageType,
           )
@@ -508,7 +508,7 @@ export const usageApiService = {
           const costResult = calculateCost(
             effectiveTokensIn,
             effectiveTokensOut,
-            item.model || 'gpt-4o',
+            item.model || 'unknown',
             false,
             displayType as ModelUsageType,
           )
