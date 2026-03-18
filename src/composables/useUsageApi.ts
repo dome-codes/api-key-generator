@@ -525,7 +525,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 1000, // Ausreichend für Modell-Gruppierung
-        groupBy: ['modelId'] as string[],
+        groupBy: ['model'] as string[],
       }
 
       debugLog('Loading model summary with filter:', modelFilter)
@@ -569,7 +569,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['userId'] as string[],
+        groupBy: ['user'] as string[],
       }
 
       debugLog('Loading user summary with filter:', userFilter)
@@ -611,7 +611,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['apiKeyId'] as string[],
+        groupBy: ['apikey'] as string[],
       }
 
       debugLog('Loading apiKey summary with filter:', apiKeyFilter)
