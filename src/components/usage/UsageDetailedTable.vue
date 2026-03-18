@@ -178,9 +178,9 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   const cachedTokens = (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0
   const reasoningTokens =
     (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0
-  // Für Kostenberechnung nutzen wir Totale, da Backend cached/reasoning oft in input/output mitzählt.
-  const tokensInTotal = (item.tokensIn ?? 0) + cachedTokens
-  const tokensOutTotal = (item.tokensOut ?? 0) + reasoningTokens
+  // Für Kostenberechnung nutzen wir Totale, die i. d. R. bereits cached/reasoning enthalten.
+  const tokensInTotal = item.tokensIn ?? 0
+  const tokensOutTotal = item.tokensOut ?? 0
   const modelName = item.modelName || 'unknown'
   const modelType = (item.type || item.modelType) as ModelUsageType | string | undefined
 

@@ -310,7 +310,6 @@ export const usageApiService = {
             0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const modelName = item.model || filter.model || 'unknown'
@@ -359,9 +358,10 @@ export const usageApiService = {
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
-            tokensIn: inputTokensExcludingCached,
+            // Für Kacheln/Charts: exakt die Backend-Werte (requestTokens/responseTokens) anzeigen.
+            tokensIn: requestTokens,
             tokensOut: baseResponseTokens,
-            totalTokens: inputTokensExcludingCached + cachedTokens + baseResponseTokens,
+            totalTokens: requestTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
@@ -506,7 +506,6 @@ export const usageApiService = {
           const baseResponseTokens = fromItem.responseTokens || item.responseTokens || 0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           const modelName = item.model || filter.model || 'unknown'
@@ -536,9 +535,9 @@ export const usageApiService = {
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
-            tokensIn: inputTokensExcludingCached,
+            tokensIn: requestTokens,
             tokensOut: baseResponseTokens,
-            totalTokens: item.totalTokens || inputTokensExcludingCached + cachedTokens + baseResponseTokens,
+            totalTokens: item.totalTokens || requestTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
