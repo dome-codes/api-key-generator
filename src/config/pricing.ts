@@ -214,12 +214,16 @@ export function calculateCompletionCostDetailed(params: {
 
   const debugEnabled = (() => {
     try {
-      return (
-        typeof import.meta !== 'undefined' &&
-        Boolean(import.meta.env?.DEV) &&
-        typeof localStorage !== 'undefined' &&
-        localStorage.getItem('debug') === 'true'
-      )
+      // 1) URL-Schalter (funktioniert auch ohne localStorage, z.B. in Prod-Builds)
+      const search =
+        typeof globalThis !== 'undefined' &&
+        typeof (globalThis as unknown as { location?: Location }).location?.search === 'string'
+          ? (globalThis as unknown as { location: Location }).location.search
+          : ''
+      if (search.includes('debugPricing=true')) return true
+
+      // 2) localStorage-Schalter (Dev-Workflow)
+      return typeof localStorage !== 'undefined' && localStorage.getItem('debug') === 'true'
     } catch {
       return false
     }
