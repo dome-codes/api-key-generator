@@ -399,6 +399,39 @@ export function useUsageApi() {
 
       debugLog('Loading usage summary with filter:', currentFilter.value)
 
+      const hasModelFilter =
+        currentFilter.value.model != null && String(currentFilter.value.model).trim() !== ''
+
+      // Schlank für Kacheln: bei gesetztem Model-Filter reicht Summarize by=model (1 Item).
+      // Keine weiteren Summarize-Calls (Charts/Breakdowns) – das war Quelle für Verwirrung/Delay.
+      if (hasModelFilter) {
+        const tilesFilter: UsageFilterApi = {
+          ...currentFilter.value,
+          groupBy: ['model'],
+          page: 1,
+          limit: 1,
+        }
+
+        const result = await usageApiService.getUsageSummary(tilesFilter, useAdminApi)
+        summaryData.value = result.data
+        pagination.value = {
+          ...result.pagination,
+          totalItems: result.data.length,
+        }
+
+        modelSummaryData.value = []
+        tagSummaryData.value = []
+        userSummaryData.value = []
+        apiKeySummaryData.value = []
+
+        debugLog('[useUsageApi] Loaded tiles summary (by=model):', {
+          model: currentFilter.value.model,
+          count: result.data.length,
+          firstItem: result.data[0],
+        })
+        return
+      }
+
       // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
       // Verwende einen sehr hohen limit, um alle Daten zu erhalten
       const summaryFilter = {

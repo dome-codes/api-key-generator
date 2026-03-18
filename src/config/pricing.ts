@@ -30,6 +30,50 @@ export interface ExtractionModelPricing {
 
 // Default Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
 const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
+  // GPT-5.x / o-Serie (Data Zone / Standardnamen)
+  {
+    modelName: 'gpt-5.2',
+    inputPrice: 1.64,
+    cachedInputPrice: 0.17,
+    outputPrice: 13.05,
+  },
+  {
+    modelName: 'gpt-5.1',
+    inputPrice: 1.17,
+    cachedInputPrice: 0.12,
+    outputPrice: 9.33,
+  },
+  {
+    modelName: 'gpt-5',
+    inputPrice: 1.17,
+    cachedInputPrice: 0.12,
+    outputPrice: 9.33,
+  },
+  {
+    modelName: 'gpt-5-mini',
+    inputPrice: 0.24,
+    cachedInputPrice: 0.03,
+    outputPrice: 1.87,
+  },
+  {
+    modelName: 'gpt-5-nano',
+    inputPrice: 0.05,
+    cachedInputPrice: 0.01,
+    outputPrice: 0.38,
+  },
+  {
+    modelName: 'o3',
+    inputPrice: 1.87,
+    cachedInputPrice: 0.47,
+    outputPrice: 7.46,
+  },
+  {
+    modelName: 'o4-mini',
+    inputPrice: 1.03,
+    cachedInputPrice: 0.26,
+    outputPrice: 4.11,
+  },
+
   // GPT-4o Serie (Stand: 2026)
   {
     modelName: 'gpt-4o-mini',
@@ -295,6 +339,92 @@ export function calculateCost(
 
   // Standard-Token-basierte Berechnung für Completion-Modelle
   return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput)
+}
+
+export function calculateCompletionCostDetailed(params: {
+  modelName: string
+  /** Input total (ggf. inkl. Cached) */
+  inputTokens: number
+  cachedInputTokens?: number
+  /** Output total (ggf. inkl. Reasoning) */
+  outputTokens: number
+  reasoningTokens?: number
+}): {
+  inputCost: number
+  cachedInputCost: number
+  outputCost: number
+  reasoningCost: number
+  totalCost: number
+  serviceMarkup: number
+  finalCost: number
+  usedFallbackPricing: boolean
+} {
+  const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
+  const currentMarkup = loadMarkupFromStorage()
+
+  const normalizedName = (params.modelName || '').toLowerCase()
+  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
+  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
+  const model = directMatch ?? fallbackModel
+
+  if (!model) {
+    throw new Error(`Model ${params.modelName} not found in pricing`)
+  }
+
+  // Unbekanntes Modell: keine pseudo-Kosten anzeigen
+  if (!directMatch && fallbackModel && model === fallbackModel) {
+    return {
+      inputCost: 0,
+      cachedInputCost: 0,
+      outputCost: 0,
+      reasoningCost: 0,
+      totalCost: 0,
+      serviceMarkup: 0,
+      finalCost: 0,
+      usedFallbackPricing: true,
+    }
+  }
+
+  const cached =
+    Number.isFinite(params.cachedInputTokens) && (params.cachedInputTokens as number) > 0
+      ? (params.cachedInputTokens as number)
+      : 0
+  const reasoning =
+    Number.isFinite(params.reasoningTokens) && (params.reasoningTokens as number) > 0
+      ? (params.reasoningTokens as number)
+      : 0
+
+  const inputTotal = Number.isFinite(params.inputTokens) && params.inputTokens > 0 ? params.inputTokens : 0
+  const outputTotal =
+    Number.isFinite(params.outputTokens) && params.outputTokens > 0 ? params.outputTokens : 0
+
+  const inputBase = Math.max(0, inputTotal - cached)
+  const outputBase = Math.max(0, outputTotal - reasoning)
+
+  const inputPricePerToken = model.inputPrice / 1000000
+  const cachedInputPricePerToken = (model.cachedInputPrice ?? model.inputPrice) / 1000000
+  const outputPricePerToken = model.outputPrice / 1000000
+  const reasoningPricePerToken = (model.reasoningPrice ?? model.outputPrice) / 1000000
+
+  const inputCost = inputBase * inputPricePerToken
+  const cachedInputCost = cached * cachedInputPricePerToken
+  const outputCost = outputBase * outputPricePerToken
+  const reasoningCost = reasoning * reasoningPricePerToken
+
+  const totalCost = inputCost + cachedInputCost + outputCost + reasoningCost
+  const serviceMarkup = totalCost * currentMarkup
+  const finalCost = totalCost + serviceMarkup
+
+  return {
+    inputCost,
+    cachedInputCost,
+    outputCost,
+    reasoningCost,
+    totalCost,
+    serviceMarkup,
+    finalCost,
+    usedFallbackPricing: false,
+  }
 }
 
 // Seiten-basierte Kostenberechnung für Document Intelligence / Extraction
