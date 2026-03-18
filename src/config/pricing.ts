@@ -212,6 +212,31 @@ export function calculateCompletionCostDetailed(params: {
   const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
   const currentMarkup = loadMarkupFromStorage()
 
+  const debugEnabled = (() => {
+    try {
+      return (
+        typeof import.meta !== 'undefined' &&
+        Boolean(import.meta.env?.DEV) &&
+        typeof localStorage !== 'undefined' &&
+        localStorage.getItem('debug') === 'true'
+      )
+    } catch {
+      return false
+    }
+  })()
+
+  if (debugEnabled) {
+    // eslint-disable-next-line no-console
+    console.log('[pricing] calculateCompletionCostDetailed (enter)', {
+      modelName: params.modelName,
+      inputTokens: params.inputTokens,
+      cachedInputTokens: params.cachedInputTokens ?? 0,
+      outputTokens: params.outputTokens,
+      reasoningTokens: params.reasoningTokens ?? 0,
+      markup: currentMarkup,
+    })
+  }
+
   const normalizedName = (params.modelName || '').toLowerCase()
   // WICHTIG: localStorage kann veraltete Pricing-Listen enthalten.
   // Wenn ein Modell im aktuellen Storage nicht vorhanden ist, aber in unseren Defaults,
@@ -231,6 +256,13 @@ export function calculateCompletionCostDetailed(params: {
   }
 
   if (!directMatch && fallbackModel && model === fallbackModel) {
+    if (debugEnabled) {
+      // eslint-disable-next-line no-console
+      console.log('[pricing] calculateCompletionCostDetailed (fallback->0)', {
+        modelName: params.modelName,
+        normalizedName,
+      })
+    }
     return {
       inputCost: 0,
       cachedInputCost: 0,
@@ -282,41 +314,35 @@ export function calculateCompletionCostDetailed(params: {
   const serviceMarkup = totalCost * currentMarkup
   const finalCost = totalCost + serviceMarkup
 
-  // Debug-Logging (nur wenn aktiviert)
-  try {
-    const dbg = localStorage.getItem('debug')
-    if (dbg && dbg.toLowerCase() === 'true') {
-      // eslint-disable-next-line no-console
-      console.log('[pricing] calculateCompletionCostDetailed', {
-        modelName: params.modelName,
-        tokens: {
-          inputTokensTotal: safeInputTotal,
-          inputTokensExcludingCached: safeInput,
-          cachedInputTokens: safeCached,
-          outputTokensTotal: safeOutputTotal,
-          outputTokensExcludingReasoning: safeOutput,
-          reasoningTokens: safeReasoning,
-        },
-        pricesPer1M: {
-          input: model.inputPrice,
-          cachedInput: model.cachedInputPrice ?? model.inputPrice,
-          output: model.outputPrice,
-          reasoning: model.reasoningPrice ?? model.outputPrice,
-        },
-        costs: {
-          inputCost,
-          cachedInputCost,
-          outputCost,
-          reasoningCost,
-          totalCost,
-          serviceMarkup,
-          finalCost,
-        },
-        markup: currentMarkup,
-      })
-    }
-  } catch {
-    // ignore debug logging failures
+  if (debugEnabled) {
+    // eslint-disable-next-line no-console
+    console.log('[pricing] calculateCompletionCostDetailed (computed)', {
+      modelName: params.modelName,
+      tokens: {
+        inputTokensTotal: safeInputTotal,
+        inputTokensExcludingCached: safeInput,
+        cachedInputTokens: safeCached,
+        outputTokensTotal: safeOutputTotal,
+        outputTokensExcludingReasoning: safeOutput,
+        reasoningTokens: safeReasoning,
+      },
+      pricesPer1M: {
+        input: model.inputPrice,
+        cachedInput: model.cachedInputPrice ?? model.inputPrice,
+        output: model.outputPrice,
+        reasoning: model.reasoningPrice ?? model.outputPrice,
+      },
+      costs: {
+        inputCost,
+        cachedInputCost,
+        outputCost,
+        reasoningCost,
+        totalCost,
+        serviceMarkup,
+        finalCost,
+      },
+      markup: currentMarkup,
+    })
   }
 
   return {
