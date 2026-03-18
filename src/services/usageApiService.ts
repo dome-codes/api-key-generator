@@ -310,6 +310,7 @@ export const usageApiService = {
             0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
+          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           // Backend liefert bei Summarize/Filter (model=...) teilweise kein item.model zurück.
@@ -378,10 +379,10 @@ export const usageApiService = {
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
             // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
-            tokensIn: requestTokens,
+            tokensIn: inputTokensExcludingCached,
             tokensOut: baseResponseTokens,
             // totalTokens: cached + output enthält Reasoning bereits → Reasoning nicht doppelt zählen
-            totalTokens: requestTokens + cachedTokens + baseResponseTokens,
+            totalTokens: inputTokensExcludingCached + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
@@ -526,6 +527,7 @@ export const usageApiService = {
           const baseResponseTokens = fromItem.responseTokens || item.responseTokens || 0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
+          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
           // Backend liefert bei Summarize/Filter (model=...) teilweise kein item.model zurück.
@@ -575,10 +577,11 @@ export const usageApiService = {
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
             // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
-            tokensIn: requestTokens,
+            tokensIn: inputTokensExcludingCached,
             tokensOut: baseResponseTokens,
             // totalTokens: cached + output enthält Reasoning bereits → Reasoning nicht doppelt zählen
-            totalTokens: item.totalTokens || requestTokens + cachedTokens + baseResponseTokens,
+            totalTokens:
+              item.totalTokens || inputTokensExcludingCached + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,

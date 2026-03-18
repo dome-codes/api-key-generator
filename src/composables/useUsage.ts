@@ -159,11 +159,8 @@ export function useUsage() {
             const cachedTokens = (item.cachedTokens ?? 0) as number
             const reasoningTokens = (item.reasoningTokens ?? 0) as number
 
-            const typeValue = (item.type || DEFAULT_MODEL_USAGE_TYPE) as string
-            const isCompletion =
-              typeValue === 'CompletionModelUsage' ||
-              typeValue === 'COMPLETION_USAGE' ||
-              typeValue === 'completion_usage'
+            const typeValue = String(item.type || DEFAULT_MODEL_USAGE_TYPE).toLowerCase()
+            const isCompletion = !typeValue.includes('embedding') && !typeValue.includes('image')
 
             if (isCompletion) {
               return calculateCompletionCostDetailed({
@@ -196,15 +193,11 @@ export function useUsage() {
           totalCachedTokens: 0,
           totalReasoningTokens: 0,
           hasFallbackPricing: false,
-          uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.userId))
-            .size,
+          uniqueUsers: new Set(validItems.map((item: EnhancedUsageRecord) => item.userId)).size,
           uniqueModels: new Set(validItems.map((item: EnhancedUsageRecord) => item.modelName)).size,
           averageRequestsPerUser:
             totalRequests /
-            Math.max(
-              new Set(validItems.map((item: EnhancedUsageRecord) => item.userId)).size,
-              1,
-            ),
+            Math.max(new Set(validItems.map((item: EnhancedUsageRecord) => item.userId)).size, 1),
           averageTokensPerRequest: totalTokens / Math.max(totalRequests, 1),
           averageCostPerRequest: totalCost / Math.max(totalRequests, 1),
         }
@@ -229,11 +222,8 @@ export function useUsage() {
             const baseResponseTokens = fromItem.responseTokens || 0
             const cachedTokens = (item.cachedTokens ?? 0) as number
             const reasoningTokens = (item.reasoningTokens ?? 0) as number
-            const typeValue = (item.type || DEFAULT_MODEL_USAGE_TYPE) as string
-            const isCompletion =
-              typeValue === 'CompletionModelUsage' ||
-              typeValue === 'COMPLETION_USAGE' ||
-              typeValue === 'completion_usage'
+            const typeValue = String(item.type || DEFAULT_MODEL_USAGE_TYPE).toLowerCase()
+            const isCompletion = !typeValue.includes('embedding') && !typeValue.includes('image')
 
             const costResult = isCompletion
               ? calculateCompletionCostDetailed({
@@ -265,14 +255,11 @@ export function useUsage() {
               userName: `User ${item.userId || 'unknown'}`,
               modelName: item.modelName || 'unknown',
               modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
-              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
-                | ModelUsageType
-                | undefined,
+              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType | undefined,
               requests: item.requests || 0,
               tokensIn: requestTokens,
               tokensOut: baseResponseTokens,
-              totalTokens:
-                item.totalTokens ?? requestTokens + cachedTokens + baseResponseTokens,
+              totalTokens: item.totalTokens ?? requestTokens + cachedTokens + baseResponseTokens,
               cachedTokens,
               reasoningTokens,
               cost: costResult.finalCost,
@@ -440,9 +427,7 @@ export function useUsage() {
               userName: `User ${item.userId || 'unknown'}`,
               modelName: item.model || 'unknown',
               modelType: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType,
-              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as
-                | ModelUsageType
-                | undefined,
+              type: (item.type || DEFAULT_MODEL_USAGE_TYPE) as ModelUsageType | undefined,
               requests: item.requests || 0,
               tokensIn: item.requestTokens || 0,
               tokensOut: item.responseTokens || 0,
