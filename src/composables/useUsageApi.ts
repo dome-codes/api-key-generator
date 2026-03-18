@@ -46,6 +46,7 @@ export function useUsageApi() {
   const error = ref<string | null>(null)
   const usageData = ref<EnhancedUsageRecord[]>([]) // Für Tabellen-Daten (paginiert)
   const summaryData = ref<EnhancedUsageRecord[]>([]) // Für Summary-Berechnung (alle Daten)
+  const timeSeriesSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Line-Chart (gruppiert nach Datum)
   const modelSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Modell-Chart (gruppiert nach Modell)
   const tagSummaryData = ref<EnhancedUsageRecord[]>([]) // Für Tag-Chart (gruppiert nach Tag)
   const userSummaryData = ref<EnhancedUsageRecord[]>([]) // Für User-Breakdown (gruppiert nach user)
@@ -189,7 +190,12 @@ export function useUsageApi() {
 
   // Chart data computed - generiert aus den gruppierten Daten vom Backend
   const chartData = computed(() => {
-    const data = summaryData.value.length > 0 ? summaryData.value : usageData.value
+    const data =
+      timeSeriesSummaryData.value.length > 0
+        ? timeSeriesSummaryData.value
+        : summaryData.value.length > 0
+          ? summaryData.value
+          : usageData.value
 
     if (data.length === 0) {
       return {
@@ -448,20 +454,41 @@ export function useUsageApi() {
           ? [...normalizedGroupBy, 'model']
           : normalizedGroupBy
 
+      // 1) Datengrundlage für Kacheln/Aggregation:
+      // Wenn ein Modell gefiltert ist, reicht by=model → 1 Eintrag (keine unnötige Summierung über Tage).
+      const tilesGroupBy = hasModelFilter ? (['model'] as string[]) : groupBy
       const summaryFilter = {
         ...currentFilter.value,
-        groupBy: groupBy.length > 0 ? (groupBy as string[]) : undefined,
+        groupBy: tilesGroupBy.length > 0 ? tilesGroupBy : undefined,
         page: 1,
         limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
       }
 
-      const result = await usageApiService.getUsageSummary(summaryFilter, useAdminApi)
+      // 2) Datengrundlage für Line-Chart (Zeitreihe):
+      // Nur laden, wenn es überhaupt eine Zeit-Gruppierung gibt (day/month/year).
+      const hasTimeGrouping =
+        groupBy.includes('day') || groupBy.includes('month') || groupBy.includes('year')
+      const timeSeriesFilter = hasTimeGrouping
+        ? {
+            ...currentFilter.value,
+            groupBy: groupBy.length > 0 ? (groupBy as string[]) : undefined,
+            page: 1,
+            limit: 10000,
+          }
+        : undefined
+
+      const [tilesResult, timeResult] = await Promise.all([
+        usageApiService.getUsageSummary(summaryFilter, useAdminApi),
+        timeSeriesFilter
+          ? usageApiService.getUsageSummary(timeSeriesFilter, useAdminApi)
+          : Promise.resolve(undefined),
+      ])
 
       // Wenn es mehr Daten gibt, lade alle Seiten
-      let allData = [...result.data]
+      let allData = [...tilesResult.data]
       let currentPage = 1
-      const totalPages = result.pagination?.totalPages ?? 0
-      const totalItems = result.pagination?.totalItems ?? 0
+      const totalPages = tilesResult.pagination?.totalPages ?? 0
+      const totalItems = tilesResult.pagination?.totalItems ?? 0
 
       while (currentPage < totalPages && allData.length < totalItems) {
         currentPage++
@@ -472,12 +499,30 @@ export function useUsageApi() {
         allData = [...allData, ...pageResult.data]
       }
 
+      // Wenn wir eine Zeitreihe geladen haben, ebenfalls vollständig einsammeln
+      let allTimeSeriesData: EnhancedUsageRecord[] = []
+      if (timeResult?.data) {
+        allTimeSeriesData = [...timeResult.data]
+        let timePage = 1
+        const timeTotalPages = timeResult.pagination?.totalPages ?? 0
+        const timeTotalItems = timeResult.pagination?.totalItems ?? 0
+        while (timePage < timeTotalPages && allTimeSeriesData.length < timeTotalItems) {
+          timePage++
+          const pageResult = await usageApiService.getUsageSummary(
+            { ...(timeSeriesFilter as UsageFilterApi), page: timePage },
+            useAdminApi,
+          )
+          allTimeSeriesData = [...allTimeSeriesData, ...pageResult.data]
+        }
+      }
+
       // Speichere Summary-Daten separat, damit sie nicht von loadUsageData überschrieben werden
       summaryData.value = allData
+      timeSeriesSummaryData.value = allTimeSeriesData
       // Pagination wird von loadUsageData gesetzt, wenn wir in der detaillierten Ansicht sind
       // In der Übersicht setzen wir die Pagination hier
       pagination.value = {
-        ...result.pagination,
+        ...tilesResult.pagination,
         totalItems: allData.length,
       }
 
