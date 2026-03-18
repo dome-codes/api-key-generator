@@ -431,8 +431,26 @@ export function useUsageApi() {
 
       // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
       // Verwende einen sehr hohen limit, um alle Daten zu erhalten
+      //
+      // WICHTIG: Wenn ein Model-Filter gesetzt ist (model=...), liefert der Backend-Summarize
+      // das Feld "model" im Item teilweise nicht zurück, außer wir gruppieren explizit nach "model".
+      // Daher erzwingen wir in diesem Fall zusätzlich by=model (ohne die Aggregation inhaltlich
+      // zu verändern, da es ohnehin nur ein Modell ist).
+      const baseGroupBy = Array.isArray(currentFilter.value.groupBy)
+        ? [...currentFilter.value.groupBy]
+        : []
+      const normalizedGroupBy = baseGroupBy.map((g) => String(g))
+      const hasModelFilter = Boolean(
+        currentFilter.value.model && String(currentFilter.value.model).trim(),
+      )
+      const groupBy =
+        hasModelFilter && !normalizedGroupBy.includes('model')
+          ? [...normalizedGroupBy, 'model']
+          : normalizedGroupBy
+
       const summaryFilter = {
         ...currentFilter.value,
+        groupBy: groupBy.length > 0 ? (groupBy as string[]) : undefined,
         page: 1,
         limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
       }
