@@ -166,12 +166,11 @@ export function useUsage() {
               typeValue === 'completion_usage'
 
             if (isCompletion) {
-              const outputTokensExcludingReasoning = Math.max(0, baseResponseTokens - reasoningTokens)
               return calculateCompletionCostDetailed({
                 modelName: item.modelName || 'unknown',
                 inputTokens: requestTokens,
                 cachedInputTokens: cachedTokens,
-                outputTokens: outputTokensExcludingReasoning,
+                outputTokens: baseResponseTokens,
                 reasoningTokens,
               }).finalCost
             }
@@ -237,19 +236,13 @@ export function useUsage() {
               typeValue === 'completion_usage'
 
             const costResult = isCompletion
-              ? (() => {
-                  const outputTokensExcludingReasoning = Math.max(
-                    0,
-                    baseResponseTokens - reasoningTokens,
-                  )
-                  return calculateCompletionCostDetailed({
+              ? calculateCompletionCostDetailed({
                   modelName: item.modelName || 'unknown',
                   inputTokens: requestTokens,
                   cachedInputTokens: cachedTokens,
-                    outputTokens: outputTokensExcludingReasoning,
+                  outputTokens: baseResponseTokens,
                   reasoningTokens,
-                  })
-                })()
+                })
               : calculateCost(
                   requestTokens,
                   baseResponseTokens,

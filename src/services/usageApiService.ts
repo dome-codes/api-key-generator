@@ -325,16 +325,12 @@ export const usageApiService = {
               .includes('image')
           )
 
-          // Annahme: reasoningTokens sind Teil von baseResponseTokens (Output gesamt).
-          // Für getrennte Bepreisung ziehen wir Reasoning aus dem "normalen" Output ab.
-          const outputTokensExcludingReasoning = Math.max(0, baseResponseTokens - reasoningTokens)
-
           const costResult = isCompletion
             ? calculateCompletionCostDetailed({
                 modelName,
                 inputTokens: requestTokens,
                 cachedInputTokens: cachedTokens,
-                outputTokens: outputTokensExcludingReasoning,
+                outputTokens: baseResponseTokens,
                 reasoningTokens,
               })
             : calculateCost(
@@ -545,14 +541,12 @@ export const usageApiService = {
               .includes('image')
           )
 
-          const outputTokensExcludingReasoning = Math.max(0, baseResponseTokens - reasoningTokens)
-
           const costResult = isCompletion
             ? calculateCompletionCostDetailed({
                 modelName,
                 inputTokens: requestTokens,
                 cachedInputTokens: cachedTokens,
-                outputTokens: outputTokensExcludingReasoning,
+                outputTokens: baseResponseTokens,
                 reasoningTokens,
               })
             : calculateCost(

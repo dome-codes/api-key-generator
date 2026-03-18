@@ -219,7 +219,7 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
           modelName,
           inputTokens: tokensIn,
           cachedInputTokens: cachedTokens,
-          outputTokens: Math.max(0, tokensOut - reasoningTokens),
+          outputTokens: tokensOut,
           reasoningTokens,
         })
       : calculateCost(tokensIn, tokensOut, modelName, false, modelType)

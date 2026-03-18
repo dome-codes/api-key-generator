@@ -195,6 +195,7 @@ export function calculateCompletionCostDetailed(params: {
   modelName: string
   inputTokens: number
   cachedInputTokens?: number
+  /** Output Tokens gesamt (inkl. Reasoning, falls Backend Reasoning als Teil von Output zählt) */
   outputTokens: number
   reasoningTokens?: number
 }): {
@@ -247,12 +248,18 @@ export function calculateCompletionCostDetailed(params: {
     Number.isFinite(params.cachedInputTokens) && (params.cachedInputTokens as number) > 0
       ? (params.cachedInputTokens as number)
       : 0
-  const safeOutput =
-    Number.isFinite(params.outputTokens) && params.outputTokens > 0 ? params.outputTokens : 0
   const safeReasoning =
     Number.isFinite(params.reasoningTokens) && (params.reasoningTokens as number) > 0
       ? (params.reasoningTokens as number)
       : 0
+  const safeOutputTotal =
+    Number.isFinite(params.outputTokens) && params.outputTokens > 0 ? params.outputTokens : 0
+  // Single Source of Truth:
+  // Reasoning wird im Backend häufig als Teil der Output-Tokens gezählt.
+  // Für getrennte Bepreisung trennen wir hier:
+  // - outputBase = outputTotal - reasoning
+  // - reasoning = reasoning
+  const safeOutput = Math.max(0, safeOutputTotal - safeReasoning)
 
   const inputPricePerToken = model.inputPrice / 1000000
   const cachedInputPricePerToken = (model.cachedInputPrice ?? model.inputPrice) / 1000000
@@ -278,7 +285,8 @@ export function calculateCompletionCostDetailed(params: {
         tokens: {
           inputTokens: safeInput,
           cachedInputTokens: safeCached,
-          outputTokens: safeOutput,
+          outputTokensTotal: safeOutputTotal,
+          outputTokensExcludingReasoning: safeOutput,
           reasoningTokens: safeReasoning,
         },
         pricesPer1M: {
