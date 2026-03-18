@@ -19,7 +19,7 @@ import type {
   AIUsageSummaryRecord,
 } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
-import { calculateCost } from '@/config/pricing'
+import { calculateCompletionCostDetailed, calculateCost } from '@/config/pricing'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
@@ -310,17 +310,28 @@ export const usageApiService = {
             0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const effectiveTokensIn = requestTokens + cachedTokens
-          const effectiveTokensOut = baseResponseTokens + reasoningTokens
+          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const costResult = calculateCost(
-            effectiveTokensIn,
-            effectiveTokensOut,
-            item.model || 'gpt-4o',
-            false,
-            displayType as ModelUsageType,
-          )
+          const typeLower = String(displayType || '').toLowerCase()
+          const isCompletion = !typeLower.includes('embedding') && !typeLower.includes('image')
+          const modelName = item.model || filter.model || 'unknown'
+
+          const costResult = isCompletion
+            ? calculateCompletionCostDetailed({
+                modelName,
+                inputTokens: requestTokens,
+                cachedInputTokens: cachedTokens,
+                outputTokens: baseResponseTokens,
+                reasoningTokens,
+              })
+            : calculateCost(
+                requestTokens,
+                baseResponseTokens,
+                modelName,
+                false,
+                displayType as ModelUsageType,
+              )
 
           return {
             userId: (() => {
@@ -350,13 +361,13 @@ export const usageApiService = {
               }
               return `User ${uid}`
             })(),
-            modelName: item.model || 'unknown',
+            modelName: modelName || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: (item as SummaryUsage).requests || 0,
-            tokensIn: effectiveTokensIn,
-            tokensOut: effectiveTokensOut,
-            totalTokens: effectiveTokensIn + effectiveTokensOut,
+            tokensIn: inputTokensExcludingCached,
+            tokensOut: baseResponseTokens,
+            totalTokens: inputTokensExcludingCached + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
@@ -501,17 +512,28 @@ export const usageApiService = {
           const baseResponseTokens = fromItem.responseTokens || item.responseTokens || 0
           const reasoningTokens = fromItem.reasoningTokens || 0
           const cachedTokens = fromItem.cachedTokens || 0
-          const effectiveTokensIn = requestTokens + cachedTokens
-          const effectiveTokensOut = baseResponseTokens + reasoningTokens
+          const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const costResult = calculateCost(
-            effectiveTokensIn,
-            effectiveTokensOut,
-            item.model || 'gpt-4o',
-            false,
-            displayType as ModelUsageType,
-          )
+          const typeLower = String(displayType || '').toLowerCase()
+          const isCompletion = !typeLower.includes('embedding') && !typeLower.includes('image')
+          const modelName = item.model || filter.model || 'unknown'
+
+          const costResult = isCompletion
+            ? calculateCompletionCostDetailed({
+                modelName,
+                inputTokens: requestTokens,
+                cachedInputTokens: cachedTokens,
+                outputTokens: baseResponseTokens,
+                reasoningTokens,
+              })
+            : calculateCost(
+                requestTokens,
+                baseResponseTokens,
+                modelName,
+                false,
+                displayType as ModelUsageType,
+              )
 
           return {
             userId: item.userId || '',
@@ -522,13 +544,13 @@ export const usageApiService = {
                 ? item.userId
                 : `User ${item.userId}`
               : 'Unknown User',
-            modelName: item.model || 'unknown',
+            modelName: modelName || 'unknown',
             modelType: displayType as ModelUsageType,
             type: (fromBackendUsageType(item.type) || item.type) as ModelUsageType | undefined,
             requests: item.requests || 0,
-            tokensIn: effectiveTokensIn,
-            tokensOut: effectiveTokensOut,
-            totalTokens: item.totalTokens || effectiveTokensIn + effectiveTokensOut,
+            tokensIn: inputTokensExcludingCached,
+            tokensOut: baseResponseTokens,
+            totalTokens: item.totalTokens || inputTokensExcludingCached + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,

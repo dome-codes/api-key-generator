@@ -431,8 +431,12 @@ export function useUsageApi() {
 
       // Für die Summary müssen ALLE Daten geladen werden, nicht nur die ersten 20
       // Verwende einen sehr hohen limit, um alle Daten zu erhalten
+      const hasModelFilter = Boolean(currentFilter.value.model && String(currentFilter.value.model).trim())
+      const groupByForTiles = hasModelFilter ? (['model'] as string[]) : (currentFilter.value.groupBy as string[] | undefined)
+
       const summaryFilter = {
         ...currentFilter.value,
+        groupBy: groupByForTiles,
         page: 1,
         limit: 10000, // Sehr hoher Wert, um alle Daten zu erhalten
       }
@@ -470,14 +474,13 @@ export function useUsageApi() {
       })
       debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
 
-      // Lade Modell-Daten für den Modell-Chart (gruppiert nach Modell)
-      await loadModelSummary(useAdminApi)
-      // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
-      await loadTagSummary(useAdminApi)
-      // Lade User-Daten für Breakdown (gruppiert nach user)
-      await loadUserSummary(useAdminApi)
-      // Lade API-Key-Daten für Breakdown (gruppiert nach apikey)
-      await loadApiKeySummary(useAdminApi)
+      // Folge-Requests (Charts/Breakdowns) nicht blockierend laden
+      void Promise.allSettled([
+        loadModelSummary(useAdminApi),
+        loadTagSummary(useAdminApi),
+        loadUserSummary(useAdminApi),
+        loadApiKeySummary(useAdminApi),
+      ])
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
