@@ -325,12 +325,16 @@ export const usageApiService = {
               .includes('image')
           )
 
+          // Annahme: reasoningTokens sind Teil von baseResponseTokens (Output gesamt).
+          // Für getrennte Bepreisung ziehen wir Reasoning aus dem "normalen" Output ab.
+          const outputTokensExcludingReasoning = Math.max(0, baseResponseTokens - reasoningTokens)
+
           const costResult = isCompletion
             ? calculateCompletionCostDetailed({
                 modelName,
                 inputTokens: requestTokens,
                 cachedInputTokens: cachedTokens,
-                outputTokens: baseResponseTokens,
+                outputTokens: outputTokensExcludingReasoning,
                 reasoningTokens,
               })
             : calculateCost(
@@ -380,7 +384,8 @@ export const usageApiService = {
             // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
             tokensIn: requestTokens,
             tokensOut: baseResponseTokens,
-            totalTokens: requestTokens + cachedTokens + baseResponseTokens + reasoningTokens,
+            // totalTokens: cached + output enthält Reasoning bereits → Reasoning nicht doppelt zählen
+            totalTokens: requestTokens + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,
@@ -540,12 +545,14 @@ export const usageApiService = {
               .includes('image')
           )
 
+          const outputTokensExcludingReasoning = Math.max(0, baseResponseTokens - reasoningTokens)
+
           const costResult = isCompletion
             ? calculateCompletionCostDetailed({
                 modelName,
                 inputTokens: requestTokens,
                 cachedInputTokens: cachedTokens,
-                outputTokens: baseResponseTokens,
+                outputTokens: outputTokensExcludingReasoning,
                 reasoningTokens,
               })
             : calculateCost(
@@ -576,7 +583,8 @@ export const usageApiService = {
             // Wichtig: tokensIn/tokensOut bleiben die "Basis"-Tokens, cached/reasoning separat.
             tokensIn: requestTokens,
             tokensOut: baseResponseTokens,
-            totalTokens: item.totalTokens || requestTokens + cachedTokens + baseResponseTokens + reasoningTokens,
+            // totalTokens: cached + output enthält Reasoning bereits → Reasoning nicht doppelt zählen
+            totalTokens: item.totalTokens || requestTokens + cachedTokens + baseResponseTokens,
             cachedTokens,
             reasoningTokens,
             cost: costResult.finalCost,

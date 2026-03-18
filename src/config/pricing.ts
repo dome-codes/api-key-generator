@@ -268,6 +268,41 @@ export function calculateCompletionCostDetailed(params: {
   const serviceMarkup = totalCost * currentMarkup
   const finalCost = totalCost + serviceMarkup
 
+  // Debug-Logging (nur wenn aktiviert)
+  try {
+    const dbg = localStorage.getItem('debug')
+    if (dbg && dbg.toLowerCase() === 'true') {
+      // eslint-disable-next-line no-console
+      console.debug('[pricing] calculateCompletionCostDetailed', {
+        modelName: params.modelName,
+        tokens: {
+          inputTokens: safeInput,
+          cachedInputTokens: safeCached,
+          outputTokens: safeOutput,
+          reasoningTokens: safeReasoning,
+        },
+        pricesPer1M: {
+          input: model.inputPrice,
+          cachedInput: model.cachedInputPrice ?? model.inputPrice,
+          output: model.outputPrice,
+          reasoning: model.reasoningPrice ?? model.outputPrice,
+        },
+        costs: {
+          inputCost,
+          cachedInputCost,
+          outputCost,
+          reasoningCost,
+          totalCost,
+          serviceMarkup,
+          finalCost,
+        },
+        markup: currentMarkup,
+      })
+    }
+  } catch {
+    // ignore debug logging failures
+  }
+
   return {
     inputCost,
     cachedInputCost,
