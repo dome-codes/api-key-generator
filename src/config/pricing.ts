@@ -40,10 +40,27 @@ import {
 // FITS-Aufschlag (9%) - kann aus localStorage geladen werden
 const DEFAULT_SERVICE_MARKUP_PERCENTAGE = 0.09
 
+// Pricing-Quelle:
+// Standardmäßig nutzen wir **nur Defaults** aus pricingModels.ts, damit es keine Inkonsistenzen
+// durch veraltete localStorage-Daten gibt (z.B. alte Modelllisten -> alles fällt auf "unknown").
+//
+// Optional kann localStorage wieder aktiviert werden (z.B. solange Preisverwaltung noch genutzt wird)
+// über ein Env-Flag:
+// - VITE_USE_PRICING_STORAGE=true
+const USE_PRICING_STORAGE = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = (import.meta as any)?.env?.VITE_USE_PRICING_STORAGE
+    return String(v).toLowerCase() === 'true'
+  } catch {
+    return false
+  }
+})()
+
 // Lade Preise aus localStorage oder verwende Defaults
-// WICHTIG: Diese Funktionen werden verwendet wenn pricing.ts direkt importiert wird
-// Für Admin-Verwaltung sollte usePricingManagement verwendet werden, das über API lädt
+// WICHTIG: Diese Funktionen werden verwendet wenn pricing.ts direkt importiert wird.
 function loadPricingFromStorage<T>(key: string, defaults: T[]): T[] {
+  if (!USE_PRICING_STORAGE) return defaults
   try {
     const stored = localStorage.getItem(key)
     if (stored) {
@@ -56,6 +73,7 @@ function loadPricingFromStorage<T>(key: string, defaults: T[]): T[] {
 }
 
 function loadMarkupFromStorage(): number {
+  if (!USE_PRICING_STORAGE) return DEFAULT_SERVICE_MARKUP_PERCENTAGE
   try {
     const stored = localStorage.getItem('pricing:markup')
     if (stored) {
@@ -193,8 +211,17 @@ export function calculateCompletionCostDetailed(params: {
   const currentMarkup = loadMarkupFromStorage()
 
   const normalizedName = (params.modelName || '').toLowerCase()
-  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
-  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
+  // WICHTIG: localStorage kann veraltete Pricing-Listen enthalten.
+  // Wenn ein Modell im aktuellen Storage nicht vorhanden ist, aber in unseren Defaults,
+  // dann soll es trotzdem korrekt gematcht werden (sonst fällt alles auf "unknown").
+  const directMatch =
+    currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName) ??
+    DEFAULT_AZURE_MODEL_PRICING.find((m) => m.modelName.toLowerCase() === normalizedName)
+
+  const fallbackModel =
+    currentPricing.find((m) => m.modelName === 'unknown') ??
+    DEFAULT_AZURE_MODEL_PRICING.find((m) => m.modelName === 'unknown')
+
   const model = directMatch ?? fallbackModel
 
   if (!model) {
@@ -302,8 +329,14 @@ function calculateCompletionCost(
 
   // Finde das Modell in der Preisliste
   const normalizedName = (modelName || '').toLowerCase()
-  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
-  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
+  const directMatch =
+    currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName) ??
+    DEFAULT_AZURE_MODEL_PRICING.find((m) => m.modelName.toLowerCase() === normalizedName)
+
+  const fallbackModel =
+    currentPricing.find((m) => m.modelName === 'unknown') ??
+    DEFAULT_AZURE_MODEL_PRICING.find((m) => m.modelName === 'unknown')
+
   const model = directMatch ?? fallbackModel
 
   if (!model) {

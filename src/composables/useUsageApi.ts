@@ -470,25 +470,34 @@ export function useUsageApi() {
       })
       debugLog('[useUsageApi] Usage summary loaded - summaryData.value:', summaryData.value)
 
-      // Lade Modell-Daten für den Modell-Chart (gruppiert nach Modell)
-      // Wenn ein Modell-Filter gesetzt ist, ist die Model-Verteilung trivial – Call sparen.
+      // Folge-Requests (Charts/Breakdowns) nicht blockierend laden:
+      // Kacheln/Chart-Grundlage soll sofort aus summaryData verfügbar sein.
+      const secondaryLoads: Promise<unknown>[] = []
+
+      // Modell-Verteilung: bei gesetztem Modellfilter trivial → Call sparen.
       if (!(currentFilter.value.model && String(currentFilter.value.model).trim() !== '')) {
-        await loadModelSummary(useAdminApi)
+        secondaryLoads.push(loadModelSummary(useAdminApi))
       } else {
         modelSummaryData.value = []
       }
-      // Lade auch Tag-Daten für den Tag-Chart (gruppiert nach Tag)
-      await loadTagSummary(useAdminApi)
+
+      secondaryLoads.push(loadTagSummary(useAdminApi))
+
       // User/API-Key Breakdown nur sinnvoll im Admin-Kontext
       if (useAdminApi) {
-        // Lade User-Daten für Breakdown (gruppiert nach userId)
-        await loadUserSummary(useAdminApi)
-        // Lade API-Key-Daten für Breakdown (gruppiert nach apiKeyId)
-        await loadApiKeySummary(useAdminApi)
+        secondaryLoads.push(loadUserSummary(useAdminApi))
+        secondaryLoads.push(loadApiKeySummary(useAdminApi))
       } else {
         userSummaryData.value = []
         apiKeySummaryData.value = []
       }
+
+      void Promise.allSettled(secondaryLoads).then((results) => {
+        const rejected = results.filter((r) => r.status === 'rejected')
+        if (rejected.length > 0) {
+          debugLog('[useUsageApi] Some secondary summary loads failed:', rejected)
+        }
+      })
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Fehler beim Laden der Nutzungszusammenfassung'
