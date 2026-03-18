@@ -193,6 +193,7 @@ export function calculateCost(
  */
 export function calculateCompletionCostDetailed(params: {
   modelName: string
+  /** Input Tokens gesamt (inkl. Cached, falls Backend Cached als Teil von Input zählt) */
   inputTokens: number
   cachedInputTokens?: number
   /** Output Tokens gesamt (inkl. Reasoning, falls Backend Reasoning als Teil von Output zählt) */
@@ -242,12 +243,18 @@ export function calculateCompletionCostDetailed(params: {
     }
   }
 
-  const safeInput =
-    Number.isFinite(params.inputTokens) && params.inputTokens > 0 ? params.inputTokens : 0
   const safeCached =
     Number.isFinite(params.cachedInputTokens) && (params.cachedInputTokens as number) > 0
       ? (params.cachedInputTokens as number)
       : 0
+  const safeInputTotal =
+    Number.isFinite(params.inputTokens) && params.inputTokens > 0 ? params.inputTokens : 0
+  // Single Source of Truth:
+  // Cached Input wird im Backend häufig als Teil der Input-Tokens gezählt.
+  // Für getrennte Bepreisung trennen wir hier:
+  // - inputBase = inputTotal - cached
+  // - cached = cached
+  const safeInput = Math.max(0, safeInputTotal - safeCached)
   const safeReasoning =
     Number.isFinite(params.reasoningTokens) && (params.reasoningTokens as number) > 0
       ? (params.reasoningTokens as number)
@@ -283,7 +290,8 @@ export function calculateCompletionCostDetailed(params: {
       console.debug('[pricing] calculateCompletionCostDetailed', {
         modelName: params.modelName,
         tokens: {
-          inputTokens: safeInput,
+          inputTokensTotal: safeInputTotal,
+          inputTokensExcludingCached: safeInput,
           cachedInputTokens: safeCached,
           outputTokensTotal: safeOutputTotal,
           outputTokensExcludingReasoning: safeOutput,
