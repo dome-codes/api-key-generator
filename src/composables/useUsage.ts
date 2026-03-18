@@ -151,15 +151,20 @@ export function useUsage() {
         const costs = await Promise.all(
           validItems.map(async (item: EnhancedUsageRecord) => {
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(
+            const { requestTokens, responseTokens, cachedTokens, reasoningTokens } = readTokensFromItem(
               item as unknown as Record<string, unknown>,
             )
             return calculateCost(
               requestTokens,
               responseTokens,
-              item.modelName || 'gpt-4o',
+              item.modelName || 'unknown',
               false,
               item.type || 'COMPLETION_USAGE',
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              { cachedInputTokens: cachedTokens, reasoningTokens },
             ).finalCost
           }),
         )
@@ -201,15 +206,20 @@ export function useUsage() {
             }
 
             const { calculateCost } = await import('@/config/pricing')
-            const { requestTokens, responseTokens } = readTokensFromItem(
+            const { requestTokens, responseTokens, cachedTokens, reasoningTokens } = readTokensFromItem(
               item as unknown as Record<string, unknown>,
             )
             const costResult = calculateCost(
               requestTokens,
               responseTokens,
-              item.modelName || 'gpt-4o',
+              item.modelName || 'unknown',
               false,
               item.type || 'COMPLETION_USAGE',
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              { cachedInputTokens: cachedTokens, reasoningTokens },
             )
             const apiKeyId = getApiKeyIdFromItem(item as unknown as Record<string, unknown>)
 

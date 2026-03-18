@@ -310,6 +310,12 @@ export function calculateCost(
   imageCount?: number,
   sizeWidth?: number,
   sizeHeight?: number,
+  detail?: {
+    /** Anteil der Input-Tokens, der als Cached Input bepreist werden soll. */
+    cachedInputTokens?: number
+    /** Anteil der Output-Tokens, der als Reasoning Tokens bepreist werden soll. */
+    reasoningTokens?: number
+  },
 ): {
   inputCost: number
   outputCost: number
@@ -338,93 +344,7 @@ export function calculateCost(
   }
 
   // Standard-Token-basierte Berechnung für Completion-Modelle
-  return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput)
-}
-
-export function calculateCompletionCostDetailed(params: {
-  modelName: string
-  /** Input total (ggf. inkl. Cached) */
-  inputTokens: number
-  cachedInputTokens?: number
-  /** Output total (ggf. inkl. Reasoning) */
-  outputTokens: number
-  reasoningTokens?: number
-}): {
-  inputCost: number
-  cachedInputCost: number
-  outputCost: number
-  reasoningCost: number
-  totalCost: number
-  serviceMarkup: number
-  finalCost: number
-  usedFallbackPricing: boolean
-} {
-  const currentPricing = loadPricingFromStorage('pricing:model', DEFAULT_AZURE_MODEL_PRICING)
-  const currentMarkup = loadMarkupFromStorage()
-
-  const normalizedName = (params.modelName || '').toLowerCase()
-  const directMatch = currentPricing.find((m) => m.modelName.toLowerCase() === normalizedName)
-  const fallbackModel = currentPricing.find((m) => m.modelName === 'unknown')
-  const model = directMatch ?? fallbackModel
-
-  if (!model) {
-    throw new Error(`Model ${params.modelName} not found in pricing`)
-  }
-
-  // Unbekanntes Modell: keine pseudo-Kosten anzeigen
-  if (!directMatch && fallbackModel && model === fallbackModel) {
-    return {
-      inputCost: 0,
-      cachedInputCost: 0,
-      outputCost: 0,
-      reasoningCost: 0,
-      totalCost: 0,
-      serviceMarkup: 0,
-      finalCost: 0,
-      usedFallbackPricing: true,
-    }
-  }
-
-  const cached =
-    Number.isFinite(params.cachedInputTokens) && (params.cachedInputTokens as number) > 0
-      ? (params.cachedInputTokens as number)
-      : 0
-  const reasoning =
-    Number.isFinite(params.reasoningTokens) && (params.reasoningTokens as number) > 0
-      ? (params.reasoningTokens as number)
-      : 0
-
-  const inputTotal = Number.isFinite(params.inputTokens) && params.inputTokens > 0 ? params.inputTokens : 0
-  const outputTotal =
-    Number.isFinite(params.outputTokens) && params.outputTokens > 0 ? params.outputTokens : 0
-
-  const inputBase = Math.max(0, inputTotal - cached)
-  const outputBase = Math.max(0, outputTotal - reasoning)
-
-  const inputPricePerToken = model.inputPrice / 1000000
-  const cachedInputPricePerToken = (model.cachedInputPrice ?? model.inputPrice) / 1000000
-  const outputPricePerToken = model.outputPrice / 1000000
-  const reasoningPricePerToken = (model.reasoningPrice ?? model.outputPrice) / 1000000
-
-  const inputCost = inputBase * inputPricePerToken
-  const cachedInputCost = cached * cachedInputPricePerToken
-  const outputCost = outputBase * outputPricePerToken
-  const reasoningCost = reasoning * reasoningPricePerToken
-
-  const totalCost = inputCost + cachedInputCost + outputCost + reasoningCost
-  const serviceMarkup = totalCost * currentMarkup
-  const finalCost = totalCost + serviceMarkup
-
-  return {
-    inputCost,
-    cachedInputCost,
-    outputCost,
-    reasoningCost,
-    totalCost,
-    serviceMarkup,
-    finalCost,
-    usedFallbackPricing: false,
-  }
+  return calculateCompletionCost(tokensIn, tokensOut, modelName, useCachedInput, detail)
 }
 
 // Seiten-basierte Kostenberechnung für Document Intelligence / Extraction
@@ -463,6 +383,7 @@ function calculateCompletionCost(
   tokensOut: number,
   modelName: string,
   useCachedInput: boolean = false,
+  detail?: { cachedInputTokens?: number; reasoningTokens?: number },
 ): {
   inputCost: number
   outputCost: number
@@ -483,15 +404,38 @@ function calculateCompletionCost(
     throw new Error(`Model ${modelName} not found in pricing`)
   }
 
+  const safeTokensIn = Number.isFinite(tokensIn) && tokensIn > 0 ? tokensIn : 0
+  const safeTokensOut = Number.isFinite(tokensOut) && tokensOut > 0 ? tokensOut : 0
+
+  const cached =
+    Number.isFinite(detail?.cachedInputTokens) && (detail?.cachedInputTokens as number) > 0
+      ? (detail?.cachedInputTokens as number)
+      : 0
+  const reasoning =
+    Number.isFinite(detail?.reasoningTokens) && (detail?.reasoningTokens as number) > 0
+      ? (detail?.reasoningTokens as number)
+      : 0
+
+  // Backend zählt Cached häufig in Input und Reasoning häufig in Output mit.
+  // Für korrekte getrennte Bepreisung splitten wir hier:
+  const inputBase = Math.max(0, safeTokensIn - cached)
+  const outputBase = Math.max(0, safeTokensOut - reasoning)
+
   // Berechne Kosten pro Token (Preise sind pro 1M Tokens)
-  const inputPricePerToken =
-    (useCachedInput && model.cachedInputPrice ? model.cachedInputPrice : model.inputPrice) / 1000000
+  const inputBasePricePerToken = model.inputPrice / 1000000
+  const cachedInputPricePerToken =
+    (model.cachedInputPrice != null ? model.cachedInputPrice : model.inputPrice) / 1000000
+  const outputBasePricePerToken = model.outputPrice / 1000000
+  const reasoningPricePerToken =
+    (model.reasoningPrice != null ? model.reasoningPrice : model.outputPrice) / 1000000
 
-  const outputPricePerToken = model.outputPrice / 1000000
+  // Backward-compat: wenn useCachedInput=true (alt), dann bepreise ALLE inputTokens mit cachedInputPrice.
+  // Sonst (Standard): splitte Base vs Cached separat.
+  const inputCost = useCachedInput
+    ? safeTokensIn * cachedInputPricePerToken
+    : inputBase * inputBasePricePerToken + cached * cachedInputPricePerToken
 
-  // Berechne Rohkosten
-  const inputCost = tokensIn * inputPricePerToken
-  const outputCost = tokensOut * outputPricePerToken
+  const outputCost = outputBase * outputBasePricePerToken + reasoning * reasoningPricePerToken
   const totalCost = inputCost + outputCost
 
   // Berechne FITS-Aufschlag (dynamisch geladen)

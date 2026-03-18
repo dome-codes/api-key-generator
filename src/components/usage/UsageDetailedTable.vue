@@ -175,11 +175,12 @@ const formatDate = (day?: number, month?: number, year?: number, createDate?: st
 const hoveredCostItem = ref<EnhancedUsageRecord | null>(null)
 
 const buildCostTooltip = (item: EnhancedUsageRecord): string => {
-  const tokensIn = item.tokensIn ?? 0
-  const tokensOut = item.tokensOut ?? 0
   const cachedTokens = (item as EnhancedUsageRecord & { cachedTokens?: number }).cachedTokens ?? 0
   const reasoningTokens =
     (item as EnhancedUsageRecord & { reasoningTokens?: number }).reasoningTokens ?? 0
+  // Für Kostenberechnung nutzen wir Totale, da Backend cached/reasoning oft in input/output mitzählt.
+  const tokensInTotal = (item.tokensIn ?? 0) + cachedTokens
+  const tokensOutTotal = (item.tokensOut ?? 0) + reasoningTokens
   const modelName = item.modelName || 'unknown'
   const modelType = (item.type || item.modelType) as ModelUsageType | string | undefined
 
@@ -200,7 +201,18 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   let finalCost = item.cost ?? 0
 
   try {
-    const result = calculateCost(tokensIn, tokensOut, modelName, false, modelType)
+    const result = calculateCost(
+      tokensInTotal,
+      tokensOutTotal,
+      modelName,
+      false,
+      modelType,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { cachedInputTokens: cachedTokens, reasoningTokens },
+    )
     inputCost = result.inputCost
     outputCost = result.outputCost
     totalCost = result.totalCost
@@ -217,10 +229,10 @@ const buildCostTooltip = (item: EnhancedUsageRecord): string => {
   parts.push('Eingangsdaten:')
   parts.push(`- Modell: ${modelName}`)
   parts.push(
-    `- Input-Tokens: ${tokensIn.toLocaleString()} (Cached: ${cachedTokens.toLocaleString()})`,
+    `- Input-Tokens: ${tokensInTotal.toLocaleString()} (Cached: ${cachedTokens.toLocaleString()})`,
   )
   parts.push(
-    `- Output-Tokens: ${tokensOut.toLocaleString()} (Reasoning: ${reasoningTokens.toLocaleString()})`,
+    `- Output-Tokens: ${tokensOutTotal.toLocaleString()} (Reasoning: ${reasoningTokens.toLocaleString()})`,
   )
   parts.push('')
   parts.push('Modellpreise (pro 1M Tokens):')

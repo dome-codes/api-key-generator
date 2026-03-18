@@ -19,7 +19,7 @@ import type {
   AIUsageSummaryRecord,
 } from '@/api/types'
 import { getUsage } from '@/api/usage/usage'
-import { calculateCompletionCostDetailed, calculateCost } from '@/config/pricing'
+import { calculateCost } from '@/config/pricing'
 import type {
   EnhancedUsageRecord,
   ModelUsageType,
@@ -313,25 +313,19 @@ export const usageApiService = {
           const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const typeLower = String(displayType || '').toLowerCase()
-          const isCompletion = !typeLower.includes('embedding') && !typeLower.includes('image')
           const modelName = item.model || filter.model || 'unknown'
-
-          const costResult = isCompletion
-            ? calculateCompletionCostDetailed({
-                modelName,
-                inputTokens: requestTokens,
-                cachedInputTokens: cachedTokens,
-                outputTokens: baseResponseTokens,
-                reasoningTokens,
-              })
-            : calculateCost(
-                requestTokens,
-                baseResponseTokens,
-                modelName,
-                false,
-                displayType as ModelUsageType,
-              )
+          const costResult = calculateCost(
+            requestTokens,
+            baseResponseTokens,
+            modelName,
+            false,
+            displayType as ModelUsageType,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            { cachedInputTokens: cachedTokens, reasoningTokens },
+          )
 
           return {
             userId: (() => {
@@ -515,25 +509,19 @@ export const usageApiService = {
           const inputTokensExcludingCached = Math.max(0, requestTokens - cachedTokens)
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const typeLower = String(displayType || '').toLowerCase()
-          const isCompletion = !typeLower.includes('embedding') && !typeLower.includes('image')
           const modelName = item.model || filter.model || 'unknown'
-
-          const costResult = isCompletion
-            ? calculateCompletionCostDetailed({
-                modelName,
-                inputTokens: requestTokens,
-                cachedInputTokens: cachedTokens,
-                outputTokens: baseResponseTokens,
-                reasoningTokens,
-              })
-            : calculateCost(
-                requestTokens,
-                baseResponseTokens,
-                modelName,
-                false,
-                displayType as ModelUsageType,
-              )
+          const costResult = calculateCost(
+            requestTokens,
+            baseResponseTokens,
+            modelName,
+            false,
+            displayType as ModelUsageType,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            { cachedInputTokens: cachedTokens, reasoningTokens },
+          )
 
           return {
             userId: item.userId || '',
