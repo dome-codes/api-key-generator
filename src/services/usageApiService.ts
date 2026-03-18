@@ -312,7 +312,9 @@ export const usageApiService = {
           const cachedTokens = fromItem.cachedTokens || 0
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const modelName = item.model || 'unknown'
+          // Backend liefert bei Summarize/Filter (model=...) teilweise kein item.model zurück.
+          // In dem Fall nehmen wir den gesetzten Filter als Modellname, damit Pricing-Matching stimmt.
+          const modelName = item.model || filter.model || 'unknown'
 
           const isCompletion = !(
             String(displayType || '')
@@ -525,7 +527,9 @@ export const usageApiService = {
           const cachedTokens = fromItem.cachedTokens || 0
 
           const displayType = fromBackendUsageType(item.type) || item.type || 'CompletionModelUsage'
-          const modelName = item.model || 'unknown'
+          // Backend liefert bei Summarize/Filter (model=...) teilweise kein item.model zurück.
+          // In dem Fall nehmen wir den gesetzten Filter als Modellname, damit Pricing-Matching stimmt.
+          const modelName = item.model || filter.model || 'unknown'
 
           const isCompletion = !(
             String(displayType || '')
