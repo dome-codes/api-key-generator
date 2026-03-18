@@ -287,7 +287,7 @@ export function calculateCompletionCostDetailed(params: {
     const dbg = localStorage.getItem('debug')
     if (dbg && dbg.toLowerCase() === 'true') {
       // eslint-disable-next-line no-console
-      console.debug('[pricing] calculateCompletionCostDetailed', {
+      console.log('[pricing] calculateCompletionCostDetailed', {
         modelName: params.modelName,
         tokens: {
           inputTokensTotal: safeInputTotal,
