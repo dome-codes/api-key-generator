@@ -29,6 +29,8 @@ export interface ExtractionModelPricing {
 }
 
 // Default Preise (werden verwendet wenn keine localStorage-Daten vorhanden)
+// Hinweis: Wir pflegen hier die "Data Zone"-Modelnamen ohne Suffixe (Global/Chat/Codex),
+// da diese Namen auch vom Backend in Usage/Summarize zurückkommen.
 const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
   // GPT-5.x / o-Serie (Data Zone / Standardnamen)
   {
@@ -36,42 +38,49 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     inputPrice: 1.64,
     cachedInputPrice: 0.17,
     outputPrice: 13.05,
+    reasoningPrice: 13.05,
   },
   {
     modelName: 'gpt-5.1',
     inputPrice: 1.17,
     cachedInputPrice: 0.12,
     outputPrice: 9.33,
+    reasoningPrice: 9.33,
   },
   {
     modelName: 'gpt-5',
     inputPrice: 1.17,
     cachedInputPrice: 0.12,
     outputPrice: 9.33,
+    reasoningPrice: 9.33,
   },
   {
     modelName: 'gpt-5-mini',
     inputPrice: 0.24,
     cachedInputPrice: 0.03,
     outputPrice: 1.87,
+    reasoningPrice: 1.87,
   },
   {
     modelName: 'gpt-5-nano',
     inputPrice: 0.05,
     cachedInputPrice: 0.01,
     outputPrice: 0.38,
+    reasoningPrice: 0.38,
   },
   {
     modelName: 'o3',
     inputPrice: 1.87,
     cachedInputPrice: 0.47,
     outputPrice: 7.46,
+    reasoningPrice: 7.46,
   },
   {
     modelName: 'o4-mini',
     inputPrice: 1.03,
     cachedInputPrice: 0.26,
     outputPrice: 4.11,
+    reasoningPrice: 4.11,
   },
 
   // GPT-4o Serie (Stand: 2026)
@@ -79,11 +88,13 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     modelName: 'gpt-4o-mini',
     inputPrice: 0.138, // $0.15 * 0.92 EUR/USD
     outputPrice: 0.552, // $0.60 * 0.92 EUR/USD
+    reasoningPrice: 0.552,
   },
   {
     modelName: 'gpt-4o',
     inputPrice: 2.3, // $2.50 * 0.92 EUR/USD
     outputPrice: 9.2, // $10.00 * 0.92 EUR/USD
+    reasoningPrice: 9.2,
   },
 
   // GPT-4.1 Serie (Stand: 2026)
@@ -92,18 +103,21 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     inputPrice: 1.84, // $2.00 * 0.92 EUR/USD
     outputPrice: 7.36, // $8.00 * 0.92 EUR/USD
     cachedInputPrice: 0.46, // Geschätzt basierend auf Verhältnis
+    reasoningPrice: 7.36,
   },
   {
     modelName: 'gpt-4.1-mini',
     inputPrice: 0.32, // Geschätzt basierend auf Verhältnis
     outputPrice: 1.28, // Geschätzt basierend auf Verhältnis
     cachedInputPrice: 0.08, // Geschätzt basierend auf Verhältnis
+    reasoningPrice: 1.28,
   },
   {
     modelName: 'gpt-4.1-nano',
     inputPrice: 0.08, // Geschätzt basierend auf Verhältnis
     outputPrice: 0.32, // Geschätzt basierend auf Verhältnis
     cachedInputPrice: 0.02, // Geschätzt basierend auf Verhältnis
+    reasoningPrice: 0.32,
   },
 
   // GPT-3.5 Serie
@@ -111,6 +125,7 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     modelName: 'gpt-3.5-turbo',
     inputPrice: 0.15,
     outputPrice: 0.2,
+    reasoningPrice: 0.2,
   },
 
   // Claude Serie
@@ -118,11 +133,13 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     modelName: 'claude-3-sonnet',
     inputPrice: 3.0,
     outputPrice: 15.0,
+    reasoningPrice: 15.0,
   },
   {
     modelName: 'claude-3-haiku',
     inputPrice: 0.25,
     outputPrice: 1.25,
+    reasoningPrice: 1.25,
   },
 
   // Fallback für unbekannte Modelle
@@ -130,6 +147,7 @@ const DEFAULT_AZURE_MODEL_PRICING: ModelPricing[] = [
     modelName: 'unknown',
     inputPrice: 1.0,
     outputPrice: 3.0,
+    reasoningPrice: 3.0,
   },
 ]
 
