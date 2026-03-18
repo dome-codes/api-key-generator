@@ -526,6 +526,17 @@ export function useUsageApi() {
         totalItems: allData.length,
       }
 
+      debugLog('[useUsageApi] Summary sources', {
+        hasModelFilter,
+        currentFilterModel: currentFilter.value.model,
+        tilesGroupBy,
+        timeSeriesGroupBy: hasTimeGrouping ? groupBy : undefined,
+        tilesItems: summaryData.value.length,
+        timeSeriesItems: timeSeriesSummaryData.value.length,
+        tilesFirstItem: summaryData.value[0],
+        timeSeriesFirstItem: timeSeriesSummaryData.value[0],
+      })
+
       debugLog('Usage summary loaded:', {
         count: allData.length,
         pagination: pagination.value,
