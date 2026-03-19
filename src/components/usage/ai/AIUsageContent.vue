@@ -51,6 +51,8 @@ const ownTimeRange = ref('')
 const ownModelType = ref('')
 const ownModel = ref('')
 const ownApiKeyId = ref('')
+const ownTag = ref('')
+const ownUserId = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownChartPeriod = ref('daily')
 const ownFromDate = ref('')
@@ -81,6 +83,8 @@ const loadFiltersFromUrl = () => {
     fromBackendUsageType(getQueryParam('usageType')) || getQueryParam('modelType') || ''
   ownModel.value = getQueryParam('model') || ''
   ownApiKeyId.value = getQueryParam('apiKeyId') || ''
+  ownTag.value = getQueryParam('tag') || ''
+  ownUserId.value = getQueryParam('userId') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownChartPeriod.value = getQueryParam('chartPeriod') || 'daily'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
@@ -148,6 +152,8 @@ const saveFiltersToUrl = () => {
     : undefined
   params.model = ownModel.value || undefined
   params.apiKey = ownApiKeyId.value || undefined
+  params.tag = ownTag.value || undefined
+  params.userId = ownUserId.value || undefined
   params.view = ownView.value || undefined
   params.chartPeriod = ownChartPeriod.value || undefined
   params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
@@ -223,6 +229,8 @@ const handleOwnFilterChange = async () => {
       modelType: ownModelType.value || undefined,
       model: ownModel.value || undefined,
       apiKey: ownApiKeyId.value || undefined,
+      tag: ownTag.value || undefined,
+      userId: ownUserId.value || undefined,
       groupBy: newGroupBy,
       // Seite nur zurücksetzen wenn sich die View ändert, sonst aktuelle Seite behalten
       page: viewChanged ? 1 : currentFilter.value.page || pagination.value.currentPage || 1,
@@ -393,6 +401,8 @@ onMounted(async () => {
       v-model:model-type="ownModelType"
       v-model:model="ownModel"
       v-model:api-key-id="ownApiKeyId"
+      v-model:tag="ownTag"
+      v-model:user-id="ownUserId"
       v-model:from-date="ownFromDate"
       v-model:to-date="ownToDate"
       @filter-changed="handleOwnFilterChange"

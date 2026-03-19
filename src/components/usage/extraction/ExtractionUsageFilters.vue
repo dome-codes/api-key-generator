@@ -5,6 +5,8 @@ import { computed, watch } from 'vue'
 interface Props {
   timeRange: string
   modelId?: string
+  tag?: string
+  userId?: string
   fromDate?: string
   toDate?: string
   selectedUser?: string
@@ -22,6 +24,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:timeRange': [value: string]
   'update:modelId': [value: string]
+  'update:tag': [value: string]
+  'update:userId': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
@@ -38,6 +42,16 @@ const timeRange = computed({
 const modelId = computed({
   get: () => props.modelId || '',
   set: (value) => emit('update:modelId', value),
+})
+
+const tag = computed({
+  get: () => props.tag || '',
+  set: (value) => emit('update:tag', value),
+})
+
+const userId = computed({
+  get: () => props.userId || '',
+  set: (value) => emit('update:userId', value),
 })
 
 const fromDate = computed({
@@ -219,6 +233,28 @@ watch(selectedUser, (newUser) => {
           <option value="prebuilt-businessCard">Prebuilt Business Card</option>
           <option value="document-intelligence">Document Intelligence</option>
         </select>
+      </div>
+
+      <!-- Tag Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
+        <input
+          v-model="tag"
+          type="text"
+          placeholder="z.B. invoice-processing"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+        />
+      </div>
+
+      <!-- User ID Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+        <input
+          v-model="userId"
+          type="text"
+          placeholder="z.B. SVC_..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+        />
       </div>
 
       <!-- User Filter (nur für Admin) -->

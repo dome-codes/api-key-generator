@@ -46,10 +46,10 @@ const {
 const ownTimeRange = ref('')
 const ownModelId = ref('')
 const ownTag = ref('')
+const ownUserId = ref('')
 const ownView = ref<'overview' | 'detailed'>('overview')
 const ownFromDate = ref('')
 const ownToDate = ref('')
-const adminUser = ref('')
 const adminUserGroup = ref('')
 
 // Unique users for admin filter
@@ -86,11 +86,11 @@ const loadFiltersFromUrl = () => {
 
   ownModelId.value = getQueryParam('modelId') || ''
   ownTag.value = getQueryParam('tag') || ''
+  ownUserId.value = getQueryParam('userId') || ''
   ownView.value = (getQueryParam('view') as 'overview' | 'detailed') || 'overview'
   ownFromDate.value = getQueryParam('fromDate')?.split('T')[0] || ''
   ownToDate.value = getQueryParam('toDate')?.split('T')[0] || ''
   if (props.useAdminApi) {
-    adminUser.value = getQueryParam('userId') || ''
     adminUserGroup.value = getQueryParam('userGroup') || ''
   }
 
@@ -153,11 +153,11 @@ const saveFiltersToUrl = () => {
   params.timeRange = ownTimeRange.value || undefined
   params.modelId = ownModelId.value || undefined
   params.tag = ownTag.value || undefined
+  params.userId = ownUserId.value || undefined
   params.view = ownView.value || undefined
   params.fromDate = ownFromDate.value ? toIsoDate(ownFromDate.value) : undefined
   params.toDate = ownToDate.value ? toIsoDate(ownToDate.value) : undefined
   if (props.useAdminApi) {
-    params.userId = adminUser.value || undefined
     params.userGroup = adminUserGroup.value || undefined
   }
   // Page/Limit in URL halten (Quelle der Wahrheit)
@@ -217,7 +217,7 @@ const handleOwnFilterChange = async () => {
       toDate: toIsoDate(ownToDate.value),
       modelId: ownModelId.value || undefined,
       tag: ownTag.value || undefined,
-      userId: props.useAdminApi ? adminUser.value || undefined : undefined,
+      userId: ownUserId.value || undefined,
       groupBy: newGroupBy,
       // Seite nur zurücksetzen wenn sich die View ändert, sonst aktuelle Seite behalten
       page: viewChanged ? 1 : (currentFilter.value.page || pagination.value.currentPage || 1),
@@ -366,9 +366,10 @@ onMounted(async () => {
       v-model:time-range="ownTimeRange"
       v-model:model-id="ownModelId"
       v-model:tag="ownTag"
+      v-model:user-id="ownUserId"
       v-model:from-date="ownFromDate"
       v-model:to-date="ownToDate"
-      v-model:selected-user="adminUser"
+      v-model:selected-user="ownUserId"
       v-model:selected-user-group="adminUserGroup"
       :show-user-filter="useAdminApi"
       :users="uniqueUsers"

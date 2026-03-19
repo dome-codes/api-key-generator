@@ -7,6 +7,8 @@ interface Props {
   modelType: string
   model?: string
   apiKeyId?: string
+  tag?: string
+  userId?: string
   fromDate?: string
   toDate?: string
   selectedUser?: string
@@ -25,6 +27,8 @@ const emit = defineEmits<{
   'update:modelType': [value: string]
   'update:model': [value: string]
   'update:apiKeyId': [value: string]
+  'update:tag': [value: string]
+  'update:userId': [value: string]
   'update:fromDate': [value: string]
   'update:toDate': [value: string]
   'update:selectedUser': [value: string]
@@ -39,6 +43,8 @@ const localModelType = computed({
 
 // Local Model Input (wird erst beim Button-Klick oder Enter aktualisiert)
 const localModelInput = ref(props.model || '')
+const localTagInput = ref(props.tag || '')
+const localUserIdInput = ref(props.userId || '')
 
 // Sync props changes back to local input
 watch(
@@ -46,6 +52,24 @@ watch(
   (newValue) => {
     if (newValue !== localModelInput.value) {
       localModelInput.value = newValue || ''
+    }
+  },
+)
+
+watch(
+  () => props.tag,
+  (newValue) => {
+    if (newValue !== localTagInput.value) {
+      localTagInput.value = newValue || ''
+    }
+  },
+)
+
+watch(
+  () => props.userId,
+  (newValue) => {
+    if (newValue !== localUserIdInput.value) {
+      localUserIdInput.value = newValue || ''
     }
   },
 )
@@ -64,6 +88,8 @@ const handleFilterChange = () => {
   // Aktualisiere alle Werte bevor der Filter ausgelöst wird
   emit('update:modelType', localModelType.value)
   emit('update:model', localModelInput.value)
+  emit('update:tag', localTagInput.value)
+  emit('update:userId', localUserIdInput.value)
   emit('update:selectedUser', localSelectedUser.value)
   emit('update:selectedUserGroup', localSelectedUserGroup.value)
   emit('filter-changed')
@@ -157,6 +183,32 @@ watch(localSelectedUser, (newUser) => {
           v-model="localModelInput"
           type="text"
           placeholder="z.B. gpt-4o"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
+          @blur="handleFilterChange"
+        />
+      </div>
+
+      <!-- Tag Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Tag</label>
+        <input
+          v-model="localTagInput"
+          type="text"
+          placeholder="z.B. finance"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+          @keyup.enter="handleFilterChange"
+          @blur="handleFilterChange"
+        />
+      </div>
+
+      <!-- User ID Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+        <input
+          v-model="localUserIdInput"
+          type="text"
+          placeholder="z.B. SVC_..."
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
           @keyup.enter="handleFilterChange"
           @blur="handleFilterChange"
