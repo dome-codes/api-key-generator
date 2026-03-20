@@ -44,6 +44,7 @@ const {
   updateSort,
   currentFilter,
   toggleShowAllTags,
+  fetchAllUsageDataForExport,
 } = useUsageApi()
 
 // Filter State
@@ -458,6 +459,7 @@ onMounted(async () => {
       :sort-order="sortOrder"
       :use-backend-sorting="true"
       :model-type-filter="ownModelType"
+      :fetch-all-for-export="() => fetchAllUsageDataForExport(props.useAdminApi)"
       @page-change="handlePageChange"
       @page-size-change="handlePageSizeChange"
       @sort-change="handleSortChange"

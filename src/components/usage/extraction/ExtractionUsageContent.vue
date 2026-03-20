@@ -40,6 +40,7 @@ const {
   goToPage,
   currentFilter,
   summaryUsers,
+  fetchAllUsageDataForExport,
 } = useExtractionUsageApi()
 
 // Filter State
@@ -430,6 +431,7 @@ onMounted(async () => {
       :sort-field="currentFilter.sort"
       :sort-order="sortOrder"
       :use-backend-sorting="true"
+      :fetch-all-for-export="() => fetchAllUsageDataForExport(props.useAdminApi)"
       @page-change="handlePageChange"
       @page-size-change="handlePageSizeChange"
       @sort-change="handleSortChange"

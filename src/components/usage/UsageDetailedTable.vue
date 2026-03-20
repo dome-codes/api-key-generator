@@ -38,6 +38,8 @@ interface Props {
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
   /** Wenn gesetzt: Spalten Größe/Qualität nur bei IMAGE_USAGE anzeigen (sonst ausblenden) */
   modelTypeFilter?: string
+  /** Alle Zeilen für aktuellen Filter laden (paginiert) – sonst nur aktuelle Seite exportieren */
+  fetchAllForExport?: () => Promise<EnhancedUsageRecord[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -48,6 +50,7 @@ const props = withDefaults(defineProps<Props>(), {
   sortOrder: undefined,
   useBackendSorting: false,
   modelTypeFilter: undefined,
+  fetchAllForExport: undefined,
 })
 
 // Sortierung state - wird von Props übernommen wenn Backend-Sortierung aktiv ist
@@ -290,8 +293,30 @@ const sortBy = (field: string) => {
   }
 }
 
+const isExporting = ref(false)
+
+const getSortedRowsForExport = async (): Promise<EnhancedUsageRecord[]> => {
+  const field =
+    props.useBackendSorting && props.sortField ? props.sortField : localSortField.value
+  const order =
+    (props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value) || 'desc'
+
+  if (props.fetchAllForExport) {
+    const all = await props.fetchAllForExport()
+    return sortUsageRecords(all, field, order)
+  }
+  return sortedData.value
+}
+
 const exportTableData = async () => {
   try {
+    isExporting.value = true
+    const rows = await getSortedRowsForExport()
+    if (!rows.length) {
+      debugLog('CSV-Export: keine Zeilen')
+      return
+    }
+
     const headers = [
       'Technische User ID',
       'Technischer Benutzername',
@@ -315,7 +340,7 @@ const exportTableData = async () => {
 
     const csvContent = [
       headers.join(','),
-      ...sortedData.value.map((item) =>
+      ...rows.map((item) =>
         [
           item.userId,
           item.technicalUserName ?? item.userName,
@@ -344,8 +369,11 @@ const exportTableData = async () => {
     link.href = URL.createObjectURL(blob)
     link.download = `detailed-usage-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
+    URL.revokeObjectURL(link.href)
   } catch (err) {
     debugLog('Fehler beim Exportieren:', err)
+  } finally {
+    isExporting.value = false
   }
 }
 
@@ -360,22 +388,31 @@ watch(
 
 <template>
   <div class="bg-white rounded-xl shadow p-6">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-start sm:justify-between">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Nutzungsübersicht</h3>
-      <div class="flex items-center gap-2">
-        <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
-          {{ (pagination as { totalItems?: number }).totalItems }} Einträge (Seite
-          {{ (pagination as { currentPage?: number }).currentPage }} von
-          {{ (pagination as { totalPages?: number }).totalPages }})
-        </span>
-        <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
-        <button
-          class="text-sm text-link hover:text-primary-hover"
-          :disabled="isLoading"
-          @click="exportTableData"
-        >
-          {{ isLoading ? 'Exportiere...' : 'Als CSV exportieren' }}
-        </button>
+      <div class="flex flex-col items-end gap-1">
+        <div class="flex items-center gap-2">
+          <span v-if="pagination && displayData.length > 0" class="text-sm text-gray-500">
+            {{ (pagination as { totalItems?: number }).totalItems }} Einträge (Seite
+            {{ (pagination as { currentPage?: number }).currentPage }} von
+            {{ (pagination as { totalPages?: number }).totalPages }})
+          </span>
+          <span v-else class="text-sm text-gray-500">{{ data.length }} Einträge</span>
+          <button
+            type="button"
+            class="text-sm text-link hover:text-primary-hover disabled:opacity-50"
+            :disabled="isLoading || isExporting || displayData.length === 0"
+            @click="exportTableData"
+          >
+            {{
+              isLoading || isExporting ? 'Export wird geladen…' : 'Als CSV exportieren'
+            }}
+          </button>
+        </div>
+        <p v-if="fetchAllForExport" class="text-xs text-gray-500 text-right max-w-[22rem]">
+          Export umfasst den gewählten Zeitraum und alle Filter – alle Seiten, nicht nur die aktuelle
+          Ansicht.
+        </p>
       </div>
     </div>
 

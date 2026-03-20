@@ -535,6 +535,58 @@ export function useExtractionUsageApi() {
     await loadUsageData({}, useAdminApi)
   }
 
+  /**
+   * Alle Detailzeilen für den aktuellen Filter (Zeitraum, Sortierung, Tags …) laden –
+   * für CSV-Export ohne die sichtbare Tabellen-Pagination zu ändern.
+   */
+  const fetchAllUsageDataForExport = async (
+    useAdminApi: boolean = false,
+  ): Promise<EnhancedExtractionUsageRecord[]> => {
+    const CHUNK = 500
+    const MAX_ROWS = 100_000
+    const MAX_PAGES = 500
+
+    const filterBase: ExtractionUsageFilterApi = {
+      ...currentFilter.value,
+      limit: CHUNK,
+    }
+
+    const accumulated: EnhancedExtractionUsageRecord[] = []
+    let page = 1
+
+    for (;;) {
+      if (accumulated.length >= MAX_ROWS) {
+        debugLog('fetchAllUsageDataForExport: Abbruch MAX_ROWS', MAX_ROWS)
+        break
+      }
+      if (page > MAX_PAGES) {
+        debugLog('fetchAllUsageDataForExport: Abbruch MAX_PAGES', MAX_PAGES)
+        break
+      }
+
+      const { data, pagination } = await extractionUsageApiService.getUsageData(
+        { ...filterBase, page },
+        useAdminApi,
+      )
+
+      if (!data.length) break
+
+      accumulated.push(...data)
+
+      const totalPages = pagination?.totalPages ?? 1
+      const totalItems = pagination?.totalItems
+
+      if (totalItems != null && accumulated.length >= totalItems) break
+      if (page >= totalPages) break
+      if (data.length < CHUNK) break
+
+      page++
+    }
+
+    debugLog('fetchAllUsageDataForExport: fertig, Zeilen=', accumulated.length)
+    return accumulated
+  }
+
   return {
     // State
     isLoading,
@@ -563,5 +615,6 @@ export function useExtractionUsageApi() {
     updateFilter,
     updateSort,
     resetFilter,
+    fetchAllUsageDataForExport,
   }
 }

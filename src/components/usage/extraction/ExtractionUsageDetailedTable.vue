@@ -19,6 +19,8 @@ interface Props {
   sortField?: string // Aktuelles Sortierfeld vom Backend
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
+  /** Liefert alle Zeilen für den aktuellen Filter (z. B. alle Seiten) – sonst nur aktuelle Seite exportieren */
+  fetchAllForExport?: () => Promise<EnhancedExtractionUsageRecord[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -28,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   sortField: undefined,
   sortOrder: undefined,
   useBackendSorting: false,
+  fetchAllForExport: undefined,
 })
 
 const paginationPage = computed(() => props.pagination?.currentPage ?? 1)
@@ -164,8 +167,20 @@ const csvEscape = (value: unknown): string => {
   return s
 }
 
-const exportTableData = () => {
+const isExporting = ref(false)
+
+const exportTableData = async () => {
   try {
+    isExporting.value = true
+    let rows = props.data
+    if (props.fetchAllForExport) {
+      rows = await props.fetchAllForExport()
+    }
+    if (!rows.length) {
+      debugLog('CSV-Export: keine Zeilen')
+      return
+    }
+
     const headers = [
       'Technischer Nutzer',
       'User ID',
@@ -179,7 +194,7 @@ const exportTableData = () => {
       'Tag (Label)',
       'API Key ID',
     ]
-    const rows = props.data.map((item) =>
+    const lines = rows.map((item) =>
       [
         item.userName ?? '',
         item.userId ?? '',
@@ -195,7 +210,7 @@ const exportTableData = () => {
       ].map(csvEscape),
     )
     const bom = '\ufeff'
-    const csvContent = bom + [headers.map(csvEscape).join(';'), ...rows.map((r) => r.join(';'))].join('\n')
+    const csvContent = bom + [headers.map(csvEscape).join(';'), ...lines.map((r) => r.join(';'))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -204,6 +219,8 @@ const exportTableData = () => {
     URL.revokeObjectURL(link.href)
   } catch (err) {
     debugLog('Fehler beim CSV-Export:', err)
+  } finally {
+    isExporting.value = false
   }
 }
 
@@ -238,18 +255,24 @@ const getInitials = (name?: string): string => {
   <div class="bg-white rounded-xl shadow overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Extraction-Nutzung</h3>
-      <div class="flex items-center gap-3">
-        <span v-if="pagination && data.length > 0" class="text-sm text-gray-500">
-          {{ pagination.totalItems }} Einträge
-        </span>
-        <button
-          type="button"
-          class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
-          :disabled="isLoading || !data || data.length === 0"
-          @click="exportTableData"
-        >
-          Als CSV exportieren
-        </button>
+      <div class="flex flex-col items-end gap-1 sm:items-end">
+        <div class="flex items-center gap-3">
+          <span v-if="pagination && data.length > 0" class="text-sm text-gray-500">
+            {{ pagination.totalItems }} Einträge
+          </span>
+          <button
+            type="button"
+            class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            :disabled="isLoading || isExporting || !data || data.length === 0"
+            @click="exportTableData"
+          >
+            {{ isExporting ? 'Export wird geladen…' : 'Als CSV exportieren' }}
+          </button>
+        </div>
+        <p v-if="fetchAllForExport" class="text-xs text-gray-500 text-right max-w-[22rem]">
+          Export umfasst den gewählten Zeitraum und alle Filter – alle Seiten, nicht nur die aktuelle
+          Ansicht.
+        </p>
       </div>
     </div>
 
