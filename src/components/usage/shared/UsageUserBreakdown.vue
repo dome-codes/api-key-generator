@@ -26,7 +26,6 @@ type SortKey =
   | 'reasoningTokens'
   | 'cost'
   | 'id'
-  | 'avgConfidence'
   | 'avgPagesPerOp'
 const sortKey = ref<SortKey>('requests')
 const sortDir = ref<'asc' | 'desc'>('desc')
@@ -77,16 +76,6 @@ const normalized = computed(() => {
         cost = calculateExtractionCost(pages, modelId).finalCost
       }
 
-      const confRaw =
-        typeof any.confidenceScore === 'number' && !Number.isNaN(any.confidenceScore)
-          ? any.confidenceScore
-          : undefined
-      let avgConfidence: number | undefined
-      if (confRaw !== undefined) {
-        if (confRaw >= 0 && confRaw <= 1) avgConfidence = confRaw
-        else if (confRaw > 1 && confRaw <= 100) avgConfidence = confRaw / 100
-        else if (confRaw > 100) avgConfidence = Math.min(1, confRaw / 100)
-      }
       const avgPagesPerOp = requests > 0 ? pages / requests : 0
 
       return {
@@ -97,7 +86,6 @@ const normalized = computed(() => {
         cachedTokens,
         reasoningTokens,
         cost,
-        avgConfidence,
         avgPagesPerOp,
       }
     })
@@ -115,11 +103,6 @@ const sortedRows = computed(() => {
   const key = sortKey.value
   return [...filteredRows.value].sort((a, b) => {
     if (key === 'id') return dir * a.id.localeCompare(b.id)
-    if (key === 'avgConfidence') {
-      const av = a.avgConfidence ?? -1
-      const bv = b.avgConfidence ?? -1
-      return dir * (av - bv)
-    }
     return dir * (((a[key] as number) ?? 0) - ((b[key] as number) ?? 0))
   })
 })
@@ -153,11 +136,6 @@ const toggleSort = (key: SortKey) => {
 }
 
 const formatCost = (value: number) => `€${value.toFixed(2)}`
-
-const formatAvgConfidence = (ratio: number | undefined) => {
-  if (ratio == null || Number.isNaN(ratio) || ratio < 0) return '–'
-  return `${(ratio * 100).toFixed(1)}%`
-}
 </script>
 
 <template>
@@ -230,13 +208,6 @@ const formatAvgConfidence = (ratio: number | undefined) => {
               <th
                 v-if="canShowPages"
                 class="py-2 pr-4 cursor-pointer"
-                @click="toggleSort('avgConfidence')"
-              >
-                Ø Confidence
-              </th>
-              <th
-                v-if="canShowPages"
-                class="py-2 pr-4 cursor-pointer"
                 @click="toggleSort('avgPagesPerOp')"
               >
                 Ø Seiten / Op.
@@ -280,9 +251,6 @@ const formatAvgConfidence = (ratio: number | undefined) => {
               <td class="py-2 pr-4 text-gray-900">{{ r.requests.toLocaleString() }}</td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
                 {{ r.pages.toLocaleString() }}
-              </td>
-              <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
-                {{ formatAvgConfidence(r.avgConfidence) }}
               </td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
                 {{ r.avgPagesPerOp > 0 ? r.avgPagesPerOp.toFixed(2) : '–' }}

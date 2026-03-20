@@ -157,16 +157,6 @@ const buildCostTooltip = (item: EnhancedExtractionUsageRecord): string => {
   return lines.join('\n')
 }
 
-/** Zeigt "–" wenn Confidence fehlt; API kann 0–1 oder 0–100 liefern. */
-const formatConfidence = (confidence: number | undefined | null): string => {
-  if (confidence == null || (typeof confidence === 'number' && Number.isNaN(confidence))) return '–'
-  const n = Number(confidence)
-  const ratio =
-    n >= 0 && n <= 1 ? n : n > 1 && n <= 100 ? n / 100 : n > 100 ? Math.min(1, n / 100) : Number.NaN
-  if (ratio == null || Number.isNaN(ratio) || ratio < 0 || ratio > 1) return '–'
-  return `${(ratio * 100).toFixed(1)}%`
-}
-
 /** CSV: Felder mit Komma/Anführungszeichen sicher escapen */
 const csvEscape = (value: unknown): string => {
   const s = value == null ? '' : String(value)
@@ -184,7 +174,6 @@ const exportTableData = () => {
       'Provider',
       'Modell',
       'Seiten',
-      'Confidence',
       'Kosten (EUR)',
       'Datum (ISO)',
       'Tag (Label)',
@@ -199,7 +188,6 @@ const exportTableData = () => {
         item.provider ?? '',
         item.modelId ?? '',
         item.pages ?? 0,
-        formatConfidence(item.confidenceScore),
         (item.cost ?? 0).toFixed(4),
         item.createDate ?? '',
         item.tag ?? '',
@@ -266,7 +254,7 @@ const getInitials = (name?: string): string => {
     </div>
 
     <div v-if="isLoading" class="p-6">
-      <SkeletonLoader type="table" :rows="10" :columns="9" />
+      <SkeletonLoader type="table" :rows="10" :columns="8" />
     </div>
 
     <div v-else-if="error" class="p-6">
@@ -374,29 +362,6 @@ const getInitials = (name?: string): string => {
                   Seiten
                   <svg
                     v-if="currentSortField === 'pages'"
-                    class="w-3 h-3"
-                    :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
-                </div>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                @click="sortBy('confidenceScore')"
-              >
-                <div class="flex items-center gap-1">
-                  Confidence
-                  <svg
-                    v-if="currentSortField === 'confidenceScore'"
                     class="w-3 h-3"
                     :class="currentSortOrder === 'asc' ? 'rotate-180' : ''"
                     fill="none"
@@ -526,9 +491,6 @@ const getInitials = (name?: string): string => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ item.pages ?? 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatConfidence(item.confidenceScore) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div

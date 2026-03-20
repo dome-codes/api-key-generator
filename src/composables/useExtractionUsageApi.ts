@@ -67,15 +67,11 @@ export function useExtractionUsageApi() {
         operations: [],
         pages: [],
         cost: [],
-        confidence: [],
       }
     }
 
     // Gruppiere nach Datum (wenn day/month/year vorhanden)
-    const dateMap = new Map<
-      string,
-      { operations: number; pages: number; cost: number; confidence: number; confidenceSum: number }
-    >()
+    const dateMap = new Map<string, { operations: number; pages: number; cost: number }>()
 
     data.forEach((item) => {
       let dateKey: string
@@ -89,7 +85,7 @@ export function useExtractionUsageApi() {
       }
 
       if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0, confidence: 0, confidenceSum: 0 })
+        dateMap.set(dateKey, { operations: 0, pages: 0, cost: 0 })
       }
 
       const entry = dateMap.get(dateKey)
@@ -98,7 +94,6 @@ export function useExtractionUsageApi() {
         entry.operations += (item as EnhancedExtractionUsageRecord).operations ?? 1
         entry.pages += item.pages || 0
         entry.cost += item.cost || 0
-        entry.confidenceSum += item.confidenceScore || 0
       }
     })
 
@@ -114,7 +109,6 @@ export function useExtractionUsageApi() {
       operations: sortedEntries.map(([, data]) => data.operations),
       pages: sortedEntries.map(([, data]) => data.pages),
       cost: sortedEntries.map(([, data]) => data.cost),
-      confidence: sortedEntries.map(([, data]) => data.confidenceSum / data.operations || 0),
     }
   })
 
@@ -179,7 +173,6 @@ export function useExtractionUsageApi() {
       return {
         totalOperations,
         totalPages,
-        averageConfidence: undefined,
         totalCost,
         uniqueUsers: uUsers ?? 0,
         uniqueProviders: uProviders ?? 0,
@@ -196,7 +189,6 @@ export function useExtractionUsageApi() {
       return {
         totalOperations: 0,
         totalPages: 0,
-        averageConfidence: 0,
         totalCost: 0,
         uniqueUsers: 0,
         uniqueProviders: 0,
@@ -213,10 +205,6 @@ export function useExtractionUsageApi() {
     )
     const totalPages = data.reduce((sum, item) => sum + (item.pages ?? 0), 0)
     const totalCost = data.reduce((sum, item) => sum + (item.cost ?? 0), 0)
-    const totalConfidence = data.reduce((sum, item) => sum + (item.confidenceScore ?? 0), 0)
-    const hasAnyConfidence = data.some(
-      (item) => item.confidenceScore != null && !Number.isNaN(Number(item.confidenceScore)),
-    )
     const uniqueUsers = new Set(
       data.map((i) => i.userId).filter((id) => id != null && String(id).trim() !== ''),
     ).size
@@ -235,8 +223,6 @@ export function useExtractionUsageApi() {
     return {
       totalOperations,
       totalPages,
-      averageConfidence:
-        hasAnyConfidence && totalOperations > 0 ? totalConfidence / totalOperations : undefined,
       totalCost,
       uniqueUsers,
       uniqueProviders,
@@ -519,7 +505,6 @@ export function useExtractionUsageApi() {
       status: 'status',
       provider: 'provider',
       pages: 'pages',
-      confidenceScore: 'confidenceScore',
       cost: 'cost',
       createDate: 'createDate',
       apiKeyId: 'apiKeyId',

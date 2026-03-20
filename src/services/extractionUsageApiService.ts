@@ -128,17 +128,6 @@ function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | unde
   return undefined
 }
 
-/**
- * Confidence: API liefert oft 0–1, manchmal 0–100 (Prozent) → intern 0–1 für einheitliche Anzeige.
- */
-function normalizeConfidenceToRatio(value: number | undefined): number | undefined {
-  if (value == null || Number.isNaN(value)) return undefined
-  if (value >= 0 && value <= 1) return value
-  if (value > 1 && value <= 100) return value / 100
-  if (value > 100) return Math.min(1, value / 100)
-  return undefined
-}
-
 /** Request-Format für Usage/Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
@@ -254,7 +243,7 @@ export const extractionUsageApiService = {
       debugLog('API response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageData (extraction)', response, rawData.length, rawData[0])
 
-      // Konvertiere zu EnhancedExtractionUsageRecord (robust: snake_case + Aliase wie confidence vs. confidenceScore)
+      // Konvertiere zu EnhancedExtractionUsageRecord (robust: snake_case + Aliase)
       const enhancedData = rawData.map((item: ExtractionUsageRecordShape) => {
         const raw = item as unknown as Record<string, unknown>
 
@@ -271,16 +260,6 @@ export const extractionUsageApiService = {
           const { finalCost } = calculateExtractionCost(basePages, modelId || 'unknown')
           cost = finalCost
         }
-
-        const confRaw = pickNum(
-          raw,
-          'confidenceScore',
-          'confidence_score',
-          'confidence',
-          'averageConfidence',
-          'average_confidence',
-        )
-        const confidenceScore = normalizeConfidenceToRatio(confRaw)
 
         const createDate =
           pickStr(raw, 'createDate', 'create_date', 'createdAt', 'created_at', 'timestamp', 'date') ??
@@ -335,7 +314,6 @@ export const extractionUsageApiService = {
           documentType: pickStr(raw, 'documentType', 'document_type') ?? item.documentType ?? '',
           pages: basePages,
           extractedFields: item.extractedFields || [],
-          confidenceScore,
           cost,
         }
       })
@@ -489,16 +467,6 @@ export const extractionUsageApiService = {
           cost = finalCost
         }
 
-        const confRaw = pickNum(
-          raw,
-          'averageConfidence',
-          'average_confidence',
-          'confidenceScore',
-          'confidence_score',
-          'confidence',
-        )
-        const confidenceScore = normalizeConfidenceToRatio(confRaw)
-
         const userId = pickStr(raw, 'userId', 'user_id') ?? item.userId ?? ''
         const apiKeyId = pickStr(raw, 'apiKeyId', 'api_key_id', 'apiKey', 'api_key') ?? item.apiKeyId
         const tag = pickStr(raw, 'tag', 'label', 'category', 'tags') ?? item.tag
@@ -531,7 +499,6 @@ export const extractionUsageApiService = {
           documentType,
           pages,
           extractedFields: [],
-          confidenceScore,
           cost,
           operations,
         }

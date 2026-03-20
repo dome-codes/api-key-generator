@@ -139,7 +139,6 @@ export interface EnhancedExtractionUsageRecord {
   documentType?: string
   pages?: number
   extractedFields?: Array<{ fieldName?: string; value?: string; confidence?: number }>
-  confidenceScore?: number
   cost?: number
   operations?: number
 }
@@ -267,7 +266,6 @@ export interface ExtractionUsageAggregation {
   uniqueUsers: number
   uniqueProviders?: number
   uniqueModels: number
-  averageConfidence?: number
   operationsByStatus?: { [key: string]: number }
   averagePagesPerOperation: number
   averageCostPerOperation: number

@@ -10,7 +10,6 @@ interface Props {
     operations?: number[]
     pages?: number[]
     cost?: number[]
-    confidence?: number[]
   }
   providerDistributionData: {
     labels: string[]
