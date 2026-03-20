@@ -183,7 +183,6 @@ const exportTableData = () => {
       'Status',
       'Provider',
       'Modell',
-      'Dokumenttyp',
       'Seiten',
       'Confidence',
       'Kosten (EUR)',
@@ -199,7 +198,6 @@ const exportTableData = () => {
         item.status ?? '',
         item.provider ?? '',
         item.modelId ?? '',
-        item.documentType ?? '',
         item.pages ?? 0,
         formatConfidence(item.confidenceScore),
         (item.cost ?? 0).toFixed(4),
@@ -268,7 +266,7 @@ const getInitials = (name?: string): string => {
     </div>
 
     <div v-if="isLoading" class="p-6">
-      <SkeletonLoader type="table" :rows="10" :columns="10" />
+      <SkeletonLoader type="table" :rows="10" :columns="9" />
     </div>
 
     <div v-else-if="error" class="p-6">
@@ -367,11 +365,6 @@ const getInitials = (name?: string): string => {
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 Modell
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                Dokumenttyp
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -530,9 +523,6 @@ const getInitials = (name?: string): string => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ item.modelId ?? '-' }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ item.documentType?.trim() ? item.documentType : '–' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ item.pages ?? 0 }}
