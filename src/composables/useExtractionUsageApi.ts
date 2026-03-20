@@ -7,6 +7,7 @@
 
 import type { Page } from '@/api/types'
 import { extractionUsageApiService } from '@/services/extractionUsageApiService'
+import { calculateExtractionCost } from '@/config/pricing'
 import type {
   EnhancedExtractionUsageRecord,
   ExtractionUsageAggregation,
@@ -402,7 +403,16 @@ export function useExtractionUsageApi() {
         0,
       )
       const totalPagesSum = globalData.reduce((sum, item) => sum + (item.pages ?? 0), 0)
-      const totalCostSum = globalData.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+      let totalCostSum = globalData.reduce((sum, item) => sum + (item.cost ?? 0), 0)
+      // Fallback: globale Summarize liefert manchmal keine Kosten — aus Seiten schätzen (wie in der Tabelle)
+      if (
+        (totalCostSum === 0 || Number.isNaN(totalCostSum)) &&
+        totalPagesSum > 0 &&
+        totalOperations > 0
+      ) {
+        const { finalCost } = calculateExtractionCost(totalPagesSum, 'unknown')
+        totalCostSum = finalCost
+      }
       tileGlobal.value = {
         totalOperations,
         totalPages: totalPagesSum,

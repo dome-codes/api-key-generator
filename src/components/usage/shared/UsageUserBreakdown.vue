@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import BarChart from '../charts/BarChart.vue'
 import type { EnhancedExtractionUsageRecord, EnhancedUsageRecord } from '@/types/frontend'
+import { calculateExtractionCost } from '@/config/pricing'
 
 type Variant = 'ai' | 'extraction'
 interface Props {
@@ -17,7 +18,16 @@ const props = withDefaults(defineProps<Props>(), {
   defaultTopN: 10,
 })
 
-type SortKey = 'requests' | 'pages' | 'tokens' | 'cachedTokens' | 'reasoningTokens' | 'cost' | 'id'
+type SortKey =
+  | 'requests'
+  | 'pages'
+  | 'tokens'
+  | 'cachedTokens'
+  | 'reasoningTokens'
+  | 'cost'
+  | 'id'
+  | 'avgConfidence'
+  | 'avgPagesPerOp'
 const sortKey = ref<SortKey>('requests')
 const sortDir = ref<'asc' | 'desc'>('desc')
 const showAll = ref(false)
@@ -59,9 +69,37 @@ const normalized = computed(() => {
           ? (any as { reasoningTokens?: number }).reasoningTokens
           : undefined) ?? 0
       const tokens = tokensIn + tokensOut + cachedTokens + reasoningTokens
-      const cost = (typeof any.cost === 'number' ? any.cost : undefined) ?? 0
+      let cost = (typeof any.cost === 'number' ? any.cost : undefined) ?? 0
+      const modelId =
+        typeof any.modelId === 'string' && any.modelId.trim() !== '' ? any.modelId : 'unknown'
 
-      return { id, requests, pages, tokens, cachedTokens, reasoningTokens, cost }
+      if (props.variant === 'extraction' && pages > 0 && (cost === 0 || !Number.isFinite(cost))) {
+        cost = calculateExtractionCost(pages, modelId).finalCost
+      }
+
+      const confRaw =
+        typeof any.confidenceScore === 'number' && !Number.isNaN(any.confidenceScore)
+          ? any.confidenceScore
+          : undefined
+      let avgConfidence: number | undefined
+      if (confRaw !== undefined) {
+        if (confRaw >= 0 && confRaw <= 1) avgConfidence = confRaw
+        else if (confRaw > 1 && confRaw <= 100) avgConfidence = confRaw / 100
+        else if (confRaw > 100) avgConfidence = Math.min(1, confRaw / 100)
+      }
+      const avgPagesPerOp = requests > 0 ? pages / requests : 0
+
+      return {
+        id,
+        requests,
+        pages,
+        tokens,
+        cachedTokens,
+        reasoningTokens,
+        cost,
+        avgConfidence,
+        avgPagesPerOp,
+      }
     })
     .filter((r) => r.id.trim() !== '')
 })
@@ -77,7 +115,12 @@ const sortedRows = computed(() => {
   const key = sortKey.value
   return [...filteredRows.value].sort((a, b) => {
     if (key === 'id') return dir * a.id.localeCompare(b.id)
-    return dir * ((a[key] ?? 0) - (b[key] ?? 0))
+    if (key === 'avgConfidence') {
+      const av = a.avgConfidence ?? -1
+      const bv = b.avgConfidence ?? -1
+      return dir * (av - bv)
+    }
+    return dir * (((a[key] as number) ?? 0) - ((b[key] as number) ?? 0))
   })
 })
 
@@ -110,6 +153,11 @@ const toggleSort = (key: SortKey) => {
 }
 
 const formatCost = (value: number) => `€${value.toFixed(2)}`
+
+const formatAvgConfidence = (ratio: number | undefined) => {
+  if (ratio == null || Number.isNaN(ratio) || ratio < 0) return '–'
+  return `${(ratio * 100).toFixed(1)}%`
+}
 </script>
 
 <template>
@@ -180,6 +228,20 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
                 Seiten
               </th>
               <th
+                v-if="canShowPages"
+                class="py-2 pr-4 cursor-pointer"
+                @click="toggleSort('avgConfidence')"
+              >
+                Ø Confidence
+              </th>
+              <th
+                v-if="canShowPages"
+                class="py-2 pr-4 cursor-pointer"
+                @click="toggleSort('avgPagesPerOp')"
+              >
+                Ø Seiten / Op.
+              </th>
+              <th
                 v-if="canShowTokens"
                 class="py-2 pr-4 cursor-pointer"
                 @click="toggleSort('tokens')"
@@ -218,6 +280,12 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
               <td class="py-2 pr-4 text-gray-900">{{ r.requests.toLocaleString() }}</td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
                 {{ r.pages.toLocaleString() }}
+              </td>
+              <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
+                {{ formatAvgConfidence(r.avgConfidence) }}
+              </td>
+              <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
+                {{ r.avgPagesPerOp > 0 ? r.avgPagesPerOp.toFixed(2) : '–' }}
               </td>
               <td v-if="canShowTokens" class="py-2 pr-4 text-gray-900">
                 {{ r.tokens.toLocaleString() }}

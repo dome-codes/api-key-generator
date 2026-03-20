@@ -7,6 +7,9 @@ import type { DocumentIntelligenceOperationStatus } from '@/api/types'
 import type { Page } from '@/api/types'
 import { AZURE_EXTRACTION_MODEL_PRICING, SERVICE_MARKUP_PERCENTAGE } from '@/config/pricing'
 import { computed, ref, watch } from 'vue'
+import { debugLog as baseDebugLog } from '@/utils/debugLog'
+
+const debugLog = (...args: unknown[]) => baseDebugLog('[ExtractionUsageDetailedTable]', ...args)
 
 interface Props {
   data: EnhancedExtractionUsageRecord[]
@@ -154,10 +157,68 @@ const buildCostTooltip = (item: EnhancedExtractionUsageRecord): string => {
   return lines.join('\n')
 }
 
-/** Zeigt "–" wenn Confidence vom API nicht geliefert wird, sonst Prozent. */
+/** Zeigt "–" wenn Confidence fehlt; API kann 0–1 oder 0–100 liefern. */
 const formatConfidence = (confidence: number | undefined | null): string => {
   if (confidence == null || (typeof confidence === 'number' && Number.isNaN(confidence))) return '–'
-  return `${(Number(confidence) * 100).toFixed(1)}%`
+  const n = Number(confidence)
+  const ratio =
+    n >= 0 && n <= 1 ? n : n > 1 && n <= 100 ? n / 100 : n > 100 ? Math.min(1, n / 100) : Number.NaN
+  if (ratio == null || Number.isNaN(ratio) || ratio < 0 || ratio > 1) return '–'
+  return `${(ratio * 100).toFixed(1)}%`
+}
+
+/** CSV: Felder mit Komma/Anführungszeichen sicher escapen */
+const csvEscape = (value: unknown): string => {
+  const s = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+const exportTableData = () => {
+  try {
+    const headers = [
+      'Technischer Nutzer',
+      'User ID',
+      'Operation ID',
+      'Status',
+      'Provider',
+      'Modell',
+      'Dokumenttyp',
+      'Seiten',
+      'Confidence',
+      'Kosten (EUR)',
+      'Datum (ISO)',
+      'Tag (Label)',
+      'API Key ID',
+    ]
+    const rows = props.data.map((item) =>
+      [
+        item.userName ?? '',
+        item.userId ?? '',
+        item.operationId ?? '',
+        item.status ?? '',
+        item.provider ?? '',
+        item.modelId ?? '',
+        item.documentType ?? '',
+        item.pages ?? 0,
+        formatConfidence(item.confidenceScore),
+        (item.cost ?? 0).toFixed(4),
+        item.createDate ?? '',
+        item.tag ?? '',
+        item.apiKeyId ?? '',
+      ].map(csvEscape),
+    )
+    const bom = '\ufeff'
+    const csvContent = bom + [headers.map(csvEscape).join(';'), ...rows.map((r) => r.join(';'))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `extraction-usage-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (err) {
+    debugLog('Fehler beim CSV-Export:', err)
+  }
 }
 
 const formatDate = (dateStr: string): string => {
@@ -189,12 +250,25 @@ const getInitials = (name?: string): string => {
 
 <template>
   <div class="bg-white rounded-xl shadow overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <h3 class="text-lg font-semibold text-gray-800">Detaillierte Extraction-Nutzung</h3>
+      <div class="flex items-center gap-3">
+        <span v-if="pagination && data.length > 0" class="text-sm text-gray-500">
+          {{ pagination.totalItems }} Einträge
+        </span>
+        <button
+          type="button"
+          class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          :disabled="isLoading || !data || data.length === 0"
+          @click="exportTableData"
+        >
+          Als CSV exportieren
+        </button>
+      </div>
     </div>
 
     <div v-if="isLoading" class="p-6">
-      <SkeletonLoader type="table" :rows="10" :columns="8" />
+      <SkeletonLoader type="table" :rows="10" :columns="10" />
     </div>
 
     <div v-else-if="error" class="p-6">
@@ -293,6 +367,11 @@ const getInitials = (name?: string): string => {
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 Modell
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Dokumenttyp
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
@@ -451,6 +530,9 @@ const getInitials = (name?: string): string => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ item.modelId ?? '-' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ item.documentType?.trim() ? item.documentType : '–' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{ item.pages ?? 0 }}

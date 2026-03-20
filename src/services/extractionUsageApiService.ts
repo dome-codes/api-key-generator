@@ -105,6 +105,40 @@ function diagLog(
   })
 }
 
+/** Zahlen aus Backend-Objekt lesen (camelCase + snake_case). */
+function pickNum(obj: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const k of keys) {
+    const v = obj[k]
+    if (typeof v === 'number' && !Number.isNaN(v)) return v
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = Number(v)
+      if (!Number.isNaN(n)) return n
+    }
+  }
+  return undefined
+}
+
+function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = obj[k]
+    if (v == null) continue
+    if (typeof v === 'string' && v.trim() !== '') return v.trim()
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  }
+  return undefined
+}
+
+/**
+ * Confidence: API liefert oft 0–1, manchmal 0–100 (Prozent) → intern 0–1 für einheitliche Anzeige.
+ */
+function normalizeConfidenceToRatio(value: number | undefined): number | undefined {
+  if (value == null || Number.isNaN(value)) return undefined
+  if (value >= 0 && value <= 1) return value
+  if (value > 1 && value <= 100) return value / 100
+  if (value > 100) return Math.min(1, value / 100)
+  return undefined
+}
+
 /** Request-Format für Usage/Summarize: from_date=2026-01-31T00:00:00.000Z */
 function toIsoDateTime(dateStr: string | undefined): string | undefined {
   if (!dateStr?.trim()) return undefined
@@ -220,43 +254,88 @@ export const extractionUsageApiService = {
       debugLog('API response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageData (extraction)', response, rawData.length, rawData[0])
 
-      // Konvertiere zu EnhancedExtractionUsageRecord
+      // Konvertiere zu EnhancedExtractionUsageRecord (robust: snake_case + Aliase wie confidence vs. confidenceScore)
       const enhancedData = rawData.map((item: ExtractionUsageRecordShape) => {
-        const basePages = item.pages || 0
-        let cost = item.cost
+        const raw = item as unknown as Record<string, unknown>
+
+        const basePages =
+          pickNum(raw, 'pages', 'totalPages', 'total_pages', 'pageCount', 'page_count') ??
+          item.pages ??
+          0
+
+        const modelId =
+          pickStr(raw, 'modelId', 'model_id', 'model') ?? item.modelId ?? ''
+
+        let cost = pickNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts', 'estimatedCost')
         if (cost == null || Number.isNaN(cost)) {
-          const { finalCost } = calculateExtractionCost(basePages, item.modelId || 'unknown')
+          const { finalCost } = calculateExtractionCost(basePages, modelId || 'unknown')
           cost = finalCost
         }
 
+        const confRaw = pickNum(
+          raw,
+          'confidenceScore',
+          'confidence_score',
+          'confidence',
+          'averageConfidence',
+          'average_confidence',
+        )
+        const confidenceScore = normalizeConfidenceToRatio(confRaw)
+
+        const createDate =
+          pickStr(raw, 'createDate', 'create_date', 'createdAt', 'created_at', 'timestamp', 'date') ??
+          item.createDate
+
+        const tag = pickStr(raw, 'tag', 'label', 'category', 'tags') ?? item.tag ?? ''
+
+        const apiKeyId =
+          pickStr(raw, 'apiKeyId', 'api_key_id', 'apiKey', 'api_key') ?? item.apiKeyId
+
+        const userId = pickStr(raw, 'userId', 'user_id') ?? item.userId ?? ''
+
+        let createDateOut = createDate
+        if (!createDateOut) {
+          const d = item.day
+          const m = item.month
+          const y = item.year
+          if (d != null && m != null && y != null) {
+            createDateOut = new Date(y, m - 1, d).toISOString()
+          }
+        }
+        if (!createDateOut) createDateOut = new Date().toISOString()
+
         return {
-          id: item.id || `extraction-${Math.random().toString(36).substring(7)}`,
+          id:
+            pickStr(raw, 'id') ||
+            item.id ||
+            `extraction-${Math.random().toString(36).substring(7)}`,
           operationId:
-            item.operationId || item.id || `op-${Math.random().toString(36).substring(7)}`,
-          status: item.status || 'completed',
-          createDate: item.createDate || new Date().toISOString(),
+            pickStr(raw, 'operationId', 'operation_id') ||
+            item.operationId ||
+            item.id ||
+            `op-${Math.random().toString(36).substring(7)}`,
+          status: (pickStr(raw, 'status') || item.status || 'completed') as ExtractionUsageRecordShape['status'],
+          createDate: createDateOut,
           completedDate: item.completedDate,
-          day: item.day,
-          month: item.month,
-          year: item.year,
-          userId: item.userId || '',
+          day: item.day ?? pickNum(raw, 'day'),
+          month: item.month ?? pickNum(raw, 'month'),
+          year: item.year ?? pickNum(raw, 'year'),
+          userId,
           userName: (() => {
-            const userId = item.userId || ''
             if (!userId || userId.trim() === '') return 'Unknown User'
-            // Für technische User (SVC_*, e*, b*) zeige die ID direkt
             if (userId.startsWith('SVC_') || userId.startsWith('e') || userId.startsWith('b')) {
               return userId
             }
             return `User ${userId}`
           })(),
-          apiKeyId: item.apiKeyId,
-          tag: item.tag || '',
-          provider: item.provider || '',
-          modelId: item.modelId || '',
-          documentType: item.documentType || '',
+          apiKeyId,
+          tag,
+          provider: pickStr(raw, 'provider') ?? item.provider ?? '',
+          modelId,
+          documentType: pickStr(raw, 'documentType', 'document_type') ?? item.documentType ?? '',
           pages: basePages,
           extractedFields: item.extractedFields || [],
-          confidenceScore: item.confidenceScore || 0,
+          confidenceScore,
           cost,
         }
       })
@@ -392,52 +471,67 @@ export const extractionUsageApiService = {
       debugLog('API summary response received:', response, 'rawData length:', rawData.length)
       diagLog('getUsageSummary (extraction)', response, rawData.length, rawData[0])
 
-      // Hilfsfunktion: Werte aus Backend-Objekt lesen (API kann requests/pages ODER operations/totalPages liefern, ggf. snake_case)
-      const readNum = (obj: Record<string, unknown>, ...keys: string[]): number | undefined => {
-        for (const k of keys) {
-          const v = obj[k]
-          if (typeof v === 'number' && !Number.isNaN(v)) return v
-        }
-        return undefined
-      }
-
-      // Konvertiere Summary zu EnhancedExtractionUsageRecord (API: requests/pages oder operations/totalPages)
+      // Konvertiere Summary zu EnhancedExtractionUsageRecord (robust: snake_case + Aliase wie bei getUsageData)
       const enhancedData = rawData.map((item: ExtractionUsageSummaryRecordShape) => {
         const raw = item as unknown as Record<string, unknown>
-        // Operationen-Kachel = Requests (alle Varianten aus Response)
+
         const operations =
-          readNum(raw, 'operations', 'requests', 'totalRequests', 'total_requests') ?? 1
-        // Seiten-Kachel = Pages (alle Varianten)
-        const pages = readNum(raw, 'pages', 'totalPages', 'total_pages') ?? 0
-        // Kosten-Kachel = Cost (alle Varianten oder lokal berechnet, wenn Backend nichts liefert)
-        let cost = readNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts') ?? undefined
+          pickNum(raw, 'operations', 'requests', 'totalRequests', 'total_requests') ?? 1
+        const pages =
+          pickNum(raw, 'pages', 'totalPages', 'total_pages', 'pageCount', 'page_count') ?? 0
+
+        const modelId =
+          pickStr(raw, 'modelId', 'model_id', 'model') ?? item.modelId ?? 'unknown'
+
+        let cost = pickNum(raw, 'cost', 'totalCost', 'total_cost', 'totalCosts', 'estimatedCost')
         if (cost == null || Number.isNaN(cost)) {
-          const { finalCost } = calculateExtractionCost(pages, item.modelId || 'unknown')
+          const { finalCost } = calculateExtractionCost(pages, modelId)
           cost = finalCost
         }
 
+        const confRaw = pickNum(
+          raw,
+          'averageConfidence',
+          'average_confidence',
+          'confidenceScore',
+          'confidence_score',
+          'confidence',
+        )
+        const confidenceScore = normalizeConfidenceToRatio(confRaw)
+
+        const userId = pickStr(raw, 'userId', 'user_id') ?? item.userId ?? ''
+        const apiKeyId = pickStr(raw, 'apiKeyId', 'api_key_id', 'apiKey', 'api_key') ?? item.apiKeyId
+        const tag = pickStr(raw, 'tag', 'label', 'category', 'tags') ?? item.tag
+        const provider = pickStr(raw, 'provider') ?? item.provider ?? ''
+        const day = pickNum(raw, 'day') ?? item.day
+        const month = pickNum(raw, 'month') ?? item.month
+        const year = pickNum(raw, 'year') ?? item.year
+
+        const documentType =
+          pickStr(raw, 'documentType', 'document_type') ?? 'unknown'
+
         return {
-          id: `${item.provider ?? ''}-${item.modelId ?? ''}-${item.day ?? ''}-${item.month ?? ''}-${item.year ?? ''}`,
-          operationId: `${item.provider}-${item.modelId}`,
-          status: item.status || 'completed',
+          id: `${provider}-${modelId ?? ''}-${day ?? ''}-${month ?? ''}-${year ?? ''}-${userId}-${apiKeyId ?? ''}`,
+          operationId: `${provider}-${modelId}`,
+          status: (pickStr(raw, 'status') || item.status || 'completed') as string,
           createDate:
-            item.year != null && item.month != null && item.day != null
-              ? new Date(item.year, item.month - 1, item.day).toISOString()
+            year != null && month != null && day != null
+              ? new Date(year, month - 1, day).toISOString()
               : new Date().toISOString(),
           completedDate: undefined,
-          day: item.day,
-          month: item.month,
-          year: item.year,
-          userId: item.userId,
-          userName: item.userId ? `User ${item.userId}` : '',
-          apiKeyId: item.apiKeyId,
-          tag: item.tag,
-          provider: item.provider,
-          modelId: item.modelId,
-          documentType: 'unknown',
+          day,
+          month,
+          year,
+          userId,
+          userName: userId ? `User ${userId}` : '',
+          apiKeyId,
+          tag,
+          provider,
+          modelId,
+          documentType,
           pages,
           extractedFields: [],
-          confidenceScore: item.averageConfidence,
+          confidenceScore,
           cost,
           operations,
         }
