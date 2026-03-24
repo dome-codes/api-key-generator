@@ -137,22 +137,6 @@ const adminGroupedKeys = computed(() => {
       const group = grouped.get(key.userId)
       group.keys.push(key)
 
-      // Akkumuliere Verbrauchsdaten
-      // Priorität: userUsageData (Summarize pro Benutzer) → usageData pro Key
-      const userUsage = props.userUsageData?.[key.userId]
-      if (userUsage && group.totalCost === 0 && group.totalTokensIn === 0 && group.totalTokensOut === 0) {
-        group.totalCost += userUsage.cost
-        group.totalTokensIn += userUsage.tokensIn
-        group.totalTokensOut += userUsage.tokensOut
-      } else {
-        const usage = props.usageData?.[key.id]
-        if (usage) {
-          group.totalCost += usage.cost
-          group.totalTokensIn += usage.tokensIn
-          group.totalTokensOut += usage.tokensOut
-        }
-      }
-
       // Zähle aktive/inaktive Keys (API liefert active: boolean)
       if (key.active) {
         group.activeKeys++
@@ -161,6 +145,37 @@ const adminGroupedKeys = computed(() => {
       }
     }
   })
+
+  // Verbrauch pro Gruppe: Summe aus usageData pro Key (kein Mix mit userUsageData in der Schleife, sonst Doppelzählung).
+  // Nur wenn alle Keys 0 haben: Fallback auf Summarize pro Benutzer (z. B. wenn Key-Detail fehlt).
+  for (const group of grouped.values()) {
+    let totalCost = 0
+    let totalTokensIn = 0
+    let totalTokensOut = 0
+    for (const k of group.keys) {
+      const u = props.usageData?.[k.id]
+      if (u) {
+        totalCost += u.cost
+        totalTokensIn += u.tokensIn
+        totalTokensOut += u.tokensOut
+      }
+    }
+    const userSumm = props.userUsageData?.[group.userId]
+    if (
+      totalCost === 0 &&
+      totalTokensIn === 0 &&
+      totalTokensOut === 0 &&
+      userSumm
+    ) {
+      group.totalCost = userSumm.cost
+      group.totalTokensIn = userSumm.tokensIn
+      group.totalTokensOut = userSumm.tokensOut
+    } else {
+      group.totalCost = totalCost
+      group.totalTokensIn = totalTokensIn
+      group.totalTokensOut = totalTokensOut
+    }
+  }
 
   return Array.from(grouped.values()).sort((a, b) => a.userName.localeCompare(b.userName))
 })
@@ -361,6 +376,27 @@ interface GroupedKey {
   inactiveKeys: number
 }
 
+/** Spalte „Zuletzt verwendet“ in der Gruppenzeile: jüngstes lastUsed aller Keys (Backend-Felder). */
+function pickLatestLastUsed(keys: ApiKeyDisplay[]): string {
+  const parse = (s: string): number | null => {
+    if (!s || s.trim() === '' || s === 'Never') return null
+    const t = Date.parse(s)
+    if (!Number.isNaN(t)) return t
+    const ms = new Date(s).getTime()
+    return Number.isNaN(ms) ? null : ms
+  }
+  let best = 'Never'
+  let bestTs = -Infinity
+  for (const k of keys) {
+    const ts = parse(k.lastUsed)
+    if (ts != null && ts > bestTs) {
+      bestTs = ts
+      best = k.lastUsed
+    }
+  }
+  return best
+}
+
 const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
   const latestKey = groupedKey.keys.reduce((latest: ApiKeyDisplay, key: ApiKeyDisplay) =>
     new Date(key.createdAt) > new Date(latest.createdAt) ? key : latest,
@@ -374,7 +410,7 @@ const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
     createdAt: latestKey.createdAt,
     createdBy: groupedKey.userName,
     expiresAt: latestKey.expiresAt,
-    lastUsed: 'Never',
+    lastUsed: pickLatestLastUsed(groupedKey.keys),
     active: groupedKey.activeKeys > 0,
     userId: groupedKey.userId,
     userName: groupedKey.userName,

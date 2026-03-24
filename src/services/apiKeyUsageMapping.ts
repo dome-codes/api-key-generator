@@ -61,7 +61,7 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
- * @param keys Liste der Keys mit id, optional userId und optional active (für Fallback: erstem aktiven Key zuordnen)
+ * @param keys Liste der Keys mit id, optional userId und optional active (für Fallback ohne apiKeyId: gleichmäßig auf alle Keys des Users verteilen)
  */
 export function buildApiKeyUsageMap(
   records: UsageRecordForApiKey[],
@@ -223,41 +223,58 @@ export function buildApiKeyUsageMap(
       usageByUserId[uid].tokensIn += t.tokensIn
       usageByUserId[uid].tokensOut += t.tokensOut
     }
-    // Pro User nur einen Key befüllen (erster Key dieses Users), damit nicht alle Keys dieselbe Zahl zeigen
-    const userIdAlreadyAssigned = new Set<string>()
-    for (const key of keys) {
-      const uid = key.userId?.trim()
-      if (!uid || !usageByUserId[uid] || userIdAlreadyAssigned.has(uid)) continue
-      userIdAlreadyAssigned.add(uid)
-      const existing = map[key.id]
+    // Ohne apiKeyId: gleichmäßig auf alle Keys desselben Users verteilen (Summe pro User bleibt erhalten).
+    const userIdsDistributed = new Set<string>()
+    for (const uid of Object.keys(usageByUserId)) {
       const fallback = usageByUserId[uid]
-      map[key.id] = {
-        cost: (existing?.cost ?? 0) + fallback.cost,
-        tokensIn: (existing?.tokensIn ?? 0) + fallback.tokensIn,
-        tokensOut: (existing?.tokensOut ?? 0) + fallback.tokensOut,
+      const keysForUser = keys.filter((k) => k.userId?.trim() === uid)
+      if (keysForUser.length === 0) continue
+      userIdsDistributed.add(uid)
+      const n = keysForUser.length
+      const perShare: ApiKeyUsageData = {
+        cost: fallback.cost / n,
+        tokensIn: fallback.tokensIn / n,
+        tokensOut: fallback.tokensOut / n,
       }
-      usageCountByKeyId[key.id] = (usageCountByKeyId[key.id] ?? 0) + 1
+      for (const key of keysForUser) {
+        const existing = map[key.id]
+        map[key.id] = {
+          cost: (existing?.cost ?? 0) + perShare.cost,
+          tokensIn: (existing?.tokensIn ?? 0) + perShare.tokensIn,
+          tokensOut: (existing?.tokensOut ?? 0) + perShare.tokensOut,
+        }
+        usageCountByKeyId[key.id] = (usageCountByKeyId[key.id] ?? 0) + 1
+      }
     }
 
-    // Fallback: Wenn wir zwar Usage pro userId haben, aber keinem Key etwas zuordnen konnten
-    // (z. B. weil Keys keine userId haben), ordnen wir den Gesamtverbrauch dem ersten aktiven Key zu.
-    const userIdsWithUsage = Object.keys(usageByUserId)
-    if (userIdsWithUsage.length > 0 && userIdAlreadyAssigned.size === 0 && keys.length > 0) {
-      const firstActiveKey = keys.find((k) => k.active !== false) ?? keys[0]
-      const total: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
-      for (const uid of userIdsWithUsage) {
-        const u = usageByUserId[uid]
-        total.cost += u.cost
-        total.tokensIn += u.tokensIn
-        total.tokensOut += u.tokensOut
+    // Rest: Usage mit userId, zu dem es keine passenden Keys gibt → gleichmäßig auf alle Keys verteilen
+    const remainder: ApiKeyUsageData = { cost: 0, tokensIn: 0, tokensOut: 0 }
+    for (const uid of Object.keys(usageByUserId)) {
+      if (userIdsDistributed.has(uid)) continue
+      const u = usageByUserId[uid]
+      remainder.cost += u.cost
+      remainder.tokensIn += u.tokensIn
+      remainder.tokensOut += u.tokensOut
+    }
+    if (
+      (remainder.cost !== 0 || remainder.tokensIn !== 0 || remainder.tokensOut !== 0) &&
+      keys.length > 0
+    ) {
+      const n = keys.length
+      const perShare: ApiKeyUsageData = {
+        cost: remainder.cost / n,
+        tokensIn: remainder.tokensIn / n,
+        tokensOut: remainder.tokensOut / n,
       }
-      const existing = map[firstActiveKey.id]
-      map[firstActiveKey.id] = {
-        cost: (existing?.cost ?? 0) + total.cost,
-        tokensIn: (existing?.tokensIn ?? 0) + total.tokensIn,
-        tokensOut: (existing?.tokensOut ?? 0) + total.tokensOut,
+      for (const key of keys) {
+        const existing = map[key.id]
+        map[key.id] = {
+          cost: (existing?.cost ?? 0) + perShare.cost,
+          tokensIn: (existing?.tokensIn ?? 0) + perShare.tokensIn,
+          tokensOut: (existing?.tokensOut ?? 0) + perShare.tokensOut,
+        }
+        usageCountByKeyId[key.id] = (usageCountByKeyId[key.id] ?? 0) + 1
       }
-      usageCountByKeyId[firstActiveKey.id] = (usageCountByKeyId[firstActiveKey.id] ?? 0) + 1
     }
   }
 
