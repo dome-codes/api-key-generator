@@ -206,20 +206,29 @@ export const usageService = {
     try {
       debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
 
-      if (!hasPermission('canSeeOwnUsage')) {
+      const useAdminSummarize = hasPermission('canUseAdminFeatures')
+      if (!useAdminSummarize && !hasPermission('canSeeOwnUsage')) {
         debugLog('🔍 [API-SERVICE] Keine Berechtigung zum Anzeigen von Usage-Daten')
         return { data: [], pagination: defaultPage }
       }
 
       // Backend: by=apiKey (camelCase, laut generierten TypeScript-Typen), from_date/to_date als date-time (ISO)
-      const params = {
+      // Admin: /v1/admin/usage/ai/summarize – Nutzung aller Keys; /v1/usage/ai/summarize nur eigene Nutzung.
+      const params: UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params = {
         by: ['apiKey'],
         from_date: toIsoDateTime(fromDate),
         to_date: toIsoDateTimeEndOfDay(toDate),
-      } as unknown as UsageAISummaryGetV1Params
+      }
 
-      debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 with by=apiKey params:', params)
-      const response = await getUsage().usageAISummaryGetV1(params)
+      debugLog(
+        '🔍 [API-SERVICE] Calling',
+        useAdminSummarize ? 'adminUsageAISummaryGetV1' : 'usageAISummaryGetV1',
+        'with by=apiKey params:',
+        params,
+      )
+      const response = useAdminSummarize
+        ? await getAdmin().adminUsageAISummaryGetV1(params)
+        : await getUsage().usageAISummaryGetV1(params)
       const body = response.data
       debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
 
