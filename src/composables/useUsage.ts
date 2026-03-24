@@ -22,7 +22,7 @@ import {
 
 // Fallback für Modelltyp: API nutzt COMPLETION_USAGE, ältere Specs CompletionModelUsage
 const DEFAULT_MODEL_USAGE_TYPE = 'COMPLETION_USAGE' as ModelUsageType
-import { usageService, type SummarizeByApiKeyOptions } from '@/services/apiService'
+import { usageService, type SummarizeByApiKeyParams } from '@/services/apiService'
 import { extractApiKeyIdFromUsageRecord } from '@/services/apiKeyUsageMapping'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { readTokensFromItem } from '@/services/usageApiService'
@@ -117,17 +117,17 @@ export function useUsage() {
       const fromIso =
         convertToIsoString(currentFilter.value.fromDate) ?? defaultUsageDateRange().from
       const toIso = convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
-      const summarizeOpts: SummarizeByApiKeyOptions = {}
+      const summarizeParams: Partial<SummarizeByApiKeyParams> = {}
       if (currentFilter.value.summarizeFilterUserId?.trim()) {
-        summarizeOpts.userId = currentFilter.value.summarizeFilterUserId.trim()
+        summarizeParams.userId = currentFilter.value.summarizeFilterUserId.trim()
       }
       if (currentFilter.value.summarizeUsageTypes?.length) {
-        summarizeOpts.usageTypes = currentFilter.value.summarizeUsageTypes
+        summarizeParams.usageTypes = currentFilter.value.summarizeUsageTypes
       }
       const summaryData = await usageService.getUsageSummaryByApiKey(
         fromIso,
         toIso,
-        Object.keys(summarizeOpts).length > 0 ? summarizeOpts : undefined,
+        Object.keys(summarizeParams).length > 0 ? summarizeParams : undefined,
       )
 
       debugLog('🔍 [USE-USAGE] Summary data received:', summaryData)
@@ -394,17 +394,17 @@ export function useUsage() {
 
       // Lade gruppierte Daten aus der Summarize API
       const { usageService } = await import('@/services/apiService')
-      const summarizeOpts: SummarizeByApiKeyOptions = {}
+      const summarizeParams: Partial<SummarizeByApiKeyParams> = {}
       if (currentFilter.value.summarizeFilterUserId?.trim()) {
-        summarizeOpts.userId = currentFilter.value.summarizeFilterUserId.trim()
+        summarizeParams.userId = currentFilter.value.summarizeFilterUserId.trim()
       }
       if (currentFilter.value.summarizeUsageTypes?.length) {
-        summarizeOpts.usageTypes = currentFilter.value.summarizeUsageTypes
+        summarizeParams.usageTypes = currentFilter.value.summarizeUsageTypes
       }
       const summaryResponse = await usageService.getUsageSummaryByApiKey(
         fromDate,
         toDate,
-        Object.keys(summarizeOpts).length > 0 ? summarizeOpts : undefined,
+        Object.keys(summarizeParams).length > 0 ? summarizeParams : undefined,
       )
 
       debugLog('🔍 [FRONTEND] Summary response:', summaryResponse)

@@ -1,11 +1,10 @@
 import { getAdmin } from '@/api/admin/admin'
 import type {
   AdminUsageAISummaryGetV1Params,
-  AiUsagePage,
+  AIUsagePage,
   AIUsageSummaryPage,
-  AIUsageSummaryRecord,
   AIRequestParamsUsageTypeParameter,
-  Page,
+  PaginationInfo,
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
 } from '@/api/types'
@@ -13,26 +12,79 @@ import { getUsage } from '@/api/usage/usage'
 import { hasPermission } from '@/auth/keycloak'
 import { api } from '@/axios/api'
 import { getDataArray } from '@/services/usageApiService'
-import type { ApiKeyDisplay } from '@/types/frontend'
+import type { ApiKeyDisplay, SummaryUsage, SummaryUsagePageResponse } from '@/types/frontend'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 
-/** Optionale Filter für summarize?by=apiKeyId (weniger Payload, optional Typ-Split). */
-export type SummarizeByApiKeyOptions = {
-  /** Nur mit Admin-Summarize: Usage auf diesen Nutzer eingrenzen. */
-  userId?: string
-  /**
-   * Pro Eintrag ein paralleler Request mit usageType; Antworten werden zusammengeführt.
-   * Ohne = ein Request, alle Typen (Backend-Default).
-   */
+/**
+ * Nur Client: mehrere parallele Requests mit je `usageType` (nicht in OpenAPI);
+ * Antworten werden zusammengeführt.
+ */
+export type SummarizeByApiKeyClientExtra = {
   usageTypes?: readonly AIRequestParamsUsageTypeParameter[]
 }
 
+/** Orval `AdminUsageAISummaryGetV1Params` + optional `usageTypes` für Client-Merge. */
+export type AdminUsageAISummaryByApiKeyParams = AdminUsageAISummaryGetV1Params &
+  SummarizeByApiKeyClientExtra
+
+/** Orval `UsageAISummaryGetV1Params` + optional `usageTypes` für Client-Merge. */
+export type UsageAISummaryByApiKeyParams = UsageAISummaryGetV1Params & SummarizeByApiKeyClientExtra
+
+/**
+ * Query-Parameter für summarize?by=apiKeyId – je nach Rolle Admin- oder User-Orval-Typ.
+ * Datumswerte kommen weiterhin als 1./2. Argument; im Request überschreiben sie `from_date`/`to_date` aus `params`.
+ */
+export type SummarizeByApiKeyParams =
+  | AdminUsageAISummaryByApiKeyParams
+  | UsageAISummaryByApiKeyParams
+
 /** Default-Pagination wenn Backend keine liefert (vermeidet "undefined is not assignable to type Page") */
-const defaultPage: Page = {
-  totalItems: 0,
+const defaultPage: PaginationInfo = {
+  total: 0,
   totalPages: 0,
-  currentPage: 1,
-  pageSize: 20,
+  page: 1,
+  limit: 20,
+}
+
+/**
+ * Summarize-Antwort normalisieren: Backend liefert oft `items` statt `data`, Pagination fehlt optional.
+ * Orval-Typ heißt weiterhin AIUsageSummaryPage; im UI-Alias: SummaryUsagePageResponse.
+ */
+function normalizeSummaryPageBody(body: unknown): SummaryUsagePageResponse {
+  const data = getDataArray<SummaryUsage>(body)
+  const pagination =
+    body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
+      ? ((body as { pagination?: PaginationInfo }).pagination ?? defaultPage)
+      : defaultPage
+  return { data, pagination }
+}
+
+function buildAdminSummarizeByApiKeyParams(
+  fromDate: string | undefined,
+  toDate: string | undefined,
+  params?: Partial<AdminUsageAISummaryByApiKeyParams>,
+): AdminUsageAISummaryGetV1Params {
+  const { usageTypes: _usageTypes, ...rest } = params ?? {}
+  return {
+    ...rest,
+    by: ['apiKeyId'] as unknown as AdminUsageAISummaryGetV1Params['by'],
+    from_date: toIsoDateTime(fromDate),
+    to_date: toIsoDateTimeEndOfDay(toDate),
+  }
+}
+
+function buildUserSummarizeByApiKeyParams(
+  fromDate: string | undefined,
+  toDate: string | undefined,
+  params?: Partial<UsageAISummaryByApiKeyParams>,
+): UsageAISummaryGetV1Params {
+  const { usageTypes: _usageTypes, ...rest } = params ?? {}
+  return {
+    ...rest,
+    by: ['apiKeyId'] as unknown as UsageAISummaryGetV1Params['by'],
+    from_date: toIsoDateTime(fromDate),
+    to_date: toIsoDateTimeEndOfDay(toDate),
+  }
 }
 
 /** Request-Format für Usage AI / Summarize: from_date=2026-01-31T00:00:00.000Z (date-time, unverändert in Query) */
@@ -160,7 +212,7 @@ export const apiKeyService = {
 // Usage-Service für Verbrauchsdaten (Orval-generierte Usage/Admin-APIs)
 export const usageService = {
   // Eigene Usage-Daten abrufen
-  async getOwnUsage(fromDate?: string, toDate?: string): Promise<AiUsagePage> {
+  async getOwnUsage(fromDate?: string, toDate?: string): Promise<AIUsagePage> {
     try {
       debugLog('🔍 [API-SERVICE] getOwnUsage called with:', { fromDate, toDate })
 
@@ -213,14 +265,18 @@ export const usageService = {
     }
   },
 
-  // Usage-Summary nach API Key gruppiert abrufen (by=apiKeyId; optional userId + usageType-Filter)
+  // Usage-Summary nach API Key gruppiert abrufen (by=apiKeyId; Filter wie Orval-Params + optional usageTypes)
   async getUsageSummaryByApiKey(
     fromDate?: string,
     toDate?: string,
-    options?: SummarizeByApiKeyOptions,
-  ): Promise<AIUsageSummaryPage> {
+    params?: Partial<SummarizeByApiKeyParams>,
+  ): Promise<SummaryUsagePageResponse> {
     try {
-      debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate, options })
+      debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', {
+        fromDate,
+        toDate,
+        params,
+      })
 
       const useAdminSummarize = hasPermission('canUseAdminFeatures')
       if (!useAdminSummarize && !hasPermission('canSeeOwnUsage')) {
@@ -228,39 +284,55 @@ export const usageService = {
         return { data: [], pagination: defaultPage }
       }
 
-      const base = (): UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params => {
-        const p: UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params = {
-          by: ['apiKeyId'] as UsageAISummaryGetV1Params['by'],
-          from_date: toIsoDateTime(fromDate),
-          to_date: toIsoDateTimeEndOfDay(toDate),
-        }
-        if (useAdminSummarize && options?.userId?.trim()) {
-          p.userId = options.userId.trim()
-        }
-        return p
-      }
+      const adminParams: Partial<AdminUsageAISummaryByApiKeyParams> | undefined = useAdminSummarize
+        ? (params as Partial<AdminUsageAISummaryByApiKeyParams> | undefined)
+        : undefined
+      const userParams: Partial<UsageAISummaryByApiKeyParams> | undefined = !useAdminSummarize
+        ? (params as Partial<UsageAISummaryByApiKeyParams> | undefined)
+        : undefined
 
       const fetchOnce = async (
         usageType?: AIRequestParamsUsageTypeParameter,
-      ): Promise<AIUsageSummaryPage> => {
-        const params = { ...base(), ...(usageType ? { usageType } : {}) }
-        debugLog(
-          '🔍 [API-SERVICE] Calling',
-          useAdminSummarize ? 'adminUsageAISummaryGetV1' : 'usageAISummaryGetV1',
-          'by=apiKeyId',
-          params,
-        )
-        const response = useAdminSummarize
-          ? await getAdmin().adminUsageAISummaryGetV1(params)
-          : await getUsage().usageAISummaryGetV1(params)
+      ): Promise<SummaryUsagePageResponse> => {
+        if (useAdminSummarize) {
+          const req: AdminUsageAISummaryGetV1Params = {
+            ...buildAdminSummarizeByApiKeyParams(fromDate, toDate, adminParams),
+            ...(usageType ? { usageType } : {}),
+          }
+          debugLog('🔍 [API-SERVICE] Calling adminUsageAISummaryGetV1 by=apiKeyId', req)
+          const response = await getAdmin().adminUsageAISummaryGetV1(req)
+          const body = response.data
+          debugLog('🔍 [API-SERVICE] API response (grouped by apiKeyId):', body)
+
+          if (isDebugLogEnabled()) {
+            const rawData = getDataArray<SummaryUsage>(body)
+            debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
+              'Anzahl Records': rawData.length,
+              'Erste 3 Records': rawData.slice(0, 3).map((r: SummaryUsage) => ({
+                'Alle Keys': Object.keys(r),
+                apiKeyId: r.apiKeyId,
+                'Komplettes Record': r,
+              })),
+            })
+          }
+
+          return normalizeSummaryPageBody(body)
+        }
+
+        const req: UsageAISummaryGetV1Params = {
+          ...buildUserSummarizeByApiKeyParams(fromDate, toDate, userParams),
+          ...(usageType ? { usageType } : {}),
+        }
+        debugLog('🔍 [API-SERVICE] Calling usageAISummaryGetV1 by=apiKeyId', req)
+        const response = await getUsage().usageAISummaryGetV1(req)
         const body = response.data
         debugLog('🔍 [API-SERVICE] API response (grouped by apiKeyId):', body)
 
         if (isDebugLogEnabled()) {
-          const rawData = getDataArray<AIUsageSummaryRecord>(body)
+          const rawData = getDataArray<SummaryUsage>(body)
           debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
             'Anzahl Records': rawData.length,
-            'Erste 3 Records': rawData.slice(0, 3).map((r: AIUsageSummaryRecord) => ({
+            'Erste 3 Records': rawData.slice(0, 3).map((r: SummaryUsage) => ({
               'Alle Keys': Object.keys(r),
               apiKeyId: r.apiKeyId,
               'Komplettes Record': r,
@@ -268,15 +340,10 @@ export const usageService = {
           })
         }
 
-        const data = getDataArray<AIUsageSummaryRecord>(body)
-        const pagination: Page =
-          body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
-            ? ((body as { pagination?: Page }).pagination ?? defaultPage)
-            : defaultPage
-        return { data, pagination }
+        return normalizeSummaryPageBody(body)
       }
 
-      const types = options?.usageTypes?.filter(Boolean)
+      const types = params?.usageTypes?.filter(Boolean)
       if (types && types.length > 0) {
         const pages = await Promise.all(types.map((t) => fetchOnce(t)))
         const mergedData = pages.flatMap((p) => p.data ?? [])
@@ -287,10 +354,10 @@ export const usageService = {
         return {
           data: mergedData,
           pagination: {
-            totalItems: mergedData.length,
+            total: mergedData.length,
             totalPages: 1,
-            currentPage: 1,
-            pageSize: mergedData.length,
+            page: 1,
+            limit: mergedData.length,
           },
         }
       }
@@ -307,7 +374,7 @@ export const usageService = {
     userId: string,
     fromDate?: string,
     toDate?: string,
-  ): Promise<AIUsageSummaryRecord[]> {
+  ): Promise<SummaryUsage[]> {
     try {
       debugLog('🔍 [API-SERVICE] getUsageSummaryByUser called with:', { userId, fromDate, toDate })
 
@@ -322,7 +389,7 @@ export const usageService = {
 
       const response = await getAdmin().adminUsageAISummaryGetV1(params)
       const body = response.data
-      const data = getDataArray<AIUsageSummaryRecord>(body)
+      const data = getDataArray<SummaryUsage>(body)
 
       debugLog('🔍 [API-SERVICE] getUsageSummaryByUser response:', {
         userId,
