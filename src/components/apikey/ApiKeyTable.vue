@@ -16,6 +16,9 @@ const props = defineProps<{
   userUsageData?: Record<string, UserUsageData>
 }>()
 
+/** PKs aus GET apikeys (id = apiKeyId). Nur die Gruppenzeile nutzt userId – die ist i. d. R. nicht in dieser Menge. */
+const keyApiKeyIdSet = computed(() => new Set(props.keys.map((k) => k.id)))
+
 // Auth composable verwenden
 const { isAdmin, highestRole } = useAuth()
 
@@ -418,10 +421,10 @@ const createGroupedKeyData = (groupedKey: GroupedKey): ApiKeyDisplay => {
 }
 
 // Get usage data for a specific key or user group.
-// usageData ist nach key.id (API-Key-ID) indexiert; pro Zeile getUsageDataForKey(key.id) bzw. bei Admin-Gruppe userId (Ticket 4).
+// usageData ist nach key.id (API-Key-ID) indexiert. Admin-Gruppenzeile: keyId = userId (nicht in keyApiKeyIdSet).
+// Unterzeilen: keyId = echter Key-PK → niemals Gruppensumme, sonst dieselben Totals pro Zeile.
 const getUsageDataForKey = (keyId: string): ApiKeyUsageData => {
-  // Für Admins: Wenn es ein gruppierter Key ist, verwende die gruppierten Daten
-  if (isAdmin.value) {
+  if (isAdmin.value && !keyApiKeyIdSet.value.has(keyId)) {
     const groupedKey = adminGroupedKeys.value.find((group) => group.userId === keyId)
     if (groupedKey) {
       return {

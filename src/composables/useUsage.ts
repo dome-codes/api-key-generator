@@ -22,7 +22,7 @@ import {
 
 // Fallback für Modelltyp: API nutzt COMPLETION_USAGE, ältere Specs CompletionModelUsage
 const DEFAULT_MODEL_USAGE_TYPE = 'COMPLETION_USAGE' as ModelUsageType
-import { usageService } from '@/services/apiService'
+import { usageService, type SummarizeByApiKeyOptions } from '@/services/apiService'
 import { extractApiKeyIdFromUsageRecord } from '@/services/apiKeyUsageMapping'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { readTokensFromItem } from '@/services/usageApiService'
@@ -117,7 +117,18 @@ export function useUsage() {
       const fromIso =
         convertToIsoString(currentFilter.value.fromDate) ?? defaultUsageDateRange().from
       const toIso = convertToIsoString(currentFilter.value.toDate) ?? defaultUsageDateRange().to
-      const summaryData = await usageService.getUsageSummaryByApiKey(fromIso, toIso)
+      const summarizeOpts: SummarizeByApiKeyOptions = {}
+      if (currentFilter.value.summarizeFilterUserId?.trim()) {
+        summarizeOpts.userId = currentFilter.value.summarizeFilterUserId.trim()
+      }
+      if (currentFilter.value.summarizeUsageTypes?.length) {
+        summarizeOpts.usageTypes = currentFilter.value.summarizeUsageTypes
+      }
+      const summaryData = await usageService.getUsageSummaryByApiKey(
+        fromIso,
+        toIso,
+        Object.keys(summarizeOpts).length > 0 ? summarizeOpts : undefined,
+      )
 
       debugLog('🔍 [USE-USAGE] Summary data received:', summaryData)
       debugLog('🔍 [USE-USAGE] Usage array length:', summaryData.data?.length || 0)
@@ -383,7 +394,18 @@ export function useUsage() {
 
       // Lade gruppierte Daten aus der Summarize API
       const { usageService } = await import('@/services/apiService')
-      const summaryResponse = await usageService.getUsageSummaryByApiKey(fromDate, toDate)
+      const summarizeOpts: SummarizeByApiKeyOptions = {}
+      if (currentFilter.value.summarizeFilterUserId?.trim()) {
+        summarizeOpts.userId = currentFilter.value.summarizeFilterUserId.trim()
+      }
+      if (currentFilter.value.summarizeUsageTypes?.length) {
+        summarizeOpts.usageTypes = currentFilter.value.summarizeUsageTypes
+      }
+      const summaryResponse = await usageService.getUsageSummaryByApiKey(
+        fromDate,
+        toDate,
+        Object.keys(summarizeOpts).length > 0 ? summarizeOpts : undefined,
+      )
 
       debugLog('🔍 [FRONTEND] Summary response:', summaryResponse)
 

@@ -17,17 +17,27 @@ import { readTokensFromItem } from '@/services/usageApiService'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
 
 /**
- * Liest die API-Key-ID aus einem Summary-/Usage-Record.
- * Backends variieren: camelCase `apiKeyId`, snake_case `api_key_id`, oder bei Gruppierung `by=apiKey` nur `apiKey`.
+ * Liest die API-Key-ID aus einem Summary-/Usage-Record (Summarize by=apiKeyId).
+ * `apiKey` nur als letzte Option: oft Masken/Prefix – sonst landen alle Zeilen in derselben ID.
  */
 export function extractApiKeyIdFromUsageRecord(r: unknown): string | undefined {
   if (r == null || typeof r !== 'object') return undefined
   const o = r as Record<string, unknown>
-  const candidates = [o.apiKeyId, o.api_key_id, o.apiKey]
+  const candidates = [
+    o.apiKeyId,
+    o.api_key_id,
+    (o as { keyId?: unknown }).keyId,
+    (o as { key_id?: unknown }).key_id,
+  ]
   for (const c of candidates) {
     if (c == null || c === '') continue
     const s = String(c).trim()
     if (s) return s
+  }
+  const ak = o.apiKey
+  if (ak != null && ak !== '') {
+    const s = String(ak).trim()
+    if (s.length >= 12 && !s.toLowerCase().startsWith('sk-')) return s
   }
   return undefined
 }

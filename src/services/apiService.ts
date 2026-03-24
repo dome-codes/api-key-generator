@@ -4,6 +4,7 @@ import type {
   AiUsagePage,
   AIUsageSummaryPage,
   AIUsageSummaryRecord,
+  AIRequestParamsUsageTypeParameter,
   Page,
   UsageAIGetV1Params,
   UsageAISummaryGetV1Params,
@@ -14,6 +15,17 @@ import { api } from '@/axios/api'
 import { getDataArray } from '@/services/usageApiService'
 import type { ApiKeyDisplay } from '@/types/frontend'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
+
+/** Optionale Filter für summarize?by=apiKeyId (weniger Payload, optional Typ-Split). */
+export type SummarizeByApiKeyOptions = {
+  /** Nur mit Admin-Summarize: Usage auf diesen Nutzer eingrenzen. */
+  userId?: string
+  /**
+   * Pro Eintrag ein paralleler Request mit usageType; Antworten werden zusammengeführt.
+   * Ohne = ein Request, alle Typen (Backend-Default).
+   */
+  usageTypes?: readonly AIRequestParamsUsageTypeParameter[]
+}
 
 /** Default-Pagination wenn Backend keine liefert (vermeidet "undefined is not assignable to type Page") */
 const defaultPage: Page = {
@@ -201,10 +213,14 @@ export const usageService = {
     }
   },
 
-  // Usage-Summary nach API Key gruppiert abrufen (für Progress Bar)
-  async getUsageSummaryByApiKey(fromDate?: string, toDate?: string): Promise<AIUsageSummaryPage> {
+  // Usage-Summary nach API Key gruppiert abrufen (by=apiKeyId; optional userId + usageType-Filter)
+  async getUsageSummaryByApiKey(
+    fromDate?: string,
+    toDate?: string,
+    options?: SummarizeByApiKeyOptions,
+  ): Promise<AIUsageSummaryPage> {
     try {
-      debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate })
+      debugLog('🔍 [API-SERVICE] getUsageSummaryByApiKey called with:', { fromDate, toDate, options })
 
       const useAdminSummarize = hasPermission('canUseAdminFeatures')
       if (!useAdminSummarize && !hasPermission('canSeeOwnUsage')) {
@@ -212,46 +228,74 @@ export const usageService = {
         return { data: [], pagination: defaultPage }
       }
 
-      // Backend: Gruppierung nach API-Key-ID mit by=apiKeyId (nicht OpenAPI-Enum „apikey“).
-      // Der Query-Parameter `apiKey` (Filter nach einer Key-ID) bleibt ungesetzt.
-      const params: UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params = {
-        by: ['apiKeyId'] as UsageAISummaryGetV1Params['by'],
-        from_date: toIsoDateTime(fromDate),
-        to_date: toIsoDateTimeEndOfDay(toDate),
+      const base = (): UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params => {
+        const p: UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params = {
+          by: ['apiKeyId'] as UsageAISummaryGetV1Params['by'],
+          from_date: toIsoDateTime(fromDate),
+          to_date: toIsoDateTimeEndOfDay(toDate),
+        }
+        if (useAdminSummarize && options?.userId?.trim()) {
+          p.userId = options.userId.trim()
+        }
+        return p
       }
 
-      debugLog(
-        '🔍 [API-SERVICE] Calling',
-        useAdminSummarize ? 'adminUsageAISummaryGetV1' : 'usageAISummaryGetV1',
-        'with by=apiKeyId (Gruppe pro API-Key):',
-        params,
-      )
-      const response = useAdminSummarize
-        ? await getAdmin().adminUsageAISummaryGetV1(params)
-        : await getUsage().usageAISummaryGetV1(params)
-      const body = response.data
-      debugLog('🔍 [API-SERVICE] API response (grouped by apiKey):', body)
+      const fetchOnce = async (
+        usageType?: AIRequestParamsUsageTypeParameter,
+      ): Promise<AIUsageSummaryPage> => {
+        const params = { ...base(), ...(usageType ? { usageType } : {}) }
+        debugLog(
+          '🔍 [API-SERVICE] Calling',
+          useAdminSummarize ? 'adminUsageAISummaryGetV1' : 'usageAISummaryGetV1',
+          'by=apiKeyId',
+          params,
+        )
+        const response = useAdminSummarize
+          ? await getAdmin().adminUsageAISummaryGetV1(params)
+          : await getUsage().usageAISummaryGetV1(params)
+        const body = response.data
+        debugLog('🔍 [API-SERVICE] API response (grouped by apiKeyId):', body)
 
-      // DEBUG: Zeige rohe Response-Daten für Troubleshooting
-      if (isDebugLogEnabled()) {
-        const rawData = getDataArray<AIUsageSummaryRecord>(body)
-        debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
-          'Anzahl Records': rawData.length,
-          'Erste 3 Records': rawData.slice(0, 3).map((r: AIUsageSummaryRecord) => ({
-            'Alle Keys': Object.keys(r),
-            apiKeyId: r.apiKeyId,
-            'Komplettes Record': r,
-          })),
+        if (isDebugLogEnabled()) {
+          const rawData = getDataArray<AIUsageSummaryRecord>(body)
+          debugLog('🔍 [API-SERVICE] Rohe Summary-Records (erste 3):', {
+            'Anzahl Records': rawData.length,
+            'Erste 3 Records': rawData.slice(0, 3).map((r: AIUsageSummaryRecord) => ({
+              'Alle Keys': Object.keys(r),
+              apiKeyId: r.apiKeyId,
+              'Komplettes Record': r,
+            })),
+          })
+        }
+
+        const data = getDataArray<AIUsageSummaryRecord>(body)
+        const pagination: Page =
+          body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
+            ? ((body as { pagination?: Page }).pagination ?? defaultPage)
+            : defaultPage
+        return { data, pagination }
+      }
+
+      const types = options?.usageTypes?.filter(Boolean)
+      if (types && types.length > 0) {
+        const pages = await Promise.all(types.map((t) => fetchOnce(t)))
+        const mergedData = pages.flatMap((p) => p.data ?? [])
+        debugLog('🔍 [API-SERVICE] summarize usageType merge:', {
+          requests: types.length,
+          mergedRows: mergedData.length,
         })
+        return {
+          data: mergedData,
+          pagination: {
+            totalItems: mergedData.length,
+            totalPages: 1,
+            currentPage: 1,
+            pageSize: mergedData.length,
+          },
+        }
       }
 
-      // Backend kann data, items oder usage liefern
-      const data = getDataArray<AIUsageSummaryRecord>(body)
-      const pagination: Page =
-        body && typeof body === 'object' && !Array.isArray(body) && 'pagination' in body
-          ? ((body as { pagination?: Page }).pagination ?? defaultPage)
-          : defaultPage
-      return { data, pagination }
+      return fetchOnce()
     } catch (error) {
       debugLog('🔍 [API-SERVICE] Fehler beim Laden der Usage-Summary nach API Key:', error)
       return { data: [], pagination: defaultPage }

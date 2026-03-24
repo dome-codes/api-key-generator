@@ -64,6 +64,15 @@ export interface UsageFilterApi {
   sort?: string
   order?: string
   groupBy?: string[]
+  /**
+   * GET …/usage/ai/summarize mit by=apiKeyId: optional Admin-Filter auf einen Nutzer (kleinere Antwort).
+   */
+  summarizeFilterUserId?: string
+  /**
+   * Optional: nur diese Usage-Typen – pro Typ ein paralleler Summarize-Call, Ergebnis wird zusammengeführt.
+   * Weglassen = ein Call, alle Typen (Backend-Default).
+   */
+  summarizeUsageTypes?: Array<'COMPLETION_USAGE' | 'EMBEDDING_USAGE' | 'IMAGE_USAGE'>
 }
 
 /** UI filter (alias for backward compat) */
