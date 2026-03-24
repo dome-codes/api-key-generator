@@ -594,7 +594,7 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['apikey'] as 'apikey'[],
+        groupBy: ['apiKeyId'],
       }
 
       debugLog('Loading apiKey summary with filter:', apiKeyFilter)

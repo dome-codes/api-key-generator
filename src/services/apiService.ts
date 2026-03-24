@@ -212,10 +212,10 @@ export const usageService = {
         return { data: [], pagination: defaultPage }
       }
 
-      // Backend: by=apiKey (camelCase, laut generierten TypeScript-Typen), from_date/to_date als date-time (ISO)
-      // Admin: /v1/admin/usage/ai/summarize – Nutzung aller Keys; /v1/usage/ai/summarize nur eigene Nutzung.
+      // Backend: Gruppierung nach API-Key-ID mit by=apiKeyId (nicht OpenAPI-Enum „apikey“).
+      // Der Query-Parameter `apiKey` (Filter nach einer Key-ID) bleibt ungesetzt.
       const params: UsageAISummaryGetV1Params | AdminUsageAISummaryGetV1Params = {
-        by: ['apiKey'],
+        by: ['apiKeyId'] as UsageAISummaryGetV1Params['by'],
         from_date: toIsoDateTime(fromDate),
         to_date: toIsoDateTimeEndOfDay(toDate),
       }
@@ -223,7 +223,7 @@ export const usageService = {
       debugLog(
         '🔍 [API-SERVICE] Calling',
         useAdminSummarize ? 'adminUsageAISummaryGetV1' : 'usageAISummaryGetV1',
-        'with by=apiKey params:',
+        'with by=apiKeyId (Gruppe pro API-Key):',
         params,
       )
       const response = useAdminSummarize

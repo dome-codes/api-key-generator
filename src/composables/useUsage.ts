@@ -23,6 +23,7 @@ import {
 // Fallback für Modelltyp: API nutzt COMPLETION_USAGE, ältere Specs CompletionModelUsage
 const DEFAULT_MODEL_USAGE_TYPE = 'COMPLETION_USAGE' as ModelUsageType
 import { usageService } from '@/services/apiService'
+import { extractApiKeyIdFromUsageRecord } from '@/services/apiKeyUsageMapping'
 import { usageAnalyticsService } from '@/services/usageAnalyticsService'
 import { readTokensFromItem } from '@/services/usageApiService'
 import { computed, ref } from 'vue'
@@ -55,12 +56,9 @@ function defaultUsageDateRange(): { from: string; to: string } {
   return { from: from.toISOString(), to: now.toISOString() }
 }
 
-/** Liest API-Key-ID aus Backend-Item (laut OpenAPI-Spezifikation: apiKeyId) */
+/** Liest API-Key-ID aus Backend-Item (camelCase, snake_case, Gruppierung apiKey – siehe extractApiKeyIdFromUsageRecord). */
 function getApiKeyIdFromItem(item: Record<string, unknown>): string | undefined {
-  // Laut OpenAPI-Spezifikation heißt das Feld 'apiKeyId' (camelCase)
-  const raw = item.apiKeyId as string | undefined
-  if (raw == null || raw === '') return undefined
-  return String(raw).trim()
+  return extractApiKeyIdFromUsageRecord(item)
 }
 
 export function useUsage() {

@@ -937,7 +937,7 @@ app.get('/v1/usage/ai/summarize', validateToken, (req, res) => {
     userId,
   }
 
-  if (groupBy.includes('apikey') || by === 'apikey') {
+  if (groupBy.includes('apikey') || groupBy.includes('apiKeyId') || by === 'apikey' || by === 'apiKeyId') {
     // Verwende SQLite für API Key Gruppierung
     mockUsage = getAIUsageSummaryByApiKey(filters)
     console.log(
@@ -1080,7 +1080,7 @@ app.get('/v1/admin/usage/ai/summarize', validateToken, requireRole(['API-Admin']
   // Gruppierung nach 'by' Parameter
   const groupBy = by ? (Array.isArray(by) ? by : by.split(',')) : []
 
-  if (groupBy.includes('apikey') || by === 'apikey') {
+  if (groupBy.includes('apikey') || groupBy.includes('apiKeyId') || by === 'apikey' || by === 'apiKeyId') {
     mockUsage = [...mockData.MOCK_USAGE_SUMMARY_BY_APIKEY]
   } else if (groupBy.includes('tag')) {
     // Verwende SQLite für Tag-Gruppierung

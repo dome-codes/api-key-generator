@@ -96,9 +96,7 @@ const formatNumber = (num: number): string => {
       </div>
     </td>
     <td class="py-3 px-4 font-mono text-xs break-all">
-      <span v-if="keyData.active" class="text-gray-900"
-        >sk-•••{{ keyData.apiKey.slice(-4) }}</span
-      >
+      <span v-if="keyData.active" class="text-gray-900">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
       <span v-else class="text-gray-400">sk-•••{{ keyData.apiKey.slice(-4) }}</span>
     </td>
     <td v-if="isAdmin" class="py-3 px-4 text-xs">

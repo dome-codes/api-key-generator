@@ -1,11 +1,36 @@
 /**
- * Zentrale Stelle: Mapping von Usage-Summary-Daten (API/OpenAPI) auf Verbrauch pro API-Key.
- * Nutzt OpenAPI-konforme Felder (apiKeyId, requestTokens, responseTokens, cost) und
- * aggregiert pro Key für die API-Key-Liste (ApiKeyTable / ApiKeyRow).
+ * Zentrale Stelle: Mapping von Usage-Summary → Verbrauch pro API-Key (ApiKeyTable / ApiKeyRow).
+ *
+ * Datenmodell (Backend):
+ * - Apikeys-API: Schlüssel mit id (= apiKeyId), name, createdAt, expiresAt, userId, active, …
+ * - Summarize `by=apiKeyId`: viele Zeilen im Zeitraum (type, model, tag, day, …) mit derselben apiKeyId;
+ *   Felder u. a. requestTokens, cachedTokens, responseTokens / reponseTokens, reasoningTokens, cost.
+ *
+ * Vorgehen:
+ * 1) Alle Summarize-Zeilen mit erkennbarer apiKeyId zu **einer** Summe pro Key-ID (normalisiert) aggregieren.
+ * 2) Für jede Zeile der Apikeys-Liste `map[id]` = diese Summe oder 0 (Match über normalisierte IDs).
+ * 3) Nur wenn Zeilen **ohne** apiKeyId aber mit userId existieren: bisheriger User-Fallback (selten).
  */
 
 import type { ApiKeyUsageData } from '@/types/frontend'
+import { readTokensFromItem } from '@/services/usageApiService'
 import { debugLog, isDebugLogEnabled } from '@/utils/debugLog'
+
+/**
+ * Liest die API-Key-ID aus einem Summary-/Usage-Record.
+ * Backends variieren: camelCase `apiKeyId`, snake_case `api_key_id`, oder bei Gruppierung `by=apiKey` nur `apiKey`.
+ */
+export function extractApiKeyIdFromUsageRecord(r: unknown): string | undefined {
+  if (r == null || typeof r !== 'object') return undefined
+  const o = r as Record<string, unknown>
+  const candidates = [o.apiKeyId, o.api_key_id, o.apiKey]
+  for (const c of candidates) {
+    if (c == null || c === '') continue
+    const s = String(c).trim()
+    if (s) return s
+  }
+  return undefined
+}
 
 /**
  * Record mit API-Key-ID und Verbrauchsfeldern.
@@ -44,16 +69,50 @@ export function keyIdMatchesUsage(keyId: string, usageApiKeyId: string | undefin
   return false
 }
 
-/**
- * Liest tokensIn/tokensOut aus einem Record (requestTokens/responseTokens oder tokensIn/tokensOut).
- * reasoningTokens wird zu tokensOut addiert, falls vorhanden.
- */
-function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; tokensOut: number } {
-  const tokensIn = Number(r.tokensIn ?? r.requestTokens ?? 0) || 0
-  const response = Number(r.tokensOut ?? r.responseTokens ?? 0) || 0
-  const reasoning = Number(r.reasoningTokens ?? 0) || 0
-  const tokensOut = response + reasoning
-  return { tokensIn, tokensOut }
+/** Kosten + Tokens aus einer Summarize-Zeile (readTokensFromItem + Fallback tokensIn/tokensOut wie bei EnhancedUsageRecord). */
+function getCostAndTokensFromRecord(r: UsageRecordForApiKey): {
+  cost: number
+  tokensIn: number
+  tokensOut: number
+} {
+  const item = r as unknown as Record<string, unknown>
+  const t = readTokensFromItem(item)
+  let tokensIn = t.requestTokens
+  let tokensOut = t.responseTokens + t.reasoningTokens
+  if (tokensIn === 0 && tokensOut === 0) {
+    const ti = Number(r.tokensIn ?? 0) || 0
+    const to = Number(r.tokensOut ?? 0) || 0
+    if (ti !== 0 || to !== 0) {
+      tokensIn = ti
+      tokensOut = to
+    }
+  }
+  const cost = Number(r.cost) || 0
+  return { cost, tokensIn, tokensOut }
+}
+
+/** Summarize liefert mehrere Zeilen pro apiKeyId → Summe + Zeilenzahl pro normalisierter Key-ID. */
+function aggregateUsageByNormalizedApiKeyId(records: UsageRecordForApiKey[]): {
+  totals: Map<string, ApiKeyUsageData>
+  rowCount: Map<string, number>
+} {
+  const totals = new Map<string, ApiKeyUsageData>()
+  const rowCount = new Map<string, number>()
+  for (const r of records) {
+    const aid = extractApiKeyIdFromUsageRecord(r)
+    if (!aid?.trim()) continue
+    const norm = normalizeId(aid)
+    if (!norm) continue
+    rowCount.set(norm, (rowCount.get(norm) ?? 0) + 1)
+    const { cost, tokensIn, tokensOut } = getCostAndTokensFromRecord(r)
+    const prev = totals.get(norm) ?? { cost: 0, tokensIn: 0, tokensOut: 0 }
+    totals.set(norm, {
+      cost: prev.cost + cost,
+      tokensIn: prev.tokensIn + tokensIn,
+      tokensOut: prev.tokensOut + tokensOut,
+    })
+  }
+  return { totals, rowCount }
 }
 
 /**
@@ -61,7 +120,7 @@ function getTokensFromRecord(r: UsageRecordForApiKey): { tokensIn: number; token
  * Eine zentrale Stelle für das Matching API-Key ↔ Usage und die Aggregation (Summe pro Key).
  *
  * @param records Usage-Records (z. B. detailedUsageData / EnhancedUsageRecord[] oder API-Summary-Items)
- * @param keys Liste der Keys mit id, optional userId und optional active (für Fallback ohne apiKeyId: gleichmäßig auf alle Keys des Users verteilen)
+ * @param keys Liste der Keys mit id, optional userId und optional active (Fallback ohne Key-ID: Anteil nur auf aktive Keys, sonst alle)
  */
 export function buildApiKeyUsageMap(
   records: UsageRecordForApiKey[],
@@ -75,7 +134,9 @@ export function buildApiKeyUsageMap(
       ...new Set(safeRecords.map((r) => r.apiKeyId ?? r.userId ?? '').filter(Boolean)),
     ]
     const apiKeyIds = keys.map((k) => k.id)
-    const recordApiKeyIds = [...new Set(safeRecords.map((r) => r.apiKeyId).filter(Boolean))]
+    const recordApiKeyIds = [
+      ...new Set(safeRecords.map((r) => extractApiKeyIdFromUsageRecord(r)).filter(Boolean)),
+    ]
 
     debugLog('[buildApiKeyUsageMap] Format-Check', {
       'API Key IDs (erste 5)': apiKeyIds.slice(0, 5),
@@ -116,98 +177,34 @@ export function buildApiKeyUsageMap(
 
   const usageCountByKeyId: Record<string, number> = {}
 
+  const { totals: aggregatedByNorm, rowCount: rowCountByNorm } =
+    aggregateUsageByNormalizedApiKeyId(safeRecords)
+
   for (const key of keys) {
     const keyId = key.id
-    // 1) Direktes Matching über apiKeyId (laut OpenAPI-Spezifikation: camelCase)
-    // Inkl. Normalisierung: Trim, Lowercase, ohne Bindestriche
-    const keyUsage = safeRecords.filter((r) => keyIdMatchesUsage(keyId, r.apiKeyId ?? undefined))
+    const norm = normalizeId(keyId)
+    const agg = norm ? aggregatedByNorm.get(norm) : undefined
+    usageCountByKeyId[keyId] = norm ? (rowCountByNorm.get(norm) ?? 0) : 0
 
-    // DEBUG: Zeige Matching-Ergebnisse für jeden Key
-    if (isDebugLogEnabled()) {
-      debugLog(`[buildApiKeyUsageMap] Key ${keyId}:`, {
-        'Gefundene Records': keyUsage.length,
-        'Erste 3 Record apiKeyIds': keyUsage.slice(0, 3).map((r) => r.apiKeyId ?? 'null'),
-        'Alle Record apiKeyIds (unique)': [
-          ...new Set(safeRecords.map((r) => r.apiKeyId ?? 'null')),
-        ].slice(0, 10),
-      })
-    }
-
-    usageCountByKeyId[keyId] = keyUsage.length
-
-    if (keyUsage.length > 0) {
-      let cost = 0
-      let tokensIn = 0
-      let tokensOut = 0
-      for (const u of keyUsage) {
-        const t = getTokensFromRecord(u)
-        const recordCost = Number(u.cost) || 0
-        cost += recordCost
-        tokensIn += t.tokensIn
-        tokensOut += t.tokensOut
-
-        // DEBUG: Zeige jeden Record der aggregiert wird
-        if (isDebugLogEnabled()) {
-          debugLog(`[buildApiKeyUsageMap] Aggregiere Record für Key ${keyId}:`, {
-            apiKeyId: u.apiKeyId ?? 'null',
-            cost: recordCost,
-            tokensIn: t.tokensIn,
-            tokensOut: t.tokensOut,
-            requestTokens: u.requestTokens,
-            responseTokens: u.responseTokens,
-            'tokensIn (raw)': u.tokensIn,
-            'tokensOut (raw)': u.tokensOut,
-          })
-        }
-      }
-      map[keyId] = { cost, tokensIn, tokensOut }
-
-      // DEBUG: Zeige finales Ergebnis für diesen Key
+    if (agg) {
+      map[keyId] = { cost: agg.cost, tokensIn: agg.tokensIn, tokensOut: agg.tokensOut }
       if (isDebugLogEnabled()) {
-        debugLog(`[buildApiKeyUsageMap] ✅ Key ${keyId} final:`, {
-          cost,
-          tokensIn,
-          tokensOut,
-        })
+        debugLog(`[buildApiKeyUsageMap] Key ${keyId} ← Summarize-Aggregat (${usageCountByKeyId[keyId]} Zeilen):`, agg)
       }
     } else {
       map[keyId] = { cost: 0, tokensIn: 0, tokensOut: 0 }
-      // DEBUG: Zeige wenn kein Match gefunden wurde
-      if (isDebugLogEnabled()) {
-        const recordApiKeyIds = safeRecords.slice(0, 5).map((r) => {
-          const rawId = r.apiKeyId ?? null
-          return {
-            'Raw apiKeyId (laut OpenAPI)': rawId,
-            Type: typeof rawId,
-            'Is null/undefined?': rawId == null,
-            Normalized: rawId ? normalizeId(rawId) : 'EMPTY',
-            'Kompletter Record (erste 5 Keys)': Object.keys(r).slice(0, 5),
-          }
-        })
-
-        debugLog(`[buildApiKeyUsageMap] ❌ Key ${keyId}: KEIN MATCH gefunden`, {
-          'keyId (original)': keyId,
-          'keyId (type)': typeof keyId,
-          normalizedKeyId: normalizeId(keyId),
-          'Erste 5 Records Details': recordApiKeyIds,
-          'Alle Record apiKeyIds (raw, unique)': [
-            ...new Set(safeRecords.map((r) => String(r.apiKeyId ?? 'null'))),
-          ].slice(0, 10),
-          'Vergleich: normalizedKeyId === normalized Record?': safeRecords.slice(0, 5).map((r) => {
-            const recordId = r.apiKeyId ?? null
-            return {
-              'Record ID': recordId,
-              'Match?': recordId ? normalizeId(keyId) === normalizeId(recordId) : false,
-            }
-          }),
+      if (isDebugLogEnabled() && safeRecords.length > 0) {
+        debugLog(`[buildApiKeyUsageMap] Key ${keyId}: kein Summarize-Treffer für normalisierte id`, {
+          normalizedKeyId: norm,
+          uniqueNormsFromSummarize: [...aggregatedByNorm.keys()].slice(0, 8),
         })
       }
     }
   }
 
-  // 2) Fallback: Records mit apiKeyId null/undefined aber userId → Verbrauch pro User auf dessen Keys verteilen
+  // 2) Fallback: nur Records ohne erkennbare Key-ID, aber mit userId (sonst Doppelzählung / gleiche Aufteilung)
   const recordsWithoutKeyId = safeRecords.filter((r) => {
-    const id = r.apiKeyId
+    const id = extractApiKeyIdFromUsageRecord(r)
     return (id == null || id === '') && r.userId
   })
   if (recordsWithoutKeyId.length > 0) {
@@ -215,28 +212,31 @@ export function buildApiKeyUsageMap(
     for (const r of recordsWithoutKeyId) {
       const uid = String(r.userId).trim()
       if (!uid) continue
-      const t = getTokensFromRecord(r)
+      const { cost, tokensIn, tokensOut } = getCostAndTokensFromRecord(r)
       if (!usageByUserId[uid]) {
         usageByUserId[uid] = { cost: 0, tokensIn: 0, tokensOut: 0 }
       }
-      usageByUserId[uid].cost += Number(r.cost) || 0
-      usageByUserId[uid].tokensIn += t.tokensIn
-      usageByUserId[uid].tokensOut += t.tokensOut
+      usageByUserId[uid].cost += cost
+      usageByUserId[uid].tokensIn += tokensIn
+      usageByUserId[uid].tokensOut += tokensOut
     }
-    // Ohne apiKeyId: gleichmäßig auf alle Keys desselben Users verteilen (Summe pro User bleibt erhalten).
+    // Ohne Key-ID in den Records: nur noch User-Aggregate → aufteilen (letzte Option).
+    // Bevorzugt nur auf aktive Keys; deaktivierte zeigen sonst fälschlich denselben Anteil wie alle anderen.
     const userIdsDistributed = new Set<string>()
     for (const uid of Object.keys(usageByUserId)) {
       const fallback = usageByUserId[uid]
       const keysForUser = keys.filter((k) => k.userId?.trim() === uid)
       if (keysForUser.length === 0) continue
       userIdsDistributed.add(uid)
-      const n = keysForUser.length
+      const activeKeys = keysForUser.filter((k) => k.active !== false)
+      const targets = activeKeys.length > 0 ? activeKeys : keysForUser
+      const n = targets.length
       const perShare: ApiKeyUsageData = {
         cost: fallback.cost / n,
         tokensIn: fallback.tokensIn / n,
         tokensOut: fallback.tokensOut / n,
       }
-      for (const key of keysForUser) {
+      for (const key of targets) {
         const existing = map[key.id]
         map[key.id] = {
           cost: (existing?.cost ?? 0) + perShare.cost,
