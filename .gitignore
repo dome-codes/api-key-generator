@@ -14,7 +14,7 @@ dist-ssr
 coverage
 *.local
 .env
-docs/*
+
 !docs/migration/
 
 /cypress/videos/
