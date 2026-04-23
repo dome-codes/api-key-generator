@@ -18,6 +18,12 @@ import { computed, ref } from 'vue'
 
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[useExtractionUsageApi]', ...args)
+type ExportProgress = {
+  loadedRows: number
+  totalRows?: number
+  currentPage: number
+  totalPages?: number
+}
 
 export function useExtractionUsageApi() {
   // State
@@ -541,6 +547,7 @@ export function useExtractionUsageApi() {
    */
   const fetchAllUsageDataForExport = async (
     useAdminApi: boolean = false,
+    onProgress?: (progress: ExportProgress) => void,
   ): Promise<EnhancedExtractionUsageRecord[]> => {
     const CHUNK = 500
     const MAX_ROWS = 100_000
@@ -575,6 +582,12 @@ export function useExtractionUsageApi() {
 
       const totalPages = pagination?.totalPages ?? 1
       const totalItems = pagination?.totalItems
+      onProgress?.({
+        loadedRows: accumulated.length,
+        totalRows: totalItems,
+        currentPage: page,
+        totalPages,
+      })
 
       if (totalItems != null && accumulated.length >= totalItems) break
       if (page >= totalPages) break

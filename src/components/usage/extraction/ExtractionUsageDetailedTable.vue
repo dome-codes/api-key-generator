@@ -20,7 +20,9 @@ interface Props {
   sortOrder?: 'asc' | 'desc' // Aktuelle Sortierreihenfolge vom Backend
   useBackendSorting?: boolean // Ob Backend-Sortierung verwendet werden soll
   /** Liefert alle Zeilen für den aktuellen Filter (z. B. alle Seiten) – sonst nur aktuelle Seite exportieren */
-  fetchAllForExport?: () => Promise<EnhancedExtractionUsageRecord[]>
+  fetchAllForExport?: (
+    onProgress?: (progress: ExportProgress) => void,
+  ) => Promise<EnhancedExtractionUsageRecord[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -168,13 +170,23 @@ const csvEscape = (value: unknown): string => {
 }
 
 const isExporting = ref(false)
+type ExportProgress = {
+  loadedRows: number
+  totalRows?: number
+  currentPage: number
+  totalPages?: number
+}
+const exportProgress = ref<ExportProgress | null>(null)
 
 const exportTableData = async () => {
   try {
     isExporting.value = true
+    exportProgress.value = null
     let rows = props.data
     if (props.fetchAllForExport) {
-      rows = await props.fetchAllForExport()
+      rows = await props.fetchAllForExport((progress) => {
+        exportProgress.value = progress
+      })
     }
     if (!rows.length) {
       debugLog('CSV-Export: keine Zeilen')
@@ -221,6 +233,7 @@ const exportTableData = async () => {
     debugLog('Fehler beim CSV-Export:', err)
   } finally {
     isExporting.value = false
+    exportProgress.value = null
   }
 }
 
@@ -272,6 +285,13 @@ const getInitials = (name?: string): string => {
         <p v-if="fetchAllForExport" class="text-xs text-gray-500 text-right max-w-[22rem]">
           Export umfasst den gewählten Zeitraum und alle Filter – alle Seiten, nicht nur die aktuelle
           Ansicht.
+        </p>
+        <p v-if="isExporting && exportProgress" class="text-xs text-gray-500 text-right">
+          Geladen: {{ exportProgress.loadedRows.toLocaleString('de-DE') }}
+          <template v-if="exportProgress.totalRows != null">
+            / {{ exportProgress.totalRows.toLocaleString('de-DE') }}
+          </template>
+          Einträge
         </p>
       </div>
     </div>

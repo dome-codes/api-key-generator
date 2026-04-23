@@ -431,7 +431,9 @@ onMounted(async () => {
       :sort-field="currentFilter.sort"
       :sort-order="sortOrder"
       :use-backend-sorting="true"
-      :fetch-all-for-export="() => fetchAllUsageDataForExport(props.useAdminApi)"
+      :fetch-all-for-export="
+        (onProgress) => fetchAllUsageDataForExport(props.useAdminApi, onProgress)
+      "
       @page-change="handlePageChange"
       @page-size-change="handlePageSizeChange"
       @sort-change="handleSortChange"

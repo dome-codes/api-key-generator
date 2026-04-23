@@ -28,6 +28,12 @@ import { computed, ref } from 'vue'
 
 // Debug-Log mit Präfix
 const debugLog = (...args: unknown[]) => baseDebugLog('[useUsageApi]', ...args)
+type ExportProgress = {
+  loadedRows: number
+  totalRows?: number
+  currentPage: number
+  totalPages?: number
+}
 
 type OrvalTypes = typeof import('@/api/types')
 type Page = OrvalTypes extends { Page: infer P }
@@ -726,6 +732,7 @@ export function useUsageApi() {
    */
   const fetchAllUsageDataForExport = async (
     useAdminApi: boolean = false,
+    onProgress?: (progress: ExportProgress) => void,
   ): Promise<EnhancedUsageRecord[]> => {
     const CHUNK = 500
     const MAX_ROWS = 100_000
@@ -757,6 +764,12 @@ export function useUsageApi() {
 
       const totalPages = result.pagination?.totalPages ?? 1
       const totalItems = result.pagination?.totalItems
+      onProgress?.({
+        loadedRows: accumulated.length,
+        totalRows: totalItems,
+        currentPage: page,
+        totalPages,
+      })
 
       if (totalItems != null && accumulated.length >= totalItems) break
       if (page >= totalPages) break

@@ -39,7 +39,7 @@ interface Props {
   /** Wenn gesetzt: Spalten Größe/Qualität nur bei IMAGE_USAGE anzeigen (sonst ausblenden) */
   modelTypeFilter?: string
   /** Alle Zeilen für aktuellen Filter laden (paginiert) – sonst nur aktuelle Seite exportieren */
-  fetchAllForExport?: () => Promise<EnhancedUsageRecord[]>
+  fetchAllForExport?: (onProgress?: (progress: ExportProgress) => void) => Promise<EnhancedUsageRecord[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -294,6 +294,13 @@ const sortBy = (field: string) => {
 }
 
 const isExporting = ref(false)
+type ExportProgress = {
+  loadedRows: number
+  totalRows?: number
+  currentPage: number
+  totalPages?: number
+}
+const exportProgress = ref<ExportProgress | null>(null)
 
 const getSortedRowsForExport = async (): Promise<EnhancedUsageRecord[]> => {
   const field =
@@ -302,7 +309,9 @@ const getSortedRowsForExport = async (): Promise<EnhancedUsageRecord[]> => {
     (props.useBackendSorting && props.sortOrder ? props.sortOrder : localSortOrder.value) || 'desc'
 
   if (props.fetchAllForExport) {
-    const all = await props.fetchAllForExport()
+    const all = await props.fetchAllForExport((progress) => {
+      exportProgress.value = progress
+    })
     return sortUsageRecords(all, field, order)
   }
   return sortedData.value
@@ -311,6 +320,7 @@ const getSortedRowsForExport = async (): Promise<EnhancedUsageRecord[]> => {
 const exportTableData = async () => {
   try {
     isExporting.value = true
+    exportProgress.value = null
     const rows = await getSortedRowsForExport()
     if (!rows.length) {
       debugLog('CSV-Export: keine Zeilen')
@@ -374,6 +384,7 @@ const exportTableData = async () => {
     debugLog('Fehler beim Exportieren:', err)
   } finally {
     isExporting.value = false
+    exportProgress.value = null
   }
 }
 
@@ -412,6 +423,13 @@ watch(
         <p v-if="fetchAllForExport" class="text-xs text-gray-500 text-right max-w-[22rem]">
           Export umfasst den gewählten Zeitraum und alle Filter – alle Seiten, nicht nur die aktuelle
           Ansicht.
+        </p>
+        <p v-if="isExporting && exportProgress" class="text-xs text-gray-500 text-right">
+          Geladen: {{ exportProgress.loadedRows.toLocaleString('de-DE') }}
+          <template v-if="exportProgress.totalRows != null">
+            / {{ exportProgress.totalRows.toLocaleString('de-DE') }}
+          </template>
+          Einträge
         </p>
       </div>
     </div>
