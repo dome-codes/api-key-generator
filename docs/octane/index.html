@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenText ALM Octane API Tester</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>OpenText ALM Octane API Tester</h1>
+        <p>Tickets lesen/erstellen, API testen und Branch-Namen fuer GitLab aus Ticket-Pattern bauen.</p>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <h2>Octane Verbindung</h2>
+          <label>
+            Base URL
+            <input v-model.trim="baseUrl" placeholder="https://<tenant>.saas.microfocus.com" />
+          </label>
+          <div class="row">
+            <label>
+              Shared Space
+              <input v-model.trim="sharedSpaceId" placeholder="1001" />
+            </label>
+            <label>
+              Workspace
+              <input v-model.trim="workspaceId" placeholder="2002" />
+            </label>
+          </div>
+          <label>
+            Auth Modus
+            <select v-model="authMode">
+              <option value="basic">Basic (clientId:apiKey)</option>
+              <option value="headers">Header (ALM-Client-Id / ALM-Api-Key)</option>
+              <option value="bearer">Bearer Token</option>
+            </select>
+          </label>
+          <label>
+            Client ID
+            <input v-model.trim="clientId" placeholder="deine-client-id" />
+          </label>
+          <label>
+            API Key
+            <input v-model.trim="apiKey" type="password" placeholder="dein-api-key" />
+          </label>
+          <label class="inline">
+            <input v-model="persistSecrets" type="checkbox" />
+            Zugangsdaten lokal speichern (LocalStorage)
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>Octane API Request</h2>
+          <div class="row">
+            <label>
+              Methode
+              <select v-model="method">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+              </select>
+            </label>
+            <label class="grow">
+              Endpoint
+              <input
+                v-model.trim="endpoint"
+                placeholder="/api/shared_spaces/{sharedSpace}/workspaces/{workspace}/defects"
+              />
+            </label>
+          </div>
+          <label>
+            Query Params (JSON Objekt)
+            <textarea v-model="queryText" rows="4" placeholder='{"limit": 10}'></textarea>
+          </label>
+          <label>
+            Request Body (JSON)
+            <textarea
+              v-model="bodyText"
+              rows="8"
+              placeholder='{"prompt":"Hallo Octane"}'
+            ></textarea>
+          </label>
+          <div class="row actions">
+            <button :disabled="loading" @click="sendRequest">
+              {{ loading ? "Sende..." : "Request senden" }}
+            </button>
+            <button class="secondary" :disabled="loading" @click="applyTemplate('listDefects')">
+              Tickets ziehen
+            </button>
+            <button class="secondary" :disabled="loading" @click="applyTemplate('createDefect')">
+              Ticket erstellen
+            </button>
+            <button class="secondary" :disabled="loading" @click="applyTemplate('getById')">
+              Ticket by ID
+            </button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Ticket → Branch Pattern</h2>
+          <div class="row">
+            <label>
+              Ticket Typ
+              <select v-model="branchTicketType">
+                <option value="defect">defect</option>
+                <option value="story">story</option>
+                <option value="task">task</option>
+              </select>
+            </label>
+            <label>
+              Ticket ID
+              <input v-model.trim="branchTicketId" placeholder="12345" />
+            </label>
+          </div>
+          <label>
+            Ticket Titel
+            <input v-model.trim="branchTicketTitle" placeholder="Login Fehler im Checkout beheben" />
+          </label>
+          <label>
+            Branch Pattern
+            <input
+              v-model.trim="branchPattern"
+              placeholder="{type}/{id}-{slug}"
+            />
+          </label>
+          <p class="meta">
+            Ergebnis:
+            <strong>{{ generatedBranchName }}</strong>
+          </p>
+          <h3>Git CLI</h3>
+          <pre>{{ gitCliCommand }}</pre>
+          <h3>GitLab API Payload (create branch)</h3>
+          <pre>{{ gitlabPayload }}</pre>
+        </section>
+
+        <section class="card">
+          <h2>Response</h2>
+          <p class="meta">
+            Status:
+            <strong :class="statusClass">{{ statusText }}</strong>
+          </p>
+          <p class="meta" v-if="durationMs != null">Dauer: <strong>{{ durationMs }} ms</strong></p>
+          <h3>Response Headers</h3>
+          <pre>{{ responseHeaders }}</pre>
+          <h3>Response Body</h3>
+          <pre>{{ responseBody }}</pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+  </html>
