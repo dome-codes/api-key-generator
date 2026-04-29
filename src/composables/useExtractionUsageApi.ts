@@ -384,7 +384,9 @@ export function useExtractionUsageApi() {
           useAdminApi,
         ),
         extractionUsageApiService.getUsageSummary(
-          { ...baseFilter, groupBy: ['apiKeyId'] },
+          // Nur im Admin-Kontext zusätzlich nach userId gruppieren, damit
+          // im Top-10 API-Key-Breakdown die User-Spalte befüllt wird.
+          { ...baseFilter, groupBy: useAdminApi ? ['apiKeyId', 'userId'] : ['apiKeyId'] },
           useAdminApi,
         ),
       ])

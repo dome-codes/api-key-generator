@@ -600,7 +600,11 @@ export function useUsageApi() {
         ...currentFilter.value,
         page: 1,
         limit: 10000,
-        groupBy: ['apikey'] as 'apikey'[],
+        // Nur im Admin-Kontext zusätzlich nach user gruppieren, damit
+        // im Top-10 API-Key-Breakdown die User-Spalte befüllt wird.
+        groupBy: useAdminApi
+          ? (['apikey', 'user'] as ('apikey' | 'user')[])
+          : (['apikey'] as 'apikey'[]),
       }
 
       debugLog('Loading apiKey summary with filter:', apiKeyFilter)
