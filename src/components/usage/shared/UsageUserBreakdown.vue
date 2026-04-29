@@ -39,9 +39,22 @@ const currentRows = computed(() => {
   return mode.value === 'user' ? props.userRows : (props.apiKeyRows ?? [])
 })
 
+type AggregatedRow = {
+  id: string
+  requests: number
+  pages: number
+  tokens: number
+  cachedTokens: number
+  reasoningTokens: number
+  cost: number
+  avgPagesPerOp: number
+  userIds?: string[]
+}
+
 const normalized = computed(() => {
-  return currentRows.value
-    .map((r) => {
+  const aggregated = new Map<string, AggregatedRow>()
+
+  currentRows.value.forEach((r) => {
       const any = r as unknown as Record<string, unknown>
       const id =
         mode.value === 'user'
@@ -76,20 +89,37 @@ const normalized = computed(() => {
         cost = calculateExtractionCost(pages, modelId).finalCost
       }
 
-      const avgPagesPerOp = requests > 0 ? pages / requests : 0
+      const userIdRaw = typeof any.userId === 'string' ? any.userId.trim() : ''
+      const existing = aggregated.get(id)
 
-      return {
-        id,
-        requests,
-        pages,
-        tokens,
-        cachedTokens,
-        reasoningTokens,
-        cost,
-        avgPagesPerOp,
+      if (!existing) {
+        aggregated.set(id, {
+          id,
+          requests,
+          pages,
+          tokens,
+          cachedTokens,
+          reasoningTokens,
+          cost,
+          avgPagesPerOp: requests > 0 ? pages / requests : 0,
+          userIds: mode.value === 'apiKey' && userIdRaw ? [userIdRaw] : [],
+        })
+        return
+      }
+
+      existing.requests += requests
+      existing.pages += pages
+      existing.tokens += tokens
+      existing.cachedTokens += cachedTokens
+      existing.reasoningTokens += reasoningTokens
+      existing.cost += cost
+      existing.avgPagesPerOp = existing.requests > 0 ? existing.pages / existing.requests : 0
+      if (mode.value === 'apiKey' && userIdRaw) {
+        existing.userIds = Array.from(new Set([...(existing.userIds ?? []), userIdRaw]))
       }
     })
-    .filter((r) => r.id.trim() !== '')
+
+  return Array.from(aggregated.values()).filter((r) => r.id.trim() !== '')
 })
 
 const filteredRows = computed(() => {
@@ -201,6 +231,7 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
               <th class="py-2 pr-4 cursor-pointer" @click="toggleSort('id')">
                 {{ isUserMode ? 'Benutzer' : 'API-Key' }}
               </th>
+              <th v-if="!isUserMode" class="py-2 pr-4">Technischer Benutzer</th>
               <th class="py-2 pr-4 cursor-pointer" @click="toggleSort('requests')">Requests</th>
               <th v-if="canShowPages" class="py-2 pr-4 cursor-pointer" @click="toggleSort('pages')">
                 Seiten
@@ -247,6 +278,13 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
                   />
                   <span>{{ r.id }}</span>
                 </div>
+              </td>
+              <td v-if="!isUserMode" class="py-2 pr-4 text-gray-900">
+                {{
+                  r.userIds && r.userIds.length > 0
+                    ? r.userIds.join(', ')
+                    : '–'
+                }}
               </td>
               <td class="py-2 pr-4 text-gray-900">{{ r.requests.toLocaleString() }}</td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
