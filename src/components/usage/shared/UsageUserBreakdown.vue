@@ -26,6 +26,7 @@ type SortKey =
   | 'reasoningTokens'
   | 'cost'
   | 'id'
+  | 'technicalUsers'
   | 'avgPagesPerOp'
 const sortKey = ref<SortKey>('requests')
 const sortDir = ref<'asc' | 'desc'>('desc')
@@ -49,6 +50,7 @@ type AggregatedRow = {
   cost: number
   avgPagesPerOp: number
   userIds?: string[]
+  technicalUsers: string
 }
 
 const normalized = computed(() => {
@@ -103,6 +105,7 @@ const normalized = computed(() => {
           cost,
           avgPagesPerOp: requests > 0 ? pages / requests : 0,
           userIds: mode.value === 'apiKey' && userIdRaw ? [userIdRaw] : [],
+          technicalUsers: mode.value === 'apiKey' && userIdRaw ? userIdRaw : '',
         })
         return
       }
@@ -116,6 +119,7 @@ const normalized = computed(() => {
       existing.avgPagesPerOp = existing.requests > 0 ? existing.pages / existing.requests : 0
       if (mode.value === 'apiKey' && userIdRaw) {
         existing.userIds = Array.from(new Set([...(existing.userIds ?? []), userIdRaw]))
+        existing.technicalUsers = (existing.userIds ?? []).join(', ')
       }
     })
 
@@ -133,6 +137,7 @@ const sortedRows = computed(() => {
   const key = sortKey.value
   return [...filteredRows.value].sort((a, b) => {
     if (key === 'id') return dir * a.id.localeCompare(b.id)
+    if (key === 'technicalUsers') return dir * a.technicalUsers.localeCompare(b.technicalUsers)
     return dir * (((a[key] as number) ?? 0) - ((b[key] as number) ?? 0))
   })
 })
@@ -231,7 +236,13 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
               <th class="py-2 pr-4 cursor-pointer" @click="toggleSort('id')">
                 {{ isUserMode ? 'Benutzer' : 'API-Key' }}
               </th>
-              <th v-if="!isUserMode" class="py-2 pr-4">Technischer Benutzer</th>
+              <th
+                v-if="!isUserMode"
+                class="py-2 pr-4 cursor-pointer"
+                @click="toggleSort('technicalUsers')"
+              >
+                Technischer Benutzer
+              </th>
               <th class="py-2 pr-4 cursor-pointer" @click="toggleSort('requests')">Requests</th>
               <th v-if="canShowPages" class="py-2 pr-4 cursor-pointer" @click="toggleSort('pages')">
                 Seiten
@@ -280,11 +291,7 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
                 </div>
               </td>
               <td v-if="!isUserMode" class="py-2 pr-4 text-gray-900">
-                {{
-                  r.userIds && r.userIds.length > 0
-                    ? r.userIds.join(', ')
-                    : '–'
-                }}
+                {{ r.technicalUsers || '–' }}
               </td>
               <td class="py-2 pr-4 text-gray-900">{{ r.requests.toLocaleString() }}</td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
