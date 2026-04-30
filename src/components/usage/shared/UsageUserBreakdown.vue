@@ -50,78 +50,78 @@ type AggregatedRow = {
   cost: number
   avgPagesPerOp: number
   userIds?: string[]
-  technicalUsers: string
 }
+
+const getTechnicalUsersLabel = (row: AggregatedRow): string =>
+  row.userIds && row.userIds.length > 0 ? row.userIds.join(', ') : ''
 
 const normalized = computed(() => {
   const aggregated = new Map<string, AggregatedRow>()
 
   currentRows.value.forEach((r) => {
-      const any = r as unknown as Record<string, unknown>
-      const id =
-        mode.value === 'user'
-          ? typeof any.userId === 'string'
-            ? any.userId
-            : ''
-          : (() => {
-              const raw = (any.apiKeyId ?? any.apiKey) as unknown
-              return typeof raw === 'string' ? raw : ''
-            })()
-      const requests =
-        (typeof any.requests === 'number' ? any.requests : undefined) ??
-        (typeof any.operations === 'number' ? any.operations : undefined) ??
-        0
-      const pages = (typeof any.pages === 'number' ? any.pages : undefined) ?? 0
-      const tokensIn = (typeof any.tokensIn === 'number' ? any.tokensIn : undefined) ?? 0
-      const tokensOut = (typeof any.tokensOut === 'number' ? any.tokensOut : undefined) ?? 0
-      const cachedTokens =
-        (typeof (any as { cachedTokens?: number }).cachedTokens === 'number'
-          ? (any as { cachedTokens?: number }).cachedTokens
-          : undefined) ?? 0
-      const reasoningTokens =
-        (typeof (any as { reasoningTokens?: number }).reasoningTokens === 'number'
-          ? (any as { reasoningTokens?: number }).reasoningTokens
-          : undefined) ?? 0
-      const tokens = tokensIn + tokensOut + cachedTokens + reasoningTokens
-      let cost = (typeof any.cost === 'number' ? any.cost : undefined) ?? 0
-      const modelId =
-        typeof any.modelId === 'string' && any.modelId.trim() !== '' ? any.modelId : 'unknown'
+    const any = r as unknown as Record<string, unknown>
+    const id =
+      mode.value === 'user'
+        ? typeof any.userId === 'string'
+          ? any.userId
+          : ''
+        : (() => {
+            const raw = (any.apiKeyId ?? any.apiKey) as unknown
+            return typeof raw === 'string' ? raw : ''
+          })()
+    const requests =
+      (typeof any.requests === 'number' ? any.requests : undefined) ??
+      (typeof any.operations === 'number' ? any.operations : undefined) ??
+      0
+    const pages = (typeof any.pages === 'number' ? any.pages : undefined) ?? 0
+    const tokensIn = (typeof any.tokensIn === 'number' ? any.tokensIn : undefined) ?? 0
+    const tokensOut = (typeof any.tokensOut === 'number' ? any.tokensOut : undefined) ?? 0
+    const cachedTokens =
+      (typeof (any as { cachedTokens?: number }).cachedTokens === 'number'
+        ? (any as { cachedTokens?: number }).cachedTokens
+        : undefined) ?? 0
+    const reasoningTokens =
+      (typeof (any as { reasoningTokens?: number }).reasoningTokens === 'number'
+        ? (any as { reasoningTokens?: number }).reasoningTokens
+        : undefined) ?? 0
+    const tokens = tokensIn + tokensOut + cachedTokens + reasoningTokens
+    let cost = (typeof any.cost === 'number' ? any.cost : undefined) ?? 0
+    const modelId =
+      typeof any.modelId === 'string' && any.modelId.trim() !== '' ? any.modelId : 'unknown'
 
-      if (props.variant === 'extraction' && pages > 0 && (cost === 0 || !Number.isFinite(cost))) {
-        cost = calculateExtractionCost(pages, modelId).finalCost
-      }
+    if (props.variant === 'extraction' && pages > 0 && (cost === 0 || !Number.isFinite(cost))) {
+      cost = calculateExtractionCost(pages, modelId).finalCost
+    }
 
-      const userIdRaw = typeof any.userId === 'string' ? any.userId.trim() : ''
-      const existing = aggregated.get(id)
+    const userIdRaw = typeof any.userId === 'string' ? any.userId.trim() : ''
+    const existing = aggregated.get(id)
 
-      if (!existing) {
-        aggregated.set(id, {
-          id,
-          requests,
-          pages,
-          tokens,
-          cachedTokens,
-          reasoningTokens,
-          cost,
-          avgPagesPerOp: requests > 0 ? pages / requests : 0,
-          userIds: mode.value === 'apiKey' && userIdRaw ? [userIdRaw] : [],
-          technicalUsers: mode.value === 'apiKey' && userIdRaw ? userIdRaw : '',
-        })
-        return
-      }
+    if (!existing) {
+      aggregated.set(id, {
+        id,
+        requests,
+        pages,
+        tokens,
+        cachedTokens,
+        reasoningTokens,
+        cost,
+        avgPagesPerOp: requests > 0 ? pages / requests : 0,
+        userIds: mode.value === 'apiKey' && userIdRaw ? [userIdRaw] : [],
+      })
+      return
+    }
 
-      existing.requests += requests
-      existing.pages += pages
-      existing.tokens += tokens
-      existing.cachedTokens += cachedTokens
-      existing.reasoningTokens += reasoningTokens
-      existing.cost += cost
-      existing.avgPagesPerOp = existing.requests > 0 ? existing.pages / existing.requests : 0
-      if (mode.value === 'apiKey' && userIdRaw) {
-        existing.userIds = Array.from(new Set([...(existing.userIds ?? []), userIdRaw]))
-        existing.technicalUsers = (existing.userIds ?? []).join(', ')
-      }
-    })
+    existing.requests += requests
+    existing.pages += pages
+    existing.tokens += tokens
+    existing.cachedTokens += cachedTokens
+    existing.reasoningTokens += reasoningTokens
+    existing.cost += cost
+    existing.avgPagesPerOp = existing.requests > 0 ? existing.pages / existing.requests : 0
+    if (mode.value === 'apiKey' && userIdRaw) {
+      existing.userIds = Array.from(new Set([...(existing.userIds ?? []), userIdRaw]))
+    }
+  })
 
   return Array.from(aggregated.values()).filter((r) => r.id.trim() !== '')
 })
@@ -137,7 +137,8 @@ const sortedRows = computed(() => {
   const key = sortKey.value
   return [...filteredRows.value].sort((a, b) => {
     if (key === 'id') return dir * a.id.localeCompare(b.id)
-    if (key === 'technicalUsers') return dir * a.technicalUsers.localeCompare(b.technicalUsers)
+    if (key === 'technicalUsers')
+      return dir * getTechnicalUsersLabel(a).localeCompare(getTechnicalUsersLabel(b))
     return dir * (((a[key] as number) ?? 0) - ((b[key] as number) ?? 0))
   })
 })
@@ -291,7 +292,7 @@ const formatCost = (value: number) => `€${value.toFixed(2)}`
                 </div>
               </td>
               <td v-if="!isUserMode" class="py-2 pr-4 text-gray-900">
-                {{ r.technicalUsers || '–' }}
+                {{ getTechnicalUsersLabel(r) || '–' }}
               </td>
               <td class="py-2 pr-4 text-gray-900">{{ r.requests.toLocaleString() }}</td>
               <td v-if="canShowPages" class="py-2 pr-4 text-gray-900">
