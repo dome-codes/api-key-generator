@@ -1,14 +1,51 @@
 # Architecture Decision Record (ADR)
 
-**Dokumenten-ID:** ADR-2026-AI-05
+## Title
 
-**Status:** Proposed
+**ADR-2026-AI-05:** Einheitlicher Spring-Boot-Stack mit Spring AI für den Ingestion Service (Kafka, Kong & State Machine)
 
-**Datum:** 22. Mai 2026
+---
 
-**Autor:** Domenic Schumacher (Senior Software Engineer)
+## Entscheidungsübersicht
 
-**Beteiligte:** AI Platform Team, Architecture Board, Enterprise Java Guild
+| Feld | Inhalt |
+| :--- | :--- |
+| **Dokumenten-ID** | ADR-2026-AI-05 |
+| **Status** | Proposed |
+| **Datum** | 22. Mai 2026 |
+| **Autor** | Domenic Schumacher (Senior Software Engineer) |
+| **Beteiligte** | AI Platform Team, Architecture Board, Enterprise Java Guild |
+| **Projektphase** | **Phase 2 — Plattform-Konsolidierung:** Übergang von Python-Prototypen zu produktionsreifen Spring-Boot-Services; erste Iteration der KI-Plattform (Ingestion, Chat, Query, Data) |
+| **Bezug** | Baut auf **ADR-2026-AI-04** (hybride Kafka-Orchestrierung) auf; konkretisiert den Technologie-Stack für den *Ingestion Service* |
+
+---
+
+## Infrastruktur-Kontext
+
+Die Entscheidung bezieht sich auf die **bereits angelegte oder in Rollout befindliche Plattform-Infrastruktur**. Der Ingestion Service ist kein Greenfield-Experiment, sondern ein Kernbaustein in einem bestehenden Ökosystem:
+
+| Komponente | Rolle im Ingestion-Flow | Stand |
+| :--- | :--- | :--- |
+| **Kong API Gateway** | Edge-Layer: Inbound (`POST /ingest`), Outbound-Proxy zu Extraction, LLM/Embedding und Fachteams; Rate-Limiting, Circuit Breaker, einheitliche Metadaten-Injektion | Geplant / in Integration |
+| **Apache Kafka** | Asynchroner Transport & Backpressure-Puffer; Topics u. a. `queue.raw-documents`, `topic.billing`; Consumer Groups für horizontale Skalierung | Produktiv verankert (vgl. ADR-2026-AI-04) |
+| **Kubernetes (Coder/OpenShift)** | Laufzeit für Spring-Boot-Microservices; Deployments, HPA, Secrets | Standard-Runtime der Plattform |
+| **Relationale DB (PostgreSQL)** | Persistente State Machine pro Ingestion-Job (Status, Meilensteine, Retry-Anker) | Geplant für Ingestion Service |
+| **Vector Store / Data Service** | Speicherung von Chunks & Embeddings nach Pipeline-Abschluss | Bestehend / angebunden |
+| **Cloud LLM / Embedding APIs** | Embedding- und Modell-Aufrufe — ausschließlich über Kong geroutet | Produktiv über Gateway |
+
+**Relevante Kafka-Topics (Auszug):**
+
+* `queue.raw-documents` — Eingang neuer Dokumente (vom Gateway als Event)
+* `new-extraction-job`, `new-chunk-job`, `batch-complete` — Pipeline-Schritte (ADR-2026-AI-04)
+* `ingestion-error-topic` / DLQ — Fehler- und Dead-Letter-Handling
+
+---
+
+## Plattform-Kontext (Kurzfassung)
+
+Wir bauen eine **geschäftskritische, KI-gestützte Dokumenten-Pipeline** für die interne AI-Plattform. Der fachliche Kernablauf ist sequentiell: Upload → Extraktion → Chunking → Embedding → Bereitstellung für Chat/Query-Services.
+
+Bisherige Prototypen liefen **polyglot** (Python für RAG/Agentik, Java für Kernbank). Mit **Spring AI (2026)** und der in ADR-2026-AI-04 festgelegten **eventgetriebenen Pipeline** (Kafka + zentrale Orchestrierung) ist der Zeitpunkt gekommen, die **neuen Kern-Services einheitlich auf Spring Boot** zu standardisieren — beginnend mit dem **Ingestion Service** als Kafka-Consumer und Process Manager der RAG-State-Machine.
 
 ---
 
