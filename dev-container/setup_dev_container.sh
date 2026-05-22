@@ -14,8 +14,14 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly ZSHRC="${HOME}/.zshrc"
 readonly SETUP_MARKER="setup_dev_container"
 readonly REPOS_CONF="${SCRIPT_DIR}/setup_dev_container.repos.conf"
-readonly WORKSPACE_DIR="${WORKSPACE_DIR:-${SCRIPT_DIR}}"
 readonly SETUP_AUTHOR="Domenic Schumacher"
+
+# Container-Layout: Skripte nach /workspace/setup kopieren, Repos nach /workspace/repos
+readonly WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
+readonly DEFAULT_SETUP_DIR="${WORKSPACE_ROOT}/setup"
+readonly DEFAULT_REPOS_DIR="${WORKSPACE_ROOT}/repos"
+# REPOS_DIR = Zielordner für alle Git-Repositories (wird automatisch angelegt)
+readonly REPOS_DIR="${REPOS_DIR:-${WORKSPACE_DIR:-$DEFAULT_REPOS_DIR}}"
 
 # Standard-Proxy im Coder/K8s-Cluster (Ubuntu)
 readonly DEFAULT_CLUSTER_PROXY="http://internet-proxy.internet-proxy.svc.cluster.local:3128"
@@ -346,6 +352,23 @@ remove_apt_proxy_config() {
   $SUDO rm -f /etc/apt/apt.conf.d/95proxies /etc/apt/apt.conf.d/98force-ipv4 /etc/apt/apt.conf.d/99proxy
 }
 
+ensure_repos_directory() {
+  if [[ -d "$REPOS_DIR" ]]; then
+    log_info "${ICON_FOLDER} Repos-Ordner vorhanden: ${REPOS_DIR}"
+    return 0
+  fi
+  log_info "${ICON_FOLDER} Lege Repos-Ordner an: ${REPOS_DIR}"
+  mkdir -p "$REPOS_DIR"
+  log_success "Repos-Ordner bereit — geklonte Repositories landen hier."
+}
+
+ensure_setup_hint() {
+  if [[ "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" && "$SCRIPT_DIR" != "/workspace/setup" ]]; then
+    log_info "Skript liegt in: ${SCRIPT_DIR}"
+    log_info "Empfohlen im Container: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Nerd Fonts & Powerlevel10k Preset (offizielles P10k-Lean + Meslo)
 # ---------------------------------------------------------------------------
@@ -398,8 +421,7 @@ install_p10k_preset() {
 }
 
 configure_coder_terminal_font() {
-  # Coder/VS Code Terminal muss explizit Meslo nutzen (Icons sonst kaputt)
-  local settings_dir="${WORKSPACE_DIR}/.vscode"
+  local settings_dir="${WORKSPACE_ROOT}/.vscode"
   local settings_file="${settings_dir}/settings.json"
 
   mkdir -p "$settings_dir"
@@ -479,7 +501,7 @@ discover_git_repos() {
 
   while IFS= read -r git_dir; do
     add_repo_entry "$(basename "$(dirname "$git_dir")")" "$(dirname "$git_dir")" "" "$do_fetch"
-  done < <(find "$WORKSPACE_DIR" -maxdepth 4 -name .git -type d 2>/dev/null | sort)
+  done < <(find "$REPOS_DIR" -maxdepth 3 -name .git -type d 2>/dev/null | sort)
 
   if [[ -f "$REPOS_CONF" ]]; then
     while IFS='|' read -r name url target || [[ -n "$name" ]]; do
@@ -488,7 +510,7 @@ discover_git_repos() {
       url="$(echo "$url" | xargs)"
       target="$(echo "${target:-}" | xargs)"
       [[ -z "$name" || -z "$url" ]] && continue
-      add_repo_entry "$name" "${target:-${WORKSPACE_DIR}/${name}}" "$url" "$do_fetch"
+      add_repo_entry "$name" "${target:-${REPOS_DIR}/${name}}" "$url" "$do_fetch"
     done < "$REPOS_CONF"
   fi
 }
@@ -524,7 +546,7 @@ select_repos_interactive() {
       local name url target
       name="$(ask_input "Repository-Name")"
       url="$(ask_input "Git-URL")"
-      target="$(ask_input "Zielpfad" "${WORKSPACE_DIR}/${name}")"
+      target="$(ask_input "Zielpfad" "${REPOS_DIR}/${name}")"
       add_repo_entry "$name" "$target" "$url" false
     else
       CFG_SYNC_REPOS=false
@@ -602,6 +624,7 @@ sync_single_repo() {
 run_questionnaire() {
   print_banner
   show_roadmap "q_proxy"
+  ensure_setup_hint
 
   echo -e "${BOLD}  Willkommen! Bevor etwas installiert wird, sammeln wir alle Einstellungen.${NC}"
   echo -e "${DIM}  Du kannst danach zuschauen, wie das Setup automatisch durchläuft.${NC}"
@@ -641,7 +664,7 @@ run_questionnaire() {
 
   # --- 3/5 Git-Repos ---
   section_header "q_repos" "📁 Frage 3/5 · Git-Repositories" "Welche Repositories sollen synchronisiert werden?"
-  log_info "${ICON_WORKSPACE} Workspace: ${WORKSPACE_DIR}"
+  log_info "${ICON_WORKSPACE} Repos-Ordner: ${REPOS_DIR} (wird bei Installation angelegt)"
   select_repos_interactive
   if [[ "$CFG_SYNC_REPOS" == true ]]; then
     log_success "${#SELECTED_REPO_INDICES[@]} Repository/Repositories ausgewählt."
@@ -791,6 +814,11 @@ ${identity_exports}"
 ${identity_exports}"
   fi
   set_zshrc_block "${SETUP_MARKER}: identity" "$identity_exports"
+  set_zshrc_block "${SETUP_MARKER}: repos" "$(cat <<EOF
+export REPOS_DIR="${REPOS_DIR}"
+export WORKSPACE_ROOT="${WORKSPACE_ROOT}"
+EOF
+)"
   set_zshrc_block "${SETUP_MARKER}: greeting" "$(cat <<GREETING
 if [[ -o interactive ]] && [[ -z "${SETUP_WELCOME_SHOWN:-}" ]]; then
   export SETUP_WELCOME_SHOWN=1
@@ -814,6 +842,7 @@ exec_sync_repos() {
     return 0
   fi
 
+  ensure_repos_directory
   discover_git_repos true
   local total="${#SELECTED_REPO_INDICES[@]}" current=0 ok=0 fail=0
 

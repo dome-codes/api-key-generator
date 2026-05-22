@@ -38,18 +38,49 @@ Das interaktive Setup-Skript `setup_dev_container.sh` automatisiert die Ersteinr
 
 ## Quick Start
 
-```bash
-# Im Dev-Container (im Repo unter dev-container/)
-cd dev-container
+### 1. Skripte in den Coder-Container kopieren
 
+Das Setup läuft **im Dev-Container**. Die Skripte liegen zuerst lokal im Team-Repo und werden einmalig in den Container nach `/workspace/setup/` kopiert:
+
+```bash
+# Option A: Ordner manuell anlegen und Dateien reinkopieren (Coder UI / Drag & Drop)
+mkdir -p /workspace/setup
+# → setup_dev_container.sh, setup_dev_container.repos.conf, README.md nach /workspace/setup/
+
+# Option B: per scp vom lokalen Rechner
+scp setup_dev_container.sh setup_dev_container.repos.conf user@coder-host:/workspace/setup/
+
+# Option C: aus GitLab/GitHub (nur Setup-Ordner klonen oder Raw-Dateien)
+git clone <url-zum-setup-repo> /workspace/setup
+```
+
+### 2. Setup starten
+
+```bash
+cd /workspace/setup
 chmod +x setup_dev_container.sh
 ./setup_dev_container.sh
 ```
 
-Alternativer Workspace-Pfad:
+### 3. Repositories
+
+Das Skript legt automatisch **`/workspace/repos/`** an. Ausgewählte Git-Repositories werden dort **geklont** bzw. **gepullt**:
+
+```
+/workspace/
+├── setup/                          ← Skripte (manuell kopiert)
+│   ├── setup_dev_container.sh
+│   ├── setup_dev_container.repos.conf
+│   └── README.md
+└── repos/                          ← automatisch angelegt
+    ├── mein-service/               ← git clone / pull
+    └── frontend-app/
+```
+
+Optional anderer Repos-Pfad:
 
 ```bash
-WORKSPACE_DIR=/workspace ./setup_dev_container.sh
+REPOS_DIR=/custom/path/repos ./setup_dev_container.sh
 ```
 
 Nach erfolgreichem Setup:
@@ -188,8 +219,9 @@ Alle Shell-Variablen werden in markierten Blöcken in `~/.zshrc` gespeichert und
 
 #### Git-Repositories syncen
 
-- **Auto-Discovery:** Findet bestehende Repos unter `WORKSPACE_DIR`
+- **Auto-Discovery:** Findet bestehende Repos unter `/workspace/repos/`
 - **Konfiguration:** Ergänzt Einträge aus `setup_dev_container.repos.conf`
+- **Ordner:** `/workspace/repos/` wird bei Bedarf automatisch erstellt
 - **Clone oder Pull:** Fehlende Repos werden geklont, vorhandene aktualisiert
 - **Fortschritt:** Pro Repository mit Statusanzeige (Branch, ahead/behind)
 
@@ -305,9 +337,9 @@ curl -sL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd6
 ### Konfiguration: `setup_dev_container.repos.conf`
 
 ```ini
-# Format: NAME|GIT_URL|ZIELPFAD (ZIELPFAD optional)
+# Format: NAME|GIT_URL|ZIELPFAD (optional, Standard: /workspace/repos/NAME)
 mein-service|https://gitlab.company.com/team/mein-service.git
-frontend-app|https://gitlab.company.com/team/frontend-app.git|/workspace/frontend-app
+frontend-app|https://gitlab.company.com/team/frontend-app.git
 shared-lib|git@gitlab.company.com:team/shared-lib.git
 ```
 
@@ -315,7 +347,7 @@ shared-lib|git@gitlab.company.com:team/shared-lib.git
 |--------|--------------|
 | `NAME` | Anzeigename im Auswahlmenü |
 | `GIT_URL` | Clone-URL (HTTPS oder SSH) |
-| `ZIELPFAD` | Optional; Standard: `$WORKSPACE_DIR/$NAME` |
+| `ZIELPFAD` | Optional; Standard: `/workspace/repos/$NAME` |
 
 ### Post-Setup: Dependencies installieren
 
@@ -403,14 +435,16 @@ Das Skript kann **mehrfach** ausgeführt werden:
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
-| `WORKSPACE_DIR` | Verzeichnis des Skripts | Root für Repo-Discovery |
+| `REPOS_DIR` | `/workspace/repos` | Zielordner für alle Git-Repositories |
+| `WORKSPACE_ROOT` | `/workspace` | Container-Workspace-Root |
+| `WORKSPACE_DIR` | *(deprecated)* | Alias für `REPOS_DIR` (Abwärtskompatibilität) |
 | `NO_PROXY` | `localhost,127.0.0.1,::1,.svc.cluster.local,.cluster.local` | Bypass-Liste für Proxy |
 
 Beispiel:
 
 ```bash
-export WORKSPACE_DIR=/workspace
-./setup_dev_container.sh
+export REPOS_DIR=/workspace/repos
+cd /workspace/setup && ./setup_dev_container.sh
 ```
 
 ---
@@ -474,16 +508,22 @@ grep -A5 'setup_dev_container' ~/.zshrc
 
 ---
 
-## Dateistruktur
+## Dateistruktur im Container
 
 ```
-api-key-generator/
-├── dev-container/
+/workspace/
+├── setup/                              # Skripte (einmalig reinkopieren)
 │   ├── setup_dev_container.sh
 │   ├── setup_dev_container.repos.conf
 │   └── README.md
-└── ...
+├── repos/                              # automatisch angelegt
+│   ├── mein-service/                   # Git-Repos
+│   └── frontend-app/
+└── .vscode/
+    └── settings.json                   # Terminal-Font (Meslo)
 ```
+
+Nach dem Setup in der Shell verfügbar: `$REPOS_DIR`, `$WORKSPACE_ROOT`
 
 ---
 
