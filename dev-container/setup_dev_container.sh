@@ -86,6 +86,8 @@ CFG_NODE_VERSION="lts"
 CFG_INSTALL_PYTHON=false
 CFG_INSTALL_PNPM=false
 CFG_SYNC_REPOS=false
+CFG_GITLAB_GROUP_URL=""
+CFG_GITLAB_TOKEN=""
 CFG_DOCKER_LOGIN=false
 CFG_DOCKER_REGISTRY=""
 CFG_DOCKER_USER=""
@@ -447,6 +449,212 @@ JSON
 
 declare -a REPO_NAME=() REPO_PATH=() REPO_URL=() REPO_BRANCH=() REPO_STATUS=()
 declare -a SELECTED_REPO_INDICES=() REPO_SELECTED=()
+declare -a GITLAB_PROJECT_NAME=() GITLAB_PROJECT_URL=()
+GITLAB_CACHE_KEY=""
+
+read_repos_conf_directive() {
+  local directive="$1"
+  [[ -f "$REPOS_CONF" ]] || return 0
+  grep -E "^@${directive}\\|" "$REPOS_CONF" 2>/dev/null | head -1 | cut -d'|' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+gitlab_load_group_projects() {
+  local group_url="$1" token="${2:-}" proxy="${3:-}"
+  local cache_key output err_line http_code
+
+  [[ -z "$group_url" ]] && return 1
+
+  if [[ "$CFG_USE_PROXY" == true && -n "$CFG_PROXY_URL" ]]; then
+    proxy="$CFG_PROXY_URL"
+  fi
+
+  cache_key="${group_url}|${token}|${proxy}"
+  if [[ "$GITLAB_CACHE_KEY" == "$cache_key" && ${#GITLAB_PROJECT_NAME[@]} -gt 0 ]]; then
+    return 0
+  fi
+
+  if ! command -v python3 &>/dev/null; then
+    log_error "python3 wird für die GitLab-Gruppen-Abfrage benötigt."
+    return 1
+  fi
+
+  if ! command -v curl &>/dev/null; then
+    log_error "curl wird für die GitLab-Gruppen-Abfrage benötigt."
+    return 1
+  fi
+
+  log_info "Lade Repository-Liste von GitLab …"
+
+  local err_file out_file
+  err_file="$(mktemp)"
+  out_file="$(mktemp)"
+
+  if ! GITLAB_GROUP_URL="$group_url" \
+       GITLAB_TOKEN="$token" \
+       GITLAB_PROXY="$proxy" \
+       python3 <<'PY' >"$out_file" 2>"$err_file"
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+group_url = os.environ.get("GITLAB_GROUP_URL", "").strip().rstrip("/")
+token = os.environ.get("GITLAB_TOKEN", "").strip()
+proxy = os.environ.get("GITLAB_PROXY", "").strip()
+
+if not group_url:
+    print("ERROR:0|Keine GitLab-Gruppen-URL", file=sys.stderr)
+    sys.exit(1)
+
+stripped = re.sub(r"/-/.*$", "", group_url)
+match = re.match(r"^(https?://[^/]+)/(.+)$", stripped)
+if not match:
+    print("ERROR:0|Ungültige GitLab-Gruppen-URL", file=sys.stderr)
+    sys.exit(1)
+
+base = match.group(1)
+path = match.group(2).strip("/")
+if path.startswith("groups/"):
+    path = path[7:]
+
+encoded = urllib.parse.quote(path, safe="")
+handlers = []
+if proxy:
+    handlers.append(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
+opener = urllib.request.build_opener(*handlers)
+
+projects = []
+page = 1
+while True:
+    api = (
+        f"{base}/api/v4/groups/{encoded}/projects"
+        f"?include_subgroups=true&per_page=100&page={page}"
+        f"&order_by=path&sort=asc&with_shared=false"
+    )
+    req = urllib.request.Request(api)
+    if token:
+        req.add_header("PRIVATE-TOKEN", token)
+    try:
+        with opener.open(req, timeout=45) as resp:
+            batch = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        print(f"ERROR:{exc.code}|GitLab API HTTP {exc.code}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as exc:
+        print(f"ERROR:0|{exc.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    if not batch:
+        break
+    projects.extend(batch)
+    if len(batch) < 100:
+        break
+    page += 1
+
+for project in projects:
+    name = project.get("path") or project.get("name") or ""
+    url = project.get("http_url_to_repo") or project.get("ssh_url_to_repo") or ""
+    if name and url:
+        print(f"{name}|{url}")
+PY
+  then
+    if [[ -s "$err_file" ]]; then
+      sed 's/^/    /' "$err_file" >&2
+    fi
+    rm -f "$out_file" "$err_file"
+    log_error "GitLab-Gruppe konnte nicht geladen werden."
+    return 1
+  fi
+
+  if [[ -s "$err_file" ]]; then
+    err_line="$(head -1 "$err_file")"
+    if [[ "$err_line" == ERROR:* ]]; then
+      http_code="${err_line#ERROR:}"
+      http_code="${http_code%%|*}"
+      sed 's/^/    /' "$err_file" >&2
+      rm -f "$out_file" "$err_file"
+      log_error "GitLab-Gruppe nicht erreichbar (HTTP ${http_code:-?})."
+      return 1
+    fi
+  fi
+
+  GITLAB_PROJECT_NAME=()
+  GITLAB_PROJECT_URL=()
+  while IFS='|' read -r name url; do
+    [[ -z "$name" || -z "$url" ]] && continue
+    GITLAB_PROJECT_NAME+=("$name")
+    GITLAB_PROJECT_URL+=("$url")
+  done < "$out_file"
+
+  rm -f "$out_file" "$err_file"
+  GITLAB_CACHE_KEY="$cache_key"
+
+  if [[ ${#GITLAB_PROJECT_NAME[@]} -eq 0 ]]; then
+    log_info "GitLab-Gruppe enthält keine Projekte (oder kein Lesezugriff)."
+  fi
+
+  return 0
+}
+
+discover_gitlab_group_repos() {
+  local do_fetch="${1:-false}" i
+
+  [[ -z "$CFG_GITLAB_GROUP_URL" ]] && return 0
+
+  if [[ ${#GITLAB_PROJECT_NAME[@]} -eq 0 ]]; then
+    gitlab_load_group_projects "$CFG_GITLAB_GROUP_URL" "${CFG_GITLAB_TOKEN:-${GITLAB_TOKEN:-}}" || return 0
+  fi
+
+  for i in "${!GITLAB_PROJECT_NAME[@]}"; do
+    add_repo_entry \
+      "${GITLAB_PROJECT_NAME[$i]}" \
+      "${REPOS_DIR}/${GITLAB_PROJECT_NAME[$i]}" \
+      "${GITLAB_PROJECT_URL[$i]}" \
+      "$do_fetch"
+  done
+}
+
+prompt_gitlab_group() {
+  local default_group gitlab_default="n"
+
+  default_group="$(read_repos_conf_directive "gitlab-group")"
+  [[ -n "$default_group" ]] && gitlab_default="y"
+
+  if ! ask_yes_no "Repositories aus GitLab-Gruppe laden?" "$gitlab_default"; then
+    return 0
+  fi
+
+  CFG_GITLAB_GROUP_URL="$(ask_input "GitLab-Gruppen-URL (URL der Gruppe im Browser)" "${default_group}")"
+  if [[ -z "$CFG_GITLAB_GROUP_URL" ]]; then
+    log_error "Keine GitLab-Gruppen-URL — übersprungen."
+    return 0
+  fi
+
+  CFG_GITLAB_TOKEN="${GITLAB_TOKEN:-}"
+
+  if ! gitlab_load_group_projects "$CFG_GITLAB_GROUP_URL" "$CFG_GITLAB_TOKEN"; then
+    if ask_yes_no "GitLab-Zugang erfordert ggf. Token — Personal Access Token eingeben?" "y"; then
+      CFG_GITLAB_TOKEN="$(ask_secret "GitLab Token (Scope: read_api)")"
+      gitlab_load_group_projects "$CFG_GITLAB_GROUP_URL" "$CFG_GITLAB_TOKEN" || {
+        log_error "GitLab-Gruppe konnte nicht geladen werden."
+        return 1
+      }
+    else
+      log_info "GitLab-Gruppe übersprungen."
+      CFG_GITLAB_GROUP_URL=""
+      return 0
+    fi
+  fi
+
+  if [[ ${#GITLAB_PROJECT_NAME[@]} -gt 0 ]]; then
+    log_success "${#GITLAB_PROJECT_NAME[@]} Repositories in GitLab-Gruppe gefunden."
+  else
+    log_info "Keine Repositories in der Gruppe gefunden."
+  fi
+}
 
 get_repo_git_status() {
   local repo_path="$1" do_fetch="${2:-false}"
@@ -499,6 +707,8 @@ discover_git_repos() {
   local do_fetch="${1:-false}"
   REPO_NAME=() REPO_PATH=() REPO_URL=() REPO_BRANCH=() REPO_STATUS=()
 
+  discover_gitlab_group_repos "$do_fetch"
+
   while IFS= read -r git_dir; do
     add_repo_entry "$(basename "$(dirname "$git_dir")")" "$(dirname "$git_dir")" "" "$do_fetch"
   done < <(find "$REPOS_DIR" -maxdepth 3 -name .git -type d 2>/dev/null | sort)
@@ -507,6 +717,7 @@ discover_git_repos() {
     while IFS='|' read -r name url target || [[ -n "$name" ]]; do
       [[ -z "$name" || "$name" =~ ^[[:space:]]*# ]] && continue
       name="$(echo "$name" | xargs)"
+      [[ "$name" == @* ]] && continue
       url="$(echo "$url" | xargs)"
       target="$(echo "${target:-}" | xargs)"
       [[ -z "$name" || -z "$url" ]] && continue
@@ -542,15 +753,23 @@ select_repos_interactive() {
 
   if [[ ${#REPO_NAME[@]} -eq 0 ]]; then
     log_info "Keine Git-Repositories gefunden."
-    if ask_yes_no "Repository manuell hinzufügen?" "n"; then
-      local name url target
-      name="$(ask_input "Repository-Name")"
-      url="$(ask_input "Git-URL")"
-      target="$(ask_input "Zielpfad" "${REPOS_DIR}/${name}")"
-      add_repo_entry "$name" "$target" "$url" false
-    else
-      CFG_SYNC_REPOS=false
-      return 0
+    if ask_yes_no "GitLab-Gruppe laden oder Repository manuell hinzufügen?" "y"; then
+      if ask_yes_no "GitLab-Gruppe laden?" "y"; then
+        prompt_gitlab_group
+        discover_git_repos false
+      fi
+    fi
+    if [[ ${#REPO_NAME[@]} -eq 0 ]]; then
+      if ask_yes_no "Einzelnes Repository manuell hinzufügen?" "n"; then
+        local name url target
+        name="$(ask_input "Repository-Name")"
+        url="$(ask_input "Git-URL")"
+        target="$(ask_input "Zielpfad" "${REPOS_DIR}/${name}")"
+        add_repo_entry "$name" "$target" "$url" false
+      else
+        CFG_SYNC_REPOS=false
+        return 0
+      fi
     fi
   fi
 
@@ -663,8 +882,9 @@ run_questionnaire() {
   log_success "Persönliche Daten erfasst."
 
   # --- 3/5 Git-Repos ---
-  section_header "q_repos" "📁 Frage 3/5 · Git-Repositories" "Welche Repositories sollen synchronisiert werden?"
+  section_header "q_repos" "📁 Frage 3/5 · Git-Repositories" "GitLab-Gruppe laden und Repositories auswählen."
   log_info "${ICON_WORKSPACE} Repos-Ordner: ${REPOS_DIR} (wird bei Installation angelegt)"
+  prompt_gitlab_group
   select_repos_interactive
   if [[ "$CFG_SYNC_REPOS" == true ]]; then
     log_success "${#SELECTED_REPO_INDICES[@]} Repository/Repositories ausgewählt."
@@ -724,6 +944,7 @@ run_questionnaire() {
     echo -e "  🪪 ${DIM}B-Nummer:${NC}     ${CFG_B_NUMBER}"
   fi
   echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SELECTED_REPO_INDICES[@]} ausgewählt" || echo "übersprungen")"
+  [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
   echo -e "  ${ICON_NODE} ${DIM}NVM/Node:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION})" || echo "nein")"
   echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
