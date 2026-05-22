@@ -1043,6 +1043,28 @@ EOF
   log_info "Ordner-Icons & Git-Symbole erscheinen mit MesloLGS NF im Coder-Terminal."
 }
 
+link_setup_scripts() {
+  local bin_dir="${HOME}/.local/bin"
+  local link_name="${bin_dir}/setup-dev-container"
+  local setup_link="${WORKSPACE_ROOT}/setup"
+
+  mkdir -p "$bin_dir"
+  ln -sf "${SCRIPT_DIR}/setup_dev_container.sh" "$link_name"
+
+  # ~/.local/bin in PATH (idempotent)
+  set_zshrc_block "${SETUP_MARKER}: path" 'export PATH="${HOME}/.local/bin:${PATH}"'
+
+  log_success "Befehl verlinkt: setup-dev-container → ${SCRIPT_DIR}/setup_dev_container.sh"
+
+  # Optional: /workspace/setup als Symlink — nur wenn Skript woanders liegt
+  if [[ "$SCRIPT_DIR" != "$setup_link" && "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" ]]; then
+    if [[ ! -e "$setup_link" ]]; then
+      ln -sfn "$SCRIPT_DIR" "$setup_link"
+      log_success "Symlink: ${setup_link} → ${SCRIPT_DIR}"
+    fi
+  fi
+}
+
 print_finish() {
   section_header "e_done" "🎉 Setup abgeschlossen!"
 
@@ -1057,6 +1079,7 @@ FINISH
   echo -e "${DIM}  ✍️  Setup-Skript by ${SETUP_AUTHOR} — bei Fragen gerne melden.${NC}"
   echo ""
   echo -e "${DIM}  Nächster Schritt:${NC}  ${ICON_SHELL} ${CYAN}${BOLD}exec zsh${NC}"
+  echo -e "${DIM}  Setup erneut starten:${NC}  ${CYAN}${BOLD}setup-dev-container${NC}"
   echo ""
 }
 
@@ -1073,6 +1096,7 @@ run_installation() {
   exec_install_tools
   exec_logins
   exec_install_terminal
+  link_setup_scripts
   print_finish
 }
 

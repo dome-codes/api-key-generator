@@ -50,9 +50,14 @@ mkdir -p /workspace/setup
 # Option B: per scp vom lokalen Rechner
 scp setup_dev_container.sh setup_dev_container.repos.conf user@coder-host:/workspace/setup/
 
-# Option C: aus GitLab/GitHub (nur Setup-Ordner klonen oder Raw-Dateien)
+# Option C: aus GitLab/GitHub klonen
 git clone <url-zum-setup-repo> /workspace/setup
+
+# Option D: Symlink statt Kopie (Setup liegt bereits in einem Repo unter repos/)
+ln -sfn /workspace/repos/dev-tools/setup /workspace/setup
 ```
+
+> **Symlink vs. Kopie:** Wenn die Skripte in einem Git-Repo unter `/workspace/repos/` liegen, reicht ein Symlink nach `/workspace/setup` — bei `git pull` im Quell-Repo sind die Skripte automatisch aktuell. Das Setup legt den Link ggf. selbst an.
 
 ### 2. Setup starten
 
@@ -61,6 +66,8 @@ cd /workspace/setup
 chmod +x setup_dev_container.sh
 ./setup_dev_container.sh
 ```
+
+Nach dem ersten Lauf steht der Befehl **`setup-dev-container`** global zur Verfügung (Symlink in `~/.local/bin/`).
 
 ### 3. Repositories
 
@@ -523,7 +530,14 @@ grep -A5 'setup_dev_container' ~/.zshrc
     └── settings.json                   # Terminal-Font (Meslo)
 ```
 
-Nach dem Setup in der Shell verfügbar: `$REPOS_DIR`, `$WORKSPACE_ROOT`
+Nach dem Setup in der Shell verfügbar: `$REPOS_DIR`, `$WORKSPACE_ROOT`, Befehl `setup-dev-container`
+
+### Symlinks im Überblick
+
+| Link | Ziel | Zweck |
+|------|------|--------|
+| `~/.local/bin/setup-dev-container` | `setup_dev_container.sh` | Setup jederzeit neu starten |
+| `/workspace/setup` → Quellordner | optional | Einheitlicher Pfad, kein Kopieren |
 
 ---
 
