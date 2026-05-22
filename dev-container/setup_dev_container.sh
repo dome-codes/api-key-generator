@@ -16,12 +16,35 @@ readonly SETUP_MARKER="setup_dev_container"
 readonly REPOS_CONF="${SCRIPT_DIR}/setup_dev_container.repos.conf"
 readonly SETUP_AUTHOR="Domenic Schumacher"
 
-# Container-Layout: Skripte nach /workspace/setup kopieren, Repos nach /workspace/repos
-readonly WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
+# Schreibbares Workspace-Root: /workspace nur wenn beschreibbar, sonst $HOME (/home/coder)
+resolve_workspace_root() {
+  if [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+    printf '%s' "$WORKSPACE_ROOT"
+    return 0
+  fi
+  if [[ -d /workspace && -w /workspace ]]; then
+    printf '/workspace'
+    return 0
+  fi
+  printf '%s' "$HOME"
+}
+
+resolve_repos_dir() {
+  if [[ -n "${REPOS_DIR:-}" ]]; then
+    printf '%s' "$REPOS_DIR"
+    return 0
+  fi
+  if [[ -n "${WORKSPACE_DIR:-}" ]]; then
+    printf '%s' "$WORKSPACE_DIR"
+    return 0
+  fi
+  printf '%s/repos' "$(resolve_workspace_root)"
+}
+
+readonly WORKSPACE_ROOT="$(resolve_workspace_root)"
 readonly DEFAULT_SETUP_DIR="${WORKSPACE_ROOT}/setup"
 readonly DEFAULT_REPOS_DIR="${WORKSPACE_ROOT}/repos"
-# REPOS_DIR = Zielordner für alle Git-Repositories (wird automatisch angelegt)
-readonly REPOS_DIR="${REPOS_DIR:-${WORKSPACE_DIR:-$DEFAULT_REPOS_DIR}}"
+readonly REPOS_DIR="$(resolve_repos_dir)"
 
 # Standard-Proxy im Coder/K8s-Cluster (Ubuntu)
 readonly DEFAULT_CLUSTER_PROXY="http://internet-proxy.internet-proxy.svc.cluster.local:3128"
@@ -360,15 +383,20 @@ ensure_repos_directory() {
     return 0
   fi
   log_info "${ICON_FOLDER} Lege Repos-Ordner an: ${REPOS_DIR}"
-  mkdir -p "$REPOS_DIR"
+  if ! mkdir -p "$REPOS_DIR" 2>/dev/null; then
+    log_error "Konnte ${REPOS_DIR} nicht anlegen (Permission denied)."
+    log_info "Tipp: REPOS_DIR setzen, z. B. export REPOS_DIR=\"\${HOME}/repos\""
+    return 1
+  fi
   log_success "Repos-Ordner bereit — geklonte Repositories landen hier."
 }
 
 ensure_setup_hint() {
-  if [[ "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" && "$SCRIPT_DIR" != "/workspace/setup" ]]; then
+  if [[ "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" ]]; then
     log_info "Skript liegt in: ${SCRIPT_DIR}"
-    log_info "Empfohlen im Container: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
+    log_info "Empfohlen: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
   fi
+  log_info "Repos-Ziel: ${REPOS_DIR} · Home: ${HOME}"
 }
 
 # ---------------------------------------------------------------------------
@@ -449,6 +477,7 @@ JSON
 
 declare -a REPO_NAME=() REPO_PATH=() REPO_URL=() REPO_BRANCH=() REPO_STATUS=()
 declare -a SELECTED_REPO_INDICES=() REPO_SELECTED=()
+declare -a SYNC_REPO_NAME=() SYNC_REPO_PATH=() SYNC_REPO_URL=()
 declare -a GITLAB_PROJECT_NAME=() GITLAB_PROJECT_URL=()
 GITLAB_CACHE_KEY=""
 
@@ -809,19 +838,34 @@ select_repos_interactive() {
 
   SELECTED_REPO_INDICES=()
   for i in "${!REPO_SELECTED[@]}"; do [[ "${REPO_SELECTED[$i]}" -eq 1 ]] && SELECTED_REPO_INDICES+=("$i"); done
+  finalize_sync_repo_list
   CFG_SYNC_REPOS=true
 }
 
-sync_single_repo() {
-  local idx="$1"
-  local name="${REPO_NAME[$idx]}" path="${REPO_PATH[$idx]}" url="${REPO_URL[$idx]}"
+finalize_sync_repo_list() {
+  SYNC_REPO_NAME=()
+  SYNC_REPO_PATH=()
+  SYNC_REPO_URL=()
+  local idx
+  for idx in "${SELECTED_REPO_INDICES[@]}"; do
+    [[ -z "${REPO_NAME[$idx]:-}" ]] && continue
+    SYNC_REPO_NAME+=("${REPO_NAME[$idx]}")
+    SYNC_REPO_PATH+=("${REPO_PATH[$idx]}")
+    SYNC_REPO_URL+=("${REPO_URL[$idx]:-}")
+  done
+}
+
+sync_single_repo_entry() {
+  local name="$1" path="$2" url="$3"
   local log_file; log_file="$(mktemp)"
 
   if [[ ! -d "${path}/.git" ]]; then
     [[ -z "$url" ]] && { log_error "${ICON_FOLDER} ${name}: keine URL – übersprungen."; rm -f "$log_file"; return 1; }
-    mkdir -p "$(dirname "$path")"
+    mkdir -p "$(dirname "$path")" 2>/dev/null || {
+      log_error "${name}: Zielordner ${path} nicht anlegbar."
+      rm -f "$log_file"; return 1
+    }
     if git clone --progress "$url" "$path" >"$log_file" 2>&1; then
-      REPO_STATUS[$idx]="$(get_repo_git_status "$path" true)"
       rm -f "$log_file"; return 0
     fi
     log_error "${name}: Clone fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
@@ -830,11 +874,15 @@ sync_single_repo() {
 
   if git -C "$path" pull --progress --ff-only >"$log_file" 2>&1 || \
      git -C "$path" pull --progress >"$log_file" 2>&1; then
-    REPO_STATUS[$idx]="$(get_repo_git_status "$path" true)"
     rm -f "$log_file"; return 0
   fi
   log_error "${name}: Pull fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
   rm -f "$log_file"; return 1
+}
+
+sync_single_repo() {
+  local idx="$1"
+  sync_single_repo_entry "${REPO_NAME[$idx]:-}" "${REPO_PATH[$idx]:-}" "${REPO_URL[$idx]:-}"
 }
 
 # ---------------------------------------------------------------------------
@@ -1058,21 +1106,21 @@ GREETING
 exec_sync_repos() {
   section_header "e_repos" "🔀 Installation · Git-Repositories syncen"
 
-  if [[ "$CFG_SYNC_REPOS" != true ]] || [[ ${#SELECTED_REPO_INDICES[@]} -eq 0 ]]; then
+  if [[ "$CFG_SYNC_REPOS" != true ]] || [[ ${#SYNC_REPO_NAME[@]} -eq 0 ]]; then
     log_info "Übersprungen."
     return 0
   fi
 
-  ensure_repos_directory
-  discover_git_repos true
-  local total="${#SELECTED_REPO_INDICES[@]}" current=0 ok=0 fail=0
+  ensure_repos_directory || return 1
+  local total="${#SYNC_REPO_NAME[@]}" current=0 ok=0 fail=0 i
 
-  for idx in "${SELECTED_REPO_INDICES[@]}"; do
+  for i in "${!SYNC_REPO_NAME[@]}"; do
     current=$((current + 1))
     local repo_icon="${ICON_PULL}"
-    [[ ! -d "${REPO_PATH[$idx]}/.git" ]] && repo_icon="${ICON_CLONE}"
-    draw_progress_bar "$current" "$((total + 1))" "${repo_icon} ${REPO_NAME[$idx]} …"
-    sync_single_repo "$idx" && ok=$((ok + 1)) || fail=$((fail + 1))
+    [[ ! -d "${SYNC_REPO_PATH[$i]}/.git" ]] && repo_icon="${ICON_CLONE}"
+    draw_progress_bar "$current" "$((total + 1))" "${repo_icon} ${SYNC_REPO_NAME[$i]} …"
+    sync_single_repo_entry "${SYNC_REPO_NAME[$i]}" "${SYNC_REPO_PATH[$i]}" "${SYNC_REPO_URL[$i]}" \
+      && ok=$((ok + 1)) || fail=$((fail + 1))
   done
 
   draw_progress_bar "$((total + 1))" "$((total + 1))" "Fertig!"
@@ -1277,9 +1325,9 @@ link_setup_scripts() {
 
   log_success "Befehl verlinkt: setup-dev-container → ${SCRIPT_DIR}/setup_dev_container.sh"
 
-  # Optional: /workspace/setup als Symlink — nur wenn Skript woanders liegt
+  # Optional: ~/setup als Symlink — nur wenn Skript woanders liegt
   if [[ "$SCRIPT_DIR" != "$setup_link" && "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" ]]; then
-    if [[ ! -e "$setup_link" ]]; then
+    if [[ ! -e "$setup_link" ]] && [[ -w "$(dirname "$setup_link")" ]]; then
       ln -sfn "$SCRIPT_DIR" "$setup_link"
       log_success "Symlink: ${setup_link} → ${SCRIPT_DIR}"
     fi

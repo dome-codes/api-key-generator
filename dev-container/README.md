@@ -54,51 +54,51 @@ Das interaktive Setup-Skript `setup_dev_container.sh` automatisiert die Ersteinr
 Entwickler kopieren den Inhalt aus dem Anhang in Dateien im Container:
 
 ```bash
-mkdir -p /workspace/setup
+mkdir -p ~/setup
 # Inhalt aus Confluence-Codeblock → Datei anlegen, z. B.:
 #   setup_dev_container.sh
 #   setup_dev_container.repos.conf
 #   setup_dev_container.p10k.zsh   (optional)
-chmod +x /workspace/setup/setup_dev_container.sh
+chmod +x ~/setup/setup_dev_container.sh
 ```
 
 Ziel im Container nach dem Kopieren:
 
 ```
-/workspace/setup/
+~/setup/
 ├── setup_dev_container.sh
 ├── setup_dev_container.repos.conf
 └── setup_dev_container.p10k.zsh   (optional)
 ```
 
-> **Hinweis:** Im Container liegen nur die **Skript-Dateien** unter `/workspace/setup/` — nicht der Confluence-Artikel selbst.
+> **Hinweis:** Im Container liegen nur die **Skript-Dateien** unter `~/setup/` — nicht der Confluence-Artikel selbst.
 
 ---
 
-Das Setup läuft **im Dev-Container**. Die Skripte werden einmalig in den Container nach `/workspace/setup/` gebracht:
+Das Setup läuft **im Dev-Container**. Die Skripte werden einmalig nach **`~/setup/`** gebracht (Standard: `/home/coder/setup`):
 
 ```bash
 # Option A: Ordner manuell anlegen und Dateien reinkopieren (Coder UI / Drag & Drop)
-mkdir -p /workspace/setup
-# → setup_dev_container.sh, setup_dev_container.repos.conf nach /workspace/setup/
+mkdir -p ~/setup
+# → setup_dev_container.sh, setup_dev_container.repos.conf nach ~/setup/
 #    (optional: setup_dev_container.p10k.zsh)
 
 # Option B: per scp vom lokalen Rechner
-scp setup_dev_container.sh setup_dev_container.repos.conf user@coder-host:/workspace/setup/
+scp setup_dev_container.sh setup_dev_container.repos.conf user@coder-host:~/setup/
 
 # Option C: aus GitLab/GitHub klonen
-git clone <url-zum-setup-repo> /workspace/setup
+git clone <url-zum-setup-repo> ~/setup
 
-# Option D: Symlink statt Kopie (Setup liegt bereits in einem Repo unter repos/)
-ln -sfn /workspace/repos/dev-tools/setup /workspace/setup
+# Option D: Symlink statt Kopie (Setup liegt bereits unter ~/repos/)
+ln -sfn ~/repos/dev-tools/setup ~/setup
 ```
 
-> **Symlink vs. Kopie:** Wenn die Skripte in einem Git-Repo unter `/workspace/repos/` liegen, reicht ein Symlink nach `/workspace/setup` — bei `git pull` im Quell-Repo sind die Skripte automatisch aktuell. Das Setup legt den Link ggf. selbst an.
+> **Symlink vs. Kopie:** Wenn die Skripte in einem Git-Repo unter `~/repos/` liegen, reicht ein Symlink nach `~/setup` — bei `git pull` im Quell-Repo sind die Skripte automatisch aktuell. Das Setup legt den Link ggf. selbst an.
 
 ### 2. Setup starten
 
 ```bash
-cd /workspace/setup
+cd ~/setup
 chmod +x setup_dev_container.sh
 ./setup_dev_container.sh
 ```
@@ -107,10 +107,10 @@ Nach dem ersten Lauf steht der Befehl **`setup-dev-container`** global zur Verf�
 
 ### 3. Repositories
 
-Das Skript legt automatisch **`/workspace/repos/`** an. Ausgewählte Git-Repositories werden dort **geklont** bzw. **gepullt**:
+Das Skript legt automatisch **`~/repos/`** an (Standard: `/home/coder/repos`). Ausgewählte Git-Repositories werden dort **geklont** bzw. **gepullt**:
 
 ```
-/workspace/
+~/
 ├── setup/                          ← Skripte (manuell kopiert)
 │   ├── setup_dev_container.sh
 │   ├── setup_dev_container.repos.conf
@@ -264,9 +264,9 @@ Alle Shell-Variablen werden in markierten Blöcken in `~/.zshrc` gespeichert und
 
 - **GitLab-Gruppe:** Gruppen-URL → alle Projekte per API laden (inkl. Untergruppen)
 - **Auswahl:** Interaktives Checkbox-Menü im Fragebogen
-- **Auto-Discovery:** Findet bestehende Repos unter `/workspace/repos/`
+- **Auto-Discovery:** Findet bestehende Repos unter `~/repos/`
 - **Konfiguration:** `@gitlab-group|URL` und optionale Einzelrepos in `setup_dev_container.repos.conf`
-- **Ordner:** `/workspace/repos/` wird bei Bedarf automatisch erstellt
+- **Ordner:** `~/repos/` wird bei Bedarf automatisch erstellt (Fallback: `$HOME/repos`, nicht `/workspace`)
 - **Clone oder Pull:** Fehlende Repos werden geklont, vorhandene aktualisiert
 - **Fortschritt:** Pro Repository mit Statusanzeige (Branch, ahead/behind)
 - **Token:** `GITLAB_TOKEN` für private Gruppen (Scope: `read_api`)
@@ -388,7 +388,7 @@ Im Wizard **Frage 3/5** eine GitLab-Gruppen-URL angeben — z. B. die URL aus de
 https://gitlab.company.com/deka/plattform
 ```
 
-Das Skript ruft die GitLab-API auf und listet **alle Projekte der Gruppe** (inkl. Untergruppen). Du wählst dann per Checkbox, welche Repos nach `/workspace/repos/` geklont werden sollen.
+Das Skript ruft die GitLab-API auf und listet **alle Projekte der Gruppe** (inkl. Untergruppen). Du wählst dann per Checkbox, welche Repos nach **`~/repos/`** geklont werden sollen.
 
 **Vorausgefüllte Gruppe** in `setup_dev_container.repos.conf`:
 
@@ -410,7 +410,7 @@ export GITLAB_TOKEN=glpat-...
 @gitlab-group|https://gitlab.company.com/deka/plattform
 
 # Optional: einzelne Repos zusätzlich
-# Format: NAME|GIT_URL|ZIELPFAD (optional, Standard: /workspace/repos/NAME)
+# Format: NAME|GIT_URL|ZIELPFAD (optional, Standard: ~/repos/NAME)
 mein-service|https://gitlab.company.com/team/mein-service.git
 frontend-app|https://gitlab.company.com/team/frontend-app.git
 ```
@@ -519,16 +519,16 @@ Das Skript kann **mehrfach** ausgeführt werden:
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `GITLAB_TOKEN` | — | Personal Access Token für private GitLab-Gruppen (`read_api`) |
-| `REPOS_DIR` | `/workspace/repos` | Zielordner für alle Git-Repositories |
-| `WORKSPACE_ROOT` | `/workspace` | Container-Workspace-Root |
+| `REPOS_DIR` | `$HOME/repos` | Zielordner für Git-Repositories (z. B. `/home/coder/repos`) |
+| `WORKSPACE_ROOT` | `$HOME` | Workspace-Root (nur `/workspace` wenn beschreibbar) |
 | `WORKSPACE_DIR` | *(deprecated)* | Alias für `REPOS_DIR` (Abwärtskompatibilität) |
 | `NO_PROXY` | `localhost,127.0.0.1,::1,.svc.cluster.local,.cluster.local` | Bypass-Liste für Proxy |
 
 Beispiel:
 
 ```bash
-export REPOS_DIR=/workspace/repos
-cd /workspace/setup && ./setup_dev_container.sh
+export REPOS_DIR="${HOME}/repos"
+cd ~/setup && ./setup_dev_container.sh
 ```
 
 ---
@@ -595,7 +595,7 @@ grep -A5 'setup_dev_container' ~/.zshrc
 ## Dateistruktur im Container
 
 ```
-/workspace/
+/home/coder/                          # $HOME (Standard in Coder)
 ├── setup/                              # Skripte (einmalig reinkopieren)
 │   ├── setup_dev_container.sh
 │   ├── setup_dev_container.repos.conf
@@ -614,13 +614,13 @@ Nach dem Setup in der Shell verfügbar: `$REPOS_DIR`, `$WORKSPACE_ROOT`, Befehl 
 | Link | Ziel | Zweck |
 |------|------|--------|
 | `~/.local/bin/setup-dev-container` | `setup_dev_container.sh` | Setup jederzeit neu starten |
-| `/workspace/setup` → Quellordner | optional | Einheitlicher Pfad, kein Kopieren |
+| `~/setup` → Quellordner | optional | Einheitlicher Pfad, kein Kopieren |
 
 ---
 
 ## Anhang: Setup-Dateien (Quelltext)
 
-> **Confluence:** Die folgenden Abschnitte enthalten die **vollständigen Dateien**. Beim Übernehmen in Confluence jeden Block als eigenen Code-Block oder Expand-Makro einfügen. Entwickler kopieren den Inhalt nach `/workspace/setup/`.
+> **Confluence:** Die folgenden Abschnitte enthalten die **vollständigen Dateien**. Entwickler kopieren den Inhalt nach `~/setup/`.
 
 | Abschnitt | Dateiname | Pflicht? |
 |-----------|-----------|----------|
@@ -629,8 +629,6 @@ Nach dem Setup in der Shell verfügbar: `$REPOS_DIR`, `$WORKSPACE_ROOT`, Befehl 
 | [setup_dev_container.p10k.zsh](#setup_dev_containerp10kzsh-optional) | `setup_dev_container.p10k.zsh` | Optional |
 
 ### setup_dev_container.sh
-
-Hauptskript — nach `/workspace/setup/setup_dev_container.sh` kopieren, dann `chmod +x`.
 
 ```bash
 #!/usr/bin/env bash
@@ -651,12 +649,35 @@ readonly SETUP_MARKER="setup_dev_container"
 readonly REPOS_CONF="${SCRIPT_DIR}/setup_dev_container.repos.conf"
 readonly SETUP_AUTHOR="Domenic Schumacher"
 
-# Container-Layout: Skripte nach /workspace/setup kopieren, Repos nach /workspace/repos
-readonly WORKSPACE_ROOT="${WORKSPACE_ROOT:-/workspace}"
+# Schreibbares Workspace-Root: /workspace nur wenn beschreibbar, sonst $HOME (/home/coder)
+resolve_workspace_root() {
+  if [[ -n "${WORKSPACE_ROOT:-}" ]]; then
+    printf '%s' "$WORKSPACE_ROOT"
+    return 0
+  fi
+  if [[ -d /workspace && -w /workspace ]]; then
+    printf '/workspace'
+    return 0
+  fi
+  printf '%s' "$HOME"
+}
+
+resolve_repos_dir() {
+  if [[ -n "${REPOS_DIR:-}" ]]; then
+    printf '%s' "$REPOS_DIR"
+    return 0
+  fi
+  if [[ -n "${WORKSPACE_DIR:-}" ]]; then
+    printf '%s' "$WORKSPACE_DIR"
+    return 0
+  fi
+  printf '%s/repos' "$(resolve_workspace_root)"
+}
+
+readonly WORKSPACE_ROOT="$(resolve_workspace_root)"
 readonly DEFAULT_SETUP_DIR="${WORKSPACE_ROOT}/setup"
 readonly DEFAULT_REPOS_DIR="${WORKSPACE_ROOT}/repos"
-# REPOS_DIR = Zielordner für alle Git-Repositories (wird automatisch angelegt)
-readonly REPOS_DIR="${REPOS_DIR:-${WORKSPACE_DIR:-$DEFAULT_REPOS_DIR}}"
+readonly REPOS_DIR="$(resolve_repos_dir)"
 
 # Standard-Proxy im Coder/K8s-Cluster (Ubuntu)
 readonly DEFAULT_CLUSTER_PROXY="http://internet-proxy.internet-proxy.svc.cluster.local:3128"
@@ -995,15 +1016,20 @@ ensure_repos_directory() {
     return 0
   fi
   log_info "${ICON_FOLDER} Lege Repos-Ordner an: ${REPOS_DIR}"
-  mkdir -p "$REPOS_DIR"
+  if ! mkdir -p "$REPOS_DIR" 2>/dev/null; then
+    log_error "Konnte ${REPOS_DIR} nicht anlegen (Permission denied)."
+    log_info "Tipp: REPOS_DIR setzen, z. B. export REPOS_DIR=\"\${HOME}/repos\""
+    return 1
+  fi
   log_success "Repos-Ordner bereit — geklonte Repositories landen hier."
 }
 
 ensure_setup_hint() {
-  if [[ "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" && "$SCRIPT_DIR" != "/workspace/setup" ]]; then
+  if [[ "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" ]]; then
     log_info "Skript liegt in: ${SCRIPT_DIR}"
-    log_info "Empfohlen im Container: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
+    log_info "Empfohlen: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
   fi
+  log_info "Repos-Ziel: ${REPOS_DIR} · Home: ${HOME}"
 }
 
 # ---------------------------------------------------------------------------
@@ -1084,6 +1110,7 @@ JSON
 
 declare -a REPO_NAME=() REPO_PATH=() REPO_URL=() REPO_BRANCH=() REPO_STATUS=()
 declare -a SELECTED_REPO_INDICES=() REPO_SELECTED=()
+declare -a SYNC_REPO_NAME=() SYNC_REPO_PATH=() SYNC_REPO_URL=()
 declare -a GITLAB_PROJECT_NAME=() GITLAB_PROJECT_URL=()
 GITLAB_CACHE_KEY=""
 
@@ -1444,19 +1471,34 @@ select_repos_interactive() {
 
   SELECTED_REPO_INDICES=()
   for i in "${!REPO_SELECTED[@]}"; do [[ "${REPO_SELECTED[$i]}" -eq 1 ]] && SELECTED_REPO_INDICES+=("$i"); done
+  finalize_sync_repo_list
   CFG_SYNC_REPOS=true
 }
 
-sync_single_repo() {
-  local idx="$1"
-  local name="${REPO_NAME[$idx]}" path="${REPO_PATH[$idx]}" url="${REPO_URL[$idx]}"
+finalize_sync_repo_list() {
+  SYNC_REPO_NAME=()
+  SYNC_REPO_PATH=()
+  SYNC_REPO_URL=()
+  local idx
+  for idx in "${SELECTED_REPO_INDICES[@]}"; do
+    [[ -z "${REPO_NAME[$idx]:-}" ]] && continue
+    SYNC_REPO_NAME+=("${REPO_NAME[$idx]}")
+    SYNC_REPO_PATH+=("${REPO_PATH[$idx]}")
+    SYNC_REPO_URL+=("${REPO_URL[$idx]:-}")
+  done
+}
+
+sync_single_repo_entry() {
+  local name="$1" path="$2" url="$3"
   local log_file; log_file="$(mktemp)"
 
   if [[ ! -d "${path}/.git" ]]; then
     [[ -z "$url" ]] && { log_error "${ICON_FOLDER} ${name}: keine URL – übersprungen."; rm -f "$log_file"; return 1; }
-    mkdir -p "$(dirname "$path")"
+    mkdir -p "$(dirname "$path")" 2>/dev/null || {
+      log_error "${name}: Zielordner ${path} nicht anlegbar."
+      rm -f "$log_file"; return 1
+    }
     if git clone --progress "$url" "$path" >"$log_file" 2>&1; then
-      REPO_STATUS[$idx]="$(get_repo_git_status "$path" true)"
       rm -f "$log_file"; return 0
     fi
     log_error "${name}: Clone fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
@@ -1465,11 +1507,15 @@ sync_single_repo() {
 
   if git -C "$path" pull --progress --ff-only >"$log_file" 2>&1 || \
      git -C "$path" pull --progress >"$log_file" 2>&1; then
-    REPO_STATUS[$idx]="$(get_repo_git_status "$path" true)"
     rm -f "$log_file"; return 0
   fi
   log_error "${name}: Pull fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
   rm -f "$log_file"; return 1
+}
+
+sync_single_repo() {
+  local idx="$1"
+  sync_single_repo_entry "${REPO_NAME[$idx]:-}" "${REPO_PATH[$idx]:-}" "${REPO_URL[$idx]:-}"
 }
 
 # ---------------------------------------------------------------------------
@@ -1693,21 +1739,21 @@ GREETING
 exec_sync_repos() {
   section_header "e_repos" "🔀 Installation · Git-Repositories syncen"
 
-  if [[ "$CFG_SYNC_REPOS" != true ]] || [[ ${#SELECTED_REPO_INDICES[@]} -eq 0 ]]; then
+  if [[ "$CFG_SYNC_REPOS" != true ]] || [[ ${#SYNC_REPO_NAME[@]} -eq 0 ]]; then
     log_info "Übersprungen."
     return 0
   fi
 
-  ensure_repos_directory
-  discover_git_repos true
-  local total="${#SELECTED_REPO_INDICES[@]}" current=0 ok=0 fail=0
+  ensure_repos_directory || return 1
+  local total="${#SYNC_REPO_NAME[@]}" current=0 ok=0 fail=0 i
 
-  for idx in "${SELECTED_REPO_INDICES[@]}"; do
+  for i in "${!SYNC_REPO_NAME[@]}"; do
     current=$((current + 1))
     local repo_icon="${ICON_PULL}"
-    [[ ! -d "${REPO_PATH[$idx]}/.git" ]] && repo_icon="${ICON_CLONE}"
-    draw_progress_bar "$current" "$((total + 1))" "${repo_icon} ${REPO_NAME[$idx]} …"
-    sync_single_repo "$idx" && ok=$((ok + 1)) || fail=$((fail + 1))
+    [[ ! -d "${SYNC_REPO_PATH[$i]}/.git" ]] && repo_icon="${ICON_CLONE}"
+    draw_progress_bar "$current" "$((total + 1))" "${repo_icon} ${SYNC_REPO_NAME[$i]} …"
+    sync_single_repo_entry "${SYNC_REPO_NAME[$i]}" "${SYNC_REPO_PATH[$i]}" "${SYNC_REPO_URL[$i]}" \
+      && ok=$((ok + 1)) || fail=$((fail + 1))
   done
 
   draw_progress_bar "$((total + 1))" "$((total + 1))" "Fertig!"
@@ -1912,9 +1958,9 @@ link_setup_scripts() {
 
   log_success "Befehl verlinkt: setup-dev-container → ${SCRIPT_DIR}/setup_dev_container.sh"
 
-  # Optional: /workspace/setup als Symlink — nur wenn Skript woanders liegt
+  # Optional: ~/setup als Symlink — nur wenn Skript woanders liegt
   if [[ "$SCRIPT_DIR" != "$setup_link" && "$SCRIPT_DIR" != "$DEFAULT_SETUP_DIR" ]]; then
-    if [[ ! -e "$setup_link" ]]; then
+    if [[ ! -e "$setup_link" ]] && [[ -w "$(dirname "$setup_link")" ]]; then
       ln -sfn "$SCRIPT_DIR" "$setup_link"
       log_success "Symlink: ${setup_link} → ${SCRIPT_DIR}"
     fi
@@ -1969,8 +2015,6 @@ main "$@"
 
 ### setup_dev_container.repos.conf
 
-Repository-Vorlage — GitLab-Gruppe und optionale Einzelrepos, nach `/workspace/setup/setup_dev_container.repos.conf` kopieren.
-
 ```ini
 # Git-Repositories für setup_dev_container.sh
 #
@@ -1988,16 +2032,13 @@ Repository-Vorlage — GitLab-Gruppe und optionale Einzelrepos, nach `/workspace
 # mein-service|https://gitlab.company.com/team/mein-service.git
 # frontend-app|https://gitlab.company.com/team/frontend-app.git
 #
-# Geklonte Repositories landen standardmäßig unter /workspace/repos/
+# Geklonte Repositories landen standardmäßig unter ~/repos (z. B. /home/coder/repos)
 ```
 
 ### setup_dev_container.p10k.zsh (optional)
 
-> **Nur bei eigenem Theme.** Standardmäßig installiert das Skript das offizielle **P10k-Lean-Preset** automatisch — dieser Abschnitt kann leer bleiben oder entfallen.
-
 ```zsh
 # Optional: eigenes Powerlevel10k-Theme hier einfügen.
-# Datei nach /workspace/setup/setup_dev_container.p10k.zsh kopieren.
 ```
 
 
