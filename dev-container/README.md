@@ -661,7 +661,7 @@ dev-container/                    # api-key-generator (Branch feature/coder-dev-
 # --- Einzelne Repos (optional, zusätzlich zur Gruppe) ---
 # Format: NAME|GIT_URL|ZIELPFAD (ZIELPFAD optional, Standard: /workspace/repos/NAME)
 #
-# mein-service|https://repo.dk.de/gruppe/mein-service.git
+# mein-service|https://repo.deka.de/gruppe/mein-service.git
 # frontend-app|https://gitlab.company.com/team/frontend-app.git
 #
 # Geklonte Repositories landen standardmäßig unter ~/repos (z. B. /home/coder/repos)

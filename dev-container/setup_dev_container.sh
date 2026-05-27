@@ -50,7 +50,7 @@ readonly REPOS_DIR="$(resolve_repos_dir)"
 readonly DEFAULT_CLUSTER_PROXY="http://internet-proxy.internet-proxy.svc.cluster.local:3128"
 readonly DEFAULT_NO_PROXY="localhost,127.0.0.1,::1,.svc.cluster.local,.cluster.local"
 readonly DEFAULT_DOCKER_REGISTRY="deka.jfrog.io"
-readonly EXAMPLE_GIT_URL="https://repo.dk.de/gruppe/mein-service.git"
+readonly EXAMPLE_GIT_URL="https://repo.deka.de/gruppe/mein-service.git"
 
 # Roadmap: alle Schritte im Skript
 readonly -a ROADMAP_KEYS=(
