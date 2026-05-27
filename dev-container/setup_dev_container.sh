@@ -50,6 +50,7 @@ readonly REPOS_DIR="$(resolve_repos_dir)"
 readonly DEFAULT_CLUSTER_PROXY="http://internet-proxy.internet-proxy.svc.cluster.local:3128"
 readonly DEFAULT_NO_PROXY="localhost,127.0.0.1,::1,.svc.cluster.local,.cluster.local"
 readonly DEFAULT_DOCKER_REGISTRY="deka.jfrog.io"
+readonly EXAMPLE_GIT_URL="https://repo.dk.de/gruppe/mein-service.git"
 
 # Roadmap: alle Schritte im Skript
 readonly -a ROADMAP_KEYS=(
@@ -92,6 +93,8 @@ readonly ICON_PULL="⬇️"
 readonly ICON_SHELL="🖥️"
 readonly ICON_DOCKER="🐳"
 readonly ICON_CLOUD="☁️"
+readonly ICON_JAVA="☕"
+readonly ICON_GRADLE="🐘"
 
 CURRENT_ROADMAP_KEY=""
 
@@ -108,6 +111,9 @@ CFG_INSTALL_NVM=false
 CFG_NODE_VERSION="lts"
 CFG_INSTALL_PYTHON=false
 CFG_INSTALL_PNPM=false
+CFG_INSTALL_JAVA=false
+CFG_JAVA_VERSION="21"
+CFG_INSTALL_GRADLE=false
 CFG_SYNC_REPOS=false
 CFG_GITLAB_GROUP_URL=""
 CFG_GITLAB_TOKEN=""
@@ -116,6 +122,14 @@ CFG_DOCKER_REGISTRY=""
 CFG_DOCKER_USER=""
 CFG_DOCKER_TOKEN=""
 CFG_CLOUDCTL_LOGIN=false
+
+# Erkennung aus Repo-Dateien (nach Auswahl / vorhandene Klone)
+DETECT_NODE=false
+DETECT_PYTHON=false
+DETECT_JAVA=false
+DETECT_GRADLE=false
+DETECT_PNPM=false
+DETECT_GRADLE_WRAPPER=false
 
 # ---------------------------------------------------------------------------
 # Farben & Logging
@@ -325,6 +339,137 @@ ask_secret() {
     [[ -n "$secret" ]] && { printf '%s' "$secret"; return 0; }
     log_error "Eingabe darf nicht leer sein."
   done
+}
+
+ask_git_url() {
+  log_info "Beispiel-URL: ${EXAMPLE_GIT_URL}"
+  ask_input "Git-URL"
+}
+
+default_docker_username() {
+  if [[ "$CFG_NUMBER_TYPE" == "e" && -n "${CFG_E_NUMBER:-}" ]]; then
+    printf '%s' "$CFG_E_NUMBER"
+  elif [[ -n "${CFG_B_NUMBER:-}" ]]; then
+    printf '%s' "$CFG_B_NUMBER"
+  else
+    printf '%s' "${CFG_E_NUMBER:-${CFG_B_NUMBER:-}}"
+  fi
+}
+
+scan_repo_path_for_tooling() {
+  local path="$1" repo_name="${2:-$(basename "$path")}"
+
+  [[ -z "$path" || ! -d "$path" ]] && return 0
+
+  if [[ -f "$path/package.json" ]]; then
+    DETECT_NODE=true
+    log_info "${ICON_FOLDER} ${repo_name}: package.json → Node.js"
+    if [[ -f "$path/.nvmrc" ]]; then
+      CFG_NODE_VERSION="$(sed 's/^[[:space:]]*v\?//' "$path/.nvmrc" | head -1 | tr -d '[:space:]')"
+      log_info "  → .nvmrc: Node ${CFG_NODE_VERSION}"
+    fi
+    [[ -f "$path/pnpm-lock.yaml" || -f "$path/pnpm-workspace.yaml" ]] && {
+      DETECT_PNPM=true
+      log_info "  → pnpm-lock/workspace → pnpm"
+    }
+  fi
+
+  if [[ -f "$path/requirements.txt" || -f "$path/pyproject.toml" || -f "$path/setup.py" || -f "$path/Pipfile" ]]; then
+    DETECT_PYTHON=true
+    log_info "${ICON_FOLDER} ${repo_name}: Python-Projekt erkannt"
+  fi
+
+  if [[ -f "$path/pom.xml" || -f "$path/build.gradle" || -f "$path/build.gradle.kts" ]]; then
+    DETECT_JAVA=true
+    log_info "${ICON_FOLDER} ${repo_name}: Java-Build (Maven/Gradle) → JDK"
+  fi
+
+  if [[ -f "$path/gradlew" ]]; then
+    DETECT_JAVA=true
+    DETECT_GRADLE_WRAPPER=true
+    log_info "${ICON_FOLDER} ${repo_name}: gradlew vorhanden → JDK (Gradle Wrapper reicht)"
+  elif [[ -f "$path/build.gradle" || -f "$path/build.gradle.kts" ]]; then
+    DETECT_JAVA=true
+    DETECT_GRADLE=true
+    log_info "${ICON_FOLDER} ${repo_name}: Gradle-Build ohne Wrapper → Gradle-CLI empfohlen"
+  fi
+}
+
+detect_selected_repo_tooling() {
+  local path name
+
+  DETECT_NODE=false
+  DETECT_PYTHON=false
+  DETECT_JAVA=false
+  DETECT_GRADLE=false
+  DETECT_PNPM=false
+  DETECT_GRADLE_WRAPPER=false
+
+  if [[ ${#SYNC_REPO_PATH[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  echo ""
+  log_info "Analysiere ausgewählte Repositories auf Tooling …"
+  for path in "${SYNC_REPO_PATH[@]}"; do
+    name="$(basename "$path")"
+    scan_repo_path_for_tooling "$path" "$name"
+  done
+
+  if [[ "$DETECT_NODE" != true && "$DETECT_PYTHON" != true && "$DETECT_JAVA" != true ]]; then
+    log_info "Noch keine Klone unter ${REPOS_DIR} — volle Erkennung nach dem Sync in Phase 2 möglich."
+  fi
+}
+
+prompt_tools_from_repo_detection() {
+  detect_selected_repo_tooling
+
+  if [[ "$DETECT_NODE" != true && "$DETECT_PYTHON" != true && "$DETECT_JAVA" != true && "$DETECT_PNPM" != true ]]; then
+    return 0
+  fi
+
+  echo ""
+  log_info "Vorschläge aus Repo-Analyse (j/n bestätigen):"
+  echo ""
+
+  if [[ "$DETECT_NODE" == true ]]; then
+    echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC} (erkannt)"
+    if ask_yes_no "NVM & Node.js installieren?" "j"; then
+      CFG_INSTALL_NVM=true
+      CFG_NODE_VERSION="$(ask_input "Node.js-Version" "${CFG_NODE_VERSION:-lts}")"
+    fi
+    echo ""
+  fi
+
+  if [[ "$DETECT_PNPM" == true ]]; then
+    echo -e "${BOLD}  ${ICON_PNPM} pnpm${NC} (erkannt)"
+    ask_yes_no "pnpm installieren?" "j" && CFG_INSTALL_PNPM=true
+    echo ""
+  fi
+
+  if [[ "$DETECT_PYTHON" == true ]]; then
+    echo -e "${BOLD}  ${ICON_PYTHON} Python${NC} (erkannt)"
+    ask_yes_no "Python (pip, venv) installieren?" "j" && CFG_INSTALL_PYTHON=true
+    echo ""
+  fi
+
+  if [[ "$DETECT_JAVA" == true ]]; then
+    echo -e "${BOLD}  ${ICON_JAVA} Java (OpenJDK)${NC} (erkannt)"
+    if ask_yes_no "OpenJDK installieren?" "j"; then
+      CFG_INSTALL_JAVA=true
+      CFG_JAVA_VERSION="$(ask_input "Java-Version (Major)" "${CFG_JAVA_VERSION:-21}")"
+    fi
+    echo ""
+  fi
+
+  if [[ "$DETECT_GRADLE" == true && "$DETECT_GRADLE_WRAPPER" != true ]]; then
+    echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC} (erkannt, kein gradlew)"
+    ask_yes_no "Gradle (apt) installieren?" "j" && CFG_INSTALL_GRADLE=true
+    echo ""
+  elif [[ "$DETECT_GRADLE_WRAPPER" == true ]]; then
+    log_info "${ICON_GRADLE} gradlew in Repos — separates Gradle-Paket meist nicht nötig."
+    echo ""
+  fi
 }
 
 remove_zshrc_block() {
@@ -792,7 +937,7 @@ select_repos_interactive() {
       if ask_yes_no "Einzelnes Repository manuell hinzufügen?" "n"; then
         local name url target
         name="$(ask_input "Repository-Name")"
-        url="$(ask_input "Git-URL")"
+        url="$(ask_git_url)"
         target="$(ask_input "Zielpfad" "${REPOS_DIR}/${name}")"
         add_repo_entry "$name" "$target" "$url" false
       else
@@ -850,7 +995,7 @@ finalize_sync_repo_list() {
   for idx in "${SELECTED_REPO_INDICES[@]}"; do
     [[ -z "${REPO_NAME[$idx]:-}" ]] && continue
     SYNC_REPO_NAME+=("${REPO_NAME[$idx]}")
-    SYNC_REPO_PATH+=("${REPO_PATH[$idx]}")
+    SYNC_REPO_PATH+=("${REPO_PATH[$idx]:-}")
     SYNC_REPO_URL+=("${REPO_URL[$idx]:-}")
   done
 }
@@ -935,25 +1080,48 @@ run_questionnaire() {
   prompt_gitlab_group
   select_repos_interactive
   if [[ "$CFG_SYNC_REPOS" == true ]]; then
-    log_success "${#SELECTED_REPO_INDICES[@]} Repository/Repositories ausgewählt."
+    log_success "${#SYNC_REPO_NAME[@]} Repository/Repositories ausgewählt."
   else
     log_info "Repository-Sync wird übersprungen."
   fi
 
   # --- 4/5 Optionale Tools ---
-  section_header "q_tools" "🛠️  Frage 4/5 · Optionale Tools" "Was soll installiert werden?"
+  section_header "q_tools" "🛠️  Frage 4/5 · Optionale Tools" "Automatische Erkennung aus Repos + manuelle Auswahl."
+  prompt_tools_from_repo_detection
   echo ""
-  echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
-  if ask_yes_no "NVM & Node.js installieren?" "n"; then
-    CFG_INSTALL_NVM=true
-    CFG_NODE_VERSION="$(ask_input "Node.js-Version" "lts")"
+  log_info "Weitere Tools manuell hinzufügen (falls nicht erkannt):"
+  echo ""
+  if [[ "$CFG_INSTALL_NVM" != true ]]; then
+    echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
+    if ask_yes_no "NVM & Node.js installieren?" "n"; then
+      CFG_INSTALL_NVM=true
+      CFG_NODE_VERSION="$(ask_input "Node.js-Version" "lts")"
+    fi
+    echo ""
   fi
-  echo ""
-  echo -e "${BOLD}  ${ICON_PYTHON} Python${NC}"
-  ask_yes_no "Python (und pip) installieren?" "n" && CFG_INSTALL_PYTHON=true
-  echo ""
-  echo -e "${BOLD}  ${ICON_PNPM} pnpm${NC}"
-  ask_yes_no "pnpm installieren?" "n" && CFG_INSTALL_PNPM=true
+  if [[ "$CFG_INSTALL_PYTHON" != true ]]; then
+    echo -e "${BOLD}  ${ICON_PYTHON} Python${NC}"
+    ask_yes_no "Python (und pip) installieren?" "n" && CFG_INSTALL_PYTHON=true
+    echo ""
+  fi
+  if [[ "$CFG_INSTALL_PNPM" != true ]]; then
+    echo -e "${BOLD}  ${ICON_PNPM} pnpm${NC}"
+    ask_yes_no "pnpm installieren?" "n" && CFG_INSTALL_PNPM=true
+    echo ""
+  fi
+  if [[ "$CFG_INSTALL_JAVA" != true ]]; then
+    echo -e "${BOLD}  ${ICON_JAVA} Java (OpenJDK)${NC}"
+    if ask_yes_no "OpenJDK installieren?" "n"; then
+      CFG_INSTALL_JAVA=true
+      CFG_JAVA_VERSION="$(ask_input "Java-Version (Major)" "21")"
+    fi
+    echo ""
+  fi
+  if [[ "$CFG_INSTALL_GRADLE" != true ]]; then
+    echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC}"
+    ask_yes_no "Gradle installieren?" "n" && CFG_INSTALL_GRADLE=true
+    echo ""
+  fi
 
   # --- 5/5 Docker & cloudctl ---
   section_header "q_logins" "🔐 Frage 5/5 · Docker & cloudctl" "Registry- und Cloud-Zugang einrichten."
@@ -962,7 +1130,7 @@ run_questionnaire() {
   if ask_yes_no "Docker login durchführen?" "y"; then
     CFG_DOCKER_LOGIN=true
     CFG_DOCKER_REGISTRY="$(ask_input "Registry-URL" "$DEFAULT_DOCKER_REGISTRY")"
-    CFG_DOCKER_USER="$(ask_input "Docker-Benutzername" "${CFG_USER_EMAIL:-}")"
+    CFG_DOCKER_USER="$(ask_input "Docker-Benutzername (E- oder B-Nummer)" "$(default_docker_username)")"
     if ask_yes_no "Token/Passwort jetzt eingeben? (Enter = interaktiv in Phase 2)" "n"; then
       CFG_DOCKER_TOKEN="$(ask_secret "Docker Token/Passwort")"
     fi
@@ -991,12 +1159,14 @@ run_questionnaire() {
   else
     echo -e "  🪪 ${DIM}B-Nummer:${NC}     ${CFG_B_NUMBER}"
   fi
-  echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SELECTED_REPO_INDICES[@]} ausgewählt" || echo "übersprungen")"
+  echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SYNC_REPO_NAME[@]} ausgewählt" || echo "übersprungen")"
   [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
   echo -e "  ${ICON_NODE} ${DIM}NVM/Node:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION})" || echo "nein")"
   echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
-  echo -e "  ${ICON_DOCKER} ${DIM}Docker login:${NC} $([[ "$CFG_DOCKER_LOGIN" == true ]] && echo "ja (${CFG_DOCKER_REGISTRY})" || echo "nein")"
+  echo -e "  ${ICON_JAVA} ${DIM}Java:${NC}         $([[ "$CFG_INSTALL_JAVA" == true ]] && echo "ja (OpenJDK ${CFG_JAVA_VERSION})" || echo "nein")"
+  echo -e "  ${ICON_GRADLE} ${DIM}Gradle:${NC}       $([[ "$CFG_INSTALL_GRADLE" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_DOCKER} ${DIM}Docker login:${NC} $([[ "$CFG_DOCKER_LOGIN" == true ]] && echo "ja (${CFG_DOCKER_REGISTRY} / ${CFG_DOCKER_USER})" || echo "nein")"
   echo -e "  ${ICON_CLOUD} ${DIM}cloudctl login:${NC} $([[ "$CFG_CLOUDCTL_LOGIN" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_SHELL} ${DIM}Terminal:${NC}     ${ICON_ZSH} Zsh + ${ICON_P10K} Powerlevel10k (immer)"
   echo ""
@@ -1127,6 +1297,15 @@ exec_sync_repos() {
   echo ""; echo ""
   log_success "${ok}/${total} Repositories synchronisiert."
   [[ "$fail" -gt 0 ]] && log_error "${fail} Fehler."
+
+  # Nach frischem Clone: Tooling-Hinweis (Installation war vor dem Sync geplant)
+  if [[ "$ok" -gt 0 ]]; then
+    detect_selected_repo_tooling
+    [[ "$DETECT_JAVA" == true && "$CFG_INSTALL_JAVA" != true ]] && \
+      log_info "Java-Projekte erkannt — ggf. Setup erneut mit OpenJDK-Option oder apt install openjdk-${CFG_JAVA_VERSION:-21}-jdk"
+    [[ "$DETECT_NODE" == true && "$CFG_INSTALL_NVM" != true ]] && \
+      log_info "Node-Projekte erkannt — ggf. NVM/Node nachinstallieren"
+  fi
 }
 
 exec_install_tools() {
@@ -1136,7 +1315,41 @@ exec_install_tools() {
   [[ "$CFG_INSTALL_NVM" == true ]] && steps=$((steps + 3))
   [[ "$CFG_INSTALL_PYTHON" == true ]] && steps=$((steps + 1))
   [[ "$CFG_INSTALL_PNPM" == true ]] && steps=$((steps + 1))
+  [[ "$CFG_INSTALL_JAVA" == true ]] && steps=$((steps + 1))
+  [[ "$CFG_INSTALL_GRADLE" == true ]] && steps=$((steps + 1))
   [[ "$steps" -eq 0 ]] && { log_info "Keine optionalen Tools gewählt – übersprungen."; return 0; }
+
+  if [[ "$CFG_INSTALL_JAVA" == true ]]; then
+    echo -e "${BOLD}  ${ICON_JAVA} Java (OpenJDK)${NC}"
+    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_JAVA} OpenJDK ${CFG_JAVA_VERSION} …"
+    if command -v java &>/dev/null && java -version 2>&1 | grep -q "version \"${CFG_JAVA_VERSION}\|version \"1.${CFG_JAVA_VERSION}"; then
+      log_info "Java bereits vorhanden."
+    elif run_apt install -y "openjdk-${CFG_JAVA_VERSION}-jdk" 2>/dev/null; then
+      log_success "${ICON_JAVA} OpenJDK ${CFG_JAVA_VERSION} installiert"
+    else
+      run_apt install -y default-jdk
+      log_success "${ICON_JAVA} Java (default-jdk) installiert"
+    fi
+    local java_bin java_home="/usr/lib/jvm/java-${CFG_JAVA_VERSION}-openjdk-amd64"
+    java_bin="$(command -v java 2>/dev/null || true)"
+    [[ -n "$java_bin" ]] && java_home="$(cd "$(dirname "$java_bin")/.." && pwd)"
+    set_zshrc_block "${SETUP_MARKER}: java" "$(cat <<EOF
+export JAVA_HOME="${java_home}"
+export PATH="\${JAVA_HOME}/bin:\${PATH}"
+EOF
+)"
+  fi
+
+  if [[ "$CFG_INSTALL_GRADLE" == true ]]; then
+    echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC}"
+    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_GRADLE} Gradle installieren …"
+    if command -v gradle &>/dev/null; then
+      log_info "Gradle bereits vorhanden: $(gradle --version 2>/dev/null | head -1)"
+    else
+      run_apt install -y gradle
+      log_success "${ICON_GRADLE} Gradle $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo installiert)"
+    fi
+  fi
 
   if [[ "$CFG_INSTALL_NVM" == true ]]; then
     echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
