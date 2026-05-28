@@ -134,6 +134,8 @@ readonly ICON_DOCKER="🐳"
 readonly ICON_CLOUD="☁️"
 readonly ICON_JAVA="☕"
 readonly ICON_GRADLE="🐘"
+readonly ICON_BREW="🍺"
+readonly HOMEBREW_PREFIX_DEFAULT="${HOME}/.linuxbrew"
 
 CURRENT_ROADMAP_KEY=""
 
@@ -472,8 +474,8 @@ prompt_tools_from_repo_detection() {
   echo ""
 
   if [[ "$DETECT_NODE" == true ]]; then
-    echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC} (erkannt)"
-    if ask_yes_no "NVM & Node.js installieren?" "j"; then
+    echo -e "${BOLD}  ${ICON_NODE} Node.js${NC} (erkannt, via Homebrew)"
+    if ask_yes_no "Node.js installieren?" "j"; then
       CFG_INSTALL_NVM=true
       CFG_NODE_VERSION="$(ask_input "Node.js-Version" "${CFG_NODE_VERSION:-lts}")"
     fi
@@ -648,119 +650,174 @@ CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
 CFG_NODE_VERSION="${CFG_NODE_VERSION:-lts}"
 REPOS_DIR="${REPOS_DIR}"
 EOF
-  install_restore_node_script
+  install_restore_brew_script
 }
 
-install_restore_node_script() {
+install_restore_brew_script() {
   mkdir -p "$SETUP_STATE_DIR"
-  cat > "${SETUP_STATE_DIR}/restore-node.sh" <<'RESTORE'
+  cat > "${SETUP_STATE_DIR}/restore-brew-tools.sh" <<'RESTORE'
 #!/usr/bin/env bash
-# Stellt NVM/Node nach Coder-Neustart wieder her, falls ~/.nvm fehlt aber konfiguriert war
+# Stellt Homebrew-Tools nach Coder-Neustart wieder her (fehlende Formulae nachinstallieren)
 set -euo pipefail
 state="${HOME}/.config/setup_dev_container/last-run.env"
 [[ -f "$state" ]] || exit 0
 # shellcheck disable=SC1090
 source "$state"
-[[ "${CFG_INSTALL_NVM:-false}" == true ]] || exit 0
 
-export NVM_DIR="${HOME}/.nvm"
-# shellcheck source=/dev/null
-[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-command -v node &>/dev/null && exit 0
-
-if [[ ! -d "$NVM_DIR/.git" ]]; then
-  mkdir -p "$NVM_DIR"
-  git clone --depth 1 --branch v0.40.1 https://github.com/nvm-sh/nvm.git "$NVM_DIR" 2>/dev/null || exit 0
-fi
-# shellcheck source=/dev/null
-source "$NVM_DIR/nvm.sh"
-nvm install "${CFG_NODE_VERSION:-lts}" >/dev/null 2>&1 || true
-nvm alias default "${CFG_NODE_VERSION:-lts}" >/dev/null 2>&1 || true
-
-if [[ "${CFG_INSTALL_PNPM:-false}" == true ]] && command -v node &>/dev/null && ! command -v pnpm &>/dev/null; then
-  if command -v corepack &>/dev/null; then
-    corepack enable >/dev/null 2>&1 || true
-    corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
+load_brew() {
+  if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
+    eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
+  elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   else
-    npm install -g pnpm >/dev/null 2>&1 || true
+    return 1
   fi
-fi
+}
+
+load_brew || exit 0
+export HOMEBREW_NO_AUTO_UPDATE=1
+
+install_if_missing() {
+  local pkg="$1"
+  brew list --formula "$pkg" &>/dev/null 2>&1 && return 0
+  brew install "$pkg" >/dev/null 2>&1 || true
+}
+
+[[ "${CFG_INSTALL_NVM:-false}" == true ]] && {
+  ver="${CFG_NODE_VERSION:-lts}"
+  if [[ "$ver" =~ ^[0-9]+$ ]]; then
+    brew list --formula "node@${ver}" &>/dev/null 2>&1 || install_if_missing "node@${ver}" || install_if_missing node
+  else
+    install_if_missing node
+  fi
+}
+[[ "${CFG_INSTALL_PNPM:-false}" == true ]] && install_if_missing pnpm
+[[ "${CFG_INSTALL_PYTHON:-false}" == true ]] && install_if_missing python
+[[ "${CFG_INSTALL_JAVA:-false}" == true ]] && {
+  jver="${CFG_JAVA_VERSION:-21}"
+  brew list --formula "openjdk@${jver}" &>/dev/null 2>&1 || install_if_missing "openjdk@${jver}" || install_if_missing openjdk
+}
+[[ "${CFG_INSTALL_GRADLE:-false}" == true ]] && install_if_missing gradle
 RESTORE
-  chmod +x "${SETUP_STATE_DIR}/restore-node.sh"
+  chmod +x "${SETUP_STATE_DIR}/restore-brew-tools.sh"
+  rm -f "${SETUP_STATE_DIR}/restore-node.sh"
 }
 
 install_coder_shell_hooks() {
   set_zshrc_block "${SETUP_MARKER}: coder-restore" "$(cat <<'HOOK'
-# Nach Coder-Container-Neustart: apt-Proxy + NVM/Node wiederherstellen
+# Nach Coder-Container-Neustart: apt-Proxy + Homebrew-Tools
 if [[ -f "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" ]]; then
   "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" 2>/dev/null || true
 fi
-if [[ -f "$HOME/.config/setup_dev_container/restore-node.sh" ]]; then
-  "$HOME/.config/setup_dev_container/restore-node.sh" 2>/dev/null || true
+if [[ -f "$HOME/.config/setup_dev_container/restore-brew-tools.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-brew-tools.sh" 2>/dev/null || true
 fi
 HOOK
 )"
   set_bashrc_block "${SETUP_MARKER}: coder-restore" "$(cat <<'HOOK'
-# Nach Coder-Container-Neustart: apt-Proxy + NVM/Node wiederherstellen
+# Nach Coder-Container-Neustart: apt-Proxy + Homebrew-Tools
 if [[ -f "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" ]]; then
   "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" 2>/dev/null || true
 fi
-if [[ -f "$HOME/.config/setup_dev_container/restore-node.sh" ]]; then
-  "$HOME/.config/setup_dev_container/restore-node.sh" 2>/dev/null || true
+if [[ -f "$HOME/.config/setup_dev_container/restore-brew-tools.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-brew-tools.sh" 2>/dev/null || true
 fi
 HOOK
 )"
 }
 
-remove_apt_proxy_config() {
-  $SUDO rm -f /etc/apt/apt.conf.d/95proxies /etc/apt/apt.conf.d/98force-ipv4 /etc/apt/apt.conf.d/99proxy
+remove_legacy_nvm_blocks() {
+  remove_zshrc_block "${SETUP_MARKER}: nvm"
+  remove_bashrc_block "${SETUP_MARKER}: nvm"
 }
 
-install_nvm_and_node() {
-  export NVM_DIR="${HOME}/.nvm"
-  log_info "NVM-Ziel: ${NVM_DIR} (User ${USER:-?}, Home ${HOME})"
-
-  if [[ ! -d "${NVM_DIR}/.git" ]]; then
-    mkdir -p "$NVM_DIR"
-    git clone --depth 1 --branch v0.40.1 https://github.com/nvm-sh/nvm.git "$NVM_DIR"
-  fi
-
-  sync_shell_block "${SETUP_MARKER}: nvm" "$(cat <<'EOF'
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+configure_brew_shell_profile() {
+  sync_shell_block "${SETUP_MARKER}: brew" "$(cat <<'EOF'
+# Homebrew (Linux) — persistiert unter ~/.linuxbrew
+if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
+  eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
+elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
 EOF
 )"
-
-  # shellcheck source=/dev/null
-  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-
-  nvm install "$CFG_NODE_VERSION" && nvm alias default "$CFG_NODE_VERSION" && nvm use default
-
-  if [[ ! -d "${NVM_DIR}/versions/node" ]]; then
-    log_error "NVM/Node nicht unter ${NVM_DIR} — Home-Persistenz prüfen (Coder: /home/coder)."
-    return 1
-  fi
-
-  install_restore_node_script
-  log_success "NVM/Node persistiert unter ${NVM_DIR}"
 }
 
-install_pnpm_global() {
-  if ! command -v node &>/dev/null; then
-    log_error "pnpm braucht Node.js – übersprungen."
+ensure_brew_in_path() {
+  configure_brew_shell_profile
+  if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
+    # shellcheck source=/dev/null
+    eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
+  elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+    # shellcheck source=/dev/null
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  elif command -v brew &>/dev/null; then
+    # shellcheck source=/dev/null
+    eval "$(brew shellenv)"
+  else
     return 1
   fi
-  if command -v pnpm &>/dev/null; then
-    log_info "pnpm bereits vorhanden."
+  export HOMEBREW_NO_AUTO_UPDATE=1
+  return 0
+}
+
+install_homebrew() {
+  if ensure_brew_in_path 2>/dev/null; then
+    log_info "${ICON_BREW} Homebrew vorhanden: $(brew --prefix 2>/dev/null)"
     return 0
   fi
-  if command -v corepack &>/dev/null; then
-    corepack enable && corepack prepare pnpm@latest --activate
-  else
-    npm install -g pnpm
+
+  log_info "${ICON_BREW} Installiere Homebrew (Linux) nach ${HOMEBREW_PREFIX_DEFAULT} …"
+  run_apt install -y --no-install-recommends build-essential procps file 2>/dev/null || true
+
+  NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+  ensure_brew_in_path || {
+    log_error "Homebrew-Installation fehlgeschlagen."
+    return 1
+  }
+  log_success "${ICON_BREW} Homebrew installiert: $(brew --prefix)"
+  remove_legacy_nvm_blocks
+}
+
+brew_install_formula() {
+  local pkg="$1"
+  ensure_brew_in_path || return 1
+  if brew list --formula "$pkg" &>/dev/null 2>&1; then
+    log_info "${ICON_BREW} ${pkg} bereits installiert."
+    return 0
   fi
-  log_success "${ICON_PNPM} pnpm $(pnpm --version 2>/dev/null || echo installiert)"
+  log_info "${ICON_BREW} brew install ${pkg} …"
+  brew install "$pkg"
+}
+
+install_node_via_brew() {
+  local ver="${CFG_NODE_VERSION:-lts}"
+  if [[ "$ver" =~ ^[0-9]+$ ]]; then
+    brew_install_formula "node@${ver}" 2>/dev/null || brew_install_formula node
+  else
+    brew_install_formula node
+  fi
+  log_success "${ICON_NODE} Node.js $(node --version 2>/dev/null || echo installiert) via Homebrew"
+}
+
+install_java_via_brew() {
+  local pkg="openjdk@${CFG_JAVA_VERSION}"
+  brew_install_formula "$pkg" 2>/dev/null || brew_install_formula openjdk
+  local prefix
+  prefix="$(brew --prefix "$pkg" 2>/dev/null || brew --prefix openjdk 2>/dev/null || true)"
+  if [[ -n "$prefix" ]]; then
+    sync_shell_block "${SETUP_MARKER}: java" "$(cat <<EOF
+export JAVA_HOME="${prefix}"
+export PATH="\${JAVA_HOME}/bin:\${PATH}"
+EOF
+)"
+  fi
+  log_success "${ICON_JAVA} Java via Homebrew $(java -version 2>&1 | head -1 || true)"
+}
+
+remove_apt_proxy_config() {
+  $SUDO rm -f /etc/apt/apt.conf.d/95proxies /etc/apt/apt.conf.d/98force-ipv4 /etc/apt/apt.conf.d/99proxy
 }
 
 ensure_repos_directory() {
@@ -1337,8 +1394,8 @@ run_questionnaire() {
   log_info "Weitere Tools manuell hinzufügen (falls nicht erkannt):"
   echo ""
   if [[ "$CFG_INSTALL_NVM" != true ]]; then
-    echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
-    if ask_yes_no "NVM & Node.js installieren?" "n"; then
+    echo -e "${BOLD}  ${ICON_NODE} Node.js${NC} (via Homebrew)"
+    if ask_yes_no "Node.js installieren?" "n"; then
       CFG_INSTALL_NVM=true
       CFG_NODE_VERSION="$(ask_input "Node.js-Version" "lts")"
     fi
@@ -1406,7 +1463,7 @@ run_questionnaire() {
   fi
   echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SYNC_REPO_NAME[@]} ausgewählt" || echo "übersprungen")"
   [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
-  echo -e "  ${ICON_NODE} ${DIM}NVM/Node:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION})" || echo "nein")"
+  echo -e "  ${ICON_NODE} ${DIM}Node.js:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION}, Homebrew)" || echo "nein")"
   echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_JAVA} ${DIM}Java:${NC}         $([[ "$CFG_INSTALL_JAVA" == true ]] && echo "ja (OpenJDK ${CFG_JAVA_VERSION})" || echo "nein")"
@@ -1550,77 +1607,73 @@ exec_sync_repos() {
   if [[ "$ok" -gt 0 ]]; then
     detect_selected_repo_tooling
     [[ "$DETECT_JAVA" == true && "$CFG_INSTALL_JAVA" != true ]] && \
-      log_info "Java-Projekte erkannt — ggf. Setup erneut mit OpenJDK-Option oder apt install openjdk-${CFG_JAVA_VERSION:-21}-jdk"
+      log_info "Java-Projekte erkannt — ggf. Setup erneut mit OpenJDK-Option oder: brew install openjdk@${CFG_JAVA_VERSION:-21}"
     [[ "$DETECT_NODE" == true && "$CFG_INSTALL_NVM" != true ]] && \
-      log_info "Node-Projekte erkannt — ggf. NVM/Node nachinstallieren"
+      log_info "Node-Projekte erkannt — ggf. Node.js via Homebrew nachinstallieren"
   fi
 }
 
 exec_install_tools() {
-  section_header "e_tools" "⚙️  Installation · Optionale Tools"
+  section_header "e_tools" "⚙️  Installation · Optionale Tools (Homebrew)"
 
   local steps=0 current=0
-  [[ "$CFG_INSTALL_NVM" == true ]] && steps=$((steps + 3))
-  [[ "$CFG_INSTALL_PYTHON" == true ]] && steps=$((steps + 1))
-  [[ "$CFG_INSTALL_PNPM" == true ]] && steps=$((steps + 1))
+  [[ "$CFG_INSTALL_NVM" == true || "$CFG_INSTALL_PYTHON" == true || "$CFG_INSTALL_PNPM" == true \
+    || "$CFG_INSTALL_JAVA" == true || "$CFG_INSTALL_GRADLE" == true ]] || {
+    log_info "Keine optionalen Tools gewählt – übersprungen."
+    return 0
+  }
+
+  steps=1
   [[ "$CFG_INSTALL_JAVA" == true ]] && steps=$((steps + 1))
   [[ "$CFG_INSTALL_GRADLE" == true ]] && steps=$((steps + 1))
-  [[ "$steps" -eq 0 ]] && { log_info "Keine optionalen Tools gewählt – übersprungen."; return 0; }
+  [[ "$CFG_INSTALL_NVM" == true ]] && steps=$((steps + 1))
+  [[ "$CFG_INSTALL_PYTHON" == true ]] && steps=$((steps + 1))
+  [[ "$CFG_INSTALL_PNPM" == true ]] && steps=$((steps + 1))
+
+  current=$((current + 1))
+  draw_progress_bar "$current" "$steps" "${ICON_BREW} Homebrew installieren …"
+  install_homebrew || return 1
 
   if [[ "$CFG_INSTALL_JAVA" == true ]]; then
     echo -e "${BOLD}  ${ICON_JAVA} Java (OpenJDK)${NC}"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_JAVA} OpenJDK ${CFG_JAVA_VERSION} …"
-    if command -v java &>/dev/null && java -version 2>&1 | grep -q "version \"${CFG_JAVA_VERSION}\|version \"1.${CFG_JAVA_VERSION}"; then
-      log_info "Java bereits vorhanden."
-    elif run_apt install -y "openjdk-${CFG_JAVA_VERSION}-jdk" 2>/dev/null; then
-      log_success "${ICON_JAVA} OpenJDK ${CFG_JAVA_VERSION} installiert"
-    else
-      run_apt install -y default-jdk
-      log_success "${ICON_JAVA} Java (default-jdk) installiert"
-    fi
-    local java_bin java_home="/usr/lib/jvm/java-${CFG_JAVA_VERSION}-openjdk-amd64"
-    java_bin="$(command -v java 2>/dev/null || true)"
-    [[ -n "$java_bin" ]] && java_home="$(cd "$(dirname "$java_bin")/.." && pwd)"
-    sync_shell_block "${SETUP_MARKER}: java" "$(cat <<EOF
-export JAVA_HOME="${java_home}"
-export PATH="\${JAVA_HOME}/bin:\${PATH}"
-EOF
-)"
+    current=$((current + 1))
+    draw_progress_bar "$current" "$steps" "${ICON_JAVA} OpenJDK ${CFG_JAVA_VERSION} …"
+    install_java_via_brew
   fi
 
   if [[ "$CFG_INSTALL_GRADLE" == true ]]; then
     echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC}"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_GRADLE} Gradle installieren …"
-    if command -v gradle &>/dev/null; then
-      log_info "Gradle bereits vorhanden: $(gradle --version 2>/dev/null | head -1)"
-    else
-      run_apt install -y gradle
-      log_success "${ICON_GRADLE} Gradle $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo installiert)"
-    fi
+    current=$((current + 1))
+    draw_progress_bar "$current" "$steps" "${ICON_GRADLE} Gradle installieren …"
+    brew_install_formula gradle
+    log_success "${ICON_GRADLE} Gradle $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo installiert)"
   fi
 
   if [[ "$CFG_INSTALL_NVM" == true ]]; then
-    echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} NVM installieren …"
-    install_nvm_and_node
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} Node.js ${CFG_NODE_VERSION} …"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} Node.js fertig …"
-    log_success "${ICON_NODE} Node.js $(node --version 2>/dev/null || echo installiert)"
+    echo -e "${BOLD}  ${ICON_NODE} Node.js${NC}"
+    current=$((current + 1))
+    draw_progress_bar "$current" "$steps" "${ICON_NODE} Node.js ${CFG_NODE_VERSION} …"
+    install_node_via_brew
   fi
 
   if [[ "$CFG_INSTALL_PYTHON" == true ]]; then
     echo -e "${BOLD}  ${ICON_PYTHON} Python${NC}"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_PYTHON} Python installieren …"
-    command -v python3 &>/dev/null || run_apt install -y python3 python3-pip python3-venv
-    log_success "${ICON_PYTHON} Python $(python3 --version 2>/dev/null | cut -d' ' -f2)"
+    current=$((current + 1))
+    draw_progress_bar "$current" "$steps" "${ICON_PYTHON} Python installieren …"
+    brew_install_formula python
+    log_success "${ICON_PYTHON} Python $(python3 --version 2>/dev/null | cut -d' ' -f2 || python --version 2>/dev/null | cut -d' ' -f2)"
   fi
 
   if [[ "$CFG_INSTALL_PNPM" == true ]]; then
     echo -e "${BOLD}  ${ICON_PNPM} pnpm${NC}"
-    current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_PNPM} pnpm installieren …"
-    install_pnpm_global
+    current=$((current + 1))
+    draw_progress_bar "$current" "$steps" "${ICON_PNPM} pnpm installieren …"
+    brew_install_formula pnpm
+    log_success "${ICON_PNPM} pnpm $(pnpm --version 2>/dev/null || echo installiert)"
   fi
 
+  install_restore_brew_script
+  log_info "${ICON_BREW} Dev-Tools unter $(brew --prefix) (persistiert in \$HOME)"
   echo ""
 }
 
@@ -1720,7 +1773,13 @@ exec_install_terminal() {
   local total_steps=7 step=0
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_ZSH} Zsh & fontconfig …"
-  command -v zsh &>/dev/null || run_apt install -y zsh
+  if ! command -v zsh &>/dev/null; then
+    if ensure_brew_in_path 2>/dev/null; then
+      brew_install_formula zsh
+    else
+      run_apt install -y zsh
+    fi
+  fi
   command -v fc-cache &>/dev/null || run_apt install -y fontconfig
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "🔤 Meslo Nerd Fonts installieren …"
@@ -1790,9 +1849,9 @@ FINISH
   echo ""
   echo -e "${DIM}  Persistenz (Coder):${NC}"
   echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc, ~/.bashrc & ~/.gitconfig${NC}"
-  echo -e "${DIM}    · NVM/Node/pnpm → ${HOME}/.nvm (Auto-Restore beim Login)${NC}"
+  echo -e "${DIM}    · Homebrew-Tools (Node, Java, …) → ${HOME}/.linuxbrew (Auto-Restore beim Login)${NC}"
   echo -e "${DIM}    · apt-Proxy-Kopie → ${SETUP_STATE_DIR}/${NC}"
-  echo -e "${DIM}    · apt/Java/Gradle (System) → flüchtig — nach Container-Neustart:${NC}"
+  echo -e "${DIM}    · Docker, fontconfig (apt) → flüchtig — nach Container-Neustart ggf. erneut:${NC}"
   echo -e "${CYAN}      setup-dev-container${NC} ${DIM}erneut ausführen${NC}"
   echo ""
   echo -e "${DIM}  Nächster Schritt:${NC}  ${ICON_SHELL} ${CYAN}${BOLD}exec zsh${NC}"
@@ -1808,9 +1867,9 @@ run_installation() {
   echo ""
 
   restore_coder_ephemeral_config
-  if [[ -f "${SETUP_STATE_DIR}/restore-node.sh" ]]; then
-    log_info "Prüfe NVM/Node unter ${HOME}/.nvm …"
-    "${SETUP_STATE_DIR}/restore-node.sh" 2>/dev/null || true
+  if [[ -f "${SETUP_STATE_DIR}/restore-brew-tools.sh" ]]; then
+    log_info "Prüfe Homebrew-Tools unter ${HOME}/.linuxbrew …"
+    "${SETUP_STATE_DIR}/restore-brew-tools.sh" 2>/dev/null || true
   fi
   apply_proxy
   exec_system_update

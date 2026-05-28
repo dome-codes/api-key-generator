@@ -204,7 +204,7 @@ Symbole: `▶` = aktueller Schritt · `✓` = erledigt · `○` = ausstehend
 | 1 | **Proxy** | Optional: Firmen-Proxy-URL erfassen |
 | 2 | **Persönliche Daten** | Name, E-Mail, E-/B-Nummer, Anzeigename |
 | 3 | **Git-Repositories** | GitLab-Gruppen-URL → alle Repos laden → interaktive Mehrfachauswahl |
-| 4 | **Optionale Tools** | NVM/Node.js, Python, pnpm — je nach Bedarf |
+| 4 | **Optionale Tools** | Node.js, Python, Java, Gradle, pnpm — via **Homebrew** (persistiert unter `~/.linuxbrew`) |
 | 5 | **Docker & cloudctl** | Registry-Login (`docker login`) und `cloudctl login` |
 
 Anschließend: **Zusammenfassung** aller Eingaben und Bestätigung vor Start der Installation.
@@ -229,7 +229,7 @@ Wenn ein Proxy konfiguriert wurde, richtet das Skript ihn **sofort und persisten
 > `http://internet-proxy.internet-proxy.svc.cluster.local:3128` als Standard vor.  
 > **ForceIPv4** behebt typische apt-Fehler, wenn der Proxy nur über IPv4 erreichbar ist.
 
-> **Warum zuerst?** Ohne Proxy schlagen `apt-get update`, `git clone` und `curl` (NVM) im Firmennetz oft still fehl. Der Proxy wird deshalb als erster Installationsschritt angewendet.
+> **Warum zuerst?** Ohne Proxy schlagen `apt-get update`, `git clone` und `curl` (Homebrew-Installer) im Firmennetz oft still fehl. Der Proxy wird deshalb als erster Installationsschritt angewendet.
 
 ---
 
@@ -322,13 +322,16 @@ Falls `docker` fehlt, wird `docker.io` per apt nachinstalliert.
 | **Zsh** | Moderne, erweiterbare Shell |
 | **Powerlevel10k** | Schnelles, informationsreiches Prompt-Theme |
 
-### Optional (im Fragebogen wählbar)
+### Optional (im Fragebogen wählbar — via Homebrew)
+
+Dev-Tools werden unter **`~/.linuxbrew`** installiert und überleben Coder-Neustarts im User-Home.
 
 | Tool | Warum wir das nutzen |
 |------|----------------------|
-| **NVM + Node.js** | Mehrere Node-Versionen pro Projekt wechseln, ohne System-Node zu verbiegen. Standard: `lts`. |
-| **Python 3 + pip + venv** | Backend-Services, Skripte, ML/RAG-Pipelines im Python-Stack. |
-| **pnpm** | Schneller Package Manager für Node-Monorepos — spart Disk & Zeit durch content-addressable Storage und hartes Linking. Benötigt Node.js. |
+| **Node.js** | Frontend/Backend im Node-Stack. Version aus `.nvmrc` oder `lts`. Installiert als Homebrew-Formula (`node` / `node@20`). |
+| **Python** | Backend-Services, Skripte, ML/RAG-Pipelines. |
+| **OpenJDK + Gradle** | Java/Spring-Services, Build-Tooling. |
+| **pnpm** | Schneller Package Manager für Node-Monorepos — benötigt Node.js. |
 
 ### Zsh, Powerlevel10k & Nerd Fonts
 
@@ -500,7 +503,7 @@ Powerlevel10k zeigt Git-Status bereits in der Prompt — `gs` bleibt trotzdem pr
 | `~/.p10k.zsh` | Aktives Powerlevel10k-Config (auto-generiert) |
 | `~/.local/share/fonts/MesloLGS NF *.ttf` | Nerd Fonts für Icons |
 | `.vscode/settings.json` | Coder-Terminal-Font |
-| `~/.zshrc` | Proxy, Identität, NVM, P10k, MOTD |
+| `~/.zshrc` | Proxy, Identität, Homebrew, P10k, MOTD |
 | `~/.config/setup_dev_container/` | Coder: apt-Proxy-Kopie + Wiederherstellungs-Skript |
 | `/etc/apt/apt.conf.d/95proxies` | APT-Proxy (flüchtig — Kopie im Home) |
 | `/etc/apt/apt.conf.d/98force-ipv4` | APT ForceIPv4 (Cluster) |
@@ -572,7 +575,7 @@ cd ~/setup && ./setup_dev_container.sh
 
 ### pnpm-Installation übersprungen
 
-pnpm benötigt **Node.js**. Im Fragebogen zuerst **NVM & Node.js** wählen, dann pnpm.
+pnpm benötigt **Node.js**. Im Fragebogen zuerst **Node.js** wählen, dann pnpm.
 
 ---
 
@@ -584,15 +587,15 @@ pnpm benötigt **Node.js**. Im Fragebogen zuerst **NVM & Node.js** wählen, dann
 |-----|-------------|---------------|
 | Proxy (Shell, Git) | `~/.zshrc`, `~/.gitconfig` | ✅ bleibt (wenn User `coder`) |
 | Proxy (apt) | `/etc/apt/…` + Kopie in `~/.config/setup_dev_container/` | ⚙️ apt wird automatisch wiederhergestellt (Login) |
-| NVM, Node, pnpm | `~/.nvm/` | ✅ bleibt — **Auto-Restore** beim Login wenn fehlend |
-| Java, Gradle, zsh (apt) | System (`/usr`) | ❌ weg → `setup-dev-container` erneut |
+| Node, Python, Java, Gradle, pnpm | `~/.linuxbrew/` (Homebrew) | ✅ bleibt — **Auto-Restore** beim Login wenn Formulae fehlen |
+| Docker, fontconfig (apt) | System (`/usr`) | ❌ weg → `setup-dev-container` erneut |
 
-**Wenn Node/npm/pnpm trotzdem weg sind**, typische Ursachen:
+**Wenn brew/node trotzdem fehlt**, typische Ursachen:
 
-1. Setup lief als **root** → NVM lag in `/root/.nvm` (Fix: ohne `sudo`, als `coder`)
-2. Terminal war **bash**, NVM nur in `.zshrc` (Fix: Skript schreibt jetzt auch `.bashrc`)
-3. **`~/.nvm` gelöscht** aber Config noch da → beim Login läuft `restore-node.sh` automatisch
-4. Coder-Home **nicht persistent** → `ls ~/.nvm` prüfen; ggf. Admin wegen PVC
+1. Setup lief als **root** → Homebrew lag in `/root/.linuxbrew` (Fix: ohne `sudo`, als `coder`)
+2. Terminal war **bash**, brew nur in `.zshrc` (Fix: Skript schreibt auch `.bashrc`)
+3. **`~/.linuxbrew` gelöscht** aber Config noch da → beim Login läuft `restore-brew-tools.sh` automatisch
+4. Coder-Home **nicht persistent** → `ls ~/.linuxbrew` prüfen; ggf. Admin wegen PVC
 
 **Lösung:**
 
@@ -610,8 +613,8 @@ Prüfen, ob Einstellungen im richtigen Home liegen:
 echo "HOME=$HOME USER=$USER"
 grep setup_dev_container ~/.zshrc
 ls ~/.config/setup_dev_container/
-ls -la ~/.nvm/versions/node 2>/dev/null || echo "NVM fehlt — setup-dev-container erneut"
-exec zsh   # oder neues Terminal — restore-node.sh läuft beim Login
+ls -la ~/.linuxbrew/bin/brew 2>/dev/null || echo "Homebrew fehlt — setup-dev-container erneut"
+exec zsh   # oder neues Terminal — restore-brew-tools.sh läuft beim Login
 ```
 
 ---
