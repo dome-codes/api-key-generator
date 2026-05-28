@@ -233,17 +233,28 @@ Wenn ein Proxy konfiguriert wurde, richtet das Skript ihn **sofort und persisten
 
 ---
 
-#### System-Updates
+#### System-Updates (Bootstrap — flüchtig)
 
 ```bash
 apt-get update && apt-get upgrade -y
+apt-get install -y ca-certificates curl git wget gnupg
 ```
 
-Zusätzlich werden Basis-Tools installiert:
+> **Nur Bootstrap:** Diese apt-Pakete landen unter `/usr` und sind nach Container-Neustart oft weg. Sie dienen nur dazu, Homebrew und Git-Repos initial zu bootstrappen.
 
-`ca-certificates` · `curl` · `git` · `wget` · `gnupg`
+---
 
-> **Warum?** Aktuelle Paketquellen und TLS-Zertifikate sind Voraussetzung für alle weiteren Installationsschritte.
+#### Homebrew-Basis (persistent — immer)
+
+Direkt nach dem Bootstrap wird Homebrew nach **`/home/coder/.linuxbrew`** installiert (Git-Clone, kein `/home/linuxbrew`):
+
+| Was | Pfad |
+|-----|------|
+| Homebrew | `~/.linuxbrew/` |
+| git, zsh, fontconfig | `~/.linuxbrew/bin/` |
+| Node, Java, docker, … | `~/.linuxbrew/` (je nach Auswahl) |
+
+> **Warum?** In Coder ist `/home/coder` persistent — alles darunter überlebt Workspace-Neustarts.
 
 ---
 
@@ -285,10 +296,12 @@ Alle Shell-Variablen werden in markierten Blöcken in `~/.zshrc` gespeichert und
 
 #### Optionale Tools & Terminal
 
-Je nach Auswahl im Fragebogen, plus **immer**:
+Je nach Auswahl im Fragebogen — **alles via Homebrew unter `~/.linuxbrew`**, plus **immer**:
 
-- **Zsh** als Standard-Shell
-- **Powerlevel10k** als Theme
+- **git, zsh, fontconfig** (persistente Basis)
+- **Meslo Nerd Fonts** → `~/.local/share/fonts`
+- **Powerlevel10k** → `~/.powerlevel10k`
+- **Coder Terminal-Font** → `~/.vscode/settings.json`
 
 ---
 
@@ -306,7 +319,7 @@ Nach Proxy und Tool-Installation (wenn im Fragebogen gewählt):
 1. **Token im Fragebogen** → automatisch via `--password-stdin` (nicht in Logs)
 2. **Ohne Token** → interaktiver `docker login` in Phase 2
 
-Falls `docker` fehlt, wird `docker.io` per apt nachinstalliert.
+Falls `docker` fehlt, wird es via **Homebrew** nach `~/.linuxbrew` installiert (Login-Daten landen in `~/.docker/` — persistent). apt (`docker.io`) nur als Fallback.
 
 > **Hinweis:** `cloudctl` muss im Container bereits vorinstalliert sein. Das Skript führt `cloudctl login` interaktiv aus — halte SSO/Token bereit.
 
@@ -585,14 +598,16 @@ pnpm benötigt **Node.js**. Im Fragebogen zuerst **Node.js** wählen, dann pnpm.
 
 | Was | Speicherort | Nach Neustart |
 |-----|-------------|---------------|
-| Proxy (Shell, Git) | `~/.zshrc`, `~/.gitconfig` | ✅ bleibt (wenn User `coder`) |
-| Proxy (apt) | `/etc/apt/…` + Kopie in `~/.config/setup_dev_container/` | ⚙️ apt wird automatisch wiederhergestellt (Login) |
-| Node, Python, Java, Gradle, pnpm | `~/.linuxbrew/` (Homebrew) | ✅ bleibt — **Auto-Restore** beim Login wenn Formulae fehlen |
-| Docker, fontconfig (apt) | System (`/usr`) | ❌ weg → `setup-dev-container` erneut |
+| Proxy (Shell, Git) | `~/.zshrc`, `~/.gitconfig` | ✅ bleibt |
+| Proxy (apt) | `/etc/apt/…` + Kopie in `~/.config/setup_dev_container/` | ⚙️ Auto-Restore |
+| **git, zsh, fontconfig, Node, Java, docker, …** | **`~/.linuxbrew/`** | ✅ bleibt — Auto-Restore |
+| Fonts, P10k, VS Code | `~/.local/share/fonts`, `~/.powerlevel10k`, `~/.vscode` | ✅ bleibt |
+| Repos | `~/repos/` | ✅ bleibt |
+| apt-Bootstrap | `/usr` | ❌ flüchtig (nur für Erst-Setup nötig) |
 
 **Wenn brew/node trotzdem fehlt**, typische Ursachen:
 
-1. Setup lief als **root** → Homebrew lag in `/root/.linuxbrew` (Fix: ohne `sudo`, als `coder`)
+1. Setup lief als **root/sudo** → abgebrochen; Homebrew muss unter **`/home/coder/.linuxbrew`** liegen, nicht `/home/linuxbrew`
 2. Terminal war **bash**, brew nur in `.zshrc` (Fix: Skript schreibt auch `.bashrc`)
 3. **`~/.linuxbrew` gelöscht** aber Config noch da → beim Login läuft `restore-brew-tools.sh` automatisch
 4. Coder-Home **nicht persistent** → `ls ~/.linuxbrew` prüfen; ggf. Admin wegen PVC
@@ -616,6 +631,41 @@ ls ~/.config/setup_dev_container/
 ls -la ~/.linuxbrew/bin/brew 2>/dev/null || echo "Homebrew fehlt — setup-dev-container erneut"
 exec zsh   # oder neues Terminal — restore-brew-tools.sh läuft beim Login
 ```
+
+---
+
+### Setup hängt nach Powerlevel10k / Shell-Konfiguration
+
+**Ursache:** `chsh` (Standard-Shell auf zsh umstellen) blockiert in Containern oft auf einem Passwort-Prompt.
+
+**Fix im Skript:** `chsh` läuft nur noch mit **3-Sekunden-Timeout**; bei Fehler geht das Setup weiter. Danach manuell:
+
+```bash
+exec zsh
+```
+
+P10k und Meslo-Font sind trotzdem in `~/.zshrc` und `~/.p10k.zsh` konfiguriert.
+
+---
+
+### Homebrew-Pfad prüfen
+
+Homebrew muss **im User-Home** liegen — nicht neben `coder` unter `/home/linuxbrew`:
+
+```bash
+echo "HOME=$HOME"
+brew --prefix    # Erwartung: /home/coder/.linuxbrew
+ls -la ~/.linuxbrew/bin/brew
+```
+
+| Pfad | Persistenz in Coder |
+|------|---------------------|
+| `/home/coder/.linuxbrew` | ✅ ja (User-PVC) |
+| `/home/linuxbrew/.linuxbrew` | ❌ oft flüchtig (System-Image) |
+
+Das Skript installiert Brew per **Git-Clone direkt nach `~/.linuxbrew`** (nicht den offiziellen Installer, der oft `/home/linuxbrew` wählt). Vorhandenes `/home/linuxbrew` wird **ignoriert**; alte Einträge in `.zshrc`/`.bashrc` werden entfernt.
+
+**Nach Umstellung:** Setup einmal neu als User `coder` ausführen — Tools werden in `~/.linuxbrew` nachinstalliert.
 
 ---
 

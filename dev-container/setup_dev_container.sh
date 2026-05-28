@@ -4,6 +4,14 @@
 # Phase 1: Fragebogen (alle Eingaben sammeln)
 # Phase 2: Installation (automatisch ausführen)
 # Idempotent: kann gefahrlos mehrfach ausgeführt werden.
+#
+# Persistenz-Modell (Coder): Alles Wichtige unter $HOME (/home/coder)
+#   ~/.linuxbrew/     Dev-Tools (Node, Java, git, zsh, docker, …)
+#   ~/.local/         Fonts, bin/setup-dev-container
+#   ~/.config/        Setup-State, Restore-Skripte, apt-Proxy-Kopie
+#   ~/repos/          Git-Repositories
+#   ~/.vscode/        Coder-Terminal-Einstellungen
+# apt unter /usr     nur Bootstrap (flüchtig nach Container-Neustart)
 
 set -uo pipefail
 
@@ -29,21 +37,20 @@ normalize_home_for_coder() {
   fi
 
   if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-    if [[ -n "$coder_home" && -d "$coder_home" ]]; then
-      export HOME="$coder_home"
-      export USER="$coder_user"
-      export LOGNAME="$coder_user"
-      return 0
-    fi
-    echo "❌ Bitte nicht als root ausführen. In Coder als User 'coder' starten:" >&2
+    echo "❌ Bitte nicht als root/sudo ausführen — sonst landet Homebrew in /home/linuxbrew statt in ~/.linuxbrew." >&2
+    echo "   In Coder als User 'coder' starten:" >&2
     echo "   cd ~/setup && ./setup_dev_container.sh" >&2
     exit 1
   fi
 
-  if [[ "${HOME:-}" == /root* && -n "$coder_home" && -d "$coder_home" ]]; then
-    export HOME="$coder_home"
-    export USER="$coder_user"
-    export LOGNAME="$coder_user"
+  if [[ -n "$coder_user" && -n "$coder_home" && -d "$coder_home" ]]; then
+    if [[ "${HOME:-}" == /root* ]] || [[ "$(id -un 2>/dev/null || true)" == "$coder_user" ]]; then
+      if [[ "${HOME:-}" != "$coder_home" ]]; then
+        export HOME="$coder_home"
+        export USER="$coder_user"
+        export LOGNAME="$coder_user"
+      fi
+    fi
   fi
 }
 
@@ -94,7 +101,7 @@ readonly EXAMPLE_GIT_URL="https://repo.deka.de/gruppe/mein-service.git"
 # Roadmap: alle Schritte im Skript
 readonly -a ROADMAP_KEYS=(
   "q_proxy" "q_personal" "q_repos" "q_tools" "q_logins"
-  "e_proxy" "e_system" "e_personal" "e_repos" "e_tools" "e_logins" "e_terminal" "e_done"
+  "e_proxy" "e_system" "e_brew_base" "e_personal" "e_repos" "e_tools" "e_logins" "e_terminal" "e_done"
 )
 readonly -a ROADMAP_LABELS=(
   "Proxy-Einstellungen"
@@ -103,7 +110,8 @@ readonly -a ROADMAP_LABELS=(
   "Optionale Tools wählen"
   "Docker & cloudctl Login"
   "Proxy anwenden"
-  "System-Update"
+  "System-Update (Bootstrap)"
+  "Homebrew-Basis (persistent)"
   "Git & Identität setzen"
   "Repositories syncen"
   "Tools installieren"
@@ -113,7 +121,7 @@ readonly -a ROADMAP_LABELS=(
 )
 readonly -a ROADMAP_ICONS=(
   "🌐" "👤" "📁" "🛠️" "🔐"
-  "🌐" "🔄" "🔑" "🔀" "⚙️" "🔐" "💻" "🎉"
+  "🌐" "🔄" "🍺" "🔑" "🔀" "⚙️" "🔐" "💻" "🎉"
 )
 
 # Tool- & UI-Icons
@@ -505,7 +513,7 @@ prompt_tools_from_repo_detection() {
 
   if [[ "$DETECT_GRADLE" == true && "$DETECT_GRADLE_WRAPPER" != true ]]; then
     echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC} (erkannt, kein gradlew)"
-    ask_yes_no "Gradle (apt) installieren?" "j" && CFG_INSTALL_GRADLE=true
+    ask_yes_no "Gradle installieren?" "j" && CFG_INSTALL_GRADLE=true
     echo ""
   elif [[ "$DETECT_GRADLE_WRAPPER" == true ]]; then
     log_info "${ICON_GRADLE} gradlew in Repos — separates Gradle-Paket meist nicht nötig."
@@ -667,8 +675,6 @@ source "$state"
 load_brew() {
   if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
     eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
-  elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   else
     return 1
   fi
@@ -682,6 +688,12 @@ install_if_missing() {
   brew list --formula "$pkg" &>/dev/null 2>&1 && return 0
   brew install "$pkg" >/dev/null 2>&1 || true
 }
+
+# Basis-Stack — immer persistent unter ~/.linuxbrew
+for _base_pkg in git zsh fontconfig; do
+  install_if_missing "$_base_pkg"
+done
+[[ "${CFG_DOCKER_LOGIN:-false}" == true ]] && install_if_missing docker
 
 [[ "${CFG_INSTALL_NVM:-false}" == true ]] && {
   ver="${CFG_NODE_VERSION:-lts}"
@@ -731,38 +743,93 @@ remove_legacy_nvm_blocks() {
   remove_bashrc_block "${SETUP_MARKER}: nvm"
 }
 
+remove_legacy_system_linuxbrew_shell() {
+  local rc
+  for rc in "${HOME}/.zshrc" "${HOME}/.bashrc"; do
+    [[ -f "$rc" ]] || continue
+    sed -i.bak '/\/home\/linuxbrew\/\.linuxbrew/d' "$rc" 2>/dev/null || \
+      sed -i '' '/\/home\/linuxbrew\/\.linuxbrew/d' "$rc" 2>/dev/null || true
+    rm -f "${rc}.bak"
+  done
+}
+
+strip_system_linuxbrew_from_path() {
+  local cleaned="" part
+  IFS=':' read -ra _path_parts <<< "${PATH:-}"
+  for part in "${_path_parts[@]}"; do
+    [[ -z "$part" ]] && continue
+    [[ "$part" == /home/linuxbrew/* ]] && continue
+    cleaned+="${part}:"
+  done
+  export PATH="${cleaned%:}"
+}
+
 configure_brew_shell_profile() {
   sync_shell_block "${SETUP_MARKER}: brew" "$(cat <<'EOF'
-# Homebrew (Linux) — persistiert unter ~/.linuxbrew
+# Homebrew (Linux) — persistiert unter ~/.linuxbrew (/home/coder/.linuxbrew)
 if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
   eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
-elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 fi
 EOF
 )"
 }
 
+brew_prefix_ok() {
+  local prefix
+  prefix="$(brew --prefix 2>/dev/null || true)"
+  [[ "$prefix" == "${HOME}/.linuxbrew" ]]
+}
+
 ensure_brew_in_path() {
-  configure_brew_shell_profile
-  if [[ -x "${HOME}/.linuxbrew/bin/brew" ]]; then
-    # shellcheck source=/dev/null
-    eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
-  elif [[ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
-    # shellcheck source=/dev/null
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  elif command -v brew &>/dev/null; then
-    # shellcheck source=/dev/null
-    eval "$(brew shellenv)"
-  else
+  strip_system_linuxbrew_from_path
+  if [[ ! -x "${HOME}/.linuxbrew/bin/brew" ]]; then
     return 1
   fi
+  # shellcheck source=/dev/null
+  eval "$("${HOME}/.linuxbrew/bin/brew" shellenv)"
   export HOMEBREW_NO_AUTO_UPDATE=1
-  return 0
+  brew_prefix_ok
+}
+
+install_homebrew_user_local() {
+  local prefix="${HOME}/.linuxbrew"
+  local brew_repo="${prefix}/Homebrew"
+
+  strip_system_linuxbrew_from_path
+  remove_legacy_system_linuxbrew_shell
+
+  if [[ -d /home/linuxbrew/.linuxbrew && ! -x "${prefix}/bin/brew" ]]; then
+    log_info "${ICON_BREW} Vorhandenes /home/linuxbrew wird ignoriert — Ziel: ${prefix} (User-Home, persistent)."
+  fi
+
+  mkdir -p "${prefix}/Cellar" "${prefix}/bin"
+
+  if [[ ! -d "${brew_repo}/.git" ]]; then
+    log_info "${ICON_BREW} Klone Homebrew-Core nach ${brew_repo} …"
+    if command -v timeout &>/dev/null; then
+      timeout 180 git clone --depth=1 https://github.com/Homebrew/brew "${brew_repo}" || return 1
+    else
+      git clone --depth=1 https://github.com/Homebrew/brew "${brew_repo}" || return 1
+    fi
+  fi
+
+  ln -sf "${brew_repo}/bin/brew" "${prefix}/bin/brew"
+  ensure_brew_in_path || return 1
+
+  log_info "${ICON_BREW} Homebrew-Basis einrichten …"
+  brew update --force >/dev/null 2>&1 || brew update >/dev/null 2>&1 || true
+  configure_brew_shell_profile
+  brew_prefix_ok
 }
 
 install_homebrew() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    log_error "Homebrew darf nicht als root installiert werden (Ziel: ${HOME}/.linuxbrew)."
+    return 1
+  fi
+
   if ensure_brew_in_path 2>/dev/null; then
+    configure_brew_shell_profile
     log_info "${ICON_BREW} Homebrew vorhanden: $(brew --prefix 2>/dev/null)"
     return 0
   fi
@@ -770,10 +837,13 @@ install_homebrew() {
   log_info "${ICON_BREW} Installiere Homebrew (Linux) nach ${HOMEBREW_PREFIX_DEFAULT} …"
   run_apt install -y --no-install-recommends build-essential procps file 2>/dev/null || true
 
-  NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  install_homebrew_user_local || {
+    log_error "Homebrew-Installation fehlgeschlagen (erwartet: ${HOME}/.linuxbrew)."
+    return 1
+  }
 
   ensure_brew_in_path || {
-    log_error "Homebrew-Installation fehlgeschlagen."
+    log_error "Homebrew liegt nicht unter ${HOME}/.linuxbrew (aktuell: $(brew --prefix 2>/dev/null || echo ?))."
     return 1
   }
   log_success "${ICON_BREW} Homebrew installiert: $(brew --prefix)"
@@ -867,8 +937,6 @@ install_meslo_nerd_fonts() {
   )
   local i dest
 
-  command -v fc-cache &>/dev/null || run_apt install -y fontconfig
-
   mkdir -p "$MESLO_FONT_DIR"
   for i in "${!font_files[@]}"; do
     dest="${MESLO_FONT_DIR}/${font_files[$i]}"
@@ -920,6 +988,29 @@ JSON
   fi
 
   log_info "Ergänze in ${settings_file}: \"terminal.integrated.fontFamily\": \"'MesloLGS NF', monospace\""
+}
+
+set_default_shell_zsh() {
+  local zsh_path
+  zsh_path="$(command -v zsh 2>/dev/null || true)"
+  [[ -n "$zsh_path" ]] || return 0
+  [[ "${SHELL:-}" == "$zsh_path" ]] && return 0
+
+  # chsh wartet in Containern oft auf Passwort — nur kurz versuchen, nie blockieren
+  if command -v timeout &>/dev/null; then
+    if timeout 3 chsh -s "$zsh_path" 2>/dev/null; then
+      log_success "Standard-Shell → zsh"
+      return 0
+    fi
+    if [[ -n "$SUDO" ]]; then
+      timeout 3 $SUDO -n chsh -s "$zsh_path" "$USER" 2>/dev/null && {
+        log_success "Standard-Shell → zsh (via sudo)"
+        return 0
+      }
+    fi
+  fi
+
+  log_info "Standard-Shell unverändert (chsh blockiert/verweigert). Bitte: ${CYAN}exec zsh${NC}"
 }
 
 declare -a REPO_NAME=() REPO_PATH=() REPO_URL=() REPO_BRANCH=() REPO_STATUS=()
@@ -1524,9 +1615,9 @@ EOF
 }
 
 exec_system_update() {
-  section_header "e_system" "🔄 Installation · System-Update"
+  section_header "e_system" "🔄 Installation · System-Update (Bootstrap)"
 
-  local labels=("${ICON_APT} Paketlisten" "⬆️  Upgrade" "📦 Basis-Tools")
+  local labels=("${ICON_APT} Paketlisten" "⬆️  Upgrade" "📦 apt-Bootstrap")
   local cmds=(
     "run_apt update -y"
     "run_apt upgrade -y"
@@ -1538,7 +1629,22 @@ exec_system_update() {
     eval "${cmds[$i]}"
   done
   echo ""; echo ""
-  log_success "System aktualisiert."
+  log_success "System-Bootstrap abgeschlossen (apt unter /usr — flüchtig)."
+  log_info "Persistente Dev-Tools folgen unter ${HOME}/.linuxbrew …"
+}
+
+exec_install_persistent_base() {
+  section_header "e_brew_base" "🍺 Installation · Persistente Basis (${HOME})"
+
+  draw_progress_bar 1 2 "${ICON_BREW} Homebrew → ${HOME}/.linuxbrew …"
+  install_homebrew || return 1
+
+  draw_progress_bar 2 2 "${ICON_GIT} git (persistent via Homebrew) …"
+  brew_install_formula git
+
+  install_restore_brew_script
+  echo ""
+  log_success "Persistente Basis: ${HOME}/.linuxbrew (git, später zsh, docker, Dev-Tools)"
 }
 
 apply_user_data() {
@@ -1631,7 +1737,7 @@ exec_install_tools() {
   [[ "$CFG_INSTALL_PNPM" == true ]] && steps=$((steps + 1))
 
   current=$((current + 1))
-  draw_progress_bar "$current" "$steps" "${ICON_BREW} Homebrew installieren …"
+  draw_progress_bar "$current" "$steps" "${ICON_BREW} Homebrew prüfen …"
   install_homebrew || return 1
 
   if [[ "$CFG_INSTALL_JAVA" == true ]]; then
@@ -1681,7 +1787,11 @@ ensure_docker_cli() {
   if command -v docker &>/dev/null; then
     return 0
   fi
-  log_info "Docker CLI nicht gefunden — installiere docker.io …"
+  if ensure_brew_in_path 2>/dev/null; then
+    log_info "Docker CLI via Homebrew (${HOME}/.linuxbrew) …"
+    brew_install_formula docker && return 0
+  fi
+  log_info "Docker CLI via apt (flüchtig unter /usr) — für Persistenz: Homebrew-Basis aktivieren."
   run_apt install -y docker.io
 }
 
@@ -1772,43 +1882,48 @@ exec_install_terminal() {
   local p10k_dir="${HOME}/.powerlevel10k/powerlevel10k"
   local total_steps=7 step=0
 
-  step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_ZSH} Zsh & fontconfig …"
-  if ! command -v zsh &>/dev/null; then
-    if ensure_brew_in_path 2>/dev/null; then
-      brew_install_formula zsh
-    else
-      run_apt install -y zsh
-    fi
-  fi
-  command -v fc-cache &>/dev/null || run_apt install -y fontconfig
+  install_homebrew || return 1
+
+  step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_ZSH} Zsh & fontconfig (Homebrew) …"
+  brew_install_formula zsh
+  brew_install_formula fontconfig
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "🔤 Meslo Nerd Fonts installieren …"
   install_meslo_nerd_fonts
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_P10K} Powerlevel10k klonen …"
-  [[ ! -d "$p10k_dir" ]] && git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$p10k_dir"
+  if [[ ! -d "$p10k_dir" ]]; then
+    if command -v timeout &>/dev/null; then
+      timeout 120 git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$p10k_dir" \
+        || log_error "Powerlevel10k-Clone fehlgeschlagen (Netzwerk/Proxy prüfen)."
+    else
+      git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$p10k_dir" \
+        || log_error "Powerlevel10k-Clone fehlgeschlagen (Netzwerk/Proxy prüfen)."
+    fi
+  fi
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "🎨 P10k-Lean Preset (nerdfont) …"
-  install_p10k_preset "$p10k_dir"
+  [[ -d "$p10k_dir" ]] && install_p10k_preset "$p10k_dir"
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_SHELL} Shell konfigurieren …"
-  set_zshrc_block "${SETUP_MARKER}: powerlevel10k" "$(cat <<EOF
+  if [[ -d "$p10k_dir" ]]; then
+    set_zshrc_block "${SETUP_MARKER}: powerlevel10k" "$(cat <<EOF
 # Meslo Nerd Font + offizielles P10k-Lean-Preset (Ordner-Icons, Git-Status)
 source ${p10k_dir}/powerlevel10k.zsh-theme
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 EOF
 )"
-  local zsh_path; zsh_path="$(command -v zsh)"
-  [[ -n "$zsh_path" && "${SHELL:-}" != "$zsh_path" ]] && \
-    chsh -s "$zsh_path" 2>/dev/null || chsh -s "$zsh_path" "$USER" 2>/dev/null || true
+  fi
+  set_default_shell_zsh
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "🖥️  Coder Terminal-Font setzen …"
   configure_coder_terminal_font
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "Fertig!"
   echo ""; echo ""
+  install_restore_brew_script
   log_success "Terminal eingerichtet (${ICON_ZSH} Zsh + ${ICON_P10K} P10k + 🔤 Meslo Nerd Font)."
-  log_info "Ordner-Icons & Git-Symbole erscheinen mit MesloLGS NF im Coder-Terminal."
+  log_info "Alles persistent unter ${HOME}: .linuxbrew, .local/share/fonts, .powerlevel10k, .vscode"
 }
 
 link_setup_scripts() {
@@ -1847,12 +1962,12 @@ FINISH
   echo -e "${GREEN}${BOLD}  👋 Willkommen, ${CFG_DISPLAY_NAME:-Entwickler}!${NC}"
   echo -e "${DIM}  ✍️  Setup-Skript by ${SETUP_AUTHOR} — bei Fragen gerne melden.${NC}"
   echo ""
-  echo -e "${DIM}  Persistenz (Coder):${NC}"
-  echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc, ~/.bashrc & ~/.gitconfig${NC}"
-  echo -e "${DIM}    · Homebrew-Tools (Node, Java, …) → ${HOME}/.linuxbrew (Auto-Restore beim Login)${NC}"
-  echo -e "${DIM}    · apt-Proxy-Kopie → ${SETUP_STATE_DIR}/${NC}"
-  echo -e "${DIM}    · Docker, fontconfig (apt) → flüchtig — nach Container-Neustart ggf. erneut:${NC}"
-  echo -e "${CYAN}      setup-dev-container${NC} ${DIM}erneut ausführen${NC}"
+  echo -e "${DIM}  Persistenz (Coder — alles unter ${HOME}):${NC}"
+  echo -e "${DIM}    · Dev-Tools (git, zsh, Node, Java, docker, …) → ${HOME}/.linuxbrew${NC}"
+  echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc, .bashrc & .gitconfig${NC}"
+  echo -e "${DIM}    · Fonts → ${HOME}/.local/share/fonts · P10k → ${HOME}/.powerlevel10k${NC}"
+  echo -e "${DIM}    · Repos → ${REPOS_DIR} · Setup-State → ${SETUP_STATE_DIR}/${NC}"
+  echo -e "${DIM}    · apt unter /usr → nur Bootstrap, flüchtig — Proxy-Kopie wird automatisch restored${NC}"
   echo ""
   echo -e "${DIM}  Nächster Schritt:${NC}  ${ICON_SHELL} ${CYAN}${BOLD}exec zsh${NC}"
   echo -e "${DIM}  Setup erneut starten:${NC}  ${CYAN}${BOLD}setup-dev-container${NC}"
@@ -1873,6 +1988,7 @@ run_installation() {
   fi
   apply_proxy
   exec_system_update
+  exec_install_persistent_base
   apply_user_data
   exec_sync_repos
   exec_install_tools
