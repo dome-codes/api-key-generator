@@ -501,7 +501,8 @@ Powerlevel10k zeigt Git-Status bereits in der Prompt — `gs` bleibt trotzdem pr
 | `~/.local/share/fonts/MesloLGS NF *.ttf` | Nerd Fonts für Icons |
 | `.vscode/settings.json` | Coder-Terminal-Font |
 | `~/.zshrc` | Proxy, Identität, NVM, P10k, MOTD |
-| `/etc/apt/apt.conf.d/95proxies` | APT-Proxy (wenn konfiguriert) |
+| `~/.config/setup_dev_container/` | Coder: apt-Proxy-Kopie + Wiederherstellungs-Skript |
+| `/etc/apt/apt.conf.d/95proxies` | APT-Proxy (flüchtig — Kopie im Home) |
 | `/etc/apt/apt.conf.d/98force-ipv4` | APT ForceIPv4 (Cluster) |
 
 ### Idempotenz
@@ -572,6 +573,37 @@ cd ~/setup && ./setup_dev_container.sh
 ### pnpm-Installation übersprungen
 
 pnpm benötigt **Node.js**. Im Fragebogen zuerst **NVM & Node.js** wählen, dann pnpm.
+
+---
+
+### Coder: Einstellungen verschwinden nach Neustart
+
+**Ursache:** In Coder ist `/home/coder` persistent, der **Container-Root** (`/etc`, `/usr`, apt-Pakete) oft **flüchtig**. Wenn das Skript als **root** lief, landen Shell-Einstellungen in `/root` statt in `/home/coder`.
+
+| Was | Speicherort | Nach Neustart |
+|-----|-------------|---------------|
+| Proxy (Shell, Git) | `~/.zshrc`, `~/.gitconfig` | ✅ bleibt (wenn User `coder`) |
+| Proxy (apt) | `/etc/apt/…` + Kopie in `~/.config/setup_dev_container/` | ⚙️ apt wird automatisch wiederhergestellt (Login) |
+| NVM, Fonts, p10k | `~/.nvm`, `~/.local`, `~/.p10k.zsh` | ✅ bleibt |
+| Java, Gradle, zsh (apt) | System (`/usr`) | ❌ weg → `setup-dev-container` erneut |
+
+**Lösung:**
+
+```bash
+# Immer als User coder — ohne sudo:
+cd ~/setup && ./setup_dev_container.sh
+
+# Nach Container-Neustart:
+setup-dev-container
+```
+
+Prüfen, ob Einstellungen im richtigen Home liegen:
+
+```bash
+echo "HOME=$HOME USER=$USER"
+grep setup_dev_container ~/.zshrc
+ls ~/.config/setup_dev_container/
+```
 
 ---
 

@@ -11,7 +11,46 @@ set -uo pipefail
 # Pfade & Konstanten
 # ---------------------------------------------------------------------------
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Coder: Einstellungen immer unter /home/coder — nie unter /root
+normalize_home_for_coder() {
+  local coder_user="" coder_home=""
+
+  if [[ -n "${CODER_WORKSPACE_OWNER:-}" ]]; then
+    coder_user="$CODER_WORKSPACE_OWNER"
+  elif [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != root ]]; then
+    coder_user="$SUDO_USER"
+  elif id -u coder &>/dev/null 2>&1; then
+    coder_user="coder"
+  fi
+
+  if [[ -n "$coder_user" ]]; then
+    coder_home="$(getent passwd "$coder_user" 2>/dev/null | cut -d: -f6)"
+  fi
+
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    if [[ -n "$coder_home" && -d "$coder_home" ]]; then
+      export HOME="$coder_home"
+      export USER="$coder_user"
+      export LOGNAME="$coder_user"
+      return 0
+    fi
+    echo "❌ Bitte nicht als root ausführen. In Coder als User 'coder' starten:" >&2
+    echo "   cd ~/setup && ./setup_dev_container.sh" >&2
+    exit 1
+  fi
+
+  if [[ "${HOME:-}" == /root* && -n "$coder_home" && -d "$coder_home" ]]; then
+    export HOME="$coder_home"
+    export USER="$coder_user"
+    export LOGNAME="$coder_user"
+  fi
+}
+
+normalize_home_for_coder
+
 readonly ZSHRC="${HOME}/.zshrc"
+readonly SETUP_STATE_DIR="${HOME}/.config/setup_dev_container"
 readonly SETUP_MARKER="setup_dev_container"
 readonly REPOS_CONF="${SCRIPT_DIR}/setup_dev_container.repos.conf"
 readonly SETUP_AUTHOR="Domenic Schumacher"
@@ -516,6 +555,84 @@ EOF
 
   # Alte Datei aus früheren Skript-Versionen entfernen
   $SUDO rm -f /etc/apt/apt.conf.d/99proxy
+
+  # Coder: /etc/apt ist flüchtig — Kopie im Home für Wiederherstellung nach Container-Neustart
+  mkdir -p "$SETUP_STATE_DIR"
+  cat > "${SETUP_STATE_DIR}/apt-proxy.env" <<EOF
+PROXY_URL="${proxy_url}"
+EOF
+  install_apt_proxy_restore_script
+}
+
+install_apt_proxy_restore_script() {
+  mkdir -p "$SETUP_STATE_DIR"
+  cat > "${SETUP_STATE_DIR}/restore-apt-proxy.sh" <<'RESTORE'
+#!/usr/bin/env bash
+# Stellt apt-Proxy nach Coder-Container-Neustart wieder her (/etc/apt ist flüchtig)
+set -euo pipefail
+state="${HOME}/.config/setup_dev_container/apt-proxy.env"
+[[ -f "$state" ]] || exit 0
+# shellcheck disable=SC1090
+source "$state"
+[[ -n "${PROXY_URL:-}" ]] || exit 0
+[[ -f /etc/apt/apt.conf.d/95proxies ]] && exit 0
+
+apply_proxy_files() {
+  printf 'Acquire::http::Proxy "%s";\nAcquire::https::Proxy "%s";\n' "$PROXY_URL" "$PROXY_URL" \
+    > /etc/apt/apt.conf.d/95proxies
+  printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/98force-ipv4
+}
+
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  apply_proxy_files
+elif command -v sudo &>/dev/null; then
+  sudo PROXY_URL="$PROXY_URL" bash -c '
+    printf "Acquire::http::Proxy \"%s\";\nAcquire::https::Proxy \"%s\";\n" "$PROXY_URL" "$PROXY_URL" \
+      > /etc/apt/apt.conf.d/95proxies
+    printf "Acquire::ForceIPv4 \"true\";\n" > /etc/apt/apt.conf.d/98force-ipv4
+  '
+fi
+RESTORE
+  chmod +x "${SETUP_STATE_DIR}/restore-apt-proxy.sh"
+}
+
+restore_coder_ephemeral_config() {
+  if [[ ! -f "${SETUP_STATE_DIR}/apt-proxy.env" ]]; then
+    return 0
+  fi
+  if [[ -f /etc/apt/apt.conf.d/95proxies ]]; then
+    return 0
+  fi
+  log_info "Coder: apt-Proxy aus ${SETUP_STATE_DIR} wiederherstellen …"
+  "${SETUP_STATE_DIR}/restore-apt-proxy.sh" 2>/dev/null || \
+    log_info "Hinweis: apt-Proxy-Wiederherstellung beim Login via ~/.zshrc erneut versucht."
+}
+
+save_coder_setup_state() {
+  mkdir -p "$SETUP_STATE_DIR"
+  cat > "${SETUP_STATE_DIR}/last-run.env" <<EOF
+# Gespeichert von setup_dev_container.sh — für erneuten Lauf nach Container-Neustart
+SAVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+HOME="${HOME}"
+CFG_USE_PROXY=${CFG_USE_PROXY}
+CFG_PROXY_URL="${CFG_PROXY_URL}"
+CFG_INSTALL_NVM=${CFG_INSTALL_NVM}
+CFG_INSTALL_PYTHON=${CFG_INSTALL_PYTHON}
+CFG_INSTALL_PNPM=${CFG_INSTALL_PNPM}
+CFG_INSTALL_JAVA=${CFG_INSTALL_JAVA}
+CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
+REPOS_DIR="${REPOS_DIR}"
+EOF
+}
+
+install_coder_zshrc_hooks() {
+  set_zshrc_block "${SETUP_MARKER}: coder-restore" "$(cat <<'HOOK'
+# Nach Coder-Container-Neustart: apt-Proxy wiederherstellen (/etc ist flüchtig)
+if [[ -f "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" 2>/dev/null || true
+fi
+HOOK
+)"
 }
 
 remove_apt_proxy_config() {
@@ -541,7 +658,10 @@ ensure_setup_hint() {
     log_info "Skript liegt in: ${SCRIPT_DIR}"
     log_info "Empfohlen: ${DEFAULT_SETUP_DIR}/ (Skripte dorthin kopieren)"
   fi
-  log_info "Repos-Ziel: ${REPOS_DIR} · Home: ${HOME}"
+  log_info "Coder-Home: ${HOME} · Repos: ${REPOS_DIR} · State: ${SETUP_STATE_DIR}"
+  if [[ -f "${SETUP_STATE_DIR}/last-run.env" ]]; then
+    log_info "Vorheriges Setup gefunden — bei Container-Neustart: setup-dev-container erneut ausführen (apt-Pakete sind flüchtig)."
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -596,7 +716,8 @@ install_p10k_preset() {
 }
 
 configure_coder_terminal_font() {
-  local settings_dir="${WORKSPACE_ROOT}/.vscode"
+  # Coder: User-Settings unter $HOME/.vscode persistieren (nicht flüchtiges /workspace)
+  local settings_dir="${HOME}/.vscode"
   local settings_file="${settings_dir}/settings.json"
 
   mkdir -p "$settings_dir"
@@ -1214,8 +1335,11 @@ EOF
   git config --global http.proxy "$CFG_PROXY_URL" 2>/dev/null || true
   git config --global https.proxy "$CFG_PROXY_URL" 2>/dev/null || true
 
+  install_coder_zshrc_hooks
+
   echo ""; echo ""
   log_success "Proxy aktiv (apt, Shell, Git) + ForceIPv4 für apt."
+  log_info "Coder: Proxy-Kopie in ${SETUP_STATE_DIR}/ — wird nach Container-Neustart automatisch für apt wiederhergestellt."
 }
 
 exec_system_update() {
@@ -1548,6 +1672,7 @@ link_setup_scripts() {
 }
 
 print_finish() {
+  save_coder_setup_state
   section_header "e_done" "🎉 Setup abgeschlossen!"
 
   echo -e "${GREEN}${BOLD}"
@@ -1560,6 +1685,12 @@ FINISH
   echo -e "${GREEN}${BOLD}  👋 Willkommen, ${CFG_DISPLAY_NAME:-Entwickler}!${NC}"
   echo -e "${DIM}  ✍️  Setup-Skript by ${SETUP_AUTHOR} — bei Fragen gerne melden.${NC}"
   echo ""
+  echo -e "${DIM}  Persistenz (Coder):${NC}"
+  echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc & ~/.gitconfig${NC}"
+  echo -e "${DIM}    · apt-Proxy-Kopie → ${SETUP_STATE_DIR}/${NC}"
+  echo -e "${DIM}    · apt/Java/Gradle (System) → flüchtig — nach Container-Neustart:${NC}"
+  echo -e "${CYAN}      setup-dev-container${NC} ${DIM}erneut ausführen${NC}"
+  echo ""
   echo -e "${DIM}  Nächster Schritt:${NC}  ${ICON_SHELL} ${CYAN}${BOLD}exec zsh${NC}"
   echo -e "${DIM}  Setup erneut starten:${NC}  ${CYAN}${BOLD}setup-dev-container${NC}"
   echo ""
@@ -1568,9 +1699,11 @@ FINISH
 run_installation() {
   echo ""
   echo -e "${BOLD}  ⚙️  Phase 2: Installation startet …${NC}"
-  echo -e "${DIM}  Alle Schritte laufen jetzt automatisch durch.${NC}"
+  echo -e "${DIM}  Alle Schritte laufen automatisch durch.${NC}"
+  echo -e "${DIM}  Ziel-Home: ${HOME}${NC}"
   echo ""
 
+  restore_coder_ephemeral_config
   apply_proxy
   exec_system_update
   apply_user_data
