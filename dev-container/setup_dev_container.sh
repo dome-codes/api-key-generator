@@ -527,6 +527,30 @@ set_zshrc_block() {
   { echo ""; echo "# ${marker}"; echo "$content"; echo "# END ${marker}"; } >> "$ZSHRC"
 }
 
+remove_bashrc_block() {
+  local marker="$1"
+  local bashrc="${HOME}/.bashrc"
+  [[ -f "$bashrc" ]] || return 0
+  sed -i.bak "/# ${marker}/,/# END ${marker}/d" "$bashrc" 2>/dev/null || \
+    sed -i '' "/# ${marker}/,/# END ${marker}/d" "$bashrc" 2>/dev/null || true
+  rm -f "${bashrc}.bak"
+}
+
+set_bashrc_block() {
+  local marker="$1"
+  local content="$2"
+  local bashrc="${HOME}/.bashrc"
+  touch "$bashrc"
+  remove_bashrc_block "$marker"
+  { echo ""; echo "# ${marker}"; echo "$content"; echo "# END ${marker}"; } >> "$bashrc"
+}
+
+# Wichtig für Coder: Bash-Terminal und Zsh-Terminal gleich konfigurieren
+sync_shell_block() {
+  set_zshrc_block "$1" "$2"
+  set_bashrc_block "$1" "$2"
+}
+
 run_apt() {
   export DEBIAN_FRONTEND=noninteractive
   $SUDO apt-get "$@"
@@ -621,15 +645,68 @@ CFG_INSTALL_PYTHON=${CFG_INSTALL_PYTHON}
 CFG_INSTALL_PNPM=${CFG_INSTALL_PNPM}
 CFG_INSTALL_JAVA=${CFG_INSTALL_JAVA}
 CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
+CFG_NODE_VERSION="${CFG_NODE_VERSION:-lts}"
 REPOS_DIR="${REPOS_DIR}"
 EOF
+  install_restore_node_script
 }
 
-install_coder_zshrc_hooks() {
+install_restore_node_script() {
+  mkdir -p "$SETUP_STATE_DIR"
+  cat > "${SETUP_STATE_DIR}/restore-node.sh" <<'RESTORE'
+#!/usr/bin/env bash
+# Stellt NVM/Node nach Coder-Neustart wieder her, falls ~/.nvm fehlt aber konfiguriert war
+set -euo pipefail
+state="${HOME}/.config/setup_dev_container/last-run.env"
+[[ -f "$state" ]] || exit 0
+# shellcheck disable=SC1090
+source "$state"
+[[ "${CFG_INSTALL_NVM:-false}" == true ]] || exit 0
+
+export NVM_DIR="${HOME}/.nvm"
+# shellcheck source=/dev/null
+[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+command -v node &>/dev/null && exit 0
+
+if [[ ! -d "$NVM_DIR/.git" ]]; then
+  mkdir -p "$NVM_DIR"
+  git clone --depth 1 --branch v0.40.1 https://github.com/nvm-sh/nvm.git "$NVM_DIR" 2>/dev/null || exit 0
+fi
+# shellcheck source=/dev/null
+source "$NVM_DIR/nvm.sh"
+nvm install "${CFG_NODE_VERSION:-lts}" >/dev/null 2>&1 || true
+nvm alias default "${CFG_NODE_VERSION:-lts}" >/dev/null 2>&1 || true
+
+if [[ "${CFG_INSTALL_PNPM:-false}" == true ]] && command -v node &>/dev/null && ! command -v pnpm &>/dev/null; then
+  if command -v corepack &>/dev/null; then
+    corepack enable >/dev/null 2>&1 || true
+    corepack prepare pnpm@latest --activate >/dev/null 2>&1 || true
+  else
+    npm install -g pnpm >/dev/null 2>&1 || true
+  fi
+fi
+RESTORE
+  chmod +x "${SETUP_STATE_DIR}/restore-node.sh"
+}
+
+install_coder_shell_hooks() {
   set_zshrc_block "${SETUP_MARKER}: coder-restore" "$(cat <<'HOOK'
-# Nach Coder-Container-Neustart: apt-Proxy wiederherstellen (/etc ist flüchtig)
+# Nach Coder-Container-Neustart: apt-Proxy + NVM/Node wiederherstellen
 if [[ -f "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" ]]; then
   "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" 2>/dev/null || true
+fi
+if [[ -f "$HOME/.config/setup_dev_container/restore-node.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-node.sh" 2>/dev/null || true
+fi
+HOOK
+)"
+  set_bashrc_block "${SETUP_MARKER}: coder-restore" "$(cat <<'HOOK'
+# Nach Coder-Container-Neustart: apt-Proxy + NVM/Node wiederherstellen
+if [[ -f "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-apt-proxy.sh" 2>/dev/null || true
+fi
+if [[ -f "$HOME/.config/setup_dev_container/restore-node.sh" ]]; then
+  "$HOME/.config/setup_dev_container/restore-node.sh" 2>/dev/null || true
 fi
 HOOK
 )"
@@ -637,6 +714,53 @@ HOOK
 
 remove_apt_proxy_config() {
   $SUDO rm -f /etc/apt/apt.conf.d/95proxies /etc/apt/apt.conf.d/98force-ipv4 /etc/apt/apt.conf.d/99proxy
+}
+
+install_nvm_and_node() {
+  export NVM_DIR="${HOME}/.nvm"
+  log_info "NVM-Ziel: ${NVM_DIR} (User ${USER:-?}, Home ${HOME})"
+
+  if [[ ! -d "${NVM_DIR}/.git" ]]; then
+    mkdir -p "$NVM_DIR"
+    git clone --depth 1 --branch v0.40.1 https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+  fi
+
+  sync_shell_block "${SETUP_MARKER}: nvm" "$(cat <<'EOF'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+EOF
+)"
+
+  # shellcheck source=/dev/null
+  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
+  nvm install "$CFG_NODE_VERSION" && nvm alias default "$CFG_NODE_VERSION" && nvm use default
+
+  if [[ ! -d "${NVM_DIR}/versions/node" ]]; then
+    log_error "NVM/Node nicht unter ${NVM_DIR} — Home-Persistenz prüfen (Coder: /home/coder)."
+    return 1
+  fi
+
+  install_restore_node_script
+  log_success "NVM/Node persistiert unter ${NVM_DIR}"
+}
+
+install_pnpm_global() {
+  if ! command -v node &>/dev/null; then
+    log_error "pnpm braucht Node.js – übersprungen."
+    return 1
+  fi
+  if command -v pnpm &>/dev/null; then
+    log_info "pnpm bereits vorhanden."
+    return 0
+  fi
+  if command -v corepack &>/dev/null; then
+    corepack enable && corepack prepare pnpm@latest --activate
+  else
+    npm install -g pnpm
+  fi
+  log_success "${ICON_PNPM} pnpm $(pnpm --version 2>/dev/null || echo installiert)"
 }
 
 ensure_repos_directory() {
@@ -1321,7 +1445,7 @@ apply_proxy() {
   write_apt_proxy_config "$CFG_PROXY_URL"
 
   draw_progress_bar 3 4 "📂 ~/.zshrc aktualisieren …"
-  set_zshrc_block "${SETUP_MARKER}: proxy" "$(cat <<EOF
+  sync_shell_block "${SETUP_MARKER}: proxy" "$(cat <<EOF
 export http_proxy="${CFG_PROXY_URL}"
 export https_proxy="${CFG_PROXY_URL}"
 export HTTP_PROXY="${CFG_PROXY_URL}"
@@ -1335,7 +1459,7 @@ EOF
   git config --global http.proxy "$CFG_PROXY_URL" 2>/dev/null || true
   git config --global https.proxy "$CFG_PROXY_URL" 2>/dev/null || true
 
-  install_coder_zshrc_hooks
+  install_coder_shell_hooks
 
   echo ""; echo ""
   log_success "Proxy aktiv (apt, Shell, Git) + ForceIPv4 für apt."
@@ -1376,8 +1500,8 @@ ${identity_exports}"
     identity_exports="export B_NUMBER=\"${CFG_B_NUMBER}\"
 ${identity_exports}"
   fi
-  set_zshrc_block "${SETUP_MARKER}: identity" "$identity_exports"
-  set_zshrc_block "${SETUP_MARKER}: repos" "$(cat <<EOF
+  sync_shell_block "${SETUP_MARKER}: identity" "$identity_exports"
+  sync_shell_block "${SETUP_MARKER}: repos" "$(cat <<EOF
 export REPOS_DIR="${REPOS_DIR}"
 export WORKSPACE_ROOT="${WORKSPACE_ROOT}"
 EOF
@@ -1457,7 +1581,7 @@ exec_install_tools() {
     local java_bin java_home="/usr/lib/jvm/java-${CFG_JAVA_VERSION}-openjdk-amd64"
     java_bin="$(command -v java 2>/dev/null || true)"
     [[ -n "$java_bin" ]] && java_home="$(cd "$(dirname "$java_bin")/.." && pwd)"
-    set_zshrc_block "${SETUP_MARKER}: java" "$(cat <<EOF
+    sync_shell_block "${SETUP_MARKER}: java" "$(cat <<EOF
 export JAVA_HOME="${java_home}"
 export PATH="\${JAVA_HOME}/bin:\${PATH}"
 EOF
@@ -1478,20 +1602,8 @@ EOF
   if [[ "$CFG_INSTALL_NVM" == true ]]; then
     echo -e "${BOLD}  ${ICON_NODE} Node.js & NVM${NC}"
     current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} NVM installieren …"
-    [[ ! -d "${HOME}/.nvm" ]] && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-    set_zshrc_block "${SETUP_MARKER}: nvm" "$(cat <<'EOF'
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-EOF
-)"
-    export NVM_DIR="${HOME}/.nvm"
-    # shellcheck source=/dev/null
-    [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-
+    install_nvm_and_node
     current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} Node.js ${CFG_NODE_VERSION} …"
-    nvm install "$CFG_NODE_VERSION" && nvm alias default "$CFG_NODE_VERSION" && nvm use default
-
     current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_NODE} Node.js fertig …"
     log_success "${ICON_NODE} Node.js $(node --version 2>/dev/null || echo installiert)"
   fi
@@ -1506,16 +1618,7 @@ EOF
   if [[ "$CFG_INSTALL_PNPM" == true ]]; then
     echo -e "${BOLD}  ${ICON_PNPM} pnpm${NC}"
     current=$((current + 1)); draw_progress_bar "$current" "$steps" "${ICON_PNPM} pnpm installieren …"
-    if ! command -v node &>/dev/null; then
-      log_error "pnpm braucht Node.js – übersprungen."
-    elif command -v pnpm &>/dev/null; then
-      log_info "pnpm bereits vorhanden."
-    elif command -v corepack &>/dev/null; then
-      corepack enable && corepack prepare pnpm@latest --activate
-      log_success "${ICON_PNPM} pnpm $(pnpm --version)"
-    else
-      npm install -g pnpm && log_success "${ICON_PNPM} pnpm $(pnpm --version)"
-    fi
+    install_pnpm_global
   fi
 
   echo ""
@@ -1658,7 +1761,7 @@ link_setup_scripts() {
   ln -sf "${SCRIPT_DIR}/setup_dev_container.sh" "$link_name"
 
   # ~/.local/bin in PATH (idempotent)
-  set_zshrc_block "${SETUP_MARKER}: path" 'export PATH="${HOME}/.local/bin:${PATH}"'
+  sync_shell_block "${SETUP_MARKER}: path" 'export PATH="${HOME}/.local/bin:${PATH}"'
 
   log_success "Befehl verlinkt: setup-dev-container → ${SCRIPT_DIR}/setup_dev_container.sh"
 
@@ -1686,7 +1789,8 @@ FINISH
   echo -e "${DIM}  ✍️  Setup-Skript by ${SETUP_AUTHOR} — bei Fragen gerne melden.${NC}"
   echo ""
   echo -e "${DIM}  Persistenz (Coder):${NC}"
-  echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc & ~/.gitconfig${NC}"
+  echo -e "${DIM}    · Shell/Proxy/Git → ${HOME}/.zshrc, ~/.bashrc & ~/.gitconfig${NC}"
+  echo -e "${DIM}    · NVM/Node/pnpm → ${HOME}/.nvm (Auto-Restore beim Login)${NC}"
   echo -e "${DIM}    · apt-Proxy-Kopie → ${SETUP_STATE_DIR}/${NC}"
   echo -e "${DIM}    · apt/Java/Gradle (System) → flüchtig — nach Container-Neustart:${NC}"
   echo -e "${CYAN}      setup-dev-container${NC} ${DIM}erneut ausführen${NC}"
@@ -1704,6 +1808,10 @@ run_installation() {
   echo ""
 
   restore_coder_ephemeral_config
+  if [[ -f "${SETUP_STATE_DIR}/restore-node.sh" ]]; then
+    log_info "Prüfe NVM/Node unter ${HOME}/.nvm …"
+    "${SETUP_STATE_DIR}/restore-node.sh" 2>/dev/null || true
+  fi
   apply_proxy
   exec_system_update
   apply_user_data

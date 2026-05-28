@@ -584,8 +584,15 @@ pnpm benötigt **Node.js**. Im Fragebogen zuerst **NVM & Node.js** wählen, dann
 |-----|-------------|---------------|
 | Proxy (Shell, Git) | `~/.zshrc`, `~/.gitconfig` | ✅ bleibt (wenn User `coder`) |
 | Proxy (apt) | `/etc/apt/…` + Kopie in `~/.config/setup_dev_container/` | ⚙️ apt wird automatisch wiederhergestellt (Login) |
-| NVM, Fonts, p10k | `~/.nvm`, `~/.local`, `~/.p10k.zsh` | ✅ bleibt |
+| NVM, Node, pnpm | `~/.nvm/` | ✅ bleibt — **Auto-Restore** beim Login wenn fehlend |
 | Java, Gradle, zsh (apt) | System (`/usr`) | ❌ weg → `setup-dev-container` erneut |
+
+**Wenn Node/npm/pnpm trotzdem weg sind**, typische Ursachen:
+
+1. Setup lief als **root** → NVM lag in `/root/.nvm` (Fix: ohne `sudo`, als `coder`)
+2. Terminal war **bash**, NVM nur in `.zshrc` (Fix: Skript schreibt jetzt auch `.bashrc`)
+3. **`~/.nvm` gelöscht** aber Config noch da → beim Login läuft `restore-node.sh` automatisch
+4. Coder-Home **nicht persistent** → `ls ~/.nvm` prüfen; ggf. Admin wegen PVC
 
 **Lösung:**
 
@@ -603,6 +610,8 @@ Prüfen, ob Einstellungen im richtigen Home liegen:
 echo "HOME=$HOME USER=$USER"
 grep setup_dev_container ~/.zshrc
 ls ~/.config/setup_dev_container/
+ls -la ~/.nvm/versions/node 2>/dev/null || echo "NVM fehlt — setup-dev-container erneut"
+exec zsh   # oder neues Terminal — restore-node.sh läuft beim Login
 ```
 
 ---
