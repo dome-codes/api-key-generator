@@ -170,7 +170,7 @@ Das Skript arbeitet in **zwei Phasen**:
 ┌─────────────────────────────────────────────────────────────┐
 │  Phase 2 · Installation (automatisch)                       │
 │  ─────────────────────────────────────                      │
-│  Proxy → System-Update → Git/Identität → Repos → Tools → Zsh│
+│  Proxy → System-Update → Git/Identität → Repos → Erkennung → Tools → Zsh│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -204,7 +204,7 @@ Symbole: `▶` = aktueller Schritt · `✓` = erledigt · `○` = ausstehend
 | 1 | **Proxy** | Optional: Firmen-Proxy-URL erfassen |
 | 2 | **Persönliche Daten** | Name, E-Mail, E-/B-Nummer, Anzeigename |
 | 3 | **Git-Repositories** | GitLab-Gruppen-URL → alle Repos laden → interaktive Mehrfachauswahl |
-| 4 | **Optionale Tools** | Node.js, Python, Java, Gradle, pnpm — via **Homebrew** (persistiert unter `~/.linuxbrew`) |
+| 4 | **Optionale Tools** | Node.js, Python, Java, Gradle, pnpm — via **Homebrew**; optional **Auto-Erkennung nach Repo-Sync** |
 | 5 | **Docker & cloudctl** | Registry-Login (`docker login`) und `cloudctl login` |
 
 Anschließend: **Zusammenfassung** aller Eingaben und Bestätigung vor Start der Installation.
@@ -295,6 +295,23 @@ Alle Shell-Variablen werden in markierten Blöcken in `~/.zshrc` gespeichert und
 
 ---
 
+#### Automatische Tool-Erkennung (nach Repo-Sync)
+
+Wenn **Auto-Erkennung** aktiv ist (`AUTO_INSTALL_DETECTED=true` in der Conf oder im Fragebogen), scannt das Skript **nach dem Klonen** alle ausgewählten Repos und leitet daraus ab, welche Runtimes installiert werden sollen — inklusive Versionen:
+
+| Signal in Repo | Erkannt als | Version aus |
+|----------------|-------------|-------------|
+| `package.json` | Node.js (+ ggf. pnpm) | `.nvmrc`, `.node-version`, `engines.node` |
+| `pyproject.toml`, `requirements.txt`, … | Python | `.python-version`, `requires-python` |
+| `pom.xml`, `build.gradle*` | OpenJDK | `.java-version`, Compiler-Settings |
+| `gradlew` / Gradle-Build | JDK (+ Gradle-CLI nur ohne Wrapper) | `gradle/wrapper/gradle-wrapper.properties` |
+
+Über mehrere Repos wird die **höchste passende Version** gewählt (z. B. Node 20 statt 18). Die Installation erfolgt wie gewohnt via **Homebrew** (`node@20`, `python@3.12`, `openjdk@21`, …) — kein NVM.
+
+Der Schritt läuft in Phase 2 **zwischen** Repository-Sync und Tool-Installation und setzt die Install-Flags automatisch, ohne erneuten Fragebogen.
+
+---
+
 #### Optionale Tools & Terminal
 
 Je nach Auswahl im Fragebogen — **alles via Homebrew unter `~/.linuxbrew`**, plus **immer**:
@@ -342,8 +359,8 @@ Dev-Tools werden unter **`~/.linuxbrew`** installiert und überleben Coder-Neust
 
 | Tool | Warum wir das nutzen |
 |------|----------------------|
-| **Node.js** | Frontend/Backend im Node-Stack. Version aus `.nvmrc` oder `lts`. Installiert als Homebrew-Formula (`node` / `node@20`). |
-| **Python** | Backend-Services, Skripte, ML/RAG-Pipelines. |
+| **Node.js** | Frontend/Backend im Node-Stack. Version aus `.nvmrc`, `.node-version` oder `engines.node`; Fallback `lts`. Homebrew: `node` / `node@20`. |
+| **Python** | Backend, Skripte, ML. Version aus `.python-version` oder `pyproject.toml` (`requires-python`). Homebrew: `python@3.12` usw. |
 | **OpenJDK + Gradle** | Java/Spring-Services, Build-Tooling. |
 | **pnpm** | Schneller Package Manager für Node-Monorepos — benötigt Node.js. |
 
@@ -763,6 +780,8 @@ grep -A5 'setup_dev_container' ~/.zshrc
 ├── setup/                              # Skripte (einmalig reinkopieren)
 │   ├── setup_dev_container.sh
 │   ├── setup_dev_container.repos.conf
+│   ├── setup_dev_container.conf.example
+│   ├── setup_dev_container.conf.local   (persönlich, gitignored)
 │   └── setup_dev_container.p10k.zsh   (optional)
 ├── repos/                              # automatisch angelegt
 │   ├── mein-service/                   # Git-Repos

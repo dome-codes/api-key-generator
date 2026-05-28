@@ -37,6 +37,8 @@ INSTALL_PNPM=true
 INSTALL_JAVA=true
 JAVA_VERSION=21
 INSTALL_GRADLE=false
+# Nach Repo-Sync: Versionen aus Repos erkennen und installieren (.nvmrc, pyproject.toml, …)
+AUTO_INSTALL_DETECTED=true
 
 # --- Docker & cloudctl ---
 DOCKER_LOGIN=true

@@ -104,7 +104,7 @@ readonly EXAMPLE_GIT_URL="https://repo.deka.de/gruppe/mein-service.git"
 # Roadmap: alle Schritte im Skript
 readonly -a ROADMAP_KEYS=(
   "q_proxy" "q_personal" "q_repos" "q_tools" "q_logins"
-  "e_proxy" "e_system" "e_brew_base" "e_personal" "e_repos" "e_tools" "e_logins" "e_terminal" "e_done"
+  "e_proxy" "e_system" "e_brew_base" "e_personal" "e_repos" "e_detect" "e_tools" "e_logins" "e_terminal" "e_done"
 )
 readonly -a ROADMAP_LABELS=(
   "Proxy-Einstellungen"
@@ -117,6 +117,7 @@ readonly -a ROADMAP_LABELS=(
   "Homebrew-Basis (persistent)"
   "Git & Identität setzen"
   "Repositories syncen"
+  "Tools aus Repos erkennen"
   "Tools installieren"
   "Docker & cloudctl Login"
   "Terminal einrichten"
@@ -124,7 +125,7 @@ readonly -a ROADMAP_LABELS=(
 )
 readonly -a ROADMAP_ICONS=(
   "🌐" "👤" "📁" "🛠️" "🔐"
-  "🌐" "🔄" "🍺" "🔑" "🔀" "⚙️" "🔐" "💻" "🎉"
+  "🌐" "🔄" "🍺" "🔑" "🔀" "🔍" "⚙️" "🔐" "💻" "🎉"
 )
 
 # Tool- & UI-Icons
@@ -166,6 +167,9 @@ CFG_INSTALL_PNPM=false
 CFG_INSTALL_JAVA=false
 CFG_JAVA_VERSION="21"
 CFG_INSTALL_GRADLE=false
+CFG_PYTHON_VERSION=""
+CFG_GRADLE_VERSION=""
+CFG_AUTO_INSTALL_DETECTED=true
 CFG_SYNC_REPOS=false
 CFG_GITLAB_GROUP_URL=""
 CFG_GITLAB_TOKEN=""
@@ -456,6 +460,10 @@ apply_setup_conf_key() {
     JAVA_VERSION|CFG_JAVA_VERSION) CFG_JAVA_VERSION="$value" ;;
     INSTALL_GRADLE|CFG_INSTALL_GRADLE)
       is_conf_true "$value" && CFG_INSTALL_GRADLE=true || CFG_INSTALL_GRADLE=false ;;
+    AUTO_INSTALL_DETECTED|CFG_AUTO_INSTALL_DETECTED)
+      is_conf_true "$value" && CFG_AUTO_INSTALL_DETECTED=true || CFG_AUTO_INSTALL_DETECTED=false ;;
+    PYTHON_VERSION|CFG_PYTHON_VERSION) CFG_PYTHON_VERSION="$value" ;;
+    GRADLE_VERSION|CFG_GRADLE_VERSION) CFG_GRADLE_VERSION="$value" ;;
     DOCKER_LOGIN|CFG_DOCKER_LOGIN)
       is_conf_true "$value" && CFG_DOCKER_LOGIN=true || CFG_DOCKER_LOGIN=false ;;
     DOCKER_REGISTRY|CFG_DOCKER_REGISTRY) CFG_DOCKER_REGISTRY="$value" ;;
@@ -465,7 +473,7 @@ apply_setup_conf_key() {
       is_conf_true "$value" && CFG_CLOUDCTL_LOGIN=true || CFG_CLOUDCTL_LOGIN=false ;;
     CONTINUE_ON_ERROR|CFG_CONTINUE_ON_ERROR)
       is_conf_true "$value" && CFG_CONTINUE_ON_ERROR=true || CFG_CONTINUE_ON_ERROR=false ;;
-    SKIP_QUESTIONNAIRE|CFG_SKIP_QUESTIONNAIRE|AUTO_INSTALL)
+    SKIP_QUESTIONNAIRE|CFG_SKIP_QUESTIONNAIRE)
       is_conf_true "$value" && CFG_SKIP_QUESTIONNAIRE=true || CFG_SKIP_QUESTIONNAIRE=false ;;
     *) return 1 ;;
   esac
@@ -698,8 +706,11 @@ CFG_INSTALL_PYTHON=${CFG_INSTALL_PYTHON}
 CFG_INSTALL_PNPM=${CFG_INSTALL_PNPM}
 CFG_INSTALL_JAVA=${CFG_INSTALL_JAVA}
 CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
+CFG_AUTO_INSTALL_DETECTED=${CFG_AUTO_INSTALL_DETECTED}
 CFG_NODE_VERSION="${CFG_NODE_VERSION:-lts}"
 CFG_JAVA_VERSION="${CFG_JAVA_VERSION:-21}"
+CFG_PYTHON_VERSION="${CFG_PYTHON_VERSION:-}"
+CFG_GRADLE_VERSION="${CFG_GRADLE_VERSION:-}"
 CFG_SYNC_REPOS=${CFG_SYNC_REPOS}
 CFG_GITLAB_GROUP_URL="${CFG_GITLAB_GROUP_URL}"
 CFG_GIT_HTTP_USER="${CFG_GIT_HTTP_USER}"
@@ -730,10 +741,11 @@ show_questionnaire_summary() {
   echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SYNC_REPO_NAME[@]} ausgewählt" || echo "übersprungen")"
   [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
   echo -e "  ${ICON_NODE} ${DIM}Node.js:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION}, Homebrew)" || echo "nein")"
-  echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja${CFG_PYTHON_VERSION:+ (${CFG_PYTHON_VERSION})}" || echo "nein")"
   echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_JAVA} ${DIM}Java:${NC}         $([[ "$CFG_INSTALL_JAVA" == true ]] && echo "ja (OpenJDK ${CFG_JAVA_VERSION})" || echo "nein")"
-  echo -e "  ${ICON_GRADLE} ${DIM}Gradle:${NC}       $([[ "$CFG_INSTALL_GRADLE" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_GRADLE} ${DIM}Gradle:${NC}       $([[ "$CFG_INSTALL_GRADLE" == true ]] && echo "ja${CFG_GRADLE_VERSION:+ (${CFG_GRADLE_VERSION})}" || echo "nein")"
+  echo -e "  🔍 ${DIM}Auto-Erkennung:${NC} $([[ "$CFG_AUTO_INSTALL_DETECTED" == true ]] && echo "ja (nach Repo-Sync)" || echo "nein")"
   echo -e "  ${ICON_DOCKER} ${DIM}Docker login:${NC} $([[ "$CFG_DOCKER_LOGIN" == true ]] && echo "ja (${CFG_DOCKER_REGISTRY} / ${CFG_DOCKER_USER})" || echo "nein")"
   echo -e "  ${ICON_CLOUD} ${DIM}cloudctl login:${NC} $([[ "$CFG_CLOUDCTL_LOGIN" == true ]] && echo "ja" || echo "nein")"
   echo -e "  ${ICON_SHELL} ${DIM}Terminal:${NC}     ${ICON_ZSH} Zsh + ${ICON_P10K} Powerlevel10k (immer)"
@@ -751,6 +763,146 @@ default_docker_username() {
   fi
 }
 
+# --- Versionserkennung aus Repo-Dateien (nach Clone) ---
+extract_first_major() {
+  local s="$1"
+  s="$(echo "$s" | tr -d '[:space:]' | sed 's/^v//; s/^>=//; s/^~//; s/^\^//')"
+  [[ "$s" =~ ^3\.([0-9]+) ]] && { printf '%s' "${BASH_REMATCH[1]}"; return 0; }
+  [[ "$s" =~ ^([0-9]+) ]] && { printf '%s' "${BASH_REMATCH[1]}"; return 0; }
+  return 1
+}
+
+merge_major_version() {
+  local current="${1:-}" new="${2:-}"
+  [[ -z "$new" ]] && { printf '%s' "$current"; return 0; }
+  [[ -z "$current" || "$current" == "lts" ]] && { printf '%s' "$new"; return 0; }
+  if [[ "$current" =~ ^[0-9]+$ && "$new" =~ ^[0-9]+$ ]]; then
+    (( new > current )) && printf '%s' "$new" || printf '%s' "$current"
+    return 0
+  fi
+  printf '%s' "$new"
+}
+
+merge_node_version() {
+  local new="$1"
+  [[ -z "$new" ]] && return 0
+  local major
+  major="$(extract_first_major "$new")" || return 0
+  CFG_NODE_VERSION="$(merge_major_version "${CFG_NODE_VERSION:-lts}" "$major")"
+}
+
+merge_java_version() {
+  local new="$1"
+  [[ -z "$new" ]] && return 0
+  local major
+  major="$(extract_first_major "$new")" || return 0
+  CFG_JAVA_VERSION="$(merge_major_version "${CFG_JAVA_VERSION:-21}" "$major")"
+}
+
+merge_python_version() {
+  local new="$1"
+  [[ -z "$new" ]] && return 0
+  local ver="$new"
+  ver="$(echo "$ver" | tr -d '[:space:]' | sed 's/^v//; s/^python-//')"
+  if [[ ! "$ver" =~ ^3\.[0-9]+$ ]]; then
+    [[ "$ver" =~ ^[0-9]+$ ]] && ver="3.${ver}"
+  fi
+  [[ "$ver" =~ ^3\.[0-9]+$ ]] || return 0
+  if [[ -z "${CFG_PYTHON_VERSION:-}" ]]; then
+    CFG_PYTHON_VERSION="$ver"
+    return 0
+  fi
+  if printf '%s\n' "${CFG_PYTHON_VERSION}" "$ver" | sort -V | tail -1 | grep -qx "$ver"; then
+    CFG_PYTHON_VERSION="$ver"
+  fi
+}
+
+read_node_versions_from_repo() {
+  local path="$1" repo_name="$2" line ver
+
+  for f in .nvmrc .node-version; do
+    [[ -f "$path/$f" ]] || continue
+    ver="$(sed 's/^[[:space:]]*v\?//' "$path/$f" | head -1 | tr -d '[:space:]')"
+    [[ -n "$ver" ]] && {
+      merge_node_version "$ver"
+      log_info "  → ${f}: Node ${ver}"
+    }
+  done
+
+  if [[ -f "$path/package.json" ]]; then
+    line="$(grep -E '"engines"' -A5 "$path/package.json" 2>/dev/null | grep -i node | head -1 || true)"
+    ver="$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)?' | head -1 || true)"
+    [[ -n "$ver" ]] && {
+      merge_node_version "$ver"
+      log_info "  → package.json engines.node: ${ver}"
+    }
+  fi
+}
+
+read_python_versions_from_repo() {
+  local path="$1" line ver
+
+  if [[ -f "$path/.python-version" ]]; then
+    ver="$(head -1 "$path/.python-version" | tr -d '[:space:]')"
+    merge_python_version "$ver"
+    log_info "  → .python-version: Python ${ver}"
+  fi
+
+  if [[ -f "$path/pyproject.toml" ]]; then
+    line="$(grep -E 'requires-python|python_version' "$path/pyproject.toml" 2>/dev/null | head -1 || true)"
+    ver="$(echo "$line" | grep -oE '[0-9]+\.[0-9]+' | head -1 || true)"
+    [[ -n "$ver" ]] && {
+      merge_python_version "$ver"
+      log_info "  → pyproject.toml: Python ${ver}"
+    }
+  fi
+}
+
+read_java_versions_from_repo() {
+  local path="$1" line ver
+
+  if [[ -f "$path/.java-version" ]]; then
+    ver="$(head -1 "$path/.java-version" | tr -d '[:space:]')"
+    merge_java_version "$ver"
+    log_info "  → .java-version: Java ${ver}"
+  fi
+
+  if [[ -f "$path/pom.xml" ]]; then
+    line="$(grep -E '<java\.version>|<maven\.compiler\.(source|release)>' "$path/pom.xml" 2>/dev/null | head -1 || true)"
+    ver="$(echo "$line" | grep -oE '[0-9]+' | head -1 || true)"
+    [[ -n "$ver" ]] && {
+      merge_java_version "$ver"
+      log_info "  → pom.xml: Java ${ver}"
+    }
+  fi
+
+  for gf in "$path/build.gradle" "$path/build.gradle.kts"; do
+    [[ -f "$gf" ]] || continue
+    line="$(grep -E 'JavaVersion\.VERSION_|JavaLanguageVersion\.of|jvmTarget|sourceCompatibility' "$gf" 2>/dev/null | head -1 || true)"
+    ver="$(echo "$line" | grep -oE '[0-9]+' | head -1 || true)"
+    [[ -n "$ver" ]] && {
+      merge_java_version "$ver"
+      log_info "  → $(basename "$gf"): Java ${ver}"
+    }
+  done
+}
+
+read_gradle_version_from_repo() {
+  local path="$1" props="$path/gradle/wrapper/gradle-wrapper.properties" url ver
+
+  [[ -f "$props" ]] || return 0
+  url="$(grep -E '^distributionUrl=' "$props" 2>/dev/null | head -1 || true)"
+  ver="$(echo "$url" | grep -oE 'gradle-[0-9.]+' | sed 's/gradle-//' | head -1 || true)"
+  [[ -n "$ver" ]] && {
+    if [[ -z "${CFG_GRADLE_VERSION:-}" ]]; then
+      CFG_GRADLE_VERSION="$ver"
+    elif printf '%s\n' "${CFG_GRADLE_VERSION}" "$ver" | sort -V | tail -1 | grep -qx "$ver"; then
+      CFG_GRADLE_VERSION="$ver"
+    fi
+    log_info "  → gradle-wrapper: Gradle ${ver}"
+  }
+}
+
 scan_repo_path_for_tooling() {
   local path="$1" repo_name="${2:-$(basename "$path")}"
 
@@ -759,10 +911,7 @@ scan_repo_path_for_tooling() {
   if [[ -f "$path/package.json" ]]; then
     DETECT_NODE=true
     log_info "${ICON_FOLDER} ${repo_name}: package.json → Node.js"
-    if [[ -f "$path/.nvmrc" ]]; then
-      CFG_NODE_VERSION="$(sed 's/^[[:space:]]*v\?//' "$path/.nvmrc" | head -1 | tr -d '[:space:]')"
-      log_info "  → .nvmrc: Node ${CFG_NODE_VERSION}"
-    fi
+    read_node_versions_from_repo "$path" "$repo_name"
     [[ -f "$path/pnpm-lock.yaml" || -f "$path/pnpm-workspace.yaml" ]] && {
       DETECT_PNPM=true
       log_info "  → pnpm-lock/workspace → pnpm"
@@ -772,20 +921,24 @@ scan_repo_path_for_tooling() {
   if [[ -f "$path/requirements.txt" || -f "$path/pyproject.toml" || -f "$path/setup.py" || -f "$path/Pipfile" ]]; then
     DETECT_PYTHON=true
     log_info "${ICON_FOLDER} ${repo_name}: Python-Projekt erkannt"
+    read_python_versions_from_repo "$path"
   fi
 
   if [[ -f "$path/pom.xml" || -f "$path/build.gradle" || -f "$path/build.gradle.kts" ]]; then
     DETECT_JAVA=true
     log_info "${ICON_FOLDER} ${repo_name}: Java-Build (Maven/Gradle) → JDK"
+    read_java_versions_from_repo "$path"
   fi
 
   if [[ -f "$path/gradlew" ]]; then
     DETECT_JAVA=true
     DETECT_GRADLE_WRAPPER=true
+    read_gradle_version_from_repo "$path"
     log_info "${ICON_FOLDER} ${repo_name}: gradlew vorhanden → JDK (Gradle Wrapper reicht)"
   elif [[ -f "$path/build.gradle" || -f "$path/build.gradle.kts" ]]; then
     DETECT_JAVA=true
     DETECT_GRADLE=true
+    read_gradle_version_from_repo "$path"
     log_info "${ICON_FOLDER} ${repo_name}: Gradle-Build ohne Wrapper → Gradle-CLI empfohlen"
   fi
 }
@@ -1002,6 +1155,8 @@ CFG_INSTALL_PNPM=${CFG_INSTALL_PNPM}
 CFG_INSTALL_JAVA=${CFG_INSTALL_JAVA}
 CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
 CFG_NODE_VERSION="${CFG_NODE_VERSION:-lts}"
+CFG_JAVA_VERSION="${CFG_JAVA_VERSION:-21}"
+CFG_PYTHON_VERSION="${CFG_PYTHON_VERSION:-}"
 REPOS_DIR="${REPOS_DIR}"
 EOF
   install_restore_brew_script
@@ -1050,7 +1205,14 @@ done
   fi
 }
 [[ "${CFG_INSTALL_PNPM:-false}" == true ]] && install_if_missing pnpm
-[[ "${CFG_INSTALL_PYTHON:-false}" == true ]] && install_if_missing python
+[[ "${CFG_INSTALL_PYTHON:-false}" == true ]] && {
+  pyver="${CFG_PYTHON_VERSION:-}"
+  if [[ "$pyver" =~ ^3\.[0-9]+$ ]]; then
+    brew list --formula "python@${pyver}" &>/dev/null 2>&1 || install_if_missing "python@${pyver}" || install_if_missing python
+  else
+    install_if_missing python
+  fi
+}
 [[ "${CFG_INSTALL_JAVA:-false}" == true ]] && {
   jver="${CFG_JAVA_VERSION:-21}"
   brew list --formula "openjdk@${jver}" &>/dev/null 2>&1 || install_if_missing "openjdk@${jver}" || install_if_missing openjdk
@@ -1205,6 +1367,86 @@ brew_install_formula() {
   fi
   log_info "${ICON_BREW} brew install ${pkg} …"
   brew install "$pkg"
+}
+
+install_python_via_brew() {
+  local ver="${CFG_PYTHON_VERSION:-}" pkg="python"
+
+  if [[ "$ver" =~ ^3\.[0-9]+$ ]]; then
+    pkg="python@${ver}"
+    brew_install_formula "$pkg" 2>/dev/null || brew_install_formula python
+  else
+    brew_install_formula python
+  fi
+  log_success "${ICON_PYTHON} Python $(python3 --version 2>/dev/null | cut -d' ' -f2 || python --version 2>/dev/null | cut -d' ' -f2)"
+}
+
+install_gradle_via_brew() {
+  brew_install_formula gradle
+  [[ -n "${CFG_GRADLE_VERSION:-}" ]] && \
+    log_info "${ICON_GRADLE} Gradle-Wrapper in Repos verlangt ${CFG_GRADLE_VERSION} — Homebrew liefert $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo aktuelle Version)"
+  log_success "${ICON_GRADLE} Gradle $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo installiert)"
+}
+
+apply_detected_tool_flags() {
+  if [[ "$DETECT_NODE" == true ]]; then
+    CFG_INSTALL_NVM=true
+    log_success "${ICON_NODE} Node.js → ${CFG_NODE_VERSION:-lts} (Homebrew)"
+  fi
+  if [[ "$DETECT_PNPM" == true ]]; then
+    CFG_INSTALL_PNPM=true
+    log_success "${ICON_PNPM} pnpm"
+  fi
+  if [[ "$DETECT_PYTHON" == true ]]; then
+    CFG_INSTALL_PYTHON=true
+    log_success "${ICON_PYTHON} Python${CFG_PYTHON_VERSION:+ → ${CFG_PYTHON_VERSION}} (Homebrew)"
+  fi
+  if [[ "$DETECT_JAVA" == true ]]; then
+    CFG_INSTALL_JAVA=true
+    log_success "${ICON_JAVA} OpenJDK → ${CFG_JAVA_VERSION:-21} (Homebrew)"
+  fi
+  if [[ "$DETECT_GRADLE" == true && "$DETECT_GRADLE_WRAPPER" != true ]]; then
+    CFG_INSTALL_GRADLE=true
+    log_success "${ICON_GRADLE} Gradle${CFG_GRADLE_VERSION:+ (Wrapper: ${CFG_GRADLE_VERSION})}"
+  elif [[ "$DETECT_GRADLE_WRAPPER" == true ]]; then
+    log_info "${ICON_GRADLE} gradlew in Repos — Gradle-CLI nicht nötig${CFG_GRADLE_VERSION:+ (Wrapper ${CFG_GRADLE_VERSION})}"
+  fi
+}
+
+exec_auto_install_detected_tools() {
+  section_header "e_detect" "🔍 Installation · Tools aus Repos erkennen"
+
+  if [[ "$CFG_AUTO_INSTALL_DETECTED" != true ]]; then
+    log_info "Automatische Erkennung deaktiviert — übersprungen."
+    return 0
+  fi
+
+  if [[ ${#SYNC_REPO_PATH[@]} -eq 0 ]]; then
+    log_info "Keine Repositories — übersprungen."
+    return 0
+  fi
+
+  local has_clone=false path
+  for path in "${SYNC_REPO_PATH[@]}"; do
+    [[ -d "$path/.git" ]] && { has_clone=true; break; }
+  done
+  if [[ "$has_clone" != true ]]; then
+    log_info "Noch keine geklonten Repos unter ${REPOS_DIR} — übersprungen."
+    return 0
+  fi
+
+  detect_selected_repo_tooling
+
+  if [[ "$DETECT_NODE" != true && "$DETECT_PYTHON" != true && "$DETECT_JAVA" != true \
+    && "$DETECT_PNPM" != true ]]; then
+    log_info "Keine Tool-Signale in den Repos gefunden (package.json, pom.xml, pyproject.toml, …)."
+    return 0
+  fi
+
+  echo ""
+  log_info "Erkannte Anforderungen — Installation wird vorbereitet:"
+  apply_detected_tool_flags
+  echo ""
 }
 
 install_node_via_brew() {
@@ -1910,7 +2152,15 @@ run_questionnaire() {
     echo ""
   fi
 
-  # --- 5/5 Docker & cloudctl ---
+  echo ""
+  echo -e "${BOLD}  🔍 Automatische Tool-Erkennung${NC}"
+  log_info "Nach dem Repo-Sync werden Versionen aus .nvmrc, pyproject.toml, pom.xml, gradle-wrapper.properties usw. gelesen und via Homebrew installiert."
+  if ask_yes_no "Tools automatisch aus geklonten Repos erkennen und installieren?" "$(bool_default_yn "$CFG_AUTO_INSTALL_DETECTED")"; then
+    CFG_AUTO_INSTALL_DETECTED=true
+  else
+    CFG_AUTO_INSTALL_DETECTED=false
+  fi
+  echo ""
   section_header "q_logins" "🔐 Frage 5/5 · Docker & cloudctl" "Registry- und Cloud-Zugang einrichten."
   echo ""
   echo -e "${BOLD}  ${ICON_DOCKER} Docker Registry Login${NC}"
@@ -2101,14 +2351,8 @@ exec_sync_repos() {
     on_step_error "Repository-Sync (${fail} fehlgeschlagen)" || true
   }
 
-  # Nach frischem Clone: Tooling-Hinweis (Installation war vor dem Sync geplant)
-  if [[ "$ok" -gt 0 ]]; then
-    detect_selected_repo_tooling
-    [[ "$DETECT_JAVA" == true && "$CFG_INSTALL_JAVA" != true ]] && \
-      log_info "Java-Projekte erkannt — ggf. Setup erneut mit OpenJDK-Option oder: brew install openjdk@${CFG_JAVA_VERSION:-21}"
-    [[ "$DETECT_NODE" == true && "$CFG_INSTALL_NVM" != true ]] && \
-      log_info "Node-Projekte erkannt — ggf. Node.js via Homebrew nachinstallieren"
-  fi
+  # Nach frischem Clone: volle Tool-Erkennung in exec_auto_install_detected_tools
+  :
 }
 
 exec_install_tools() {
@@ -2143,8 +2387,7 @@ exec_install_tools() {
     echo -e "${BOLD}  ${ICON_GRADLE} Gradle${NC}"
     current=$((current + 1))
     draw_progress_bar "$current" "$steps" "${ICON_GRADLE} Gradle installieren …"
-    brew_install_formula gradle
-    log_success "${ICON_GRADLE} Gradle $(gradle --version 2>/dev/null | grep Gradle | head -1 || echo installiert)"
+    install_gradle_via_brew
   fi
 
   if [[ "$CFG_INSTALL_NVM" == true ]]; then
@@ -2157,9 +2400,8 @@ exec_install_tools() {
   if [[ "$CFG_INSTALL_PYTHON" == true ]]; then
     echo -e "${BOLD}  ${ICON_PYTHON} Python${NC}"
     current=$((current + 1))
-    draw_progress_bar "$current" "$steps" "${ICON_PYTHON} Python installieren …"
-    brew_install_formula python
-    log_success "${ICON_PYTHON} Python $(python3 --version 2>/dev/null | cut -d' ' -f2 || python --version 2>/dev/null | cut -d' ' -f2)"
+    draw_progress_bar "$current" "$steps" "${ICON_PYTHON} Python${CFG_PYTHON_VERSION:+ ${CFG_PYTHON_VERSION}} installieren …"
+    install_python_via_brew
   fi
 
   if [[ "$CFG_INSTALL_PNPM" == true ]]; then
@@ -2381,6 +2623,7 @@ run_installation() {
   exec_install_persistent_base
   apply_user_data
   exec_sync_repos
+  exec_auto_install_detected_tools
   exec_install_tools
   exec_logins
   exec_install_terminal
