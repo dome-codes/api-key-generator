@@ -60,6 +60,9 @@ readonly ZSHRC="${HOME}/.zshrc"
 readonly SETUP_STATE_DIR="${HOME}/.config/setup_dev_container"
 readonly SETUP_MARKER="setup_dev_container"
 readonly REPOS_CONF="${SCRIPT_DIR}/setup_dev_container.repos.conf"
+readonly SETUP_CONF="${SCRIPT_DIR}/setup_dev_container.conf"
+readonly SETUP_CONF_LOCAL="${SCRIPT_DIR}/setup_dev_container.conf.local"
+readonly SETUP_CONF_EXAMPLE="${SCRIPT_DIR}/setup_dev_container.conf.example"
 readonly SETUP_AUTHOR="Domenic Schumacher"
 
 # Schreibbares Workspace-Root: /workspace nur wenn beschreibbar, sonst $HOME (/home/coder)
@@ -171,6 +174,13 @@ CFG_DOCKER_REGISTRY=""
 CFG_DOCKER_USER=""
 CFG_DOCKER_TOKEN=""
 CFG_CLOUDCTL_LOGIN=false
+CFG_GIT_HTTP_USER=""
+CFG_GIT_HTTP_PASSWORD=""
+CFG_CONTINUE_ON_ERROR=true
+CFG_SKIP_QUESTIONNAIRE=false
+CFG_REPO_SELECT_ALL=false
+QUESTIONNAIRE_SAVED_AT=""
+SETUP_CONF_LOADED=0
 
 # Erkennung aus Repo-Dateien (nach Auswahl / vorhandene Klone)
 DETECT_NODE=false
@@ -340,11 +350,16 @@ ask_yes_no() {
 }
 
 ask_number_type() {
-  local answer
+  local answer default="${CFG_NUMBER_TYPE:-}"
 
   while true; do
-    echo -ne "${BLUE}Hast du eine E-Nummer oder B-Nummer? (e/b): ${NC}" >&2
+    if [[ -n "$default" ]]; then
+      echo -ne "${BLUE}Hast du eine E-Nummer oder B-Nummer? (e/b) [${default}]: ${NC}" >&2
+    else
+      echo -ne "${BLUE}Hast du eine E-Nummer oder B-Nummer? (e/b): ${NC}" >&2
+    fi
     read -r answer || true
+    [[ -z "$answer" && -n "$default" ]] && { printf '%s' "$default"; return 0; }
     case "$(tolower "$answer")" in
       e|e-nummer|enummer) printf '%s' "e"; return 0 ;;
       b|b-nummer|bnummer) printf '%s' "b"; return 0 ;;
@@ -393,6 +408,337 @@ ask_secret() {
 ask_git_url() {
   log_info "Beispiel-URL: ${EXAMPLE_GIT_URL}"
   ask_input "Git-URL"
+}
+
+bool_default_yn() {
+  [[ "${1:-false}" == true ]] && printf 'j' || printf 'n'
+}
+
+is_conf_true() {
+  case "$(tolower "$1")" in
+    1|true|yes|ja|j|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+apply_setup_conf_key() {
+  local key="$1" value="$2"
+
+  case "$key" in
+    USE_PROXY|CFG_USE_PROXY)
+      is_conf_true "$value" && CFG_USE_PROXY=true || CFG_USE_PROXY=false ;;
+    PROXY_URL|CFG_PROXY_URL)
+      CFG_PROXY_URL="$value"
+      [[ -n "$value" ]] && CFG_USE_PROXY=true ;;
+    USER_NAME|CFG_USER_NAME) CFG_USER_NAME="$value" ;;
+    USER_EMAIL|CFG_USER_EMAIL) CFG_USER_EMAIL="$value" ;;
+    NUMBER_TYPE|CFG_NUMBER_TYPE) CFG_NUMBER_TYPE="$(tolower "$value")" ;;
+    E_NUMBER|CFG_E_NUMBER) CFG_E_NUMBER="$value" ;;
+    B_NUMBER|CFG_B_NUMBER) CFG_B_NUMBER="$value" ;;
+    DISPLAY_NAME|CFG_DISPLAY_NAME) CFG_DISPLAY_NAME="$value" ;;
+    GITLAB_GROUP_URL|CFG_GITLAB_GROUP_URL) CFG_GITLAB_GROUP_URL="$value" ;;
+    GITLAB_TOKEN|CFG_GITLAB_TOKEN) CFG_GITLAB_TOKEN="$value" ;;
+    GIT_HTTP_USER|CFG_GIT_HTTP_USER) CFG_GIT_HTTP_USER="$value" ;;
+    GIT_HTTP_PASSWORD|CFG_GIT_HTTP_PASSWORD) CFG_GIT_HTTP_PASSWORD="$value" ;;
+    SYNC_REPOS|CFG_SYNC_REPOS)
+      is_conf_true "$value" && CFG_SYNC_REPOS=true || CFG_SYNC_REPOS=false ;;
+    REPO_SELECT_ALL|CFG_REPO_SELECT_ALL)
+      is_conf_true "$value" && CFG_REPO_SELECT_ALL=true || CFG_REPO_SELECT_ALL=false ;;
+    INSTALL_NODE|INSTALL_NVM|CFG_INSTALL_NVM)
+      is_conf_true "$value" && CFG_INSTALL_NVM=true || CFG_INSTALL_NVM=false ;;
+    NODE_VERSION|CFG_NODE_VERSION) CFG_NODE_VERSION="$value" ;;
+    INSTALL_PYTHON|CFG_INSTALL_PYTHON)
+      is_conf_true "$value" && CFG_INSTALL_PYTHON=true || CFG_INSTALL_PYTHON=false ;;
+    INSTALL_PNPM|CFG_INSTALL_PNPM)
+      is_conf_true "$value" && CFG_INSTALL_PNPM=true || CFG_INSTALL_PNPM=false ;;
+    INSTALL_JAVA|CFG_INSTALL_JAVA)
+      is_conf_true "$value" && CFG_INSTALL_JAVA=true || CFG_INSTALL_JAVA=false ;;
+    JAVA_VERSION|CFG_JAVA_VERSION) CFG_JAVA_VERSION="$value" ;;
+    INSTALL_GRADLE|CFG_INSTALL_GRADLE)
+      is_conf_true "$value" && CFG_INSTALL_GRADLE=true || CFG_INSTALL_GRADLE=false ;;
+    DOCKER_LOGIN|CFG_DOCKER_LOGIN)
+      is_conf_true "$value" && CFG_DOCKER_LOGIN=true || CFG_DOCKER_LOGIN=false ;;
+    DOCKER_REGISTRY|CFG_DOCKER_REGISTRY) CFG_DOCKER_REGISTRY="$value" ;;
+    DOCKER_USER|CFG_DOCKER_USER) CFG_DOCKER_USER="$value" ;;
+    DOCKER_TOKEN|CFG_DOCKER_TOKEN) CFG_DOCKER_TOKEN="$value" ;;
+    CLOUDCTL_LOGIN|CFG_CLOUDCTL_LOGIN)
+      is_conf_true "$value" && CFG_CLOUDCTL_LOGIN=true || CFG_CLOUDCTL_LOGIN=false ;;
+    CONTINUE_ON_ERROR|CFG_CONTINUE_ON_ERROR)
+      is_conf_true "$value" && CFG_CONTINUE_ON_ERROR=true || CFG_CONTINUE_ON_ERROR=false ;;
+    SKIP_QUESTIONNAIRE|CFG_SKIP_QUESTIONNAIRE|AUTO_INSTALL)
+      is_conf_true "$value" && CFG_SKIP_QUESTIONNAIRE=true || CFG_SKIP_QUESTIONNAIRE=false ;;
+    *) return 1 ;;
+  esac
+  return 0
+}
+
+load_setup_conf_file() {
+  local file="$1" key value line count=0
+
+  [[ -f "$file" ]] || return 0
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    line="${line%%#*}"
+    line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    [[ -z "$line" || "$line" != *=* ]] && continue
+
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | tr '[:lower:]' '[:upper:]')"
+    value="$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    value="${value%\"}"; value="${value#\"}"
+    value="${value%\'}"; value="${value#\'}"
+
+    apply_setup_conf_key "$key" "$value" && count=$((count + 1))
+  done < "$file"
+
+  SETUP_CONF_LOADED=$((SETUP_CONF_LOADED + count))
+}
+
+load_setup_conf() {
+  SETUP_CONF_LOADED=0
+  local conf_path="${SETUP_CONF_FILE:-}"
+
+  if [[ -n "$conf_path" && -f "$conf_path" ]]; then
+    load_setup_conf_file "$conf_path"
+  else
+    load_setup_conf_file "$SETUP_CONF"
+    load_setup_conf_file "$SETUP_CONF_LOCAL"
+  fi
+
+  [[ -z "$CFG_NUMBER_TYPE" && -n "$CFG_E_NUMBER" ]] && CFG_NUMBER_TYPE="e"
+  [[ -z "$CFG_NUMBER_TYPE" && -n "$CFG_B_NUMBER" ]] && CFG_NUMBER_TYPE="b"
+  [[ -z "$CFG_DISPLAY_NAME" && -n "$CFG_USER_NAME" ]] && CFG_DISPLAY_NAME="$CFG_USER_NAME"
+  [[ -n "${GITLAB_TOKEN:-}" && -z "$CFG_GITLAB_TOKEN" ]] && CFG_GITLAB_TOKEN="$GITLAB_TOKEN"
+
+  return 0
+}
+
+conf_questionnaire_complete() {
+  [[ -n "$CFG_USER_NAME" && -n "$CFG_USER_EMAIL" ]] || return 1
+  [[ -n "$CFG_E_NUMBER" || -n "$CFG_B_NUMBER" ]] || return 1
+  [[ -n "$CFG_NUMBER_TYPE" ]] || return 1
+  return 0
+}
+
+prepare_repos_from_conf() {
+  local default_group="" i
+
+  default_group="$(read_repos_conf_directive "gitlab-group")"
+  [[ -z "$CFG_GITLAB_GROUP_URL" && -n "$default_group" ]] && CFG_GITLAB_GROUP_URL="$default_group"
+
+  if [[ -n "$CFG_GITLAB_GROUP_URL" ]]; then
+    gitlab_load_group_projects "$CFG_GITLAB_GROUP_URL" "${CFG_GITLAB_TOKEN:-}" || true
+  fi
+
+  discover_git_repos false
+
+  if [[ ${#REPO_NAME[@]} -eq 0 ]]; then
+    CFG_SYNC_REPOS=false
+    return 0
+  fi
+
+  if [[ "$CFG_SYNC_REPOS" == false ]]; then
+    return 0
+  fi
+
+  if [[ "$CFG_REPO_SELECT_ALL" == true ]]; then
+    REPO_SELECTED=()
+    SELECTED_REPO_INDICES=()
+    for i in "${!REPO_NAME[@]}"; do
+      REPO_SELECTED[$i]=1
+      SELECTED_REPO_INDICES+=("$i")
+    done
+    CFG_SYNC_REPOS=true
+    snapshot_sync_repos_from_selection
+  fi
+}
+
+on_step_error() {
+  local label="$1"
+  log_error "${label} fehlgeschlagen."
+  if [[ "${CFG_CONTINUE_ON_ERROR:-true}" == true ]]; then
+    log_info "→ Übersprungen — Setup läuft mit nächstem Schritt weiter."
+    return 0
+  fi
+  if ask_yes_no "Schritt überspringen und fortfahren?" "j"; then
+    return 0
+  fi
+  return 1
+}
+
+collect_git_hosts_from_sync_repos() {
+  local url host
+  for url in "${SYNC_REPO_URL[@]}"; do
+    [[ -z "$url" ]] && continue
+    if [[ "$url" =~ ^https?://([^/@]+@)?([^/:]+) ]]; then
+      host="${BASH_REMATCH[2]}"
+      [[ -n "$host" ]] && printf '%s\n' "$host"
+    fi
+  done | sort -u
+}
+
+configure_git_credentials() {
+  [[ "$CFG_SYNC_REPOS" != true || ${#SYNC_REPO_URL[@]} -eq 0 ]] && return 0
+
+  local cred_file="${HOME}/.git-credentials"
+  git config --global credential.helper "store --file=${cred_file}"
+  touch "$cred_file"
+  chmod 600 "$cred_file" 2>/dev/null || true
+
+  local hosts=() host
+  while IFS= read -r host; do
+    [[ -n "$host" ]] && hosts+=("$host")
+  done < <(collect_git_hosts_from_sync_repos)
+
+  if [[ ${#hosts[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  for host in "${hosts[@]}"; do
+    if [[ -n "${CFG_GITLAB_TOKEN:-}" ]] && [[ "$host" == *gitlab* ]]; then
+      printf 'protocol=https\nhost=%s\nusername=oauth2\npassword=%s\n\n' \
+        "$host" "$CFG_GITLAB_TOKEN" | git credential approve
+    elif [[ -n "${CFG_GIT_HTTP_USER:-}" && -n "${CFG_GIT_HTTP_PASSWORD:-}" ]]; then
+      printf 'protocol=https\nhost=%s\nusername=%s\npassword=%s\n\n' \
+        "$host" "$CFG_GIT_HTTP_USER" "$CFG_GIT_HTTP_PASSWORD" | git credential approve
+    fi
+  done
+
+  if [[ -n "${CFG_GITLAB_TOKEN:-}" || -n "${CFG_GIT_HTTP_USER:-}" || -s "$cred_file" ]]; then
+    export GIT_TERMINAL_PROMPT=0
+    log_success "Git-Zugangsdaten aktiv (~/.git-credentials) — kein erneutes Passwort pro Repo."
+  fi
+
+  unset CFG_GIT_HTTP_PASSWORD
+}
+
+prompt_git_http_credentials() {
+  [[ "$CFG_SYNC_REPOS" != true ]] && return 0
+
+  CFG_GITLAB_TOKEN="${CFG_GITLAB_TOKEN:-${GITLAB_TOKEN:-}}"
+
+  if [[ -n "$CFG_GITLAB_TOKEN" ]]; then
+    log_success "GitLab-Token vorhanden — Clone ohne wiederholte Passwort-Abfrage."
+    return 0
+  fi
+
+  if [[ -f "${HOME}/.git-credentials" ]] && [[ -s "${HOME}/.git-credentials" ]]; then
+    if ask_yes_no "Gespeicherte Git-Zugangsdaten (~/.git-credentials) verwenden?" "j"; then
+      CFG_GIT_HTTP_USER="${CFG_GIT_HTTP_USER:-$(default_docker_username)}"
+      return 0
+    fi
+  fi
+
+  log_info "Git-Zugang einmalig — gilt für alle ausgewählten Repositories (gespeichert in ~/.git-credentials)."
+  CFG_GIT_HTTP_USER="$(ask_input "Git-Benutzername (E- oder B-Nummer)" "${CFG_GIT_HTTP_USER:-$(default_docker_username)}")"
+  CFG_GIT_HTTP_PASSWORD="$(ask_secret "Git-Passwort oder Personal Access Token")"
+}
+
+save_selected_repos_snapshot() {
+  local f="${SETUP_STATE_DIR}/selected-repos.list"
+  [[ "$CFG_SYNC_REPOS" != true || ${#SYNC_REPO_NAME[@]} -eq 0 ]] && {
+    rm -f "$f"
+    return 0
+  }
+  mkdir -p "$SETUP_STATE_DIR"
+  : > "$f"
+  local i
+  for i in "${!SYNC_REPO_NAME[@]}"; do
+    printf '%s|%s|%s\n' \
+      "${SYNC_REPO_NAME[$i]}" "${SYNC_REPO_PATH[$i]}" "${SYNC_REPO_URL[$i]}" >> "$f"
+  done
+}
+
+load_selected_repos_snapshot() {
+  local f="${SETUP_STATE_DIR}/selected-repos.list"
+  [[ -f "$f" ]] || return 1
+
+  SYNC_REPO_NAME=()
+  SYNC_REPO_PATH=()
+  SYNC_REPO_URL=()
+  local line name path url
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    IFS='|' read -r name path url <<< "$line"
+    [[ -z "$name" ]] && continue
+    SYNC_REPO_NAME+=("$name")
+    SYNC_REPO_PATH+=("${path:-${REPOS_DIR}/${name}}")
+    SYNC_REPO_URL+=("${url:-}")
+  done < "$f"
+  [[ ${#SYNC_REPO_NAME[@]} -gt 0 ]] && CFG_SYNC_REPOS=true
+}
+
+load_questionnaire_state() {
+  local f="${SETUP_STATE_DIR}/questionnaire.env"
+  [[ -f "$f" ]] || return 1
+  # shellcheck source=/dev/null
+  source "$f"
+  return 0
+}
+
+save_questionnaire_state() {
+  mkdir -p "$SETUP_STATE_DIR"
+  chmod 700 "$SETUP_STATE_DIR" 2>/dev/null || true
+  QUESTIONNAIRE_SAVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  cat > "${SETUP_STATE_DIR}/questionnaire.env" <<EOF
+# Gespeicherte Fragebogen-Antworten — Enter übernimmt beim erneuten Lauf
+QUESTIONNAIRE_SAVED_AT="${QUESTIONNAIRE_SAVED_AT}"
+CFG_USE_PROXY=${CFG_USE_PROXY}
+CFG_PROXY_URL="${CFG_PROXY_URL}"
+CFG_USER_NAME="${CFG_USER_NAME}"
+CFG_USER_EMAIL="${CFG_USER_EMAIL}"
+CFG_E_NUMBER="${CFG_E_NUMBER}"
+CFG_B_NUMBER="${CFG_B_NUMBER}"
+CFG_NUMBER_TYPE="${CFG_NUMBER_TYPE}"
+CFG_DISPLAY_NAME="${CFG_DISPLAY_NAME}"
+CFG_INSTALL_NVM=${CFG_INSTALL_NVM}
+CFG_INSTALL_PYTHON=${CFG_INSTALL_PYTHON}
+CFG_INSTALL_PNPM=${CFG_INSTALL_PNPM}
+CFG_INSTALL_JAVA=${CFG_INSTALL_JAVA}
+CFG_INSTALL_GRADLE=${CFG_INSTALL_GRADLE}
+CFG_NODE_VERSION="${CFG_NODE_VERSION:-lts}"
+CFG_JAVA_VERSION="${CFG_JAVA_VERSION:-21}"
+CFG_SYNC_REPOS=${CFG_SYNC_REPOS}
+CFG_GITLAB_GROUP_URL="${CFG_GITLAB_GROUP_URL}"
+CFG_GIT_HTTP_USER="${CFG_GIT_HTTP_USER}"
+CFG_DOCKER_LOGIN=${CFG_DOCKER_LOGIN}
+CFG_DOCKER_REGISTRY="${CFG_DOCKER_REGISTRY}"
+CFG_DOCKER_USER="${CFG_DOCKER_USER}"
+CFG_CLOUDCTL_LOGIN=${CFG_CLOUDCTL_LOGIN}
+CFG_CONTINUE_ON_ERROR=${CFG_CONTINUE_ON_ERROR}
+EOF
+  if [[ -n "${CFG_GITLAB_TOKEN:-}" ]]; then
+    printf 'CFG_GITLAB_TOKEN="%s"\n' "$CFG_GITLAB_TOKEN" >> "${SETUP_STATE_DIR}/questionnaire.env"
+  fi
+  chmod 600 "${SETUP_STATE_DIR}/questionnaire.env" 2>/dev/null || true
+  save_selected_repos_snapshot
+}
+
+show_questionnaire_summary() {
+  echo ""
+  section_header "q_tools" "📋 Zusammenfassung deiner Auswahl"
+  echo -e "  🌐 ${DIM}Proxy:${NC}        $([[ "$CFG_USE_PROXY" == true ]] && echo "${CFG_PROXY_URL}" || echo "nein")"
+  echo -e "  👤 ${DIM}Name:${NC}         ${CFG_DISPLAY_NAME} (${CFG_USER_NAME})"
+  echo -e "  ✉️  ${DIM}E-Mail:${NC}       ${CFG_USER_EMAIL}"
+  if [[ "$CFG_NUMBER_TYPE" == "e" ]]; then
+    echo -e "  🪪 ${DIM}E-Nummer:${NC}     ${CFG_E_NUMBER}"
+  else
+    echo -e "  🪪 ${DIM}B-Nummer:${NC}     ${CFG_B_NUMBER}"
+  fi
+  echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SYNC_REPO_NAME[@]} ausgewählt" || echo "übersprungen")"
+  [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
+  echo -e "  ${ICON_NODE} ${DIM}Node.js:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION}, Homebrew)" || echo "nein")"
+  echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_JAVA} ${DIM}Java:${NC}         $([[ "$CFG_INSTALL_JAVA" == true ]] && echo "ja (OpenJDK ${CFG_JAVA_VERSION})" || echo "nein")"
+  echo -e "  ${ICON_GRADLE} ${DIM}Gradle:${NC}       $([[ "$CFG_INSTALL_GRADLE" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_DOCKER} ${DIM}Docker login:${NC} $([[ "$CFG_DOCKER_LOGIN" == true ]] && echo "ja (${CFG_DOCKER_REGISTRY} / ${CFG_DOCKER_USER})" || echo "nein")"
+  echo -e "  ${ICON_CLOUD} ${DIM}cloudctl login:${NC} $([[ "$CFG_CLOUDCTL_LOGIN" == true ]] && echo "ja" || echo "nein")"
+  echo -e "  ${ICON_SHELL} ${DIM}Terminal:${NC}     ${ICON_ZSH} Zsh + ${ICON_P10K} Powerlevel10k (immer)"
+  echo -e "  ⚙️  ${DIM}Bei Fehlern:${NC}   $([[ "$CFG_CONTINUE_ON_ERROR" == true ]] && echo "überspringen & weiter" || echo "nachfragen")"
+  echo ""
 }
 
 default_docker_username() {
@@ -1396,6 +1742,11 @@ finalize_sync_repo_list() {
 sync_single_repo_entry() {
   local name="$1" path="$2" url="$3"
   local log_file; log_file="$(mktemp)"
+  local -a git_cmd=(git)
+
+  if [[ "${GIT_TERMINAL_PROMPT:-1}" == "0" ]]; then
+    git_cmd=(env GIT_TERMINAL_PROMPT=0 git)
+  fi
 
   if [[ ! -d "${path}/.git" ]]; then
     [[ -z "$url" ]] && { log_error "${ICON_FOLDER} ${name}: keine URL – übersprungen."; rm -f "$log_file"; return 1; }
@@ -1403,15 +1754,15 @@ sync_single_repo_entry() {
       log_error "${name}: Zielordner ${path} nicht anlegbar."
       rm -f "$log_file"; return 1
     }
-    if git clone --progress "$url" "$path" >"$log_file" 2>&1; then
+    if "${git_cmd[@]}" clone --progress "$url" "$path" >"$log_file" 2>&1; then
       rm -f "$log_file"; return 0
     fi
     log_error "${name}: Clone fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
     rm -f "$log_file"; return 1
   fi
 
-  if git -C "$path" pull --progress --ff-only >"$log_file" 2>&1 || \
-     git -C "$path" pull --progress >"$log_file" 2>&1; then
+  if "${git_cmd[@]}" -C "$path" pull --progress --ff-only >"$log_file" 2>&1 || \
+     "${git_cmd[@]}" -C "$path" pull --progress >"$log_file" 2>&1; then
     rm -f "$log_file"; return 0
   fi
   log_error "${name}: Pull fehlgeschlagen."; tail -3 "$log_file" | sed 's/^/    /'
@@ -1436,12 +1787,44 @@ run_questionnaire() {
   echo -e "${DIM}  ✍️  Setup by ${SETUP_AUTHOR} — bei Fragen oder Problemen gerne melden.${NC}"
   echo ""
 
+  load_setup_conf
+  if [[ "$SETUP_CONF_LOADED" -gt 0 ]]; then
+    log_success "${SETUP_CONF_LOADED} Einstellungen aus setup_dev_container.conf geladen."
+    log_info "Conf: ${SETUP_CONF_LOCAL} (lokal) oder ${SETUP_CONF} — Vorlage: ${SETUP_CONF_EXAMPLE}"
+  elif [[ ! -f "$SETUP_CONF_LOCAL" && -f "$SETUP_CONF_EXAMPLE" ]]; then
+    log_info "Tipp: cp setup_dev_container.conf.example setup_dev_container.conf.local — Werte vorab eintragen."
+  fi
+
+  if [[ "$CFG_SKIP_QUESTIONNAIRE" == true ]] && conf_questionnaire_complete; then
+    prepare_repos_from_conf
+    [[ "$CFG_SYNC_REPOS" == true ]] && prompt_git_http_credentials
+    show_questionnaire_summary
+    if ask_yes_no "Installation mit Conf-Werten starten?" "j"; then
+      return 0
+    fi
+    log_info "Fragebogen wird trotzdem durchlaufen …"
+  fi
+
+  if load_questionnaire_state; then
+    load_selected_repos_snapshot || true
+    log_info "Gespeicherte Einstellungen gefunden (${QUESTIONNAIRE_SAVED_AT:-?})."
+    if ask_yes_no "Fragebogen überspringen und gespeicherte Werte verwenden?" "j"; then
+      show_questionnaire_summary
+      if ask_yes_no "Installation starten?" "j"; then
+        return 0
+      fi
+      log_info "Fragebogen wird erneut durchlaufen — Enter übernimmt gespeicherte Standardwerte."
+    else
+      log_info "Gespeicherte Werte als Voreinstellung — Enter übernimmt Standardwerte."
+    fi
+  fi
+
   # --- 1/5 Proxy ---
   section_header "q_proxy" "🌐 Frage 1/5 · Proxy" "Brauchst du einen Firmen-Proxy?"
-  if ask_yes_no "Proxy konfigurieren?" "n"; then
+  if ask_yes_no "Proxy konfigurieren?" "$(bool_default_yn "$CFG_USE_PROXY")"; then
     CFG_USE_PROXY=true
     local proxy_default
-    proxy_default="$(detect_default_proxy_url)"
+    proxy_default="${CFG_PROXY_URL:-$(detect_default_proxy_url)}"
     if [[ "$proxy_default" == "$DEFAULT_CLUSTER_PROXY" ]]; then
       log_info "Cluster-Proxy erkannt (internet-proxy.internet-proxy.svc.cluster.local)."
     fi
@@ -1449,30 +1832,41 @@ run_questionnaire() {
     log_success "Proxy wird eingerichtet: ${CFG_PROXY_URL}"
     log_info "apt: 95proxies + ForceIPv4 (98force-ipv4) werden gesetzt."
   else
+    CFG_USE_PROXY=false
     log_info "Kein Proxy."
   fi
 
   # --- 2/5 Persönliche Daten ---
   section_header "q_personal" "👤 Frage 2/5 · Persönliche Daten" "Git-Identität und Container-Variablen."
-  CFG_USER_NAME="$(ask_input "Wie ist dein Name?")"
-  CFG_USER_EMAIL="$(ask_input "Wie lautet deine E-Mail-Adresse?")"
+  CFG_USER_NAME="$(ask_input "Wie ist dein Name?" "${CFG_USER_NAME}")"
+  CFG_USER_EMAIL="$(ask_input "Wie lautet deine E-Mail-Adresse?" "${CFG_USER_EMAIL}")"
   CFG_NUMBER_TYPE="$(ask_number_type)"
   if [[ "$CFG_NUMBER_TYPE" == "e" ]]; then
-    CFG_E_NUMBER="$(ask_input "Wie lautet deine E-Nummer?")"
+    CFG_E_NUMBER="$(ask_input "Wie lautet deine E-Nummer?" "${CFG_E_NUMBER}")"
     CFG_B_NUMBER=""
   else
-    CFG_B_NUMBER="$(ask_input "Wie lautet deine B-Nummer?")"
+    CFG_B_NUMBER="$(ask_input "Wie lautet deine B-Nummer?" "${CFG_B_NUMBER}")"
     CFG_E_NUMBER=""
   fi
-  CFG_DISPLAY_NAME="$(ask_input "Wie möchtest du gerne genannt werden?")"
+  CFG_DISPLAY_NAME="$(ask_input "Wie möchtest du gerne genannt werden?" "${CFG_DISPLAY_NAME:-${CFG_USER_NAME}}")"
   log_success "Persönliche Daten erfasst."
 
   # --- 3/5 Git-Repos ---
   section_header "q_repos" "📁 Frage 3/5 · Git-Repositories" "GitLab-Gruppe laden und Repositories auswählen."
   log_info "${ICON_WORKSPACE} Repos-Ordner: ${REPOS_DIR} (wird bei Installation angelegt)"
-  prompt_gitlab_group
-  select_repos_interactive
+  if [[ "$CFG_SYNC_REPOS" == true && ${#SYNC_REPO_NAME[@]} -gt 0 ]]; then
+    if ask_yes_no "Gespeicherte Repository-Auswahl (${#SYNC_REPO_NAME[@]} Repos) beibehalten?" "j"; then
+      log_success "${#SYNC_REPO_NAME[@]} Repositories aus gespeichertem Lauf übernommen."
+    else
+      prompt_gitlab_group
+      select_repos_interactive
+    fi
+  else
+    prompt_gitlab_group
+    select_repos_interactive
+  fi
   if [[ "$CFG_SYNC_REPOS" == true ]]; then
+    prompt_git_http_credentials
     log_success "${#SYNC_REPO_NAME[@]} Repository/Repositories ausgewählt."
   else
     log_info "Repository-Sync wird übersprungen."
@@ -1520,10 +1914,10 @@ run_questionnaire() {
   section_header "q_logins" "🔐 Frage 5/5 · Docker & cloudctl" "Registry- und Cloud-Zugang einrichten."
   echo ""
   echo -e "${BOLD}  ${ICON_DOCKER} Docker Registry Login${NC}"
-  if ask_yes_no "Docker login durchführen?" "y"; then
+  if ask_yes_no "Docker login durchführen?" "$(bool_default_yn "$CFG_DOCKER_LOGIN")"; then
     CFG_DOCKER_LOGIN=true
-    CFG_DOCKER_REGISTRY="$(ask_input "Registry-URL" "$DEFAULT_DOCKER_REGISTRY")"
-    CFG_DOCKER_USER="$(ask_input "Docker-Benutzername (E- oder B-Nummer)" "$(default_docker_username)")"
+    CFG_DOCKER_REGISTRY="$(ask_input "Registry-URL" "${CFG_DOCKER_REGISTRY:-$DEFAULT_DOCKER_REGISTRY}")"
+    CFG_DOCKER_USER="$(ask_input "Docker-Benutzername (E- oder B-Nummer)" "${CFG_DOCKER_USER:-$(default_docker_username)}")"
     if ask_yes_no "Token/Passwort jetzt eingeben? (Enter = interaktiv in Phase 2)" "n"; then
       CFG_DOCKER_TOKEN="$(ask_secret "Docker Token/Passwort")"
     fi
@@ -1533,7 +1927,7 @@ run_questionnaire() {
   fi
   echo ""
   echo -e "${BOLD}  ${ICON_CLOUD} cloudctl Login${NC}"
-  if ask_yes_no "cloudctl login durchführen?" "y"; then
+  if ask_yes_no "cloudctl login durchführen?" "$(bool_default_yn "$CFG_CLOUDCTL_LOGIN")"; then
     CFG_CLOUDCTL_LOGIN=true
     log_success "cloudctl login wird in Phase 2 interaktiv ausgeführt."
     log_info "Halte ggf. Browser/Token bereit (SSO)."
@@ -1541,28 +1935,14 @@ run_questionnaire() {
     log_info "cloudctl login übersprungen."
   fi
 
-  # Zusammenfassung
   echo ""
-  section_header "q_tools" "📋 Zusammenfassung deiner Auswahl"
-  echo -e "  🌐 ${DIM}Proxy:${NC}        $([[ "$CFG_USE_PROXY" == true ]] && echo "${CFG_PROXY_URL}" || echo "nein")"
-  echo -e "  👤 ${DIM}Name:${NC}         ${CFG_DISPLAY_NAME} (${CFG_USER_NAME})"
-  echo -e "  ✉️  ${DIM}E-Mail:${NC}       ${CFG_USER_EMAIL}"
-  if [[ "$CFG_NUMBER_TYPE" == "e" ]]; then
-    echo -e "  🪪 ${DIM}E-Nummer:${NC}     ${CFG_E_NUMBER}"
+  if ask_yes_no "Bei Fehlern in Phase 2 automatisch überspringen und fortfahren?" "$(bool_default_yn "$CFG_CONTINUE_ON_ERROR")"; then
+    CFG_CONTINUE_ON_ERROR=true
   else
-    echo -e "  🪪 ${DIM}B-Nummer:${NC}     ${CFG_B_NUMBER}"
+    CFG_CONTINUE_ON_ERROR=false
   fi
-  echo -e "  ${ICON_GIT} ${DIM}Git-Repos:${NC}    $([[ "$CFG_SYNC_REPOS" == true ]] && echo "${#SYNC_REPO_NAME[@]} ausgewählt" || echo "übersprungen")"
-  [[ -n "$CFG_GITLAB_GROUP_URL" ]] && echo -e "  ${ICON_GIT} ${DIM}GitLab-Gruppe:${NC} ${CFG_GITLAB_GROUP_URL}"
-  echo -e "  ${ICON_NODE} ${DIM}Node.js:${NC}     $([[ "$CFG_INSTALL_NVM" == true ]] && echo "ja (${CFG_NODE_VERSION}, Homebrew)" || echo "nein")"
-  echo -e "  ${ICON_PYTHON} ${DIM}Python:${NC}       $([[ "$CFG_INSTALL_PYTHON" == true ]] && echo "ja" || echo "nein")"
-  echo -e "  ${ICON_PNPM} ${DIM}pnpm:${NC}         $([[ "$CFG_INSTALL_PNPM" == true ]] && echo "ja" || echo "nein")"
-  echo -e "  ${ICON_JAVA} ${DIM}Java:${NC}         $([[ "$CFG_INSTALL_JAVA" == true ]] && echo "ja (OpenJDK ${CFG_JAVA_VERSION})" || echo "nein")"
-  echo -e "  ${ICON_GRADLE} ${DIM}Gradle:${NC}       $([[ "$CFG_INSTALL_GRADLE" == true ]] && echo "ja" || echo "nein")"
-  echo -e "  ${ICON_DOCKER} ${DIM}Docker login:${NC} $([[ "$CFG_DOCKER_LOGIN" == true ]] && echo "ja (${CFG_DOCKER_REGISTRY} / ${CFG_DOCKER_USER})" || echo "nein")"
-  echo -e "  ${ICON_CLOUD} ${DIM}cloudctl login:${NC} $([[ "$CFG_CLOUDCTL_LOGIN" == true ]] && echo "ja" || echo "nein")"
-  echo -e "  ${ICON_SHELL} ${DIM}Terminal:${NC}     ${ICON_ZSH} Zsh + ${ICON_P10K} Powerlevel10k (immer)"
-  echo ""
+
+  show_questionnaire_summary
 
   if ! ask_yes_no "Alles korrekt? Installation starten?" "j"; then
     log_info "Abgebrochen. Starte das Skript erneut, um die Eingaben anzupassen."
@@ -1637,10 +2017,10 @@ exec_install_persistent_base() {
   section_header "e_brew_base" "🍺 Installation · Persistente Basis (${HOME})"
 
   draw_progress_bar 1 2 "${ICON_BREW} Homebrew → ${HOME}/.linuxbrew …"
-  install_homebrew || return 1
+  install_homebrew || { on_step_error "Homebrew-Basis"; return 0; }
 
   draw_progress_bar 2 2 "${ICON_GIT} git (persistent via Homebrew) …"
-  brew_install_formula git
+  brew_install_formula git || on_step_error "git (Homebrew)" || true
 
   install_restore_brew_script
   echo ""
@@ -1692,7 +2072,16 @@ exec_sync_repos() {
     return 0
   fi
 
-  ensure_repos_directory || return 1
+  configure_git_credentials
+
+  if [[ "$CFG_SYNC_REPOS" == true ]] && [[ ! -s "${HOME}/.git-credentials" ]] \
+    && [[ -z "${CFG_GITLAB_TOKEN:-}" ]] && [[ -z "${CFG_GIT_HTTP_PASSWORD:-}" ]]; then
+    log_info "Git-Zugangsdaten für Clone benötigt …"
+    prompt_git_http_credentials
+    configure_git_credentials
+  fi
+
+  ensure_repos_directory || { on_step_error "Repos-Ordner anlegen"; return 0; }
   local total="${#SYNC_REPO_NAME[@]}" current=0 ok=0 fail=0 i
 
   for i in "${!SYNC_REPO_NAME[@]}"; do
@@ -1707,7 +2096,10 @@ exec_sync_repos() {
   draw_progress_bar "$((total + 1))" "$((total + 1))" "Fertig!"
   echo ""; echo ""
   log_success "${ok}/${total} Repositories synchronisiert."
-  [[ "$fail" -gt 0 ]] && log_error "${fail} Fehler."
+  [[ "$fail" -gt 0 ]] && {
+    log_error "${fail} Fehler."
+    on_step_error "Repository-Sync (${fail} fehlgeschlagen)" || true
+  }
 
   # Nach frischem Clone: Tooling-Hinweis (Installation war vor dem Sync geplant)
   if [[ "$ok" -gt 0 ]]; then
@@ -1738,7 +2130,7 @@ exec_install_tools() {
 
   current=$((current + 1))
   draw_progress_bar "$current" "$steps" "${ICON_BREW} Homebrew prüfen …"
-  install_homebrew || return 1
+  install_homebrew || { on_step_error "Homebrew"; return 0; }
 
   if [[ "$CFG_INSTALL_JAVA" == true ]]; then
     echo -e "${BOLD}  ${ICON_JAVA} Java (OpenJDK)${NC}"
@@ -1801,8 +2193,7 @@ exec_docker_login() {
   fi
 
   ensure_docker_cli || {
-    log_error "Docker CLI konnte nicht installiert werden."
-    return 1
+    on_step_error "Docker CLI" || return 1
   }
 
   local registry="${CFG_DOCKER_REGISTRY:-$DEFAULT_DOCKER_REGISTRY}"
@@ -1814,7 +2205,8 @@ exec_docker_login() {
       return 0
     fi
     log_error "${ICON_DOCKER} Docker login fehlgeschlagen (Token/User)."
-    return 1
+    on_step_error "Docker login" || return 1
+    return 0
   fi
 
   log_info "${ICON_DOCKER} Interaktiver docker login für ${registry} …"
@@ -1829,7 +2221,7 @@ exec_docker_login() {
     log_success "${ICON_DOCKER} Docker login erfolgreich."
   else
     log_error "${ICON_DOCKER} Docker login fehlgeschlagen oder Daemon nicht erreichbar."
-    return 1
+    on_step_error "Docker login" || return 1
   fi
 }
 
@@ -1839,18 +2231,16 @@ exec_cloudctl_login() {
   fi
 
   if ! command -v cloudctl &>/dev/null; then
-    log_error "${ICON_CLOUD} cloudctl nicht im PATH — bitte manuell installieren."
-    return 1
+    on_step_error "cloudctl nicht im PATH" || return 1
+    return 0
   fi
 
   log_info "${ICON_CLOUD} cloudctl login (interaktiv) …"
   if cloudctl login; then
     log_success "${ICON_CLOUD} cloudctl login erfolgreich."
-    return 0
+  else
+    on_step_error "cloudctl login" || return 1
   fi
-
-  log_error "${ICON_CLOUD} cloudctl login fehlgeschlagen."
-  return 1
 }
 
 exec_logins() {
@@ -1882,11 +2272,11 @@ exec_install_terminal() {
   local p10k_dir="${HOME}/.powerlevel10k/powerlevel10k"
   local total_steps=7 step=0
 
-  install_homebrew || return 1
+  install_homebrew || { on_step_error "Homebrew"; return 0; }
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "${ICON_ZSH} Zsh & fontconfig (Homebrew) …"
-  brew_install_formula zsh
-  brew_install_formula fontconfig
+  brew_install_formula zsh || on_step_error "zsh (Homebrew)" || true
+  brew_install_formula fontconfig || on_step_error "fontconfig (Homebrew)" || true
 
   step=$((step + 1)); draw_progress_bar "$step" "$total_steps" "🔤 Meslo Nerd Fonts installieren …"
   install_meslo_nerd_fonts
@@ -2003,6 +2393,7 @@ run_installation() {
 # ---------------------------------------------------------------------------
 main() {
   run_questionnaire
+  save_questionnaire_state
   run_installation
 }
 

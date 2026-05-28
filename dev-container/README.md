@@ -281,6 +281,7 @@ Alle Shell-Variablen werden in markierten Blöcken in `~/.zshrc` gespeichert und
 - **Clone oder Pull:** Fehlende Repos werden geklont, vorhandene aktualisiert
 - **Fortschritt:** Pro Repository mit Statusanzeige (Branch, ahead/behind)
 - **Token:** `GITLAB_TOKEN` für private Gruppen (Scope: `read_api`)
+- **Git-Zugang einmalig:** E-Nummer + Passwort oder Token werden in `~/.git-credentials` gespeichert — **nicht pro Repo erneut abgefragt**
 
 **Repository-Auswahl im Fragebogen:**
 
@@ -531,11 +532,59 @@ Das Skript kann **mehrfach** ausgeführt werden:
 
 ---
 
+## Vorab-Konfiguration (`setup_dev_container.conf`)
+
+Statt alles im Fragebogen einzutippen, kannst du Werte **einmal in einer Conf-Datei** hinterlegen:
+
+```bash
+cp setup_dev_container.conf.example setup_dev_container.conf.local
+# Werte anpassen — .local enthält oft Passwörter, nicht committen!
+./setup_dev_container.sh
+```
+
+| Datei | Zweck |
+|-------|--------|
+| `setup_dev_container.conf.example` | Vorlage mit allen Keys (im Repo) |
+| `setup_dev_container.conf` | Optionale teamweite Defaults |
+| `setup_dev_container.conf.local` | **Persönlich** (gitignored) — Passwörter hier |
+| `setup_dev_container.repos.conf` | GitLab-Gruppe + Einzelrepos |
+
+**Beispiel** (`setup_dev_container.conf.local`):
+
+```ini
+USE_PROXY=true
+PROXY_URL=http://internet-proxy.internet-proxy.svc.cluster.local:3128
+
+USER_NAME=Max Mustermann
+USER_EMAIL=max@company.com
+NUMBER_TYPE=e
+E_NUMBER=E12345
+
+GIT_HTTP_USER=E12345
+GIT_HTTP_PASSWORD=geheim
+
+INSTALL_NODE=true
+INSTALL_PNPM=true
+DOCKER_LOGIN=true
+DOCKER_USER=E12345
+
+SKIP_QUESTIONNAIRE=true
+CONTINUE_ON_ERROR=true
+REPO_SELECT_ALL=true
+```
+
+Mit `SKIP_QUESTIONNAIRE=true` und ausgefüllten Pflichtfeldern (Name, E-Mail, E-/B-Nummer) startet das Setup **direkt zur Installation** — Repos kommen aus `repos.conf` + GitLab-Gruppe.
+
+**Priorität:** Conf → gespeicherter letzter Lauf (`questionnaire.env`) → interaktive Eingabe.
+
+---
+
 ## Umgebungsvariablen
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `GITLAB_TOKEN` | — | Personal Access Token für private GitLab-Gruppen (`read_api`) |
+| `SETUP_CONF_FILE` | — | Alternativer Pfad zu einer Conf-Datei |
 | `REPOS_DIR` | `$HOME/repos` | Zielordner für Git-Repositories (z. B. `/home/coder/repos`) |
 | `WORKSPACE_ROOT` | `$HOME` | Workspace-Root (nur `/workspace` wenn beschreibbar) |
 | `WORKSPACE_DIR` | *(deprecated)* | Alias für `REPOS_DIR` (Abwärtskompatibilität) |
@@ -674,6 +723,27 @@ Das Skript installiert Brew per **Git-Clone direkt nach `~/.linuxbrew`** (nicht 
 ```bash
 ./setup_dev_container.sh
 ```
+
+### Gespeicherte Einstellungen
+
+Antworten werden unter `~/.config/setup_dev_container/` gespeichert:
+
+| Datei | Inhalt |
+|-------|--------|
+| `questionnaire.env` | Proxy, Name, Tools, Docker, … |
+| `selected-repos.list` | Ausgewählte Repositories |
+| `~/.git-credentials` | Git-Benutzer/Token (einmalig) |
+
+Beim **erneuten Start**:
+
+1. **„Fragebogen überspringen?“** → `j` = direkt zur Installation mit gespeicherten Werten
+2. **„Voreinstellungen nutzen?“** → Enter übernimmt alte Werte pro Frage
+
+### Fehler in Phase 2
+
+Standard: **„Bei Fehlern automatisch überspringen und fortfahren?“** → `j`
+
+Einzelne Repos, Homebrew-Schritte oder Logins können fehlschlagen — das Setup läuft trotzdem weiter. Fehlgeschlagene Repos können später einzeln nachgezogen werden.
 
 Einstellungen können jederzeit angepasst werden — bestehende Blöcke in `~/.zshrc` werden aktualisiert.
 
