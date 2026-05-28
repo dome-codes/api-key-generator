@@ -1,0 +1,53 @@
+# setup_dev_container.conf — Vorab-Einstellungen (optional)
+#
+# So nutzen:
+#   cp setup_dev_container.conf.example setup_dev_container.conf.local
+#   # Werte anpassen — .local nicht ins Git committen (Passwörter!)
+#
+# Geladen vor dem Fragebogen; Enter übernimmt Werte als Standard.
+# SKIP_QUESTIONNAIRE=true → bei vollständigen Pflichtfeldern direkt zur Installation.
+#
+# Repositories weiterhin in setup_dev_container.repos.conf (@gitlab-group|URL)
+
+# --- Proxy ---
+USE_PROXY=true
+PROXY_URL=http://internet-proxy.internet-proxy.svc.cluster.local:3128
+
+# --- Persönliche Daten (Pflicht für SKIP_QUESTIONNAIRE) ---
+USER_NAME=Max Mustermann
+USER_EMAIL=max.mustermann@company.com
+NUMBER_TYPE=e
+E_NUMBER=E12345
+# B_NUMBER=B12345
+DISPLAY_NAME=Max
+
+# --- Git / Repositories ---
+GITLAB_GROUP_URL=https://gitlab.company.com/deka/plattform
+# GITLAB_TOKEN=glpat-...          # besser: export GITLAB_TOKEN=... in der Shell
+GIT_HTTP_USER=E12345
+# GIT_HTTP_PASSWORD=geheim         # nur in .local — wird nach ~/.git-credentials geschrieben
+SYNC_REPOS=true
+REPO_SELECT_ALL=true
+
+# --- Optionale Tools (true/false) ---
+INSTALL_NODE=true
+NODE_VERSION=lts
+INSTALL_PYTHON=false
+INSTALL_PNPM=true
+INSTALL_JAVA=true
+JAVA_VERSION=21
+INSTALL_GRADLE=false
+# Nach Repo-Sync: Versionen aus Repos erkennen und installieren (.nvmrc, pyproject.toml, …)
+AUTO_INSTALL_DETECTED=true
+
+# --- Docker & cloudctl ---
+DOCKER_LOGIN=true
+DOCKER_REGISTRY=deka.jfrog.io
+DOCKER_USER=E12345
+# DOCKER_TOKEN=...
+
+CLOUDCTL_LOGIN=false
+
+# --- Verhalten ---
+CONTINUE_ON_ERROR=true
+SKIP_QUESTIONNAIRE=false
